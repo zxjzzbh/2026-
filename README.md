@@ -1,97 +1,80 @@
 # 2026 室外 5G 远程驾驶无人车赛
 
-本仓库用于队伍共同开发无人车的软件、固件、通信方案和硬件文档。**先按模块找目录，再在个人任务分支提交，通过 Pull Request 合并。**
+**当前基线（2026-10-08）：Raspberry Pi 5 + RasAdapter5A 串口扩展板，纯树莓派应用控制，不使用独立 STM32。**
 
-目前处于项目初始化阶段：已建立目录和协作约定，尚未实现可运行的整车程序。目录存在不代表对应功能已经完成。
+当前源码已经包含双摄感知、网页遥控、UART 执行、比赛状态机和自主运行框架。有限低速/5G 测试有历史记录；**完整自主赛道尚未实车验收，真实自主输出仍被未完成标定项阻止。**
 
-## 新队员从这里开始
+- [当前进度与待办](docs/current-status.md)：唯一当前状态入口。
+- [源码审查与改进建议](docs/reviews/2026-10-08-source-review.md)：功能、技术栈、复现的问题、改进优先级。
+- [系统架构](docs/architecture.md)、[硬件基线](hardware/README.md)、[接口](interfaces/README.md)。
+- [团队分工](docs/team.md)和[贡献流程](CONTRIBUTING.md)：保持独立分支 → PR → 合并。
 
-1. 阅读本页，确定自己的代码应放在哪个目录。
-2. 在 [团队分工表](docs/team.md) 中补充姓名、GitHub 用户名和负责模块。
-3. 按 [贡献指南](CONTRIBUTING.md) 完成 clone → 建分支 → commit → push → Pull Request。
-4. 涉及其他模块的数据格式时，先查 [接口约定](interfaces/README.md)，再与相关队员一起修改。
-5. 每次提交同步更新模块 README，写清运行方法和验证结果。
-
-## 我的东西放在哪里？
-
-| 分区 | 放什么 | 常见负责人 |
-|---|---|---|
-| [vision/](vision/README.md) | 摄像头输入、循迹、挡板、斑马线、红绿灯、锥桶、停车视觉 | 视觉同学 |
-| [vehicle/](vehicle/README.md) | 树莓派主程序、模式切换、任务状态机、高层路径与运动指令 | 主控/控制同学 |
-| [firmware/](firmware/README.md) | STM32 工程、PWM、编码器、速度/转向闭环 | 下位机同学 |
-| [communication/](communication/README.md) | 5G 联网、视频回传、远程操作端、连接状态 | 通信同学 |
-| [hardware/](hardware/README.md) | 型号清单、接线、供电、安装尺寸、标定记录 | 硬件同学 |
-| [interfaces/](interfaces/README.md) | 视觉结果、运动命令、UART 协议等跨模块约定 | 相关模块共同维护 |
-| [configs/](configs/README.md) | 整车共享配置示例；个人参数使用本地文件 | 各模块同学 |
-| [data/](data/README.md) | 少量可公开测试样例、标注说明、外部数据索引 | 视觉/测试同学 |
-| [models/](models/README.md) | 模型来源、版本、训练与部署说明 | 视觉同学 |
-| [tools/](tools/README.md) | 环境检查、录制、标定、日志分析等辅助工具 | 各模块同学 |
-| [tests/](tests/README.md) | 跨模块集成与回归验证 | 联调负责人 |
-| [experiments/](experiments/README.md) | 尚未合入正式模块的独立实验 | 所有队员 |
-| [docs/](docs/README.md) | 架构、规则核对、技术报告、测试记录和资料索引 | 所有队员 |
-
-**提交源码和复现说明；大录像、系统镜像、模型权重和运行日志使用数据索引管理。** 模块自己的配置、依赖、测试可放在模块目录；只有跨模块共享的内容放根目录公共分区。
-
-## 当前硬件基线与模块关系
-
-- 上位计算平台：计划 Raspberry Pi 4B 8GB，承担图像处理、任务状态机和高层控制。
-- 视觉：WXSJ-H65HD USB 广角摄像头，尚未完成出图及采集参数测试。
-- 姿态：WIT-Motion IMU，UART 通信，具体型号、电平与协议待确认。
-- 通信：现有蜂窝/5G 模块，具体型号、接口和联网方式待确认。
-- 动力与供电：已有电机、ESC、约 12 V 锂电池和 DC-DC；实际电压、电流能力与接法以实测记录为准。
-- 下位机：计划增加 STM32，负责舵机/ESC、PWM、编码器和闭环，具体芯片与串口协议待确定。
-
-项目不默认使用 ROS。首先支持电脑上的离线开发，再到树莓派和实车验证。
+## 实际架构
 
 ```mermaid
 flowchart LR
-    Camera[USB 摄像头] --> Vision[vision 视觉感知]
-    Vision --> Vehicle[vehicle 主控与状态机]
-    Remote[远程操作端] <--> Comm[communication 5G与视频]
-    Camera --> Comm
-    Comm <--> Vehicle
-    Vehicle <-->|拟定 UART 接口| MCU[firmware STM32]
-    MCU --> Actuator[舵机 / ESC / 电机]
-    Encoder[编码器] --> MCU
+    Remote[浏览器键盘 / 手柄] <-->|5G网络 + Tailscale| Web[Pi 5 HTTP控制 / MJPEG视频]
+    Cam[两路 USB 摄像头] --> Capture[采集与最新帧缓存]
+    Capture --> Web
+    Capture --> Perception[OpenCV / 可选比赛YOLO]
+    Perception --> Decision[比赛状态机与运动规划]
+    Feedback[待验收的速度 / 位姿反馈] --> Decision
+    Web --> Manual[手动有限测试执行]
+    Manual --> UART[独占 UART 所有权]
+    Decision --> Auto[自主执行门控 / 看门狗]
+    Auto --> UART
+    UART --> Board[RasAdapter5A]
+    Board --> Output[S1/S2 云台 S3 转向 S4 ESC]
 ```
 
-这是职责示意，并非已完成接线；摄像头应由统一采集服务分发，避免两个程序竞争设备。详细边界见 [系统架构](docs/architecture.md)。
+手动与自主不允许同时占有串口，实际交接仍需整车验收。上图的反馈输入不表示编码器已接通；板内 PWM 回读不等于轮速或实际舵角。
 
-## 比赛任务与当前注意事项
+## 技术栈
 
-依据队伍提供的 **2026 年 8 月规则初稿**，目标流程为：
+Python ≥3.10；OpenCV 4.11.0.86；NumPy 2.2.6；PyYAML 6.0.2；原生 HTML/CSS/JavaScript；Python HTTP/1.1 + MJPEG；Linux UART/V4L2/I2C/systemd；pytest 与 Node.js 浏览器逻辑检查。Ultralytics、ONNX/ONNX Runtime 是可选训练/推理依赖，比赛权重仍待验收。项目不依赖 ROS。
 
-**5G 远程驾驶 → 切换区停稳 → 蓝挡板移开发车 → 自主循迹 → 斑马线停车与播报 → 红绿灯 → 红/蓝锥桶避障 → 未遮挡车位停车 → 队员远程扫码。**
+## 代码放在哪里
 
-初稿有停车 3 秒/10 秒、指定/推荐设备等不一致表述；现有硬件能否参赛需要核实。摄像头位置也受规则限制。请以 [规则版本与待确认清单](docs/rules/README.md) 为依据，不把前辈方案或硬件示例参数直接当作本车要求。
+| 目录 | 当前用途 |
+|---|---|
+| `vision/src/carvision/` | 现阶段实际运行包；同时含视觉、遥控、状态机和树莓派驱动，尚未按顶层规划拆包 |
+| `vision/configs/` | 感知、比赛、Pi5 标定配置；实测值保留，未完成项仍为 false/null |
+| `vision/tests/` | 离线、模拟驱动和小图片夹具测试 |
+| `vision/tools/` | 预览、台架、检查、打包和显式部署工具 |
+| `drivers/pigpio/` | 早期 Pi4 路径所需第三方 C 源码、来源和许可证；不是当前 UART 后端 |
+| `vehicle/`、`communication/`、`hardware/` | 职责索引和当前接入说明，避免误以为另有一套可运行主程序 |
+| `firmware/stm32/` | 不采用的早期规划记录，不是当前待开发任务 |
+| `interfaces/` | 感知、比赛观测及当前 UART 说明 |
+| `run/` | 原包自带少量核验/标定 JSON；不提供当前开机授权；其他新运行日志默认忽略 |
+| `docs/` | 当前进度、审查、规则及团队文档 |
 
-## 开发状态
+## 电脑离线检查
 
-| 模块 | 当前状态 | 下一项可交付成果 |
-|---|---|---|
-| 视觉 | 规划中 | 图片/录像回放、基础循迹和调试结果 |
-| 主控与状态机 | 待开发 | 模拟输入驱动的任务流程 |
-| STM32 | 硬件及工程待确认 | 工程可构建、接口与台架记录 |
-| 5G 通信 | 型号及环境待确认 | 联网和视频传输验证 |
-| 硬件 | 清单待补全 | 型号照片、供电与接线记录 |
+建议独立 Python 3.12 环境，浏览器模拟测试另需 Node.js。以下命令不启动实车：
 
-本仓库暂无统一安装或启动命令。各模块提供真实可用的命令后，再补充整车启动入口；不要把未验证的命令标成“已可运行”。
-
-## 提交示例
-
-以下示例假设已经 clone 仓库，并且工作区没有未提交修改：
-
-```bash
-git switch main
-git pull --ff-only origin main
-git switch -c feat/vision-video-reader
-# 在 vision/ 内完成修改
-git add vision/
-git diff --cached
-git commit -m "feat(vision): 增加录像输入"
-git push -u origin feat/vision-video-reader
+```sh
+python -m venv .venv
+# Windows 激活：.venv/Scripts/Activate.ps1
+# Linux 激活：source .venv/bin/activate
+python -m pip install -e "vision[test]"
+python -m pytest vision/tests -q -ra
+python -m carvision autonomy-check --profile vision/configs/autonomy-pi5.json
+python -m carvision autonomy-demo --profile vision/configs/autonomy-pi5.json --race-config vision/configs/race-2026.json --output run/new-demo
+python tools/audit_snapshot_20261008.py
 ```
 
-随后在 GitHub 新建 Pull Request，目标分支选 `main`。首次使用 Git、无写入权限、冲突处理及后续同步详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+输出目录必须是新目录。原配置的正常检查结果是 **18 个准备缺项**；demo 的 complete 只代表决策回放完成，不能当作车已经跑完。最近本地 Windows 原测试集 692 通过 / 3 跳过（Linux 专用项）。CI 在 Linux/Windows 上运行软件检查，不操作硬件。
 
-本仓库公开可见。提交前检查暂存内容，确保没有密码、令牌、个人连接配置、无授权资料或大文件。参考材料应记录来源；自己的实现与实验结论应可复现。团队尚未选择开源许可证。
+实车相关入口见 [MANUAL_BENCH](vision/MANUAL_BENCH.md) 与 [AUTONOMY_PI5](vision/AUTONOMY_PI5.md)，先阅读当前状态；两份文档保留历史段落。不要沿用旧 GPIO 接线或旧开机记录。当前同步未部署到车、未改变运动保护或标定数据。
+
+## 比赛目标
+
+5G 远程驾驶 → 换区停稳 → 蓝挡板移开 → 自主循迹 → 斑马线停车播报 → 红绿灯 → 红/蓝锥桶 → 未遮挡车位 → 队员扫码。
+
+依据队伍提供的 2026 年 8 月规则初稿；3/10 秒、设备资格等疑点见 [规则记录](docs/rules/README.md)。当前硬件方案与参赛资格是两回事，仍需队伍确认。
+
+## 源码来源与历史
+
+本次来源为 2026-10-08 源码包；原包 [SOURCE-MANIFEST](SOURCE-MANIFEST.json) 已核验。原 README 保留为 [SOURCE_HISTORY](SOURCE_HISTORY_20261008.md)，其他较早报告只作为历史。原始 manifest 针对原包，README 改名、文档脱敏及部署主机参数化差异由 [发布映射](docs/reviews/publication-manifest-20261008.json) 记录。
+
+仓库公开可见，不包含密码、令牌、SSH 私钥、Python 环境、大录像或模型权重；历史连接地址已经替换为占位符，不能直接用于联网。个人部署地址需自行显式填写，主机密钥仍须已可信。团队尚未选择整体开源许可证，第三方代码保留各自许可证。

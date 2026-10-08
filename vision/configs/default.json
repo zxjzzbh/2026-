@@ -1,0 +1,21 @@
+{
+  "lane": {
+    "roi_top": 0.45,
+    "sample_bottom": 0.94,
+    "sample_top": 0.50,
+    "sample_rows": 16,
+    "white_s_max": 95,
+    "white_v_min": 160,
+    "min_run_fraction": 0.004,
+    "max_run_fraction": 0.065,
+    "min_width_fraction": 0.16,
+    "max_width_fraction": 0.95,
+    "min_pairs": 6,
+    "min_coverage": 0.45,
+    "max_fit_residual_fraction": 0.035,
+    "lookahead_y": 0.70
+  },
+  "yolo": {"image_size": 416, "confidence": 0.35, "iou": 0.5, "device": "cpu"},
+  "temporal": {"confirm_ms": 200, "max_gap_ms": 250},
+  "traffic_light": {"min_colored_fraction": 0.02, "min_bright_fraction": 0.008, "min_value": 180, "min_saturation": 90}
+}

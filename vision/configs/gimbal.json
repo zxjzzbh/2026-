@@ -1,0 +1,13 @@
+{
+  "pan_gpio": 17,
+  "tilt_gpio": 27,
+  "supply_voltage_v": null,
+  "signal_3v3_confirmed": false,
+  "calibration_confirmed": false,
+  "daemon_compatibility_confirmed": true,
+  "pan": {"model": "MG996R", "minimum_us": null, "center_us": null, "maximum_us": null},
+  "tilt": {"model": "MG996R", "minimum_us": null, "center_us": null, "maximum_us": null},
+  "maximum_step_us": 10,
+  "update_interval_s": 0.02,
+  "local_port": 8890
+}

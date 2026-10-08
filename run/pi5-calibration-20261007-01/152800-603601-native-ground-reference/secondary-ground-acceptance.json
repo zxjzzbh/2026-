@@ -1,0 +1,562 @@
+{
+  "scope": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference",
+  "secondary_pose_us": [
+    1600,
+    1150
+  ],
+  "frontmost_to_rear_axle_m": 0.34,
+  "origin": "rear axle centre; x right, y forward, metres",
+  "image_size": [
+    640,
+    480
+  ],
+  "acceptance_error_m": 0.03,
+  "primary_recheck_scope": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference",
+  "far_right_marker_is_flat_white_paper": true,
+  "elevated_cup_not_a_ground_reference": true,
+  "operator_motion_smooth_no_cable_pull_or_persistent_buzz_confirmed": true,
+  "mechanical_center_calibrated": false,
+  "mechanical_endpoints_calibrated": false,
+  "camera_configuration_changed": false,
+  "samples": {
+    "primary": [
+      {
+        "file": "primary-native-0.png",
+        "sha256": "1e98724a1fba4f0796f21bf2b6e960fb27d6a4c0f9ea133a20754379e6ac6707",
+        "points": {
+          "check-near": {
+            "pixel": [
+              344.9112426035503,
+              331.2721893491124
+            ],
+            "area_px": 338
+          },
+          "check-far": {
+            "pixel": [
+              332.9126213592233,
+              251.39805825242718
+            ],
+            "area_px": 103
+          },
+          "lateral-100cm": {
+            "pixel": [
+              401.57575757575756,
+              285.49242424242425
+            ],
+            "area_px": 132
+          }
+        }
+      },
+      {
+        "file": "primary-native-1.png",
+        "sha256": "8608d73981dc5d938401d0fedaa44ba1bd486ea3ce746be0b5ad60b4c8d9e3d5",
+        "points": {
+          "check-near": {
+            "pixel": [
+              344.5242424242424,
+              331.22424242424245
+            ],
+            "area_px": 330
+          },
+          "check-far": {
+            "pixel": [
+              333.8659793814433,
+              251.50515463917526
+            ],
+            "area_px": 97
+          },
+          "lateral-100cm": {
+            "pixel": [
+              401.3333333333333,
+              285.47727272727275
+            ],
+            "area_px": 132
+          }
+        }
+      },
+      {
+        "file": "primary-native-2.png",
+        "sha256": "4941a8e5d1f5322378284661f4b52b4f748d8b61e945ae2d3517e6a774838be9",
+        "points": {
+          "check-near": {
+            "pixel": [
+              344.9026548672566,
+              331.12389380530976
+            ],
+            "area_px": 339
+          },
+          "check-far": {
+            "pixel": [
+              333.67021276595744,
+              251.5744680851064
+            ],
+            "area_px": 94
+          },
+          "lateral-100cm": {
+            "pixel": [
+              401.4887218045113,
+              285.5187969924812
+            ],
+            "area_px": 133
+          }
+        }
+      }
+    ],
+    "secondary": [
+      {
+        "file": "secondary-native-0.png",
+        "sha256": "d1fe0d9f95bddc2745baa5114338498e154dd6cb0efc3c4937cd4f0a153c119d",
+        "points": {
+          "near-left": {
+            "pixel": [
+              209.04060913705584,
+              453.4568527918782
+            ],
+            "area_px": 197
+          },
+          "near-right": {
+            "pixel": [
+              444.7236363636364,
+              448.6181818181818
+            ],
+            "area_px": 275
+          },
+          "far-left": {
+            "pixel": [
+              195.32,
+              336.84
+            ],
+            "area_px": 25
+          },
+          "far-right": {
+            "pixel": [
+              435.1875,
+              329.3125
+            ],
+            "area_px": 16
+          },
+          "check-near": {
+            "pixel": [
+              323.9277108433735,
+              396.6144578313253
+            ],
+            "area_px": 83
+          },
+          "check-far": {
+            "pixel": [
+              319.0,
+              346.0
+            ],
+            "area_px": 23
+          },
+          "lateral-100cm": {
+            "pixel": [
+              350.3636363636364,
+              366.3030303030303
+            ],
+            "area_px": 33
+          }
+        }
+      },
+      {
+        "file": "secondary-native-1.png",
+        "sha256": "9566a8c62efbba243fee0492fbf78ada0a9b4c795b26f8144c0dd32ebc49f9af",
+        "points": {
+          "near-left": {
+            "pixel": [
+              209.4694835680751,
+              453.26291079812205
+            ],
+            "area_px": 213
+          },
+          "near-right": {
+            "pixel": [
+              444.6989247311828,
+              448.59498207885304
+            ],
+            "area_px": 279
+          },
+          "far-left": {
+            "pixel": [
+              195.72727272727272,
+              336.90909090909093
+            ],
+            "area_px": 22
+          },
+          "far-right": {
+            "pixel": [
+              435.1875,
+              329.3125
+            ],
+            "area_px": 16
+          },
+          "check-near": {
+            "pixel": [
+              323.81176470588235,
+              396.6588235294118
+            ],
+            "area_px": 85
+          },
+          "check-far": {
+            "pixel": [
+              319.125,
+              346.0416666666667
+            ],
+            "area_px": 24
+          },
+          "lateral-100cm": {
+            "pixel": [
+              350.38709677419354,
+              366.258064516129
+            ],
+            "area_px": 31
+          }
+        }
+      },
+      {
+        "file": "secondary-native-2.png",
+        "sha256": "5ba049863ac70e2e6f8dde29baced74670833f33ed7ecad2276d18b4e3a4d1a9",
+        "points": {
+          "near-left": {
+            "pixel": [
+              209.31162790697675,
+              453.3488372093023
+            ],
+            "area_px": 215
+          },
+          "near-right": {
+            "pixel": [
+              444.57608695652175,
+              448.54347826086956
+            ],
+            "area_px": 276
+          },
+          "far-left": {
+            "pixel": [
+              195.24,
+              336.84
+            ],
+            "area_px": 25
+          },
+          "far-right": {
+            "pixel": [
+              437.5238095238095,
+              329.23809523809524
+            ],
+            "area_px": 21
+          },
+          "check-near": {
+            "pixel": [
+              323.89285714285717,
+              396.6547619047619
+            ],
+            "area_px": 84
+          },
+          "check-far": {
+            "pixel": [
+              319.0869565217391,
+              346.0869565217391
+            ],
+            "area_px": 23
+          },
+          "lateral-100cm": {
+            "pixel": [
+              350.23333333333335,
+              366.3
+            ],
+            "area_px": 30
+          }
+        }
+      }
+    ]
+  },
+  "primary_recheck": [
+    {
+      "file": "primary-native-0.png",
+      "errors_m": {
+        "check-near": 0.014294810981880499,
+        "check-far": 0.001125028065956198,
+        "lateral-100cm": 0.020471994092926844
+      }
+    },
+    {
+      "file": "primary-native-1.png",
+      "errors_m": {
+        "check-near": 0.014048678304725615,
+        "check-far": 0.0014249029304765992,
+        "lateral-100cm": 0.020577151122596508
+      }
+    },
+    {
+      "file": "primary-native-2.png",
+      "errors_m": {
+        "check-near": 0.013702015133194046,
+        "check-far": 0.002050294875279545,
+        "lateral-100cm": 0.020703166124398337
+      }
+    }
+  ],
+  "secondary_fit_input": {
+    "image_size": [
+      640,
+      480
+    ],
+    "pose_us": [
+      1600,
+      1150
+    ],
+    "points": [
+      {
+        "pixel": [
+          209.27390687070258,
+          453.35620026643414
+        ],
+        "ground_m": [
+          -0.2,
+          0.84
+        ]
+      },
+      {
+        "pixel": [
+          444.66621601711364,
+          448.58554738596814
+        ],
+        "ground_m": [
+          0.2,
+          0.84
+        ]
+      },
+      {
+        "pixel": [
+          435.9662698412699,
+          329.2876984126984
+        ],
+        "ground_m": [
+          0.5,
+          1.84
+        ]
+      },
+      {
+        "pixel": [
+          195.4290909090909,
+          336.86303030303026
+        ],
+        "ground_m": [
+          -0.5,
+          1.84
+        ]
+      }
+    ],
+    "check_points": [
+      {
+        "pixel": [
+          323.8774442307044,
+          396.6426810884997
+        ],
+        "ground_m": [
+          0,
+          1.09
+        ]
+      },
+      {
+        "pixel": [
+          319.07065217391306,
+          346.04287439613535
+        ],
+        "ground_m": [
+          0,
+          1.59
+        ]
+      },
+      {
+        "pixel": [
+          350.3280221570544,
+          366.2870316063864
+        ],
+        "ground_m": [
+          0.1,
+          1.34
+        ]
+      }
+    ],
+    "valid_polygon_px": [
+      [
+        209.27390687070258,
+        453.35620026643414
+      ],
+      [
+        444.66621601711364,
+        448.58554738596814
+      ],
+      [
+        435.9662698412699,
+        329.2876984126984
+      ],
+      [
+        195.4290909090909,
+        336.86303030303026
+      ]
+    ]
+  },
+  "secondary_candidate": {
+    "verified": true,
+    "detector_verified": false,
+    "image_size": [
+      640,
+      480
+    ],
+    "pose_us": [
+      1600,
+      1150
+    ],
+    "homography": [
+      [
+        -0.0012890880317436542,
+        0.00012392306496913187,
+        0.3639088840468398
+      ],
+      [
+        -7.185754923415941e-05,
+        -0.0005546919648064946,
+        -0.36482327712128915
+      ],
+      [
+        -0.0001490699884371703,
+        -0.0037947907803450695,
+        1.0
+      ]
+    ],
+    "valid_polygon_px": [
+      [
+        209.27390687070258,
+        453.35620026643414
+      ],
+      [
+        444.66621601711364,
+        448.58554738596814
+      ],
+      [
+        435.9662698412699,
+        329.2876984126984
+      ],
+      [
+        195.4290909090909,
+        336.86303030303026
+      ]
+    ],
+    "independent_check_rms_m": 0.01424878470181275,
+    "independent_check_max_error_m": 0.021148705968571577
+  },
+  "secondary_independent_checks": {
+    "check-near": {
+      "survey_rear_axle_m": [
+        0,
+        1.09
+      ],
+      "projected_rear_axle_m": [
+        0.008030400146280814,
+        1.0987511009764264
+      ],
+      "error_m": 0.011877251147003502
+    },
+    "check-far": {
+      "survey_rear_axle_m": [
+        0,
+        1.59
+      ],
+      "projected_rear_axle_m": [
+        0.012526416993197885,
+        1.6070398545022433
+      ],
+      "error_m": 0.021148705968571577
+    },
+    "lateral-100cm": {
+      "survey_rear_axle_m": [
+        0.1,
+        1.34
+      ],
+      "projected_rear_axle_m": [
+        0.09566437499216666,
+        1.3413960993063527
+      ],
+      "error_m": 0.004554858667593123
+    }
+  },
+  "secondary_repeat_checks": [
+    {
+      "file": "secondary-native-0.png",
+      "errors_m": {
+        "check-near": 0.012091395267669247,
+        "check-far": 0.02157725555847742,
+        "lateral-100cm": 0.004422673720156212
+      }
+    },
+    {
+      "file": "secondary-native-1.png",
+      "errors_m": {
+        "check-near": 0.011701359679710548,
+        "check-far": 0.0212591180324224,
+        "lateral-100cm": 0.004460303365051747
+      }
+    },
+    {
+      "file": "secondary-native-2.png",
+      "errors_m": {
+        "check-near": 0.011839466146243672,
+        "check-far": 0.020623654064672804,
+        "lateral-100cm": 0.0047996125939439235
+      }
+    }
+  ],
+  "secondary_centroid_repeatability_px": {
+    "near-left": [
+      0.4288744310192669,
+      0.19394199375614107
+    ],
+    "near-right": [
+      0.1475494071146386,
+      0.07470355731226164
+    ],
+    "far-left": [
+      0.4872727272727104,
+      0.06909090909095994
+    ],
+    "far-right": [
+      2.3363095238095184,
+      0.0744047619047592
+    ],
+    "check-near": [
+      0.11594613749116434,
+      0.044365698086494376
+    ],
+    "check-far": [
+      0.125,
+      0.08695652173912549
+    ],
+    "lateral-100cm": [
+      0.1537634408601889,
+      0.04496578690128672
+    ]
+  },
+  "primary_recheck_passed": true,
+  "secondary_independent_checks_passed": true,
+  "pixels_visually_reviewed": true,
+  "elevated_cup_removed_before_final_capture_operator_confirmed": true,
+  "independent_check_points_used_for_fitting": false,
+  "accepted": true,
+  "acceptance_kind": "static ground mapping at one fixed observed pose",
+  "acceptance_threshold_source": "this session practical 3 cm criterion; not an official competition standard",
+  "boot_id": "ae344714-0750-4047-ae12-a26cc3ad7f7a",
+  "repeat_check_max_error_m": 0.02157725555847742,
+  "valid_front_distance_span_m": [
+    0.5,
+    1.5
+  ],
+  "reference_uncertainty_note": "far-right ink spans a few pixels; centroid x range is 2.34 px, not submillimetre precision",
+  "deployed_to_paused_pi": true,
+  "actuator_commands_sent": false,
+  "software_checks": {
+    "passed": 149,
+    "scope": "hardware-free autonomy/race/executor checks"
+  }
+}

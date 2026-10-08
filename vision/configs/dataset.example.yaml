@@ -1,0 +1,10 @@
+# Paths resolve relative to this YAML. Copy to a *.local.yaml for your own dataset.
+# Images: <root>/images/train/<session>/<image>.jpg; labels mirror images under labels/.
+path: ../../data/processed/race-v1
+train: images/train
+val: images/val
+names:
+  0: cone
+  1: blue_board
+  2: traffic_light
+  3: crosswalk

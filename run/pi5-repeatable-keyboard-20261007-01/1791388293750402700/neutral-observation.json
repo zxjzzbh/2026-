@@ -1,0 +1,16 @@
+{
+  "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+  "monotonic_s": 284.933724085,
+  "operator_response": "\u7535\u8c03\u5df2\u5f00\uff0c\u9a71\u52a8\u8f6e\u9759\u6b62",
+  "esc_on_wheels_static_confirmed_by_user": true,
+  "hands_clear_instruction_provided": true,
+  "neutral_physically_verified": true,
+  "stored_commands": {
+    "4": 1500,
+    "3": 0,
+    "1": 0,
+    "2": 0
+  },
+  "actuator_commands_sent": false,
+  "current_boot_keyboard_driving_result_pending": true
+}
