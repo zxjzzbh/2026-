@@ -48,6 +48,10 @@ frpc.toml
 logs/
 outputs/
 runs/
+# 只保留本次源码包自带的少量历史核验/标定 JSON；新试验默认不提交。
+/run/*
+!/run/pi5-calibration-20261007-01/
+!/run/pi5-repeatable-keyboard-20261007-01/
 tmp/
 *.log
 /data/raw/*

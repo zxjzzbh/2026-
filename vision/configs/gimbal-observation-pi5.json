@@ -1,0 +1,32 @@
+{
+  "backend": "rasadapter5a_uart",
+  "port": "/dev/ttyAMA0",
+  "pan_channel": 1,
+  "tilt_channel": 2,
+  "observation_pose": {
+    "pan_us": 1600,
+    "tilt_us": 1150,
+    "operator_forward_alignment_confirmed": true,
+    "ground_papers_visually_verified": true,
+    "source_record": "run/pi5-calibration-20261007-01/152305-191526-gimbal-probe/gimbal-observation-result.json"
+  },
+  "mechanical_center_calibrated": false,
+  "mechanical_endpoints_calibrated": false,
+  "metric_ground_calibration": {
+    "verified": true,
+    "camera_id": "secondary",
+    "pose_us": [
+      1600,
+      1150
+    ],
+    "image_size": [
+      640,
+      480
+    ],
+    "source_record": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+    "independent_check_max_error_m": 0.021148705968571577,
+    "repeat_check_max_error_m": 0.02157725555847742
+  },
+  "automatic_output_enabled": false,
+  "restore_at_boot": false
+}

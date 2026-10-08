@@ -1,19 +1,15 @@
-# 跨模块接口约定
+# 当前接口
 
-这里是模块间数据格式的共同依据。**当前仅列待设计内容，未冻结可用协议，不应照此编写实际串口收发。**
+2026-10-08。现有运行代码在 `vision/src/carvision`，无 Pi→独立 STM32 协议。
 
-| 接口 | 发送方 → 接收方 | 需要共同确定 |
-|---|---|---|
-| 感知结果 | vision → vehicle | 帧编号、时间、坐标系、车道/元素结果、有效性、失效时限 |
-| 远程命令 | communication → vehicle | 序号、模式、转向/速度语义、时间、停止请求、连接状态 |
-| 运动命令 | vehicle → firmware | 物理量/单位、限幅、模式、协议帧与超时处理 |
-| 底盘反馈 | firmware → vehicle | 轮速/状态、序号、时间、故障信息、校验方式 |
-| 视频/扫码图像 | 采集服务 → communication | 分辨率、编码、时间、队列策略、订阅方式 |
+| 接口 | 依据 |
+|---|---|
+| 图像感知 | [vision-result-v0.1](vision-result-v0.1.md)、`results.py` |
+| 比赛观测/意图 | [race-observation-0.2](race-observation-0.2.md)、`race.py` |
+| 自主实时封装 | `autonomy_runtime.validate_envelope`：schema_version=1，live/replay、sequence、captured_monotonic_s、observation；250 ms 期限 |
+| 网页手动命令 | `web_preview.py` + `manual_drive.py`：HTTP JSON、运行期控制键、控制轮次、心跳与急停 |
+| Pi→RasAdapter | `rasadapter5.py`：`AA 55`、功能、长度、负载、CRC8；UART 1 Mbaud；S1/S2 云台、S3 转向、S4 ESC |
+| 视频 | 原图/处理图/掩膜 JPEG 与 multipart MJPEG；双摄 by-id |
+| 真实反馈 | `autonomy_feed.py` 读取本机原子更新 JSON；编码器/位姿采集仍待接通 |
 
-## 接口文档要写什么
-
-为每个接口单独建立 Markdown 文档：版本、维护模块、字段/类型/单位、示例、错误与未知值、更新频率、超时和兼容性。UART 另需定义帧头、长度、端序、校验、分包/粘包及电气条件；不要仅约定一串数字。
-
-图像坐标和实际米制坐标必须区分。视觉检测分数不自动等同概率，未检测到不自动等同允许通行。命令接收时间和传感器采样时间要分别说明。
-
-改接口时，同一 PR 包含文档和受影响模块的适配；若分步交付，注明兼容过渡与联调依赖，由双方确认。
+同一 Pi 单调时钟的消息不能与不同机器时钟直接混用。板内 PWM 回读仅说明保存的命令；观测中的 encoder 字段不说明硬件已有编码器。接口的未知、失效、模拟与实测状态必须分别处理。

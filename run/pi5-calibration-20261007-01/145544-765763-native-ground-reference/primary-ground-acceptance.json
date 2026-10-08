@@ -1,0 +1,527 @@
+{
+  "captured_and_prepared_at_china": "2026-10-07T14:53:53.380115+08:00",
+  "camera_id": "primary",
+  "native_capture_scope": "run/pi5-calibration-20261007-01/144804-887044-native-ground-reference",
+  "coordinate_origin": "rear axle centre projected onto ground",
+  "axes": "x right, y forward; metres",
+  "frontmost_to_rear_axle_m": 0.34,
+  "fit_input": {
+    "image_size": [
+      640,
+      480
+    ],
+    "pose_us": null,
+    "points": [
+      {
+        "pixel": [
+          108.59028796196895,
+          401.72817039498835
+        ],
+        "ground_m": [
+          -0.2,
+          0.8400000000000001
+        ]
+      },
+      {
+        "pixel": [
+          598.824039346556,
+          415.55500086830915
+        ],
+        "ground_m": [
+          0.2,
+          0.8400000000000001
+        ]
+      },
+      {
+        "pixel": [
+          581.8250557597462,
+          234.67766154619417
+        ],
+        "ground_m": [
+          0.5,
+          1.84
+        ]
+      },
+      {
+        "pixel": [
+          87.90410958904108,
+          225.91324200913243
+        ],
+        "ground_m": [
+          -0.5,
+          1.84
+        ]
+      }
+    ],
+    "check_points": [
+      {
+        "pixel": [
+          344.50256408947735,
+          331.3888619067111
+        ],
+        "ground_m": [
+          0,
+          1.09
+        ]
+      },
+      {
+        "pixel": [
+          333.8824341617835,
+          251.61567993534047
+        ],
+        "ground_m": [
+          0,
+          1.59
+        ]
+      }
+    ],
+    "valid_polygon_px": [
+      [
+        108.59028796196895,
+        401.72817039498835
+      ],
+      [
+        598.824039346556,
+        415.55500086830915
+      ],
+      [
+        581.8250557597462,
+        234.67766154619417
+      ],
+      [
+        87.90410958904108,
+        225.91324200913243
+      ]
+    ]
+  },
+  "camera_candidate": {
+    "verified": true,
+    "detector_verified": false,
+    "image_size": [
+      640,
+      480
+    ],
+    "pose_us": null,
+    "homography": [
+      [
+        -0.002300330363986803,
+        0.00024382168432288113,
+        0.705910770297147
+      ],
+      [
+        -9.561979387872016e-05,
+        -0.0015287451378034234,
+        -1.702559082150832
+      ],
+      [
+        0.0001003090102334037,
+        -0.009412406515288487,
+        1.0
+      ]
+    ],
+    "valid_polygon_px": [
+      [
+        108.59028796196895,
+        401.72817039498835
+      ],
+      [
+        598.824039346556,
+        415.55500086830915
+      ],
+      [
+        581.8250557597462,
+        234.67766154619417
+      ],
+      [
+        87.90410958904108,
+        225.91324200913243
+      ]
+    ],
+    "independent_check_rms_m": 0.015178554254800164,
+    "independent_check_max_error_m": 0.02164887047559179,
+    "calibration_record": "run/pi5-calibration-20261007-01/145544-765763-native-ground-reference/primary-ground-acceptance.json",
+    "validated_front_distance_span_m": [
+      0.5,
+      1.5
+    ],
+    "frontmost_to_rear_axle_m": 0.34
+  },
+  "independent_checks": [
+    {
+      "name": "check-near",
+      "survey_rear_axle_m": [
+        0,
+        1.09
+      ],
+      "projected_rear_axle_m": [
+        0.002762698035361673,
+        1.075553455151608
+      ],
+      "error_m": 0.014708336360418085
+    },
+    {
+      "name": "check-far",
+      "survey_rear_axle_m": [
+        0,
+        1.59
+      ],
+      "projected_rear_axle_m": [
+        0.000584178763238031,
+        1.5875884628117793
+      ],
+      "error_m": 0.002481285239062589
+    }
+  ],
+  "next_lateral_check": {
+    "ground_front_origin_m": [
+      0.1,
+      1.0
+    ],
+    "ground_rear_axle_m": [
+      0.1,
+      1.34
+    ],
+    "predicted_native_pixel": [
+      407.3968169558934,
+      282.95815750921884
+    ],
+    "actual_pixel": [
+      401.63119541343667,
+      285.6912860142119
+    ],
+    "error_m": 0.02164887047559179,
+    "verified": true,
+    "projected_rear_axle_m": [
+      0.08995632580293024,
+      1.3208219343652166
+    ],
+    "projected_front_origin_m": [
+      0.08995632580293024,
+      0.9808219343652165
+    ]
+  },
+  "native_centroid_repeatability_px": {
+    "near-left": [
+      0.10646163148636845,
+      0.07503298153034166
+    ],
+    "near-right": [
+      0.057009081413525564,
+      0.12109577221741574
+    ],
+    "far-right": [
+      0.7901234567901838,
+      0.46508340401470605
+    ],
+    "far-left": [
+      0.4246575342465633,
+      0.013698630136985912
+    ],
+    "check-near": [
+      0.15791586664340684,
+      0.09998785291617196
+    ],
+    "check-far": [
+      0.6370984037179142,
+      0.12255001010305477
+    ]
+  },
+  "preview_pixel_conversion": "native=(preview+0.5)*(640/480)-0.5 on both axes",
+  "source_processing_size": [
+    640,
+    480
+  ],
+  "preview_size": [
+    480,
+    360
+  ],
+  "validated_distance_span_front_origin_m": [
+    0.5,
+    1.5
+  ],
+  "field_error_acceptance_m": 0.03,
+  "camera_configuration_written": true,
+  "hardware_output_enabled": false,
+  "second_camera_calibrated": false,
+  "vehicle_measurements": {
+    "front_overhang": 9,
+    "rear_overhang": 7,
+    "tyre_width": 5,
+    "tyre_ground_length": 3.5,
+    "vehicle_width": 30,
+    "vehicle_length": 42,
+    "wheelbase": 24.5,
+    "left_to_right_wheel_spacing": 24,
+    "track_width_center_to_center": 24,
+    "frontmost_to_rear_axle": 34,
+    "confirmation_source": "operator direct ruler measurement in this chat"
+  },
+  "vehicle_component_consistency_note": {
+    "front_to_rear_axle_by_front_overhang_and_wheelbase_cm": 33.5,
+    "front_to_rear_axle_by_total_length_minus_rear_overhang_cm": 35,
+    "direct_front_to_rear_axle_cm": 34,
+    "track_spacing_center_to_center_confirmation_pending": false,
+    "policy": "Use directly measured 34 cm for ground origin conversion. Preserve all reported component measurements; do not silently adjust them.",
+    "vehicle_profile_geometry_consistency_pending": true
+  },
+  "field_acceptance_samples": [
+    {
+      "file": "primary-native-0.png",
+      "sha256": "83c8bbc9617fddf4f7953f0477fb2cecd56480ff0460ae13db3d8cf85601f1e0",
+      "detections": {
+        "near-left": {
+          "pixel": [
+            108.39863945578232,
+            401.9360544217687
+          ],
+          "area_px": 735
+        },
+        "near-right": {
+          "pixel": [
+            599.0021857923497,
+            415.60546448087433
+          ],
+          "area_px": 915
+        },
+        "far-left": {
+          "pixel": [
+            88.51851851851852,
+            225.92592592592592
+          ],
+          "area_px": 81
+        },
+        "far-right": {
+          "pixel": [
+            581.6349206349206,
+            234.26984126984127
+          ],
+          "area_px": 63
+        },
+        "check-near": {
+          "pixel": [
+            344.3790087463557,
+            331.4110787172012
+          ],
+          "area_px": 343
+        },
+        "check-far": {
+          "pixel": [
+            334.2142857142857,
+            251.6734693877551
+          ],
+          "area_px": 98
+        },
+        "lateral-100cm": {
+          "pixel": [
+            401.640625,
+            285.6796875
+          ],
+          "area_px": 128
+        }
+      },
+      "lateral_target_rear_axle_m": [
+        0.1,
+        1.34
+      ],
+      "lateral_projected_rear_axle_m": [
+        0.08997718500387744,
+        1.3208999351482809
+      ],
+      "lateral_error_m": 0.021570101941956125,
+      "original_mark_drift_px": {
+        "near-left": 0.282745324477659,
+        "near-right": 0.18515596761123188,
+        "far-left": 0.6145398395277816,
+        "far-right": 0.4499652692119736,
+        "check-near": 0.1255368849472722,
+        "check-far": 0.3368457713976874
+      },
+      "original_mark_projected_drift_m": {
+        "near-left": 0.000491899602132089,
+        "near-right": 0.0001478022369992598,
+        "far-left": 0.0012879099438314616,
+        "far-right": 0.005735441088640725,
+        "check-near": 0.00017356604291995944,
+        "check-far": 0.0007629511956144201
+      }
+    },
+    {
+      "file": "primary-native-1.png",
+      "sha256": "e5bdc0adca4215ed48c316013eb9782db994714938787dfd8de99fbde18ee571",
+      "detections": {
+        "near-left": {
+          "pixel": [
+            108.4308943089431,
+            401.92547425474254
+          ],
+          "area_px": 738
+        },
+        "near-right": {
+          "pixel": [
+            599.1234840132304,
+            415.5766262403528
+          ],
+          "area_px": 907
+        },
+        "far-left": {
+          "pixel": [
+            88.29113924050633,
+            225.9367088607595
+          ],
+          "area_px": 79
+        },
+        "far-right": {
+          "pixel": [
+            584.1827956989247,
+            234.53763440860214
+          ],
+          "area_px": 93
+        },
+        "check-near": {
+          "pixel": [
+            344.4005934718101,
+            331.4747774480712
+          ],
+          "area_px": 337
+        },
+        "check-far": {
+          "pixel": [
+            334.4059405940594,
+            251.69306930693068
+          ],
+          "area_px": 101
+        },
+        "lateral-100cm": {
+          "pixel": [
+            401.84496124031006,
+            285.6821705426357
+          ],
+          "area_px": 129
+        }
+      },
+      "lateral_target_rear_axle_m": [
+        0.1,
+        1.34
+      ],
+      "lateral_projected_rear_axle_m": [
+        0.09026176774759004,
+        1.3209117857162889
+      ],
+      "lateral_error_m": 0.02142879119182308,
+      "original_mark_drift_px": {
+        "near-left": 0.25364374563317604,
+        "near-right": 0.30022452450751524,
+        "far-left": 0.38774043410327025,
+        "far-right": 2.361894413402003,
+        "check-near": 0.13333974319249411,
+        "check-far": 0.5291957099876793
+      },
+      "original_mark_projected_drift_m": {
+        "near-left": 0.00046448071379685634,
+        "near-right": 0.00022944897756498669,
+        "far-left": 0.0009037760396185534,
+        "far-right": 0.005974500487211886,
+        "check-near": 0.0003844527309080491,
+        "check-far": 0.0011163303701625994
+      }
+    },
+    {
+      "file": "primary-native-2.png",
+      "sha256": "b0eb2faed17549b87723a0db1211db832664342cc01a3348587c67286a4fd27a",
+      "detections": {
+        "near-left": {
+          "pixel": [
+            108.34668508287292,
+            402.03729281767954
+          ],
+          "area_px": 724
+        },
+        "near-right": {
+          "pixel": [
+            598.9879518072289,
+            415.6199342825849
+          ],
+          "area_px": 913
+        },
+        "far-left": {
+          "pixel": [
+            88.52564102564102,
+            225.94871794871796
+          ],
+          "area_px": 78
+        },
+        "far-right": {
+          "pixel": [
+            581.125,
+            234.22222222222223
+          ],
+          "area_px": 72
+        },
+        "check-near": {
+          "pixel": [
+            344.5764705882353,
+            331.4852941176471
+          ],
+          "area_px": 340
+        },
+        "check-far": {
+          "pixel": [
+            334.25252525252523,
+            251.67676767676767
+          ],
+          "area_px": 99
+        },
+        "lateral-100cm": {
+          "pixel": [
+            401.408,
+            285.712
+          ],
+          "area_px": 125
+        }
+      },
+      "lateral_target_rear_axle_m": [
+        0.1,
+        1.34
+      ],
+      "lateral_projected_rear_axle_m": [
+        0.08963002465732327,
+        1.3206540822310802
+      ],
+      "lateral_error_m": 0.021949964075814222,
+      "original_mark_drift_px": {
+        "near-left": 0.3935721470256064,
+        "near-right": 0.17630553891853823,
+        "far-left": 0.6225430659572541,
+        "far-right": 0.8351664771611944,
+        "check-near": 0.12149626276003989,
+        "check-far": 0.3750988237772347
+      },
+      "original_mark_projected_drift_m": {
+        "near-left": 0.0007269020544486317,
+        "near-right": 0.0001593959005464996,
+        "far-left": 0.0014349133071927087,
+        "far-right": 0.0061255490841991365,
+        "check-near": 0.0003962672097164316,
+        "check-far": 0.0008288089455204257
+      }
+    }
+  ],
+  "three_independent_check_errors_m": [
+    0.014708336360418085,
+    0.002481285239062589,
+    0.02164887047559179
+  ],
+  "primary_ground_field_verified": true,
+  "new_check_used_for_fitting": false,
+  "pose_stability_acceptance": {
+    "all_original_reference_drift_m": 0.01,
+    "high_contrast_reference_drift_px": 2,
+    "far_right_reflective_tape_uses_metric_gate": true
+  },
+  "verified_at_china": "2026-10-07T15:00:50.294154+08:00",
+  "software_checks": {
+    "passed": 149,
+    "scope": "autonomy stack and race/executor bridge; hardware-free"
+  },
+  "deployed_to_paused_pi": true
+}

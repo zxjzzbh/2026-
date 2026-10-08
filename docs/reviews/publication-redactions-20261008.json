@@ -1,0 +1,13 @@
+{
+  "description": "Historical connection addresses replaced by placeholders; not runnable connection settings. Control logic and measured calibration values unchanged. Deployment tool now requires explicit --host; optional --host-key-alias retains RejectPolicy.",
+  "files": [
+    "CAMERA_GIMBAL_VERIFICATION.md",
+    "DEPLOYMENT_REPORT.md",
+    "SOURCE_HISTORY_20261008.md",
+    "源码包说明.md",
+    "vision/CAMERAS_GIMBAL.md",
+    "vision/RACE_2026.md",
+    "vision/README.md",
+    "vision/configs/bench-calibration.json"
+  ]
+}

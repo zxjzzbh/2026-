@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smartcar-vision"
+version = "0.2.1"
+description = "Offline-first perception for the 2026 outdoor smart car"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy==2.2.6",
+  "opencv-python==4.11.0.86; sys_platform != 'linux' or platform_machine != 'aarch64'",
+  "opencv-python-headless==4.11.0.86; sys_platform == 'linux' and platform_machine == 'aarch64'",
+  "PyYAML==6.0.2",
+]
+
+[project.optional-dependencies]
+yolo = ["ultralytics==8.3.228"]
+export = ["onnx==1.17.0", "onnxruntime==1.20.1"]
+test = ["pytest==8.3.5"]
+
+[project.scripts]
+carvision = "carvision.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,590 @@
+{
+  "scope": "run/pi5-repeatable-preparation-20261007-01/235052-022084",
+  "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+  "duration_s": 30.365575113999995,
+  "samples": [
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=40.0'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=38.9'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=40.0'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=38.9'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=40.6'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=40.0'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=40.6'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=38.9'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=38.9'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=40.0'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=38.9'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=40.0'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=38.9'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=40.6'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=40.0'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=39.5'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    },
+    {
+      "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+      "power_flags": 0,
+      "temperature": "temp=40.0'C",
+      "route": {
+        "dst": "1.1.1.1",
+        "gateway": "10.201.104.1",
+        "dev": "usb0",
+        "prefsrc": "10.201.104.55",
+        "flags": [],
+        "uid": 1000,
+        "cache": []
+      },
+      "carrier": {
+        "eth0": "0",
+        "wlan0": "0",
+        "usb0": "1"
+      }
+    }
+  ],
+  "all_power_flags_zero": true,
+  "boot_unchanged": true,
+  "all_car_network_samples_cellular_only": true,
+  "esc_off_confirmed_by_user": true,
+  "reboot_cause_confirmed_in_current_setup": false,
+  "clear_area_and_spotter_confirmation_source": "earlier current site confirmation; retained for this input-method change",
+  "stored_commands_after_neutral": {
+    "4": 1500,
+    "3": 0,
+    "1": 0,
+    "2": 0
+  },
+  "actuator_commands_sent_during_baseline": false
+}

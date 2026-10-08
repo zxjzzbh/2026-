@@ -1,0 +1,15 @@
+{
+  "repository": "https://github.com/joan2937/pigpio",
+  "revision": "c33738a320a3e28824af7807edafda440952c05d",
+  "files": {
+    "README": "148d4375cc67bae98b712e3954580bddf180af38b758dd5c70c889d88be712e0",
+    "UNLICENCE": "6a90b88421a0d9b090e121daa11b3c6d55eed5eeb3281a2fcc454d6a28b5547c",
+    "Makefile": "b34c9b3f41f403f1590a09916b9a683189180ad90016c0590b1e2c4db27ccebe",
+    "pigpio.c": "91e254814aa772f5a115c7846d624a852bbda9982cd8e8acb70b929927f3d611",
+    "pigpio.h": "b20dc8efb79560dd11f58ccb787c0faefd8ed5fff20079827170856794a1b248",
+    "pigpiod.c": "ced3d02d609a35ab623cb161df81745291ba042c8c7213bfd1844af6d8870344",
+    "command.c": "20086424f6dcf4e3777dbb3e0625ae3bbe91b3f9d2e183aac1fd71be86b5e956",
+    "command.h": "47c1f41b24788b6214321507b35dbeeba7f7490e8b2fbc183d9009f7ad3b5382",
+    "custom.cext": "8addd3446e2f0b0fd5ba010292bf0c89d8a07c4975db37e926e0075fff29128f"
+  }
+}

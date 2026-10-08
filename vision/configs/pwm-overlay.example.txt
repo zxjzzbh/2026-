@@ -1,0 +1,5 @@
+# Raspberry Pi 4B only. Review existing boot configuration before using.
+# Do not apply while ESC/steering wiring and calibration are unconfirmed.
+# Onboard analogue audio shares this PWM controller; use USB/HDMI for speech.
+dtparam=audio=off
+dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4

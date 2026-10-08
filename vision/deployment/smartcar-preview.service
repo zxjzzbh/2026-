@@ -1,0 +1,20 @@
+[Unit]
+Description=Smart car camera dashboard (controls paused)
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/smartcar-race-20261002
+Environment=PYTHONPATH=/home/pi/smartcar-race-20261002/vision/src
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pi/smartcar-race-20261002/.venv/bin/python /home/pi/smartcar-race-20261002/vision/tools/serve_bench_drive.py --root /home/pi/smartcar-race-20261002 --controls-paused
+Restart=on-failure
+RestartSec=3
+KillMode=control-group
+TimeoutStopSec=10
+NoNewPrivileges=true
+InaccessiblePaths=-/dev/gpiochip0 -/dev/gpiochip1 -/dev/gpiochip2 -/dev/gpiochip3 -/dev/gpiochip4 -/dev/gpiochip5 -/dev/gpiomem -/dev/gpiomem0 -/dev/mem
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "vehicle": {
+    "measured": true,
+    "width_m": 0.3,
+    "wheelbase_m": 0.245,
+    "track_width_m": 0.24,
+    "front_overhang_m": 0.09,
+    "rear_overhang_m": 0.07,
+    "tyre_width_m": 0.05,
+    "tyre_length_m": 0.035,
+    "front_to_rear_axle_m": 0.34,
+    "length_m": 0.42,
+    "measurement_record": "run/pi5-calibration-20261007-01/145544-765763-native-ground-reference/primary-ground-acceptance.json",
+    "component_measurement_note": "Original overhang reports retained. Direct front-to-rear-axle measurement takes priority; full reported length supports a conservative rear envelope."
+  },
+  "motion": {
+    "calibrated": false,
+    "continuous_motion_verified": false,
+    "port": "/dev/ttyAMA0",
+    "steering_left_us": 1750,
+    "steering_center_us": 1650,
+    "steering_right_us": 1550,
+    "esc_neutral_us": 1500,
+    "speed_table": [],
+    "max_speed_mps": null,
+    "max_steering_rad": null,
+    "speed_kp_us_per_mps": null,
+    "speed_ki_us_per_m": null,
+    "max_run_s": 180,
+    "braking_deceleration_mps2": null
+  },
+  "telemetry": {
+    "verified": false,
+    "pose_verified": false,
+    "source": "encoder",
+    "distance_per_count_m": null,
+    "maximum_speed_mps": null,
+    "visual_error_bound_m": null,
+    "origin_pose": null
+  },
+  "cameras": {
+    "primary": {
+      "verified": true,
+      "detector_verified": false,
+      "detector_model_sha256": null,
+      "monitored_region_m": null,
+      "image_size": [
+        640,
+        480
+      ],
+      "pose_us": null,
+      "homography": [
+        [
+          -0.002300330363986803,
+          0.00024382168432288113,
+          0.705910770297147
+        ],
+        [
+          -9.561979387872016e-05,
+          -0.0015287451378034234,
+          -1.702559082150832
+        ],
+        [
+          0.0001003090102334037,
+          -0.009412406515288487,
+          1.0
+        ]
+      ],
+      "valid_polygon_px": [
+        [
+          108.59028796196895,
+          401.72817039498835
+        ],
+        [
+          598.824039346556,
+          415.55500086830915
+        ],
+        [
+          581.8250557597462,
+          234.67766154619417
+        ],
+        [
+          87.90410958904108,
+          225.91324200913243
+        ]
+      ],
+      "independent_check_rms_m": 0.015178554254800164,
+      "independent_check_max_error_m": 0.02164887047559179,
+      "calibration_record": "run/pi5-calibration-20261007-01/145544-765763-native-ground-reference/primary-ground-acceptance.json",
+      "validated_front_distance_span_m": [
+        0.5,
+        1.5
+      ],
+      "frontmost_to_rear_axle_m": 0.34
+    },
+    "secondary": {
+      "verified": true,
+      "detector_verified": false,
+      "detector_model_sha256": null,
+      "monitored_region_m": null,
+      "image_size": [
+        640,
+        480
+      ],
+      "pose_us": [
+        1600,
+        1150
+      ],
+      "homography": [
+        [
+          -0.0012890880317436542,
+          0.00012392306496913187,
+          0.3639088840468398
+        ],
+        [
+          -7.185754923415941e-05,
+          -0.0005546919648064946,
+          -0.36482327712128915
+        ],
+        [
+          -0.0001490699884371703,
+          -0.0037947907803450695,
+          1.0
+        ]
+      ],
+      "valid_polygon_px": [
+        [
+          209.27390687070258,
+          453.35620026643414
+        ],
+        [
+          444.66621601711364,
+          448.58554738596814
+        ],
+        [
+          435.9662698412699,
+          329.2876984126984
+        ],
+        [
+          195.4290909090909,
+          336.86303030303026
+        ]
+      ],
+      "independent_check_rms_m": 0.01424878470181275,
+      "independent_check_max_error_m": 0.021148705968571577,
+      "calibration_record": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+      "validated_front_distance_span_m": [
+        0.5,
+        1.5
+      ],
+      "frontmost_to_rear_axle_m": 0.34,
+      "repeat_check_max_error_m": 0.02157725555847742
+    }
+  },
+  "course": {
+    "verified": false,
+    "traffic_stop_line_world_m": null,
+    "crosswalk_edge_world_m": null
+  },
+  "audio": {
+    "verified": false,
+    "backend": "tts",
+    "bus": 1,
+    "address": 64,
+    "volume": 9,
+    "busy_status": null,
+    "idle_status": null,
+    "wav_path": null,
+    "timeout_s": 20
+  }
+}

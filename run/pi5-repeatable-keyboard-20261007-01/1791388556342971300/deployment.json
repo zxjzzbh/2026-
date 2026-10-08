@@ -1,0 +1,19 @@
+{
+  "boot_id": "b1ae7867-73fb-4609-aed6-11875d5e3b00",
+  "scope": "run/pi5-repeatable-keyboard-20261007-01/1791388556342971300",
+  "source_scope": "run/pi5-repeatable-keyboard-20261007-01/1791388293750402700",
+  "deployed_files": [
+    "vision/src/carvision/manual_drive.py",
+    "vision/src/carvision/manual_hardware.py",
+    "vision/tools/serve_bench_drive.py",
+    "vision/tests/test_worker_endpoint.py"
+  ],
+  "esc_off_confirmed_by_user": true,
+  "actuator_commands_sent": false,
+  "pi_checks": {
+    "rc": 0,
+    "stdout": "........................................................................ [ 45%]\n.........................................................ss............. [ 90%]\n................                                                         [100%]\n158 passed, 2 skipped in 0.99s\n",
+    "stderr": ""
+  },
+  "physical_holding_strength_verified": false
+}

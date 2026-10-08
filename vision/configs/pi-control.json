@@ -1,0 +1,19 @@
+{
+  "steering_gpio": 12,
+  "esc_gpio": 13,
+  "pwm_chip": null,
+  "frequency_hz": 50,
+  "esc_model": "",
+  "calibration_confirmed": false,
+  "esc_neutral_us": 1500,
+  "esc_forward_us": null,
+  "steering_left_us": 1750,
+  "steering_center_us": 1650,
+  "steering_right_us": 1550,
+  "speed_kp": null,
+  "speed_ki": 0.0,
+  "maximum_throttle": 0.15,
+  "command_lease_s": 0.25,
+  "announcement_wav": null,
+  "announcement_text": ""
+}

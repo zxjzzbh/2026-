@@ -1,0 +1,4 @@
+{
+  "primary": "/dev/v4l/by-id/usb-YT-FAY-220613_USB2.0_Camera-video-index0",
+  "secondary": "/dev/v4l/by-id/usb-H65_USB_CAMERA_H65_USB_CAMERA-video-index0"
+}

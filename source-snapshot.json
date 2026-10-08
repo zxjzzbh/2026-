@@ -1,0 +1,14 @@
+{
+  "created_at_china": "2026-10-08T00:06:45+08:00",
+  "snapshot_date": "2026-10-08",
+  "kind": "current source and configuration snapshot",
+  "latest_manual_deployment_record": "run/pi5-repeatable-keyboard-20261007-01/1791388556342971300/deployment.json",
+  "latest_relevant_pi_checks": {
+    "rc": 0,
+    "stdout": "........................................................................ [ 45%]\n.........................................................ss............. [ 90%]\n................                                                         [100%]\n158 passed, 2 skipped in 0.99s\n",
+    "stderr": ""
+  },
+  "packaging_started_no_vehicle_actions": true,
+  "full_autonomous_course_physically_passed": false,
+  "credentials_and_private_keys_included": false
+}

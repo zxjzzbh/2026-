@@ -1,0 +1,166 @@
+{
+  "scope": "run/pi5-repeatable-keyboard-20261007-01/1791388556342971300",
+  "files": [
+    {
+      "path": "vision/src/carvision/manual_drive.py",
+      "sha256": "38199efde6e6e6678ce99504158b8567741f83bccf6bfe2a08f98391cb6bc929"
+    },
+    {
+      "path": "vision/src/carvision/pi5_pwm.py",
+      "sha256": "015b2e910875882aab10466844535e7b5c2c8230b9ebf76a5498cf4b0eeae6e4"
+    },
+    {
+      "path": "vision/src/carvision/manual_hardware.py",
+      "sha256": "05fd30ca799c0933808668ef6f8a740594f482e67c40affe03d3694374218efe"
+    },
+    {
+      "path": "vision/tools/serve_bench_drive.py",
+      "sha256": "048b29b993374ed403b4cf979552bd38556333fb6170107af677bc39da091f4b"
+    },
+    {
+      "path": "vision/tests/test_raised_held_drive.py",
+      "sha256": "f2a94a8723572899f5eb88a284ff65e434c48f7c3b02b0757350f6d4654353fb"
+    },
+    {
+      "path": "vision/MANUAL_BENCH.md",
+      "sha256": "a09a4baee259498fe56ad4eb54ec9c6b8d1f2027a193891411f1de4cac01e53b"
+    },
+    {
+      "path": "vision/src/carvision/manual_controls.py",
+      "sha256": "daf6dd7838568539468c6252e4c4dd60bb3568e182c259f6a54269f04aa9b956"
+    },
+    {
+      "path": "vision/tests/test_manual_drive.py",
+      "sha256": "b5b8fa3d62fb368a620484f6424c921b438ade0e04e90ae9f6f764601d780914"
+    },
+    {
+      "path": "vision/tests/test_manual_heartbeat.py",
+      "sha256": "688d3197f12538a0033463b115aec5df9d79d388ead76cb4ef1a6a83c0c6213f"
+    },
+    {
+      "path": "vision/tests/js/manual_heartbeat.cjs",
+      "sha256": "7a6961a4381f3e46519b2fb8ba36863bea247854a8fbf48776bdce2c90192482"
+    },
+    {
+      "path": "vision/tests/test_ground_held_drive.py",
+      "sha256": "f43106c3e1c74556899a51306f10911c5590a1defebc4d180b146160d1a61670"
+    },
+    {
+      "path": "vision/tests/test_uart_target_steering.py",
+      "sha256": "8870e96ac766dfdaae74c93cdc07b8b221a834782df9ebc21e39e7dc7523f73c"
+    },
+    {
+      "path": "vision/src/carvision/web_preview.py",
+      "sha256": "ecb9121a30b8e68f7c40d0a22b59cb045c4cc7bd504a92e81c61ebe220656334"
+    },
+    {
+      "path": "vision/tests/test_web_preview.py",
+      "sha256": "dd608e49729dd68401ccc59c41e0d448bde71381345e46a4e334a81948aced09"
+    },
+    {
+      "path": "vision/tests/test_deferred_drive.py",
+      "sha256": "2835445c44e2f421fe754cd7374a27aacc5edd6e0b06cd8fe80d0124331c2671"
+    },
+    {
+      "path": "vision/tests/test_straight_steering_hold.py",
+      "sha256": "d7dd7fdddb33e7f0d585716a5f23f12a718322e819b7d8cc9ab05b90e1448569"
+    },
+    {
+      "path": "vision/tests/test_repeatable_drive.py",
+      "sha256": "4ab03b0fbac3eff2408ef43e53e6c98c2ddc3c06fa65762bbdec1ded55b26e64"
+    },
+    {
+      "path": "vision/tests/test_worker_endpoint.py",
+      "sha256": "25e2bcb6a0eba2be5244600558ed0eec1724e9c35ada1d7117aee73a531406d8"
+    }
+  ],
+  "pi_checks": {
+    "rc": 0,
+    "stdout": "........................................................................ [ 45%]\n.........................................................ss............. [ 90%]\n................                                                         [100%]\n158 passed, 2 skipped in 0.99s\n",
+    "stderr": ""
+  },
+  "local_checks_passed": 142,
+  "local_platform_checks_skipped": 2,
+  "operator_requested_manual_ground_test": true,
+  "driving_session_started": false,
+  "hardware_controls_were_paused": true,
+  "actuator_commands_sent": false,
+  "lease_ms": 200,
+  "guardian_lease_ms": 250,
+  "manual_session_s": 60,
+  "single_hold_max_s": 600,
+  "autonomous_calibration_modified": false,
+  "prior_pi_checks": {
+    "rc": 0,
+    "stdout": "........................................................................ [ 46%]\n.....................................................ss................. [ 92%]\n............                                                             [100%]\n154 passed, 2 skipped in 1.01s\n",
+    "stderr": ""
+  },
+  "center_display_local_checks": {
+    "passed": 63,
+    "skipped": 1,
+    "browser_assertions": 14
+  },
+  "software_checks_source_scope": "run/pi5-repeatable-keyboard-20261007-01/1791388293750402700",
+  "current_code_sha_matches_verified_software": true,
+  "tests_repeated_in_current_boot": false,
+  "target_steering_local_checks": {
+    "passed": 104,
+    "platform_skipped": 2
+  },
+  "same_boot_single_target_evidence_record": "run/pi5-5g-turn-20261007-01/191631-521747/isolated-s3-1550-1500958115748/operator-observation.json",
+  "same_boot_single_target_evidence_sha256": "455f6b7661d62868c323894f85c24fc49f68b6d4757c465bdc184bf6670ca00b",
+  "deployment_ESC_off_confirmed_by_user": true,
+  "actuator_commands_sent_during_deployment": false,
+  "web_physical_retest_pending": true,
+  "long_route_local_checks": {
+    "passed": 124,
+    "skipped": 2
+  },
+  "planned_distance_range_m": [
+    30,
+    50
+  ],
+  "preparation_s": 120,
+  "timing_envelope_s": {
+    "preparation": 120,
+    "settling": 12,
+    "active": 600,
+    "guardian": 800,
+    "worker": 810
+  },
+  "primary_raw_preview_target_fps": 15,
+  "default_driving_view": "raw",
+  "automatic_camera_switch_default": false,
+  "prior_pi_checks_before_test_sync": {
+    "rc": 0,
+    "stdout": "........................................................................ [ 59%]\n.......................ss.........................                       [100%]\n120 passed, 2 skipped in 0.77s\n",
+    "stderr": ""
+  },
+  "prior_pi_checks_before_deferred": {
+    "rc": 0,
+    "stdout": "........................................................................ [ 57%]\n.......................ss.............................                   [100%]\n124 passed, 2 skipped in 0.94s\n",
+    "stderr": ""
+  },
+  "deferred_local_checks": {
+    "passed": 131,
+    "skipped": 2,
+    "browser_assertions": 16
+  },
+  "deferred_hardware_start": true,
+  "waiting_page_deadline_s": null,
+  "hardware_worker_started": false,
+  "actuator_commands_sent_during_deferred_deployment": false,
+  "deferred_deployment_ESC_on_reported_by_user": true,
+  "preparation_clock_starts": "hardware worker startup after explicit enable",
+  "straight_hold_local_checks": {
+    "passed": 141,
+    "skipped": 2
+  },
+  "esc_off_confirmed_by_user_for_deployment": true,
+  "physical_straight_hold_retest_pending": true,
+  "repeatable_local_checks": {
+    "passed": 157,
+    "skipped": 3,
+    "browser_assertions": 24
+  }
+}

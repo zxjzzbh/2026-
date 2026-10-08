@@ -42,7 +42,7 @@ git switch -c feat/vision-video-reader
 |---|---|---|
 | 视觉录像读取 | `feat/vision-video-reader` | `vision/` |
 | 模式切换 | `feat/vehicle-mode-switch` | `vehicle/` |
-| 编码器读取 | `feat/firmware-encoder` | `firmware/` |
+| 树莓派反馈接入 | `feat/pi-feedback` | `vision/src/carvision/` |
 | 视频回传 | `feat/communication-video` | `communication/` |
 | 接线图 | `docs/hardware-wiring` | `hardware/` |
 

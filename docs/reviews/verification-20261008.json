@@ -1,0 +1,157 @@
+{
+  "review_date": "2026-10-08",
+  "scope": "Windows offline review; no hardware or SSH access",
+  "source_manifest_entries": 184,
+  "original_manifest_all_hashes_matched": true,
+  "original_test_suite": {
+    "passed": 692,
+    "skipped": 3,
+    "seconds": 15.44,
+    "platform": "Windows, Python 3.12",
+    "opencv": "4.11.0",
+    "numpy": "2.2.6",
+    "node_checks_included": true,
+    "skip_reasons": [
+      "Pi worker uses Unix sockets",
+      "Linux termios unavailable on Windows",
+      "actual Linux Unix-socket transport check"
+    ]
+  },
+  "current_profile_demo": {
+    "phase": "complete",
+    "hardware_output": false,
+    "race_elapsed_s": 20.0,
+    "verified_traffic_wait_s": 2.200000000000001,
+    "effective_time_before_penalties_s": 17.799999999999997,
+    "passed_cone_ids": [
+      "cone-1",
+      "cone-2"
+    ],
+    "parking_slot_id": "right",
+    "payment_success_reported": true,
+    "payment_bonus_points": 5,
+    "reason": "payment_success_reported",
+    "simulated": true,
+    "observations": 221,
+    "planned_motion_updates": 0,
+    "hardware_motion_updates": 0,
+    "decision_flow_completed": true,
+    "actuation_mapping_ready": false,
+    "physical_race_completed": false,
+    "runtime_fault_or_end_reason": "input_ended",
+    "cleanup_errors": [],
+    "readiness": {
+      "hardware_output": false,
+      "actuation_mapping_ready": false,
+      "missing": [
+        "motion.max_speed_mps",
+        "motion.max_steering_rad",
+        "motion.speed_kp_us_per_mps",
+        "motion.speed_ki_us_per_m",
+        "motion.braking_deceleration_mps2",
+        "telemetry.maximum_speed_mps",
+        "telemetry.distance_per_count_m",
+        "motion.calibrated",
+        "motion.continuous_motion_verified",
+        "telemetry.verified",
+        "telemetry.pose_verified",
+        "audio.verified",
+        "motion.speed_table_at_least_two_measured_points",
+        "cameras.primary.detector_verified_on_track",
+        "cameras.primary.detector_model_sha256",
+        "cameras.primary.measured_road_visibility",
+        "course.traffic_stop_line_survey",
+        "audio.measured_busy_idle_status"
+      ],
+      "secondary_requires_its_own_fixed_pose_calibration": true,
+      "manual_bench_limits_changed": false
+    }
+  },
+  "targeted_reproductions": {
+    "hardware_access": false,
+    "readiness_missing": [
+      "motion.max_speed_mps",
+      "motion.max_steering_rad",
+      "motion.speed_kp_us_per_mps",
+      "motion.speed_ki_us_per_m",
+      "motion.braking_deceleration_mps2",
+      "telemetry.maximum_speed_mps",
+      "telemetry.distance_per_count_m",
+      "motion.calibrated",
+      "motion.continuous_motion_verified",
+      "telemetry.verified",
+      "telemetry.pose_verified",
+      "audio.verified",
+      "motion.speed_table_at_least_two_measured_points",
+      "cameras.primary.detector_verified_on_track",
+      "cameras.primary.detector_model_sha256",
+      "cameras.primary.measured_road_visibility",
+      "course.traffic_stop_line_survey",
+      "audio.measured_busy_idle_status"
+    ],
+    "current_geometry": {
+      "primary": {
+        "measured_ground_y_m": [
+          0.84,
+          0.84,
+          1.84,
+          1.84
+        ],
+        "crosswalk_target_25cm_pixel": [
+          368.75560573480925,
+          583.8239812849253
+        ],
+        "crosswalk_target_rejected": true,
+        "wheels_inside_entire_measured_polygon": 0
+      },
+      "secondary": {
+        "measured_ground_y_m": [
+          0.84,
+          0.84,
+          1.84,
+          1.84
+        ],
+        "crosswalk_target_25cm_pixel": [
+          336.48956671699545,
+          563.702884786196
+        ],
+        "crosswalk_target_rejected": true,
+        "wheels_inside_entire_measured_polygon": 0
+      }
+    },
+    "crosswalk_lost_distance_decision": {
+      "before": "follow_lane",
+      "after": "follow_lane",
+      "after_speed_mps": 0.25,
+      "after_reason": "seek_crosswalk"
+    },
+    "optical_flow_boundary": {
+      "raises": true,
+      "exception": "error",
+      "message": "OpenCV(4.11.0) D:\\a\\opencv-python\\opencv-python\\opencv\\modules\\calib3d\\src\\ptsetreg.cpp:1108: error: (-215:Assertion failed) count >= 0 && to.checkVector(2) == count in function 'cv::estimateAffinePartial2D'\n"
+    }
+  },
+  "synced_tree_tests": {
+    "initial_run": {
+      "passed": 691,
+      "skipped": 3,
+      "failed": 1,
+      "failure": "Rejected chunked HTTP body returned Windows ConnectionAbortedError 10053 before client read HTTP 400"
+    },
+    "targeted_repeats": [
+      {
+        "passed": 18
+      },
+      {
+        "passed": 18
+      }
+    ],
+    "full_rerun": {
+      "passed": 692,
+      "skipped": 3
+    },
+    "platform": "Windows Python 3.12",
+    "runtime_source": "PYTHONPATH=vision/src in synced checkout",
+    "interpretation": "Intermittent Windows rejected-connection response test observed; no source fix or test suppression applied."
+  }
+}
