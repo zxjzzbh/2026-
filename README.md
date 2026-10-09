@@ -1,5 +1,13 @@
 # 2026 室外 5G 远程驾驶无人车赛
 
+本次开发更新（2026-10-09 至 10-10）：
+
+- [斑马线主动制动测试](vision/BRAKE_PARKING.md)：F/B 模式有限刹车脉冲，网页准备／开始／停止、25–65 cm 触发距离设置、停稳等待 10 秒及队伍语音播报。默认触发距离 55 cm；实际停车精度与低速控制仍需实车验收。
+- [红绿灯采集与标注](vision/TRAFFIC_LIGHT_CAPTURE.md)：读取真实双摄画面，支持人工灯色／框标注、完整批次分页、筛选和历史批次恢复。运行入口 `vision/run-traffic-capture.ps1`，本机页面端口 8091。
+- [红绿灯识别](vision/TRAFFIC_SIGNAL.md)：灯组定位、发光判断、连续绿灯确认及停车区内红转绿决策接口。154 张开发数据中，主摄 76/79 状态匹配、绿灯 24/24、非绿误绿 0；H65 仅 8/75，暂作辅助。这是开发回放结果，不代表独立测试或室外验收；红绿灯模块尚未连接车辆输出。
+
+电脑最终版本与车端部署差异见 [当前进度](docs/current-status.md)。采集原图、人工标注数据集、运行日志和连接凭据保留在本地，不包含在本次源码提交中；测试所需的三张小图片夹具随代码提交。
+
 **当前基线（2026-10-08）：Raspberry Pi 5 + RasAdapter5A 串口扩展板，纯树莓派应用控制，不使用独立 STM32。**
 
 当前源码已经包含双摄感知、网页遥控、UART 执行、比赛状态机和自主运行框架。有限低速/5G 测试有历史记录；**完整自主赛道尚未实车验收，真实自主输出仍被未完成标定项阻止。**
@@ -63,9 +71,9 @@ python -m carvision autonomy-demo --profile vision/configs/autonomy-pi5.json --r
 python tools/audit_snapshot_20261008.py
 ```
 
-输出目录必须是新目录。原配置的正常检查结果是 **18 个准备缺项**；demo 的 complete 只代表决策回放完成，不能当作车已经跑完。最近本地 Windows 原测试集 692 通过 / 3 跳过（Linux 专用项）。CI 在 Linux/Windows 上运行软件检查，不操作硬件。
+输出目录必须是新目录。原配置的正常检查结果是 **18 个准备缺项**；demo 的 complete 只代表决策回放完成，不能当作车已经跑完。本次本地 Windows 完整测试集 868 通过 / 3 跳过（Linux 专用项）。CI 在 Linux/Windows 上运行软件检查，不操作硬件。
 
-实车相关入口见 [MANUAL_BENCH](vision/MANUAL_BENCH.md) 与 [AUTONOMY_PI5](vision/AUTONOMY_PI5.md)，先阅读当前状态；两份文档保留历史段落。不要沿用旧 GPIO 接线或旧开机记录。当前同步未部署到车、未改变运动保护或标定数据。
+实车相关入口见 [MANUAL_BENCH](vision/MANUAL_BENCH.md) 与 [AUTONOMY_PI5](vision/AUTONOMY_PI5.md)，先阅读当前状态；两份文档保留历史段落。不要沿用旧 GPIO 接线或旧开机记录。斑马线测试版本已有车端部署记录；红绿灯最终反光过滤微调仍待同步，具体差异见当前进度。
 
 ## 比赛目标
 

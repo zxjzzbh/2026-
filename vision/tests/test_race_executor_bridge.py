@@ -300,14 +300,14 @@ def test_synthetic_decision_flow_while_bridge_refuses_all_motion(clear_slot):
             if intent["action"] in ("follow_lane", "follow_corridor"):
                 refused_moves += 1
                 assert output["reason"] == "continuous_speed_mapping_not_calibrated"
-            if intent["reason"] == "crosswalk_10_second_stop_and_announcement_completed":
+            if intent["reason"] == "crosswalk_configured_hold_completed":
                 assert row.t_s - controller.crosswalk_since >= 10
                 assert backend.done
         assert bridge.executor.commands == []
         assert bridge.input_ended()["action"] == "stop"
     assert refused_moves > 0
     assert len(play_events) == 1
-    assert phases == set(p.value for p in Phase) - {Phase.FAILED.value, Phase.ESTOP.value}
+    assert phases == set(p.value for p in Phase) - {Phase.FAILED.value, Phase.ESTOP.value, Phase.CROSSWALK_EXIT.value}
     assert controller.summary()["payment_bonus_points"] == 5
     assert controller.summary()["parking_slot_id"] == clear_slot
     assert not backend.status()["hardware_verified"]

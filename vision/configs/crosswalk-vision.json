@@ -1,0 +1,12 @@
+{
+  "roi_top": 0.4,
+  "white_s_max": 100,
+  "white_v_min": 170,
+  "min_stripes": 3,
+  "min_area_fraction": 0.0004,
+  "max_area_fraction": 0.06,
+  "min_row_width_fraction": 0.20,
+  "confirm_ms": 200,
+  "max_gap_ms": 250,
+  "min_clipped_height_fraction": 0.06
+}

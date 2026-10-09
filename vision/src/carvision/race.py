@@ -17,6 +17,7 @@ class Phase(str, Enum):
     BOARD = "wait_blue_board"
     CROSSWALK_APPROACH = "approach_crosswalk"
     CROSSWALK_HOLD = "crosswalk_stop"
+    CROSSWALK_EXIT = "follow_after_crosswalk"
     LIGHT_APPROACH = "approach_traffic_light"
     LIGHT_HOLD = "wait_green"
     CONES = "avoid_cones"
@@ -32,6 +33,7 @@ class RaceConfig:
     school: str = ""
     team: str = ""
     crosswalk_hold_s: float = 10.0
+    announcement_required: bool = True
     crosswalk_stop_distance_m: float = 0.25
     payment_window_s: float = 30.0
     max_stationary_s: float = 20.0
@@ -54,11 +56,16 @@ class RaceConfig:
             if f.name in ("school", "team"):
                 if not isinstance(value, str):
                     raise ValueError(f"{f.name} must be a string")
+            elif f.name == "announcement_required":
+                if type(value) is not bool:
+                    raise ValueError("announcement_required must be boolean")
             elif value is not None:
                 if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
                     raise ValueError(f"{f.name} must be finite and positive")
-        if self.crosswalk_hold_s < 10:
-            raise ValueError("2026 penalty clauses require at least 10 seconds at the crosswalk")
+        # The draft conflicts (3 s / 10 s). The team's explicit stage profile
+        # selects 3 s; duration is configuration, never a hidden fixed sleep.
+        if self.crosswalk_hold_s >= self.max_stationary_s:
+            raise ValueError("crosswalk hold must be below the stationary limit")
         if not 0 < self.crosswalk_stop_distance_m < 0.3:
             raise ValueError("crosswalk stopping target must be strictly inside 30 cm")
         if self.payment_window_s != 30 or self.max_stationary_s != 20:
@@ -101,6 +108,7 @@ class Observation:
     lane_width_m: float | None = None
     task_monitor_valid: bool = False
     crosswalk_distance_m: float | None = None
+    crosswalk_state: str = "unknown"
     announcement_done: bool = False
     traffic_zone_entered: bool = False
     traffic_stop_distance_m: float | None = None
@@ -139,6 +147,8 @@ class Observation:
             raise ValueError("board state requires a monitored present/removed/unknown result")
         if obs.traffic_light_state not in ("red", "yellow", "green", "unknown"):
             raise ValueError("invalid light state")
+        if obs.crosswalk_state not in ("present", "absent", "unknown"):
+            raise ValueError("invalid crosswalk state")
         if type(obs.wheels_inside) is not int or not 0 <= obs.wheels_inside <= 4:
             raise ValueError("wheels_inside must be an integer from 0 to 4")
         if not isinstance(obs.passed_cone_ids, list) or any(not isinstance(v, str) or not v for v in obs.passed_cone_ids):
@@ -196,9 +206,12 @@ def free_corridor(lane_width_m, cones, config, target_lateral_m=None):
 
 
 class RaceController:
-    def __init__(self, config):
+    def __init__(self, config, *, scope="full_race"):
+        if scope not in ("full_race", "crosswalk"):
+            raise ValueError("unknown task scope")
         self.config = config.validate()
-        self.phase = Phase.REMOTE
+        self.scope = scope
+        self.phase = Phase.REMOTE if scope == "full_race" else Phase.CROSSWALK_APPROACH
         self.last_t = None
         self.race_started = None
         self.race_finished = None
@@ -206,6 +219,8 @@ class RaceController:
         self.board_seen = False
         self.board_clear_since = None
         self.crosswalk_since = None
+        self.crosswalk_seen = False
+        self.crosswalk_served = False
         self.announcement_requested = False
         self.announcement_acknowledged = False
         self.green_since = None
@@ -229,12 +244,18 @@ class RaceController:
 
     def decision(self, action, reason, speed=0.0, steering=0.0, lateral=None):
         c = self.config
+        elapsed = (c.crosswalk_hold_s if self.crosswalk_served else
+                   max(0.0, self.last_t - self.crosswalk_since) if self.crosswalk_since is not None else 0.0)
         return {"schema_version": "race-intent-0.2", "mode": "decision_only",
                 "hardware_output": False, "phase": self.phase.value, "action": action,
                 "reason": reason, "speed_mps": min(c.cruise_speed_mps, max(0.0, speed)),
                 "steering_normalized": max(-c.maximum_steering_normalized, min(c.maximum_steering_normalized, steering)),
                 "target_lateral_m": lateral, "parking_slot_id": self.parking_slot,
                 "payment_remaining_s": None if self.parked_at is None else max(0.0, c.payment_window_s - (self.last_t - self.parked_at)),
+                "crosswalk_seen": self.crosswalk_seen, "crosswalk_served": self.crosswalk_served,
+                "crosswalk_hold_s": c.crosswalk_hold_s,
+                "crosswalk_elapsed_s": min(c.crosswalk_hold_s, elapsed),
+                "crosswalk_remaining_s": max(0.0, c.crosswalk_hold_s - elapsed),
                 "events": list(self.events)}
 
     def follow(self, obs, reason, speed=None, lateral=None):
@@ -264,6 +285,12 @@ class RaceController:
             self.transition(Phase.ESTOP, obs)
         if self.phase in (Phase.ESTOP, Phase.FAILED, Phase.COMPLETE):
             return self.decision("stop", self.terminal_reason or self.phase.value)
+
+        # Keep valid visual evidence even if speed feedback is temporarily lost.
+        # Losing an already approached target must never restore cruise speed.
+        if (self.phase == Phase.CROSSWALK_APPROACH and obs.source_ok and obs.task_monitor_valid
+                and (obs.crosswalk_state == "present" or obs.crosswalk_distance_m is not None)):
+            self.crosswalk_seen = True
 
         # Parking ends the competition clock; payment is a separate human task.
         if self.phase == Phase.PAYMENT:
@@ -302,7 +329,7 @@ class RaceController:
             if obs.enable_autonomy:
                 if not obs.in_switch_zone or not stopped:
                     return self.decision("stop", "handover_requires_stopped_vehicle_inside_switch_zone")
-                if self.config.announcement is None:
+                if self.config.announcement_required and self.config.announcement is None:
                     return self.decision("stop", "school_and_team_required_before_autonomy")
                 self.board_seen = obs.board_monitor_valid and obs.start_board_state == "present"
                 self.transition(Phase.BOARD, obs)
@@ -342,6 +369,8 @@ class RaceController:
             if distance is not None and distance < 0:
                 return self.fail("front_bumper_crossed_crosswalk_edge", obs)
             if self.phase == Phase.CROSSWALK_APPROACH:
+                if distance is None and self.crosswalk_seen:
+                    return self.decision("stop", "crosswalk_distance_lost_after_detection")
                 if distance is not None and distance <= self.config.crosswalk_stop_distance_m:
                     self.transition(Phase.CROSSWALK_HOLD, obs)
                 else:
@@ -351,14 +380,23 @@ class RaceController:
                 return self.decision("stop", "need_stationary_feedback_inside_crosswalk_stop_zone")
             if self.crosswalk_since is None:
                 self.crosswalk_since = obs.t_s
-            if not self.announcement_requested:
+                self.events.append({"event": "crosswalk_stationary_hold_started", "t_s": obs.t_s})
+            if self.config.announcement_required and not self.announcement_requested:
                 self.events.append({"event": "play_announcement", "text": self.config.announcement, "t_s": obs.t_s})
                 self.announcement_requested = True
             self.announcement_acknowledged |= obs.announcement_done
-            if obs.t_s - self.crosswalk_since >= self.config.crosswalk_hold_s and self.announcement_acknowledged:
-                self.transition(Phase.LIGHT_APPROACH, obs)
-                return self.decision("stop", "crosswalk_10_second_stop_and_announcement_completed")
+            if (obs.t_s - self.crosswalk_since + 1e-9 >= self.config.crosswalk_hold_s
+                    and (not self.config.announcement_required or self.announcement_acknowledged)):
+                self.crosswalk_served = True
+                self.events.append({"event": "crosswalk_completed", "hold_s": self.config.crosswalk_hold_s, "t_s": obs.t_s})
+                self.transition(Phase.CROSSWALK_EXIT if self.scope == "crosswalk" else Phase.LIGHT_APPROACH, obs)
+                return self.decision("stop", "crosswalk_configured_hold_completed")
             return self.decision("stop", "crosswalk_wait_for_full_stop_duration_and_audio_ack")
+
+        if self.phase == Phase.CROSSWALK_EXIT:
+            # One crosswalk per stage run. Its remaining visible stripes must
+            # not initiate a second stop. Source, speed and lane checks remain.
+            return self.follow(obs, "crosswalk_completed_resume_lane")
 
         if self.phase == Phase.LIGHT_APPROACH:
             if not obs.task_monitor_valid:

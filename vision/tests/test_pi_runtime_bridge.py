@@ -361,6 +361,6 @@ def test_ordered_runtime_replay_preserves_all_synthetic_decisions_without_hardwa
     assert all(row["execution"]["action"] == "stop" for row in result["rows"])
     assert runtime.bridge.executor.commands == []
     releases = [row for row in result["rows"] if row.get("intent", {}).get("reason") ==
-                "crosswalk_10_second_stop_and_announcement_completed"]
+                "crosswalk_configured_hold_completed"]
     assert len(releases) == 1
     assert releases[0]["observation_t_s"] - controller.crosswalk_since >= 10

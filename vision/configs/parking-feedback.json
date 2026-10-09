@@ -1,0 +1,42 @@
+{
+  "limits": {
+    "search_speed_mps": 0.08,
+    "creep_speed_mps": 0.03,
+    "creep_zone_m": 0.4,
+    "target_distance_m": 0.15,
+    "position_margin_m": 0.02,
+    "speed_tolerance_mps": 0.01,
+    "stationary_confirmation_s": 0.4,
+    "hold_s": 3,
+    "maximum_feedback_age_s": 0.25,
+    "command_lease_s": 0.1,
+    "maximum_search_s": 10
+  },
+  "calibration": {
+    "esc_model": "火凤凰 New Rain 480A 双向有刷电调",
+    "esc_running_mode": null,
+    "speed_feedback_source": null,
+    "speed_feedback_verified": false,
+    "low_speed_control_verified": false,
+    "minimum_stable_speed_mps": null,
+    "distance_feedback_verified": false,
+    "distance_verified_range_m": null,
+    "active_brake_verified": false,
+    "brake_does_not_reverse_verified": false,
+    "braking_deceleration_lower_bound_mps2": null,
+    "brake_response_upper_bound_s": null,
+    "brake_evidence": null,
+    "esc_model_source": "user-confirmed 2026-10-09",
+    "mode_labels_from_user_photo": {
+      "left": "F/B/R",
+      "center": "F/R",
+      "right": "F/B"
+    },
+    "battery_selector_labels_from_user_photo": [
+      "LiPo",
+      "NiMH"
+    ],
+    "mode_position_photo_assessment": "appears centered at F/R; physical confirmation pending"
+  },
+  "note": "Speed values are engineering goals, not measured ESC mappings. No brake PWM is guessed; actual actuator binding remains unavailable until verified."
+}
