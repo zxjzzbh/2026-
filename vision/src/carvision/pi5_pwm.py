@@ -17,6 +17,8 @@ import sys
 import threading
 import time
 
+from .network_guard import interface_is_inactive
+
 
 def inspect_pi5():
     from .pi_control import inspect_pwm_chips
@@ -30,12 +32,12 @@ def inspect_pi5():
 
 
 def validate_review(review, boot, *, neutral_only=False, motor_only=False,
-                    steering_only=False, combined=False, ground_short=False, ground_held=False):
-    if sum((neutral_only, motor_only, steering_only, combined, ground_short, ground_held)) != 1:
+                    steering_only=False, combined=False, ground_short=False, ground_held=False, ground_continuous=False):
+    if sum((neutral_only, motor_only, steering_only, combined, ground_short, ground_held, ground_continuous)) != 1:
         raise ValueError('Pi 5 requires one explicit bench scope')
     if (review.get('model') != 'Raspberry Pi 5 Model B Rev 1.0'
             or review.get('boot_id') != boot
-            or (not (ground_short or ground_held) and review.get('wheels_raised_confirmed_by_user') is not True)
+            or (not (ground_short or ground_held or ground_continuous) and review.get('wheels_raised_confirmed_by_user') is not True)
             or review.get('esc_off_confirmed_by_user') is not True):
         raise ValueError('fresh Pi 5, raised-wheel and ESC-off preparation required')
     if ground_short:
@@ -66,6 +68,19 @@ def validate_review(review, boot, *, neutral_only=False, motor_only=False,
                 or review.get('esc_backend') != 'rasadapter5a_uart' or review.get('esc_channel') != 4
                 or review.get('steering_backend') != 'rasadapter5a_uart' or review.get('steering_channel') != 3):
             raise ValueError('ground held control needs current key-release stop evidence, ground preparation and spotter')
+    if ground_continuous:
+        required = ('ground_continuous_requested_by_user', 'wheels_on_ground_confirmed_by_user',
+                    'clear_area_confirmed_by_user', 'spotter_can_cut_power_confirmed_by_user',
+                    'neutral_physically_verified', 'stop_physically_verified',
+                    'disconnect_stop_physically_verified', 'steering_physically_verified',
+                    'drivetrain_issue_resolved_reported_by_user', 'continuous_ground_driving_enabled',
+                    'reverse_revalidation_prepared')
+        if (not all(review.get(k) is True for k in required)
+                or review.get('manual_session_limit_s', 0) is not None
+                or review.get('hold_limit_s', 0) is not None
+                or review.get('esc_backend') != 'rasadapter5a_uart' or review.get('esc_channel') != 4
+                or review.get('steering_backend') != 'rasadapter5a_uart' or review.get('steering_channel') != 3):
+            raise ValueError('continuous ground control requires explicit manual authorization, fresh neutral and ground preparation')
     if not neutral_only and not steering_only and review.get('neutral_physically_verified') is not True:
         raise ValueError('Pi 5 neutral must first be physically verified')
     if combined and not all(review.get(k) is True for k in
@@ -73,7 +88,7 @@ def validate_review(review, boot, *, neutral_only=False, motor_only=False,
         raise ValueError('Pi 5 combined trial needs isolated steering and stop evidence')
     if review.get('forward_us', 1575) != 1575:
         raise ValueError('Pi 5 first trial uses only the previously observed 1575-us point')
-    if review.get('steering_backend') == 'rasadapter5a_uart' and (steering_only or combined or ground_short or ground_held):
+    if review.get('steering_backend') == 'rasadapter5a_uart' and (steering_only or combined or ground_short or ground_held or ground_continuous):
         channel = review.get('steering_channel')
         if type(channel) is not int or not 1 <= channel <= 6:
             raise ValueError('the actual RasAdapter steering channel must be identified')
@@ -251,12 +266,18 @@ class GuardState:
 
 class RasAdapterPWM(ScopedPWM):
     """Only the identified S3 steering and S4 ESC; S1/S2 never commanded."""
-    def __init__(self, *, motor, channel=None, esc_channel=None, center_us=1650, single_target=False):
+    def __init__(self, *, motor, channel=None, esc_channel=None, center_us=1650, single_target=False,
+                 boundary_center_trial=False):
         # Keep the common ownership lock; do not export RP1 PWM channels.
         super().__init__(motor=False, steering=False)
         from .rasadapter5 import RasAdapter
         self.board = RasAdapter()
-        if type(center_us) is not int or not 1550 < center_us < 1750:
+        if type(boundary_center_trial) is not bool:
+            raise ValueError('boundary center trial requires an explicit boolean')
+        if boundary_center_trial and (channel != 3 or center_us != 1550):
+            raise ValueError('boundary center trial is only the requested S3 1550-us reference')
+        if type(center_us) is not int or not (1550 < center_us < 1750
+                                            or boundary_center_trial and center_us == 1550):
             raise ValueError('steering reference must be inside the observed range')
         self.center_us = center_us
         if type(single_target) is not bool or single_target and channel != 3:
@@ -337,7 +358,8 @@ class RasAdapterPWM(ScopedPWM):
 def guard_main(args):
     pwm = (RasAdapterPWM(motor=args.motor, channel=args.steering_channel, esc_channel=args.esc_channel,
                          center_us=args.steering_center_us,
-                         single_target=getattr(args, 'steering_single_target', False)) if args.steering_channel or args.esc_channel
+                         single_target=getattr(args, 'steering_single_target', False),
+                         boundary_center_trial=getattr(args, 'steering_boundary_center_trial', False)) if args.steering_channel or args.esc_channel
            else ScopedPWM(motor=args.motor, steering=args.steering))
     stopping = False
     def stop(*_):
@@ -345,7 +367,8 @@ def guard_main(args):
         stopping = True
     for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         signal.signal(sig, stop)
-    deadline, buffer = time.monotonic() + 800, b''
+    continuous = getattr(args, 'continuous_manual', False)
+    deadline, buffer = None if continuous else time.monotonic() + 800, b''
     boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
     def reply(data):
         print(json.dumps(data), flush=True)
@@ -357,8 +380,8 @@ def guard_main(args):
         pwm.open()
         state = GuardState(pwm, neutral_only=args.neutral_only)
         reply({'ok': True, 'ready': True})
-        power_at = 0
-        while not stopping and time.monotonic() < deadline:
+        power_at = network_at = 0
+        while not stopping and (deadline is None or time.monotonic() < deadline):
             state.tick()
             if state.fault:
                 break
@@ -367,6 +390,15 @@ def guard_main(args):
                 if flags or Path('/proc/sys/kernel/random/boot_id').read_text().strip() != boot:
                     raise RuntimeError('Pi 5 power/boot changed')
                 power_at = time.monotonic() + .25
+            if continuous and time.monotonic() >= network_at:
+                route = json.loads(subprocess.check_output(['ip', '-j', 'route', 'get', '1.1.1.1'], text=True, timeout=.2))[0]
+                temperature = subprocess.check_output(['vcgencmd', 'measure_temp'], text=True, timeout=.2)
+                if (route.get('dev') != 'usb0'
+                        or Path('/sys/class/net/usb0/carrier').read_text().strip() != '1'
+                        or any(not interface_is_inactive(n) for n in ('eth0', 'wlan0'))
+                        or float(temperature.split('=')[1].split("'")[0]) >= 70):
+                    raise RuntimeError('5G route or temperature changed; manual output stopped')
+                network_at = time.monotonic()+2
             readable, _, _ = select.select([sys.stdin.fileno()], [], [], .01)
             if not readable:
                 continue
@@ -412,15 +444,21 @@ class Pi5BenchBackend:
     load_probe = False
 
     def __init__(self, root, output, expected_boot, review, *, neutral_only=False,
-                 motor_only=False, steering_only=False, combined=False, ground_short=False, ground_held=False):
+                 motor_only=False, steering_only=False, combined=False, ground_short=False, ground_held=False, ground_continuous=False):
         validate_review(review, expected_boot, neutral_only=neutral_only,
                         motor_only=motor_only, steering_only=steering_only, combined=combined,
-                        ground_short=ground_short, ground_held=ground_held)
+                        ground_short=ground_short, ground_held=ground_held, ground_continuous=ground_continuous)
         self.root, self.output, self.expected_boot = root, output, expected_boot
         self.review, self.neutral_only = review, neutral_only
         self.steering_backend = review.get('steering_backend', 'rp1_hardware_pwm')
         self.steering_center_us = review.get('steering_center_us', 1650)
-        if type(self.steering_center_us) is not int or not 1550 < self.steering_center_us < 1750:
+        self.steering_boundary_center_trial = review.get('steering_boundary_center_trial_requested_by_user') is True
+        if self.steering_boundary_center_trial and (
+                self.steering_backend != 'rasadapter5a_uart' or review.get('steering_channel') != 3
+                or self.steering_center_us != 1550 or neutral_only or motor_only):
+            raise ValueError('boundary center trial requires the explicitly requested S3 1550-us reference')
+        if type(self.steering_center_us) is not int or not (1550 < self.steering_center_us < 1750
+                or self.steering_boundary_center_trial and self.steering_center_us == 1550):
             raise ValueError('invalid observed steering reference')
         if self.steering_center_us != 1650 and self.steering_backend != 'rasadapter5a_uart':
             raise ValueError('alternate steering reference is only supported by the UART board')
@@ -428,7 +466,9 @@ class Pi5BenchBackend:
         if self.esc_backend == 'rasadapter5a_uart':
             self.signal_backend = 'rasadapter5a_uart_guardian'
         self.motor_available = not steering_only and not neutral_only
-        self.steering_available = steering_only or combined or ground_short or ground_held
+        self.steering_available = steering_only or combined or ground_short or ground_held or ground_continuous
+        self.steering_pwm_available = (steering_only and self.steering_backend == 'rasadapter5a_uart'
+                                       and review.get('steering_channel') == 3)
         self.steering_single_target = review.get('steering_single_target_verified') is True
         if self.steering_single_target and (self.steering_backend != 'rasadapter5a_uart' or not self.steering_available):
             raise ValueError('observed single target steering requires the S3 UART scope')
@@ -436,10 +476,11 @@ class Pi5BenchBackend:
         self.reverse_available = (review.get('reverse_physically_verified') is True
                                   or review.get('reverse_revalidation_prepared') is True) and not neutral_only
         self.ground_short_trial = ground_short
-        self.ground_held_trial = ground_held
-        self.manual_session_limit_s = review.get('manual_session_limit_s', 180) if ground_held else 180
-        self.manual_motion_hold_max_s = review.get('hold_limit_s', 60) if ground_held else 60
-        self.combined_trial, self.parking_protection_trial = combined or ground_short or ground_held, motor_only
+        self.ground_continuous_trial = ground_continuous
+        self.ground_held_trial = ground_held or ground_continuous
+        self.manual_session_limit_s = review.get('manual_session_limit_s', 180) if self.ground_held_trial else 180
+        self.manual_motion_hold_max_s = review.get('hold_limit_s', 60) if self.ground_held_trial else 60
+        self.combined_trial, self.parking_protection_trial = combined or ground_short or self.ground_held_trial, motor_only
         self.steering_active = False
         self.process = None
         self.log = None
@@ -491,7 +532,7 @@ class Pi5BenchBackend:
                     or evidence.get('target_us') != 1550
                     or evidence.get('center_us') != self.steering_center_us):
                 raise ValueError('same-boot physical single target steering evidence is missing or changed')
-        if self.ground_held_trial:
+        if self.ground_held_trial and not self.ground_continuous_trial:
             import hashlib
             evidence_path = (self.root/self.review['keyboard_stop_evidence_record']).resolve()
             if not evidence_path.is_relative_to(self.root.resolve()):
@@ -514,6 +555,8 @@ class Pi5BenchBackend:
         command = [sys.executable, '-m', 'carvision.pi5_pwm', '--guard',
                    '--expected-boot-id', self.expected_boot,
                    '--result', str(self.output / 'guardian-result.json')]
+        if self.ground_continuous_trial:
+            command.append('--continuous-manual')
         if not self.steering_available:
             command.append('--motor')
         else:
@@ -525,6 +568,8 @@ class Pi5BenchBackend:
         if self.steering_available and self.steering_backend == 'rasadapter5a_uart':
             command.extend(['--steering-channel', str(self.review['steering_channel'])])
             command.extend(['--steering-center-us', str(self.steering_center_us)])
+            if self.steering_boundary_center_trial:
+                command.append('--steering-boundary-center-trial')
             if self.steering_single_target:
                 command.append('--steering-single-target')
         if not self.steering_available or self.motor_available:
@@ -621,14 +666,25 @@ class Pi5GroundHeldBackend(Pi5BenchBackend):
         self.reverse_available = False
 
 
+class Pi5ContinuousBackend(Pi5BenchBackend):
+    """Operator-held manual input with no wall clock limit; guardian lease remains finite."""
+    ground_held_reviewed = True
+    manual_continuous_reviewed = True
+
+    def __init__(self, root, output, expected_boot, review):
+        super().__init__(root, output, expected_boot, review, ground_continuous=True)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--guard', action='store_true')
     parser.add_argument('--motor', action='store_true')
     parser.add_argument('--steering', action='store_true')
     parser.add_argument('--neutral-only', action='store_true')
+    parser.add_argument('--continuous-manual', action='store_true')
     parser.add_argument('--steering-channel', type=int)
     parser.add_argument('--steering-center-us', type=int, default=1650)
+    parser.add_argument('--steering-boundary-center-trial', action='store_true')
     parser.add_argument('--steering-single-target', action='store_true')
     parser.add_argument('--esc-channel', type=int)
     parser.add_argument('--expected-boot-id')
@@ -639,6 +695,12 @@ if __name__ == '__main__':
             parser.error('guardian requires expected boot and selected channels')
         if options.steering_single_target and options.steering_channel != 3:
             parser.error('single target steering requires the actual S3 channel')
+        if options.steering_boundary_center_trial and (not options.steering
+                or options.steering_channel != 3 or options.steering_center_us != 1550 or options.neutral_only):
+            parser.error('boundary center trial requires S3 steering at exactly 1550 us')
+        if options.continuous_manual and (not options.motor or not options.steering
+                or options.neutral_only or options.steering_channel != 3 or options.esc_channel != 4):
+            parser.error('continuous manual guardian requires the identified S3/S4 scope')
         guard_main(options)
     else:
         print(json.dumps(inspect_pi5(), indent=2))

@@ -78,10 +78,11 @@ class SimulationBackend:
 
 class ManualDrive:
     lease_s = .2
+    continuous_lease_s = .5
 
     def __init__(self, backend=None, *, clock=time.monotonic, settling_s=12,
                  session_s=120, preparation_s=None, event_sink=None, continuous_simulation=False,
-                 raised_held=False, ground_held=False):
+                 raised_held=False, ground_held=False, ground_continuous=False):
         self.backend = backend or SimulationBackend()
         if continuous_simulation and self.backend.hardware_output:
             raise ValueError('continuous simulation must never drive real hardware')
@@ -89,17 +90,28 @@ class ManualDrive:
                             or getattr(self.backend, 'raised_held_reviewed', False) is not True
                             or session_s != 60):
             raise ValueError('held hardware needs the reviewed raised-wheel backend and a 60-second session')
-        if ground_held and (continuous_simulation or raised_held or not self.backend.hardware_output
+        if ground_continuous and (not ground_held or continuous_simulation or raised_held
+                or not self.backend.hardware_output
+                or getattr(self.backend, 'manual_continuous_reviewed', False) is not True
+                or session_s is not None
+                or getattr(self.backend, 'manual_motion_hold_max_s', 60) is not None):
+            raise ValueError('continuous manual ground control needs explicit reviewed authorization and no timer')
+        if ground_held and not ground_continuous and (continuous_simulation or raised_held or not self.backend.hardware_output
                             or getattr(self.backend, 'ground_held_reviewed', False) is not True
                             or type(session_s) is not int or session_s not in (180, 600)
                             or session_s != getattr(self.backend, 'manual_session_limit_s', 180)):
             raise ValueError('ground held control needs its reviewed backend and matching bounded session')
         ground_hold_s = getattr(self.backend, 'manual_motion_hold_max_s', 60) if ground_held else None
-        if ground_held and (type(ground_hold_s) is not int or ground_hold_s not in (60, 600) or ground_hold_s > session_s):
+        if ground_held and not ground_continuous and (type(ground_hold_s) is not int or ground_hold_s not in (60, 600) or ground_hold_s > session_s):
             raise ValueError('ground motion hold must stay inside the reviewed session')
         self.raised_held = raised_held
         self.ground_held = ground_held
-        self.motion_hold_max_s = 3.0 if raised_held else float(ground_hold_s) if ground_held else None
+        self.ground_continuous = ground_continuous
+        if ground_continuous:
+            # Operator-requested cellular tolerance; hardware output segments
+            # and the independent worker watchdog keep their shorter limits.
+            self.lease_s = self.continuous_lease_s
+        self.motion_hold_max_s = 3.0 if raised_held else float(ground_hold_s) if ground_held and not ground_continuous else None
         self.continuous_simulation = continuous_simulation
         self.speed_percent = 20 if continuous_simulation else 100
         self.clock, self.settling_s = clock, settling_s
@@ -119,6 +131,8 @@ class ManualDrive:
         self.reverse_cancelled = False
         self.steering_center_us = getattr(self.backend, 'steering_center_us', 1650)
         self.steering_us = self.steering_center_us
+        self.pwm_target = self.pwm_requested = None
+        self.pwm_output_started = False
         self.last_steering_change = clock() if getattr(self.backend, 'steering_active', False) else float('-inf')
         self.ready_at = None
         self.stop_event = threading.Event()
@@ -134,6 +148,8 @@ class ManualDrive:
         self.pulse, self.motor, self.turn, self.stage = 1500, 'stop', 'center', None
         self.started = None
         self.stage_end = None
+        self.pwm_target = None
+        self.pwm_output_started = False
         self.blocked = latch
         self.reason = reason
         self.event('neutral', reason=reason)
@@ -147,7 +163,7 @@ class ManualDrive:
         with self.lock:
             if action in ('stop', 'emergency') and isinstance(payload, dict):
                 source = payload.get('stop_source')
-                if source not in ('keyboard_space', 'key_release', 'pointer_release',
+                if source not in ('keyboard_space', 'keyboard_escape', 'key_release', 'pointer_release',
                                   'window_blur', 'page_hidden', 'page_exit',
                                   'stop_button', 'emergency_button', 'conflicting_keys',
                                   'speed_zero', 'speed_failure', 'connection_recovery',
@@ -155,7 +171,7 @@ class ManualDrive:
                                   'gamepad_read_failure', 'gamepad_disconnected', 'gamepad_device_changed',
                                   'gamepad_invalid', 'gamepad_focus_lost', 'gamepad_emergency',
                                   'gamepad_mixed_input', 'gamepad_deadman_release', 'gamepad_conflict',
-                                  'gamepad_unavailable_direction', 'gamepad_release'):
+                                  'gamepad_unavailable_direction', 'gamepad_release', 'pwm_stop'):
                     source = 'unknown'
                 self.event('safety_request', action=action, input_source=source,
                            motor_pulse_us=self.pulse, motor_stage=self.stage,
@@ -168,7 +184,8 @@ class ManualDrive:
                 self.emergency('网页急停')
             elif action == 'stop':
                 # A stop is never blocked by ownership or a stale sequence.
-                self._neutral('松键或停车请求')
+                # A late key-up/blur must not hide the reason for a latched stop.
+                self._neutral(self.reason if self.mode in ('emergency', 'fault') else '松键或停车请求')
                 self.expires = None
             elif action == 'reset':
                 if self.mode != 'emergency':
@@ -187,11 +204,13 @@ class ManualDrive:
                 if not self.session_started:
                     # Reserve the active test interval only once. Resetting an
                     # emergency latch must not keep extending the test window.
-                    self.deadline = self.ready_at + self.session_s
+                    self.deadline = self.ready_at + self.session_s if self.session_s is not None else None
                     self.session_started = True
                 self.event('enable', hardware_output=self.backend.hardware_output)
             elif action == 'command':
                 self._command(payload)
+            elif action == 'steering_pwm':
+                self._steering_pwm(payload)
             elif action == 'speed':
                 if not self.continuous_simulation:
                     raise DriveError('speed adjustment is unavailable in fixed bench trials')
@@ -210,8 +229,44 @@ class ManualDrive:
                 raise DriveError('unknown control action')
             return self.status()
 
+    @property
+    def steering_pwm_available(self):
+        # Only an explicitly isolated, identified S3 backend may accept raw
+        # pulse widths. Combined, motor-only and legacy GPIO trials stay closed.
+        return (getattr(self.backend, 'steering_pwm_available', False) is True
+                and getattr(self.backend, 'steering_available', False) is True
+                and getattr(self.backend, 'motor_available', True) is False)
+
+    def _steering_pwm(self, payload):
+        if not self.steering_pwm_available:
+            raise DriveError('PWM tuning requires the isolated S3 steering-only mode')
+        if self.mode != 'enabled' or self.blocked:
+            raise DriveError('PWM tuning is not ready; stop/release before another trial')
+        if self._client(payload.get('client')) != self.owner:
+            raise DriveError('PWM tuning is owned by another page')
+        seq, pulse = payload.get('sequence'), payload.get('pulse_us')
+        if type(seq) is not int or seq <= self.sequence:
+            raise DriveError('old or invalid command sequence')
+        if type(pulse) is not int or not 1550 <= pulse <= 1750:
+            raise DriveError('S3 PWM must be an integer from 1550 to 1750 us')
+        if self.motor != 'stop' or self.pulse != 1500 or self.started is not None and self.turn != 'pwm':
+            raise DriveError('release other controls before PWM tuning')
+        self.sequence, self.expires = seq, self.clock() + self.lease_s
+        self.pwm_target = self.pwm_requested = pulse
+        self.turn, self.last_input_source = 'pwm', 'pwm_slider'
+        if self.started is None:
+            self.started = self.clock()
+            self.stage = None
+            self.pwm_output_started = False
+        self.event('steering_pwm_requested', pulse_us=pulse, sequence=seq)
+        # Existing tick applies the same ramp, 2-second steering window and
+        # fault handling. Neither changing the target nor a heartbeat extends it.
+        self.tick()
+
     def _command(self, payload):
         if self.mode != 'enabled':
+            if self.mode == 'emergency':
+                raise DriveError(self.reason+'；请松开按键，解除急停后重新启用')
             raise DriveError('控制尚未启用或已停车锁定，请重新启用')
         if self._client(payload.get('client')) != self.owner:
             raise DriveError('当前控制由另一页面使用，请回到已启用的页面')
@@ -221,6 +276,8 @@ class ManualDrive:
         if motor not in ('stop', 'forward', 'reverse') or turn not in ('center', 'left', 'right'):
             self.emergency('控制值无效')
             raise DriveError('invalid direction')
+        if self.pwm_target is not None and (motor != 'stop' or turn != 'center'):
+            raise DriveError('PWM tuning owns steering; stop it before using directions')
         if turn != 'center' and not getattr(self.backend, 'steering_available', True):
             self.emergency('本次只测试驱动轮，转向信号已关闭')
             raise DriveError('steering disabled for motor-only trial')
@@ -303,7 +360,7 @@ class ManualDrive:
 
     def _renewed_motion(self, now, direction):
         if self.raised_held or self.ground_held:
-            remaining = self.motion_hold_max_s - (now-self.started)
+            remaining = self.motion_hold_max_s - (now-self.started) if self.motion_hold_max_s is not None else .2
             if remaining < .02:
                 self._neutral('本次按住行驶时间已到，请松开方向键')
                 return
@@ -383,12 +440,16 @@ class ManualDrive:
                             self.pulse, self.stage = pulse, stage
                             self.event('motor_stage', pulse_us=pulse, duration_s=duration, stage=stage)
                 target = {'center': self.steering_center_us, 'left': 1750, 'right': 1550}[
-                    self.turn if self.mode == 'enabled' and not self.blocked else 'center']
-                if target != self.steering_us and now - self.last_steering_change >= .02:
+                    self.turn if self.mode == 'enabled' and not self.blocked and self.turn != 'pwm' else 'center']
+                pwm_active = self.mode == 'enabled' and not self.blocked and self.pwm_target is not None
+                if pwm_active:
+                    target = self.pwm_target
+                if (target != self.steering_us or pwm_active and not self.pwm_output_started) and now - self.last_steering_change >= .02:
                     single_target = getattr(self.backend, 'steering_single_target', False)
                     pulse = target if single_target else self.steering_us + max(-10, min(10, target - self.steering_us))
                     self.backend.steering(pulse)
                     self.steering_us = pulse
+                    self.pwm_output_started = pwm_active
                     self.last_steering_change = now
                     self.event('steering_step', pulse_us=self.steering_us, target_us=target,
                                single_target=single_target)
@@ -414,6 +475,7 @@ class ManualDrive:
                     'continuous_simulation': self.continuous_simulation,
                     'raised_held_trial': self.raised_held,
                     'ground_held_trial': self.ground_held,
+                    'ground_continuous_trial': self.ground_continuous,
                     'motion_hold_max_s': self.motion_hold_max_s,
                     'speed_adjustable': self.continuous_simulation,
                     'speed_percent': self.speed_percent,
@@ -442,6 +504,11 @@ class ManualDrive:
                     'steering_pulse_us': self.steering_us,
                     'steering_center_us': self.steering_center_us,
                     'steering_single_target': getattr(self.backend, 'steering_single_target', False),
+                    'steering_pwm_available': self.steering_pwm_available,
+                    'steering_pwm_active': self.pwm_target is not None and self.mode == 'enabled' and not self.blocked,
+                    'steering_pwm_requested_us': self.pwm_requested,
+                    'steering_pwm_min_us': 1550, 'steering_pwm_max_us': 1750,
+                    'steering_pwm_trial_s': 2.0,
                     'last_command_sequence': self.sequence, 'last_input_source': self.last_input_source,
                     'lease_ms': round(self.lease_s * 1000), 'release_required': self.blocked,
                     'ready_in_s': max(0, self.ready_at - self.clock()) if self.mode == 'settling' else 0,

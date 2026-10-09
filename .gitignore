@@ -33,6 +33,14 @@ Listings/
 !.env.example
 !.env.*.example
 secrets/
+delivery/
+coordination/
+connection.json
+HANDOFF.md
+id_rsa
+id_ed25519
+tailscaled.state
+*.keylog
 *.local.json
 *.local.yaml
 *.local.yml

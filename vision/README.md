@@ -1,3 +1,5 @@
+> 当前同步状态见 [2026-10-09 进度](../docs/current-status.md)；开机等待和持续遥控见 [BOOT_TEST](BOOT_TEST.md)，实时转向调试见 [STEERING_PWM](STEERING_PWM.md)。以下保留模块说明及历史开发记录。
+
 # 2026 5G 无人车：纯树莓派版 v0.2.1
 
 > 2026-10-08 同步说明：当前为 Pi 5 + RasAdapter5A UART，无独立 STM32。此文保留不同日期记录，当前进度以 [状态页](../docs/current-status.md) 为准；旧 GPIO 接线、连接占位符和历史 review 不是本次实车启动依据。
