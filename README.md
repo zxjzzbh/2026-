@@ -1,10 +1,13 @@
 # 2026 室外 5G 远程驾驶无人车赛
 
-**当前基线（2026-10-08）：Raspberry Pi 5 + RasAdapter5A 串口扩展板，纯树莓派应用控制，不使用独立 STM32。**
+**当前基线（2026-10-09 核验）：Raspberry Pi 5 + RasAdapter5A 串口扩展板，纯树莓派应用控制，不使用独立 STM32、不依赖 ROS。**
 
-当前源码已经包含双摄感知、网页遥控、UART 执行、比赛状态机和自主运行框架。有限低速/5G 测试有历史记录；**完整自主赛道尚未实车验收，真实自主输出仍被未完成标定项阻止。**
+当前源码包含双摄、5G 持续遥控、开机等待页、S3 PWM 调试、UART 执行、比赛状态机和自主运行框架。用户已报告 5G 遥控阶段测试正常；**完整自主赛道尚未实车验收，真实自主输出仍被未完成标定项阻止。** 手动中位 1610 μs，持续遥控输入期限 500 ms，内部保护 250 ms；本次没有更改这些参数或 verified 标志。
+
+本次树莓派离线，没有重新读取车端。以最后一次保存的 `1791468141111867700-5g-lease500` 部署记录为依据，39 个关键文件与本地源码逐一核对一致；其他源码保留已入库基线及队友改动。公开版差异和证据范围见[本次核验](docs/reviews/2026-10-09-sync.md)。
 
 - [当前进度与待办](docs/current-status.md)：唯一当前状态入口。
+- [最新源码与部署核验](docs/reviews/2026-10-09-sync.md)、[复现与发布说明](docs/reproduce.md)。
 - [源码审查与改进建议](docs/reviews/2026-10-08-source-review.md)：功能、技术栈、复现的问题、改进优先级。
 - [系统架构](docs/architecture.md)、[硬件基线](hardware/README.md)、[接口](interfaces/README.md)。
 - [团队分工](docs/team.md)和[贡献流程](CONTRIBUTING.md)：保持独立分支 → PR → 合并。
@@ -19,7 +22,7 @@ flowchart LR
     Capture --> Perception[OpenCV / 可选比赛YOLO]
     Perception --> Decision[比赛状态机与运动规划]
     Feedback[待验收的速度 / 位姿反馈] --> Decision
-    Web --> Manual[手动有限测试执行]
+    Web --> Manual[显式准备与启用 / 手动持续控制]
     Manual --> UART[独占 UART 所有权]
     Decision --> Auto[自主执行门控 / 看门狗]
     Auto --> UART
@@ -41,6 +44,7 @@ Python ≥3.10；OpenCV 4.11.0.86；NumPy 2.2.6；PyYAML 6.0.2；原生 HTML/CSS
 | `vision/configs/` | 感知、比赛、Pi5 标定配置；实测值保留，未完成项仍为 false/null |
 | `vision/tests/` | 离线、模拟驱动和小图片夹具测试 |
 | `vision/tools/` | 预览、台架、检查、打包和显式部署工具 |
+| `pc-launcher/` | Windows 双击入口；配置 SMARTCAR_HOST 后等待连接、转发并打开控制页 |
 | `drivers/pigpio/` | 早期 Pi4 路径所需第三方 C 源码、来源和许可证；不是当前 UART 后端 |
 | `vehicle/`、`communication/`、`hardware/` | 职责索引和当前接入说明，避免误以为另有一套可运行主程序 |
 | `firmware/stm32/` | 不采用的早期规划记录，不是当前待开发任务 |
@@ -63,7 +67,7 @@ python -m carvision autonomy-demo --profile vision/configs/autonomy-pi5.json --r
 python tools/audit_snapshot_20261008.py
 ```
 
-输出目录必须是新目录。原配置的正常检查结果是 **18 个准备缺项**；demo 的 complete 只代表决策回放完成，不能当作车已经跑完。最近本地 Windows 原测试集 692 通过 / 3 跳过（Linux 专用项）。CI 在 Linux/Windows 上运行软件检查，不操作硬件。
+输出目录必须是新目录。原配置的正常检查结果是 **18 个准备缺项**；demo 的 complete 只代表决策回放完成，不能当作车已经跑完。最新本地检查结果见[本次核验](docs/reviews/2026-10-09-sync.md)；CI 在 Linux/Windows 上运行软件检查，不操作硬件。
 
 实车相关入口见 [MANUAL_BENCH](vision/MANUAL_BENCH.md) 与 [AUTONOMY_PI5](vision/AUTONOMY_PI5.md)，先阅读当前状态；两份文档保留历史段落。不要沿用旧 GPIO 接线或旧开机记录。当前同步未部署到车、未改变运动保护或标定数据。
 
@@ -75,6 +79,6 @@ python tools/audit_snapshot_20261008.py
 
 ## 源码来源与历史
 
-本次来源为 2026-10-08 源码包；原包 [SOURCE-MANIFEST](SOURCE-MANIFEST.json) 已核验。原 README 保留为 [SOURCE_HISTORY](SOURCE_HISTORY_20261008.md)，其他较早报告只作为历史。原始 manifest 针对原包，README 改名、文档脱敏及部署主机参数化差异由 [发布映射](docs/reviews/publication-manifest-20261008.json) 记录。
+本次以远端 `9b5d51c` 为合并起点，原 2026-10-08 00:06 源码包作为三方比较基线，补入同日后续已记录部署的源码。原包 [SOURCE-MANIFEST](SOURCE-MANIFEST.json)、[SOURCE_HISTORY](SOURCE_HISTORY_20261008.md) 和 [10 月 8 日发布映射](docs/reviews/publication-manifest-20261008.json) 均保留为历史，不能用来校验今天的整个目录。当前文件校验和来源见 [10 月 9 日发布清单](docs/reviews/publication-manifest-20261009.json)。
 
 仓库公开可见，不包含密码、令牌、SSH 私钥、Python 环境、大录像或模型权重；历史连接地址已经替换为占位符，不能直接用于联网。个人部署地址需自行显式填写，主机密钥仍须已可信。团队尚未选择整体开源许可证，第三方代码保留各自许可证。

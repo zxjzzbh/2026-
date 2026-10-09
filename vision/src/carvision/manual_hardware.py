@@ -429,8 +429,9 @@ def main():
     scope.add_argument('--raised-load-probe', action='store_true')
     scope.add_argument('--raised-held', action='store_true', help='reviewed Pi 5 raised-wheel holds up to 3 seconds')
     scope.add_argument('--ground-held', action='store_true', help='reviewed fixed-low-gear manual ground session')
+    scope.add_argument('--ground-continuous', action='store_true', help='explicit operator-held 5G control without a session timer')
     args = p.parse_args()
-    ground_mode = args.ground_short or args.ground_held
+    ground_mode = args.ground_short or args.ground_held or args.ground_continuous
     if ground_mode and not args.ground_prepared or args.ground_prepared and not ground_mode:
         raise ValueError('ground short trial requires explicit ground preparation')
     if not (args.bench_prepared or args.ground_prepared):
@@ -438,10 +439,10 @@ def main():
     parent = Path(f'/proc/{os.getppid()}/cmdline').read_bytes().split(b'\0')
     if args.raised_held and (not args.pi5_review or not args.bench_prepared):
         raise ValueError('raised held mode requires a Pi 5 review and raised-wheel preparation')
-    if args.ground_held and not args.pi5_review:
+    if (args.ground_held or args.ground_continuous) and not args.pi5_review:
         raise ValueError('ground held mode requires a separate Pi 5 ground review')
     extended = args.pi5_review or args.combined or args.parking_protection or args.ground_short or args.raised_load_probe or args.raised_held
-    expected_timeout = b'810s' if extended else b'150s'
+    expected_timeout = b'0s' if args.ground_continuous else b'810s' if extended else b'150s'
     if not parent or Path(os.fsdecode(parent[0])).name != 'timeout' or expected_timeout not in parent:
         raise RuntimeError('matching independent worker timeout required')
     state = json.loads((args.root/'vision/configs/bench-calibration.json').read_text())
@@ -449,11 +450,13 @@ def main():
         raise ValueError('ESC must be confirmed off before startup')
     args.output.mkdir(parents=True, exist_ok=False)
     if args.pi5_review:
-        from .pi5_pwm import Pi5BenchBackend, Pi5RaisedHeldBackend, Pi5GroundHeldBackend
+        from .pi5_pwm import Pi5BenchBackend, Pi5RaisedHeldBackend, Pi5GroundHeldBackend, Pi5ContinuousBackend
         if args.parking_protection or args.raised_load_probe:
             raise ValueError('Pi 5 uses fresh isolated bench scopes; Pi 4 DMA/ground profiles cannot be reused')
         review = json.loads(args.pi5_review.read_text())
-        if args.ground_held:
+        if args.ground_continuous:
+            backend = Pi5ContinuousBackend(args.root, args.output, args.expected_boot_id, review)
+        elif args.ground_held:
             backend = Pi5GroundHeldBackend(args.root, args.output, args.expected_boot_id, review)
         elif args.raised_held:
             backend = Pi5RaisedHeldBackend(args.root, args.output, args.expected_boot_id, review)
@@ -484,9 +487,10 @@ def main():
             with (args.output/'events.jsonl').open('a') as stream:
                 stream.write(json.dumps(event, ensure_ascii=False)+'\n')
         controller = ManualDrive(backend, event_sink=record, settling_s=1 if args.steering_only else 12,
-                                 session_s=backend.manual_session_limit_s if args.ground_held else 60 if args.ground_short or args.raised_load_probe or args.raised_held else 120 if args.pi5_review else 180 if extended else 120,
-                                 preparation_s=120 if args.ground_held and backend.manual_session_limit_s == 600 else 600 if args.pi5_review else 120 if args.ground_short or args.raised_load_probe else 600 if extended else None,
-                                 raised_held=args.raised_held, ground_held=args.ground_held)
+                                 session_s=backend.manual_session_limit_s if args.ground_held or args.ground_continuous else 60 if args.ground_short or args.raised_load_probe or args.raised_held else 120 if args.pi5_review else 180 if extended else 120,
+                                 preparation_s=120 if args.ground_continuous or args.ground_held and backend.manual_session_limit_s == 600 else 600 if args.pi5_review else 120 if args.ground_short or args.raised_load_probe else 600 if extended else None,
+                                 raised_held=args.raised_held, ground_held=args.ground_held or args.ground_continuous,
+                                 ground_continuous=args.ground_continuous)
         listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         listener.bind(str(endpoint))
         os.chmod(endpoint, 0o600)

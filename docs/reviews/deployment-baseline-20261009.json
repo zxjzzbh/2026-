@@ -1,0 +1,189 @@
+{
+  "source_scope": "run/s3-pwm-deploy-20261008/1791468141111867700-5g-lease500",
+  "deployment_directory_time": "2026-10-08T22:02:21+08:00",
+  "local_hash_verified_at": "2026-10-09T14:41:51.591417+08:00",
+  "pi_readonly_probe_at": "2026-10-09T14:47:25+08:00",
+  "pi_probe": {
+    "tcp22": "timeout",
+    "tcp8080": "timeout",
+    "remote_files_rechecked": false
+  },
+  "remote_main_base": "9b5d51c3611556a5fc220d9abbc4b3e8e68560fe",
+  "original_source_zip_manifest_entries_verified": 184,
+  "files": [
+    {
+      "path": "vision/src/carvision/manual_drive.py",
+      "sha256": "ae155c3ecf4ff61c60da51ac4a39f5054cc95e538003882057dcf32310757fb8"
+    },
+    {
+      "path": "vision/src/carvision/pi5_pwm.py",
+      "sha256": "55fbecaa41b4ad27c6ca5b149c4cc493e49227a8661eb94eb099932a0e29a782"
+    },
+    {
+      "path": "vision/src/carvision/manual_hardware.py",
+      "sha256": "1753e5efa848c5333ccafe15e02d236eb6125a68fefe11a932c2599208ae69f3"
+    },
+    {
+      "path": "vision/tools/serve_bench_drive.py",
+      "sha256": "048b29b993374ed403b4cf979552bd38556333fb6170107af677bc39da091f4b"
+    },
+    {
+      "path": "vision/tests/test_raised_held_drive.py",
+      "sha256": "f2a94a8723572899f5eb88a284ff65e434c48f7c3b02b0757350f6d4654353fb"
+    },
+    {
+      "path": "vision/MANUAL_BENCH.md",
+      "sha256": "a09a4baee259498fe56ad4eb54ec9c6b8d1f2027a193891411f1de4cac01e53b"
+    },
+    {
+      "path": "vision/src/carvision/manual_controls.py",
+      "sha256": "2b9e5106e69b554d201f6dc4ef887fe8671b48b8c3fed3cb2df28c9ad910e6de"
+    },
+    {
+      "path": "vision/tests/test_manual_drive.py",
+      "sha256": "aaea4f56d581373817fc2760e63d7e882b38ca9c02f2bb75480024fea0adffee"
+    },
+    {
+      "path": "vision/tests/test_manual_heartbeat.py",
+      "sha256": "1183b343292a29e3b4ca4787fc2a139f4dafb81008f2a53a785c34eed9f51d6d"
+    },
+    {
+      "path": "vision/tests/js/manual_heartbeat.cjs",
+      "sha256": "d1b30cf9b37129accee45e911ea5fb3ba2e4c575e996e5155f430a39faa077d2"
+    },
+    {
+      "path": "vision/tests/test_ground_held_drive.py",
+      "sha256": "f43106c3e1c74556899a51306f10911c5590a1defebc4d180b146160d1a61670"
+    },
+    {
+      "path": "vision/tests/test_uart_target_steering.py",
+      "sha256": "8870e96ac766dfdaae74c93cdc07b8b221a834782df9ebc21e39e7dc7523f73c"
+    },
+    {
+      "path": "vision/src/carvision/web_preview.py",
+      "sha256": "ecb9121a30b8e68f7c40d0a22b59cb045c4cc7bd504a92e81c61ebe220656334"
+    },
+    {
+      "path": "vision/tests/test_web_preview.py",
+      "sha256": "dd608e49729dd68401ccc59c41e0d448bde71381345e46a4e334a81948aced09"
+    },
+    {
+      "path": "vision/tests/test_deferred_drive.py",
+      "sha256": "2835445c44e2f421fe754cd7374a27aacc5edd6e0b06cd8fe80d0124331c2671"
+    },
+    {
+      "path": "vision/tests/test_straight_steering_hold.py",
+      "sha256": "d7dd7fdddb33e7f0d585716a5f23f12a718322e819b7d8cc9ab05b90e1448569"
+    },
+    {
+      "path": "vision/tests/test_repeatable_drive.py",
+      "sha256": "4ab03b0fbac3eff2408ef43e53e6c98c2ddc3c06fa65762bbdec1ded55b26e64"
+    },
+    {
+      "path": "vision/tests/test_worker_endpoint.py",
+      "sha256": "25e2bcb6a0eba2be5244600558ed0eec1724e9c35ada1d7117aee73a531406d8"
+    },
+    {
+      "path": "vision/src/carvision/boot_test.py",
+      "sha256": "90a72491a35b2838e23e2ff6fac7346103e3bc8d612d34df1020f90f6976d6e4"
+    },
+    {
+      "path": "vision/tools/serve_boot_test.py",
+      "sha256": "a5bee236249b0f4f4507691ebf88882e1088e1d803522607e6893cf545400917"
+    },
+    {
+      "path": "vision/tests/test_boot_test.py",
+      "sha256": "e9eb875e64f421b8eb08b2f7d78884c6558e209e77b91a9df28494aeb8c73926"
+    },
+    {
+      "path": "vision/tests/test_boot_preparation.py",
+      "sha256": "dab16e897f5a00f5571afc2a5e800f6e6c86cf9947e375e0e1b606f99cc111d6"
+    },
+    {
+      "path": "vision/tests/test_pc_launcher.py",
+      "sha256": "e8fee3117bf9ceb9d461ae79c0ef2a7641629a5c4f5669bd4c7a85ae129dd2a7"
+    },
+    {
+      "path": "vision/deployment/smartcar-preview.service",
+      "sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d"
+    },
+    {
+      "path": "vision/deployment/smartcar-boot-test.service",
+      "sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d"
+    },
+    {
+      "path": "vision/BOOT_TEST.md",
+      "sha256": "e049f1503eb2f14916fbf6d4c9bb4adc1745df2e6da83aebb3d9976e14e7f478"
+    },
+    {
+      "path": "README.md",
+      "sha256": "5b9111ce77b7ff925ae9a11d9fc7f8bae2a3ae164af082a3c045d2fbe64973b5"
+    },
+    {
+      "path": "pc-launcher/oneclick.pyw",
+      "sha256": "81afcfe935602002d660f7af613d64dc7c874fa499213bfd07371fd01367c4f5"
+    },
+    {
+      "path": "pc-launcher/start.cmd",
+      "sha256": "1152627272e9aabaff4deec97fad56e3a60878aabffd61d931860ea09d0ddbf4"
+    },
+    {
+      "path": "pc-launcher/使用说明.txt",
+      "sha256": "44715ab15d3ade805ae6a4ee5a451d98d9c2b2224295dc623d7f2c4c50ebd356"
+    },
+    {
+      "path": "vision/deployment/boot-test-template.json",
+      "sha256": "c04afd42bf2b5db90e4a33b061fc2f5327a6ad7a61a7818e0b57d098ca4c7896"
+    },
+    {
+      "path": "vision/tests/test_ground_continuous_drive.py",
+      "sha256": "b42fb10fd42f3ee6a50da0854baa30a05fc258bb7e04da888a357fd0f8114ef2"
+    },
+    {
+      "path": "vision/src/carvision/steering_pwm_controls.py",
+      "sha256": "a91bf4140e1b8df54991f310b4dc7ed6551d8810145312b9536d54f4a260e64a"
+    },
+    {
+      "path": "vision/tests/test_steering_pwm.py",
+      "sha256": "405123f14b164a517b5c3351b00d1342df5b1896222ede0d29bee97ecb1f83db"
+    },
+    {
+      "path": "vision/tests/js/steering_pwm.cjs",
+      "sha256": "cff3c26742a4edcc1251ed8cb429428e2f8de6120ba5e635640185ddae852758"
+    },
+    {
+      "path": "vision/STEERING_PWM.md",
+      "sha256": "06ea657d7b2ee6cfe67c5662072464df958dbfb0f00f4a94b08ce7939daaf2dd"
+    },
+    {
+      "path": "vision/tests/test_boundary_steering_center.py",
+      "sha256": "a5077e2a535e8a967cb9e2ba84f33180c73942132b865949e4e6dc78e4b0df05"
+    },
+    {
+      "path": "vision/src/carvision/network_guard.py",
+      "sha256": "5dcfa6e6086bf96563f5d05138040e34917c0b2e466a742b4f9b1c0e6dbaebfc"
+    },
+    {
+      "path": "vision/tests/test_network_guard.py",
+      "sha256": "6a82cf2a5d5282d877bf97b97ee08595481b0d090f3427158d1d481e804db039"
+    }
+  ],
+  "historical_pi_checks": {
+    "passed": 135,
+    "skipped": 2,
+    "rc": 0,
+    "skip_reason": "Node.js unavailable on Pi"
+  },
+  "historical_parameters": {
+    "manual_center_us": 1610,
+    "continuous_input_ms": 500,
+    "guardian_ms": 250,
+    "steering_range_us": [
+      1550,
+      1750
+    ]
+  },
+  "physical_ground_validation_complete_in_deployment_record": false,
+  "later_operator_report": "5G remote-control stage tested and reported working; not an autonomous acceptance record",
+  "note": "Hashes are from the unmodified local deployment record; not freshly read from the offline Pi. Do not use this as current-boot permission."
+}
