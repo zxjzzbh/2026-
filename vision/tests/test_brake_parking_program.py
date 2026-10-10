@@ -1,4 +1,5 @@
 import json
+import struct
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -58,6 +59,37 @@ def test_known_forward_and_neutral_packets_match_original_manual_driver():
         manual.set_esc(4,pulse);write_parking_pulse(new,4,pulse)
     assert new_packets==original_packets
     with pytest.raises(ValueError):write_parking_pulse(new,1,1500)
+
+
+@pytest.mark.parametrize('pulse',[1600,1605,1625])
+def test_higher_traffic_forward_requires_explicit_limit_at_guard_and_transport(pulse):
+    s=load_settings(CONFIG);s['pwm']['search_us']=s['pwm']['creep_us']=pulse
+    writes=[]
+    with pytest.raises(ValueError):PulseGuard(s,lambda *a:writes.append(a),mode='F/B')
+    board=RasAdapter();board.send=lambda *a:writes.append(a)
+    with pytest.raises(ValueError):write_parking_pulse(board,4,pulse)
+    assert not writes
+    write_parking_pulse(board,4,pulse,forward_limit_us=1625)
+    assert writes==[(4,struct.pack('<BHBBH',1,20,1,4,pulse))]
+    writes.clear()
+    guard=PulseGuard(s,lambda *a:writes.append(a),mode='F/B',forward_limit_us=1625)
+    guard.accept(cmd(0,0,'search',s),0)
+    assert (4,pulse) in writes
+    guard.tick(.26)  # Original 250-ms independent lease remains enforced.
+    assert writes[-1]==(4,1400)
+    guard.tick(.4)
+    assert writes[-2:]==[(4,1500),(3,1610)]
+
+
+def test_traffic_envelope_cannot_exceed_1625_or_change_default_parking_profile():
+    s=load_settings(CONFIG);writes=[];board=RasAdapter();board.send=lambda *a:writes.append(a)
+    for pulse in (1626,1700):
+        with pytest.raises(ValueError):write_parking_pulse(board,4,pulse,forward_limit_us=1625)
+    for limit in (1700,2000,True):
+        with pytest.raises(ValueError):PulseGuard(s,lambda *a:writes.append(a),mode='F/B',forward_limit_us=limit)
+        with pytest.raises(ValueError):BrakeActuator(s,forward_limit_us=limit)
+    assert not writes
+    assert s['pwm']['search_us']==s['pwm']['creep_us']==1575
 
 
 def test_startup_requires_board_neutral_readback_but_does_not_claim_esc_ready():

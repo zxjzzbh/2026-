@@ -2,6 +2,8 @@
 
 Does not weaken the existing manual driver's allowed pulse values. The live
 caller must explicitly declare F/B; the board cannot read that physical switch.
+The default 1575-us parking envelope is unchanged. Only the traffic caller
+explicitly selects the separate 1625-us tuning ceiling.
 """
 import multiprocessing as mp
 import struct
@@ -11,15 +13,17 @@ import time
 from .brake_parking import numeric
 
 
-def write_parking_pulse(adapter, channel, pulse):
+def write_parking_pulse(adapter, channel, pulse, *, forward_limit_us=1575):
     """Reuse the original manual transport for the known forward/neutral points."""
+    if type(forward_limit_us) is not int or forward_limit_us not in (1575, 1625):
+        raise ValueError('unsupported forward output envelope')
     if type(pulse) is not int or channel not in (3, 4):
         raise ValueError('only parking S3/S4 output is allowed')
     if channel == 3:
         adapter.set_position(3, pulse)
     elif pulse in (1500, 1575):
         adapter.set_esc(4, pulse)
-    elif 1300 <= pulse <= 1575:
+    elif 1300 <= pulse <= forward_limit_us:
         adapter.send(4, struct.pack('<BHBBH', 1, 20, 1, 4, pulse))
     else:
         raise ValueError('ESC pulse outside parking profile')
@@ -35,12 +39,14 @@ def verify_neutral_readback(adapter):
 
 
 class PulseGuard:
-    def __init__(self,settings,write,*,mode):
+    def __init__(self,settings,write,*,mode,forward_limit_us=1575):
         if mode!='F/B':raise ValueError('active output requires the non-reversing F/B mode')
+        if type(forward_limit_us) is not int or forward_limit_us not in (1575, 1625):
+            raise ValueError('unsupported forward output envelope')
         p=settings.get('pwm',{})
         if (p.get('neutral_us')!=1500 or p.get('steering_center_us')!=1610
                 or any(type(p.get(k)) is not int for k in ('search_us','creep_us','brake_us'))
-                or not 1500<p['creep_us']<=p['search_us']<=1575 or not 1300<=p['brake_us']<1500
+                or not 1500<p['creep_us']<=p['search_us']<=forward_limit_us or not 1300<=p['brake_us']<1500
                 or not numeric(settings.get('brake_pulse_s')) or not 0<settings['brake_pulse_s']<=.3
                 or not numeric(settings.get('actuator_lease_s')) or not 0<settings['actuator_lease_s']<=.25
                 or not numeric(settings.get('brake_release_s')) or settings['brake_release_s']<=0):
@@ -118,7 +124,7 @@ class PulseGuard:
             raise
 
 
-def _worker(connection,settings,port,mode):
+def _worker(connection,settings,port,mode,forward_limit_us=1575):
     adapter=ownership=guard=None
     try:
         import fcntl
@@ -130,8 +136,8 @@ def _worker(connection,settings,port,mode):
         def write(channel,pulse):
             # Local profile validation is narrower than the transport. Never
             # touch S1/S2; existing manual set_esc restrictions remain unchanged.
-            write_parking_pulse(adapter,channel,pulse)
-        guard=PulseGuard(settings,write,mode=mode)
+            write_parking_pulse(adapter,channel,pulse,forward_limit_us=forward_limit_us)
+        guard=PulseGuard(settings,write,mode=mode,forward_limit_us=forward_limit_us)
         guard.neutral()
         time.sleep(.03)
         connection.send({'ready':True,'startup_readback':verify_neutral_readback(adapter)})
@@ -168,7 +174,9 @@ def _worker(connection,settings,port,mode):
 
 
 class BrakeActuator:
-    def __init__(self,settings,*,run=False,esc_mode=None,port='/dev/ttyAMA0'):
+    def __init__(self,settings,*,run=False,esc_mode=None,port='/dev/ttyAMA0',forward_limit_us=1575):
+        if type(forward_limit_us) is not int or forward_limit_us not in (1575, 1625):
+            raise ValueError('unsupported forward output envelope')
         self.run,self.s=run,settings
         self.sequence=0;self.connection=self.process=None
         self.startup_readback=None
@@ -178,7 +186,7 @@ class BrakeActuator:
                 raise ValueError('live output requires Linux on the Pi and explicit --esc-mode F/B')
             ctx=mp.get_context('spawn');parent,child=ctx.Pipe()
             self.connection=parent
-            self.process=ctx.Process(target=_worker,args=(child,settings,port,esc_mode),daemon=True)
+            self.process=ctx.Process(target=_worker,args=(child,settings,port,esc_mode,forward_limit_us),daemon=True)
             self.process.start();child.close()
             if not parent.poll(3):
                 self.close();raise RuntimeError('actuator startup timed out')

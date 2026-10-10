@@ -83,9 +83,12 @@ def main(argv=None):
     mode = p.add_mutually_exclusive_group(required=True)
     mode.add_argument('--reference', type=Path)
     mode.add_argument('--brake-config', type=Path, help='F/B brake program on the existing real-camera console')
+    p.add_argument('--traffic-config', type=Path, help='Add supervised red-stop / green-go driving to the existing F/B console')
     p.add_argument('--feedback', type=Path, help='atomic verified speed JSON on this Pi; absent means operator confirms stopped')
     p.add_argument('--port', type=int, default=8080)
     args = p.parse_args(argv)
+    if args.traffic_config and not args.brake_config:
+        p.error('--traffic-config requires --brake-config (F/B actuator mode)')
     root = args.root.resolve()
     boot_path = root/'vision/tools/serve_boot_test.py'
     if not boot_path.is_file():
@@ -98,6 +101,9 @@ def main(argv=None):
     if args.brake_config:
         from carvision.brake_controls import extend_controls as extend_brake_controls
         extend_brake_controls(manual_controls)
+        if args.traffic_config:
+            from carvision.traffic_controls import extend_controls as extend_traffic_controls
+            extend_traffic_controls(manual_controls)
     else:
         extend_controls(manual_controls)
     spec = importlib.util.spec_from_file_location('current_boot_console', boot_path)
@@ -113,12 +119,21 @@ def main(argv=None):
         else:
             wrapper = CrosswalkTrialDrive(drive, {}, args.reference, root/'run/crosswalk-parking-trial.jsonl',
                                          feedback_path=args.feedback, speech_factory=lambda:ParkingSpeech(root))
+        parking = wrapper
+        if args.traffic_config:
+            from carvision.traffic_trial import TrafficTrialDrive
+            wrapper = TrafficTrialDrive(parking, {}, args.traffic_config, root/'vision/configs/traffic-signal.json', root)
         # The parking decision consumes the secondary raw frames. Keep the
         # existing camera owner/format/pose, but avoid the old ~2.5 Hz raw feed.
         args_for_camera.secondary_raw_preview_fps = 15
         def make_server(address, state, secondary=None, drive=None):
             wrapper.states = {'primary':state, **({'secondary':secondary} if secondary else {})}
-            return original_make(address, state, secondary, wrapper)
+            parking.states = wrapper.states
+            server = original_make(address, state, secondary, wrapper)
+            if args.traffic_config:
+                from carvision.traffic_controls import add_preview_endpoint
+                add_preview_endpoint(server, wrapper)
+            return server
         web_preview.make_server = make_server
         try:
             return original_serve(args_for_camera, config, drive=wrapper)
