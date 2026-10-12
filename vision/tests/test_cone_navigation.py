@@ -1,5 +1,6 @@
 """Measured synthetic coordinate worlds exercise integration; no vehicle I/O."""
 import copy
+import json
 import threading
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,7 +11,7 @@ import pytest
 
 from carvision.cone_planning import load_settings,path_clear,ConeRoutePlanner
 from carvision.cone_navigation import (driving_settings,execution_readiness,ConeNavigator,ConeOdometry,
-    ConeDrivingController,steering_for_path,metric_corridor,import_ground_calibration)
+    ConeDrivingController,steering_for_path,metric_corridor,import_ground_calibration,reuse_legacy_ground)
 from carvision.cone_execution import ConeRun
 from carvision.cone_observer import ConeCamera,ConeObserverDrive
 from carvision.cone_road import ConeRoadContext
@@ -54,6 +55,35 @@ def test_defaults_cannot_drive_even_with_recognized_cone():
     result=nav.update(None,{},1.)
     assert result['phase']=='needs_calibration' and result['action']=='stop'
     assert not execution_readiness(s)['ready']
+
+
+def test_reuse_repository_mapping_keeps_historical_scope_and_motion_unverified():
+    s=load_settings(CONFIG)
+    reference=json.loads((ROOT/'configs/cone-legacy-ground-candidate.json').read_text(encoding='utf-8'))
+    loaded=reuse_legacy_ground(s,reference)
+    ground=loaded['ground']
+    assert ground['homography'] is not None
+    assert ground['independent_check_max_error_m']==pytest.approx(.02114870596857,abs=1e-7)
+    assert ground['valid_polygon_px']==reference['valid_polygon_px']
+    assert ground['historical_verified'] and not ground['verified'] and not ground['current_pose_verified']
+    assert not loaded['driving']['fixed_camera_confirmed']
+    assert loaded['motion']==s['motion'] and loaded['geometry']==s['geometry']
+    assert s['ground']['homography'] is None  # no mutation on failure / inspection
+    assert not execution_readiness(loaded)['ready']
+
+
+def test_legacy_import_does_not_replace_current_verified_mapping(measured):
+    reference=json.loads((ROOT/'configs/cone-legacy-ground-candidate.json').read_text(encoding='utf-8'))
+    with pytest.raises(ValueError,match='已有当前确认'):
+        reuse_legacy_ground(measured,reference)
+
+
+@pytest.mark.parametrize('key,value',[('camera','primary'),('image_size',[640,480]),
+                                    ('source_commit','unknown'),('accepted_error_m',.001)])
+def test_legacy_import_rejects_wrong_source_or_error(key,value):
+    reference=json.loads((ROOT/'configs/cone-legacy-ground-candidate.json').read_text(encoding='utf-8'))
+    reference[key]=value
+    with pytest.raises(ValueError):reuse_legacy_ground(load_settings(CONFIG),reference)
 
 
 def test_metric_white_inner_edges_agree_with_lane_width(measured):

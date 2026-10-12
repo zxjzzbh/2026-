@@ -83,6 +83,37 @@ def import_ground_calibration(settings,data):
     return candidate
 
 
+def reuse_legacy_ground(settings,data):
+    """Load the accepted historical mapping without inventing a current check.
+
+    The repository reference already includes the 640x480 -> 480x360 pixel
+    transform and the measured rear-axle origin correction. Its original
+    polygon must remain intact; loading cannot authorize extrapolation/motion.
+    """
+    if (not isinstance(data,dict) or data.get('camera')!='secondary'
+            or data.get('image_size')!=[480,360]
+            or data.get('source_commit')!='6f93ea8858bfe83676bc4bdbfd790de7979de7ec'
+            or data.get('candidate_only') is not True):
+        raise ValueError('旧标定来源或第二路图像规格不一致')
+    if settings['ground'].get('verified') is True:
+        raise ValueError('已有当前确认的地面标定，不用旧参考覆盖')
+    bound=data.get('accepted_error_m')
+    result=fit_ground_calibration(data)
+    if (not numeric(bound) or not .001<=bound<=.03
+            or result['independent_check_max_error_m']>bound
+            or not numeric(data.get('source_repeat_error_m'))
+            or data['source_repeat_error_m']>bound):
+        raise ValueError('旧标定复算误差不满足其原验收范围')
+    result.update(coordinate_frame='rear_axle_x_right_y_forward',max_error_m=bound,
+        historical_verified=True,current_pose_verified=False,
+        reuse_source={'commit':data['source_commit'],'path':data['source_path'],
+                     'pose_us':data['source_pose_us'],'source_repeat_error_m':data['source_repeat_error_m']},
+        calibration_evidence=copy.deepcopy(data))
+    candidate=copy.deepcopy(settings);candidate['ground']=result
+    candidate.setdefault('driving',{})['fixed_camera_confirmed']=False
+    return candidate
+
+
 class ConeOdometry:
     def __init__(self,settings):
         self.s=settings;self.d=driving_settings(settings);self.projection=GroundProjection(settings['ground'])

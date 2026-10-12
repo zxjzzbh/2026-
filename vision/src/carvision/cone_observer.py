@@ -16,7 +16,7 @@ from .brake_parking import numeric
 from .cone_planning import load_settings, readiness, project_tracks
 from .cone_vision import BlueConeDetector, ImageConeTracker
 from .cone_road import ConeRoadContext
-from .cone_navigation import (ConeNavigator,driving_settings,validate_driving,execution_readiness,import_ground_calibration)
+from .cone_navigation import (ConeNavigator,driving_settings,validate_driving,execution_readiness,import_ground_calibration,reuse_legacy_ground)
 from .cone_execution import ConeRun
 from .cone_short_trial import ConeShortRun
 
@@ -114,7 +114,7 @@ class ConeObserverDrive:
                 base['pending_hardware_start']=not (run['hardware_output'] or short['hardware_output'])
                 base['hardware_output']=run['hardware_output'] or short['hardware_output']
             return {**base,'cone_status_s':self.clock(),'cone_trial':{'program':'blue-cone-avoidance-v2','observing':self.observing,
-                'logic_revision':'slalom-continuity-20261012',
+                'logic_revision':'slalom-continuity-20261012','legacy_reference_available':True,
                 'hardware_output':run['hardware_output'] or short['hardware_output'],'can_observe':not self.observing and not self.closed,
                 'can_drive':execution_readiness(self.settings)['ready'],'avoidance':run,'short_test':short,
                 'reason':self.run.reason if self.run.active else self.reason,'settings':copy.deepcopy(self.settings),'readiness':execution_readiness(self.settings),
@@ -154,6 +154,13 @@ class ConeObserverDrive:
             if action=='cone_calibration':
                 if self.observing or self.run.active or self.short.active:raise ValueError('先停止识别、短测和避障，再保存标定')
                 self._save(import_ground_calibration(self.settings,payload.get('calibration')))
+                return self.status()
+            if action=='cone_reuse_legacy':
+                if self.observing or self.run.active or self.short.active:
+                    raise ValueError('先停止识别、短测和避障，再载入旧标定')
+                data=json.loads((self.config.parent/'cone-legacy-ground-candidate.json').read_text(encoding='utf-8-sig'))
+                self._save(reuse_legacy_ground(self.settings,data))
+                self.reason='已载入 GitHub 10 月 7 日第二路旧标定；保留原有效区域，未补写运动实测标志'
                 return self.status()
             if action=='cone_settings':
                 if self.observing or self.run.active or self.short.active:raise ValueError('先停止识别、短测和避障，再保存参数')

@@ -235,6 +235,22 @@ def test_field_dimensions_save_in_centimeters_without_enabling_drive(tmp_path):
     assert not restored.settings['geometry']['measured']
 
 
+def test_legacy_reference_and_lane_width_persist_without_actuator(tmp_path):
+    config=tmp_path/'cone.json';config.write_bytes(CONFIG.read_bytes())
+    (tmp_path/'cone-legacy-ground-candidate.json').write_bytes((CONFIG.parent/'cone-legacy-ground-candidate.json').read_bytes())
+    base=Driver();drive=ConeObserverDrive(base,{},config,tmp_path)
+    drive.request('cone_settings',{'geometry_cm':{'lane_width':125}})
+    result=drive.request('cone_reuse_legacy',{})['cone_trial']
+    assert result['settings']['geometry']['lane_width_m']==1.25
+    assert result['settings']['ground']['homography'] is not None
+    assert not result['can_drive'] and not result['hardware_output'] and not base.calls
+    restored=ConeObserverDrive(base,{},config,tmp_path)
+    assert restored.settings['ground']==drive.settings['ground']
+    drive.observing=True
+    with pytest.raises(ValueError):drive.request('cone_reuse_legacy',{})
+    drive.observing=False;drive.close();restored.close()
+
+
 @pytest.mark.parametrize('geometry',[{'vehicle_width':-5},{'vehicle_width':float('nan')},
     {'vehicle_width':True},{'vehicle_length':40,'rear_axle_to_front':35,'rear_overhang':20},
     {'verified':True}])
