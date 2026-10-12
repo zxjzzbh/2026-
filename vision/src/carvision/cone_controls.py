@@ -4,7 +4,10 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <h3>蓝色锥桶 · 交错绕行</h3>
 <p id="cone-state" role="status">等待锥桶识别服务</p>
 <p>第二路 H65 为主视角，第一路辅助观察。两路画面中的同一锥桶不会直接计作两个。</p>
-<p>红色塑胶直道 · 两侧白线内侧为边界，整车含轮胎不得越线。蓝色用于找锥桶，红色地面辅助确认场景。</p>
+<p>两侧白线内侧为边界，整车含轮胎不得越线。蓝色用于找锥桶；红色跑道模式还会检查地面颜色。</p>
+<label>场地<select id="cone-surface"><option value="red_running_track">红色跑道 + 白线</option><option value="indoor_white_line_track">室内赛道 + 白线（地面不限颜色）</option></select></label>
+<button id="cone-save-surface" type="button">保存场地选择</button>
+<p>切换场地先停止识别。室内模式仍检查左右白线、实测标定和停车保护；不会自动放宽行驶范围。</p>
 <div class="cone-actions"><button type="button" id="cone-observe">开始识别</button>
 <button type="button" id="cone-stop">停止识别</button></div>
 <p>“开始识别”只观察与选路。实车测试使用下面的“准备避障”和“开始避障”。</p>
@@ -94,6 +97,8 @@ function renderCone(s){
  const c=s.cone_trial||{};coneActive=!!c.observing;
  const a=c.avoidance||{};coneDriveActive=!!a.active;coneDriveOwned=a.owner_client===client;coneToken=a.run_token;
  const q=c.short_test||{},qo=q.output||{};
+ el('cone-surface').disabled=el('cone-save-surface').disabled=stale||coneBusy||coneActive||coneDriveActive||!!q.active;
+ if(!coneDirty&&!coneBusy&&c.settings)el('cone-surface').value=c.settings.scene?.surface||'red_running_track';
  coneShortActive=!!q.active;coneShortOwned=q.owner_client===client;coneShortToken=q.run_token;coneShortRound=q.round??0;
  el('cone-short-prepare').disabled=stale||coneBusy||!q.can_prepare;
  const shortLocked=stale||coneBusy||coneShortStartBusy||!q.can_start||!coneShortOwned;
@@ -155,6 +160,8 @@ async function coneAction(action,body={}){
  catch(e){coneError=e.message;feedback(e.message,'error');}
  finally{coneBusy=false;if(lastStatus)render(lastStatus);}
 }
+el('cone-surface').addEventListener('change',()=>coneDirty=true);
+el('cone-save-surface').addEventListener('click',()=>coneAction('cone_settings',{scene_surface:el('cone-surface').value}));
 el('cone-observe').addEventListener('click',()=>coneAction('cone_observe'));
 el('cone-stop').addEventListener('click',()=>coneAction('cone_stop'));
 function saveConeSettings(){
@@ -261,6 +268,7 @@ def extend_controls(controls):
 #cone-short-section p{margin:10px 0}#cone-short-section .cone-actions{margin:12px 0}#cone-test .cone-short-starts{display:grid;grid-template-columns:1fr;gap:8px}
 #cone-test #cone-short-stop{background:#fff1f2;color:#b42335;border-color:#fecdd3}
 #cone-test button,#cone-test input{min-height:42px;border-radius:10px;border:1px solid #d8d8e4}
+#cone-test select{min-height:42px;border-radius:10px;border:1px solid #d8d8e4;background:#fff;color:#24212b;padding:8px}
 #cone-test button:enabled{background:#8e35e8;color:#fff}#cone-test button:disabled{opacity:.45}
 #cone-test .cone-settings{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 #cone-test label{display:grid;gap:6px}#cone-test input{width:100%;min-width:0;box-sizing:border-box;padding:8px;background:#fff;color:#24212b}

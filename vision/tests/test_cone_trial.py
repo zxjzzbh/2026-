@@ -1,6 +1,7 @@
 """Observation and geometry regression tests; numeric worlds are test fixtures only."""
 import copy
 import json
+import os
 import threading
 from pathlib import Path
 from types import SimpleNamespace
@@ -331,9 +332,54 @@ def test_missing_white_edge_or_wrong_surface_does_not_claim_valid_track(settings
 
 
 def test_actual_known_dimensions_are_preloaded_and_boundary_width_is_enforced(settings,measured):
-    g=settings['geometry']
+    # Deployment preserves the car's base/local configs. Validate repository
+    # defaults against the supplied source sample, not an older live base file.
+    source=os.environ.get('CARVISION_REPOSITORY_CONE_CONFIG')
+    g=(load_settings(source) if source else settings)['geometry']
     assert (g['lane_width_m'],g['vehicle_width_m'],g['vehicle_length_m'],g['cone_height_m'],g['cone_base_width_m'])==(1.23,.295,.42,.08,.075)
     assert g['rear_axle_to_front_m']==.335 and g['rear_overhang_m']==.085 and not g['measured']
     measured['geometry']['lane_width_m']=1.23
     result=ConeRoutePlanner(measured).plan([],lane_bounds=(-1,1),coverage_forward_m=5)
     assert result['action']=='stop' and result['reason']=='observed_corridor_exceeds_measured_lane_width'
+
+
+@pytest.mark.parametrize('surface',['red_running_track','indoor_white_line_track'])
+@pytest.mark.parametrize('right',[False,True])
+def test_indoor_surface_is_explicit_and_still_needs_both_white_edges(settings,surface,right):
+    from carvision.cone_road import ConeRoadContext
+    settings['scene']['surface']=surface
+    im=red_track_image(color=(25,140,30),right=right)
+    context=ConeRoadContext(settings).inspect(im,np.zeros(im.shape[:2],np.uint8))
+    assert context['valid'] is (surface=='indoor_white_line_track' and right)
+    assert not context['red_ground_supported']
+    if context['valid']:
+        rows=[{**detection(),'foot_pixel':[240,240]}]
+        ConeRoadContext.enrich(rows,im,context)
+        assert rows[0]['scene_supported'] and rows[0]['boundary_relation']=='inside'
+
+
+def test_indoor_fit_uses_visible_ground_above_bonnet(settings):
+    from carvision.cone_road import ConeRoadContext
+    settings['scene']['surface']='indoor_white_line_track'
+    im=np.full((360,480,3),(45,105,45),np.uint8)
+    cv2.line(im,(190,160),(-40,290),(255,255,255),8)
+    cv2.line(im,(290,160),(520,290),(255,255,255),8)
+    context=ConeRoadContext(settings).inspect(im,np.zeros(im.shape[:2],np.uint8))
+    assert context['valid'] and len(context['left_inner'])>=6
+    assert max(p[1] for p in context['left_inner'])<290
+
+
+def test_surface_setting_does_not_verify_calibration_or_open_actuator(tmp_path):
+    config=tmp_path/'cone-trial.json';config.write_bytes(CONFIG.read_bytes())
+    base=Driver();drive=ConeObserverDrive(base,{},config,tmp_path)
+    before=copy.deepcopy(drive.settings)
+    drive.request('cone_settings',{'scene_surface':'indoor_white_line_track'})
+    for key in ('geometry','ground','motion','driving'):
+        assert drive.settings[key]==before[key]
+    assert not base.calls and not drive.status()['cone_trial']['can_drive']
+    assert ConeObserverDrive(base,{},config,tmp_path).settings['scene']['surface']=='indoor_white_line_track'
+    with pytest.raises(ValueError):
+        drive.request('cone_settings',{'scene_surface':'ignore_boundaries'})
+    drive.observing=True
+    with pytest.raises(ValueError):
+        drive.request('cone_settings',{'scene_surface':'red_running_track'})

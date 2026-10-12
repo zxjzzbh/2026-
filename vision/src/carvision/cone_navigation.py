@@ -140,7 +140,7 @@ class ConeOdometry:
 
 
 def metric_corridor(context,settings):
-    if not context.get('valid'):raise ValueError('未确认红色跑道及左右白线内侧')
+    if not context.get('valid'):raise ValueError('未确认所选场地及左右白线内侧')
     projection=GroundProjection(settings['ground']);sides=[]
     for key in ('left_inner','right_inner'):
         points=[]

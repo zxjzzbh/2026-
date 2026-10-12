@@ -29,7 +29,7 @@ FILES=['vision/src/carvision/'+n+'.py' for n in MODULES]+[
     'vision/tools/cone_trial.py','vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_short.py','vision/tests/test_cone_slalom.py','vision/CONE_TEST.md']+FIXTURES
 SHORT_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_short_output','cone_short_trial','cone_observer','cone_controls')]+[
     'vision/tests/test_cone_short.py','vision/configs/cone-legacy-ground-candidate.json','vision/CONE_TEST.md']
-SLALOM_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_planning','cone_slalom','cone_execution','cone_controls')]+[
+SLALOM_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_planning','cone_slalom','cone_execution','cone_controls','cone_road','cone_navigation','cone_observer')]+[
     'vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_slalom.py','vision/CONE_TEST.md']
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
     'vision/src/carvision/'+n+'.py' for n in ('traffic_driving','traffic_trial','traffic_controls','traffic_signal',
@@ -76,7 +76,7 @@ def main():
     if args.slalom_only:
         protected_files+=['vision/tools/serve_crosswalk_trial.py','vision/tools/serve_parking_payment.py',
             'vision/configs/cone-trial.json','vision/configs/cone-legacy-ground-candidate.json']+[
-            'vision/src/carvision/'+n+'.py' for n in ('cone_navigation','cone_vision','cone_road','cone_observer','cone_short_trial','cone_short_output')]
+            'vision/src/carvision/'+n+'.py' for n in ('cone_vision','cone_short_trial','cone_short_output')]
     cfg=json.loads((args.handoff/'connection.json').read_text(encoding='utf-8-sig'))['ssh']
     record=ROOT/'run'/('cone-console-deploy-'+time.strftime('%Y%m%d-%H%M%S'))
     record.mkdir(parents=True,exist_ok=False)
@@ -125,7 +125,10 @@ def main():
         tests=['test_cone_trial.py','test_cone_navigation.py','test_cone_short.py','test_traffic_trial.py','test_traffic_driving.py','test_traffic_voting.py',
                'test_brake_trial.py','test_brake_parking_program.py','test_parking_speech.py']
         if not args.short_test_only:tests.append('test_cone_slalom.py')
-        audit['pi_tests']=command(client,['env','PYTHONPATH='+REMOTE+'/vision/src',PYTHON,'-m','pytest',
+        sample_path=remote_backup+'/cone-trial.repository.json'
+        put_atomic(sftp,sample_path,(ROOT/'vision/configs/cone-trial.json').read_bytes())
+        audit['pi_tests']=command(client,['env','PYTHONPATH='+REMOTE+'/vision/src',
+            'CARVISION_REPOSITORY_CONE_CONFIG='+sample_path,PYTHON,'-m','pytest',
             *[REMOTE+'/vision/tests/'+n for n in tests],'-q'],timeout=60)
         if not idle(status()):raise RuntimeError('Control became active; no restart')
         put_atomic(sftp,remote_backup+'/service.new.conf',unit)

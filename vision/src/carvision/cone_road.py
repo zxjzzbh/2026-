@@ -1,6 +1,7 @@
 """Red-track context and observed WHITE INNER edges, without metric guessing."""
 import cv2
 import numpy as np
+from dataclasses import replace
 
 from .config import load_config
 from .lane import LaneDetector
@@ -27,7 +28,14 @@ def inner_edge(mask,x,y,direction):
 
 class ConeRoadContext:
     def __init__(self,settings):
-        self.s=settings;self.lane=LaneDetector(load_config(None).lane)
+        self.s=settings;config=load_config(None).lane
+        if settings.get('scene',{}).get('surface')=='indoor_white_line_track':
+            # In the fixed H65 view the nearby white edges leave the image
+            # above the car bonnet. Fit the observed mid-ground, not the bonnet.
+            # Metric projection still requires >=6 calibrated edge points,
+            # >=0.3 m span, measured width and the original fit error limits.
+            config=replace(config,sample_top=.50,sample_bottom=.76,lookahead_y=.63)
+        self.lane=LaneDetector(config)
 
     def inspect(self,image,blue_mask):
         road=image.copy();road[blue_mask>0]=0
@@ -48,10 +56,12 @@ class ConeRoadContext:
             support&=(blue_mask==0)&(white==0)
         ratio=float(np.mean(red[support]>0)) if support.any() else 0.
         red_supported=ratio>=self.s.get('scene',{}).get('red_ground_min_fraction',.15)
-        valid=bool(enough and red_supported)
+        require_red=self.s.get('scene',{}).get('surface','red_running_track')!='indoor_white_line_track'
+        valid=bool(enough and (red_supported or not require_red))
         return {'valid':valid,'white_lines_detected':bool(enough),'red_ground_supported':red_supported,
+                'red_ground_required':require_red,
                 'red_ground_fraction':ratio,'left_inner':left if enough else [],'right_inner':right if enough else [],
-                'reason':'white_inner_edges_on_red_track' if valid else 'red_ground_not_confirmed' if enough else lane.reason if not lane.valid else 'white_inner_edges_incomplete',
+                'reason':('white_inner_edges_on_red_track' if require_red else 'white_inner_edges_on_indoor_track') if valid else 'red_ground_not_confirmed' if enough else lane.reason if not lane.valid else 'white_inner_edges_incomplete',
                 'boundary_policy':'whole_vehicle_inside_white_inner_edges',
                 'metric_boundary_verified':False}
 
@@ -71,5 +81,6 @@ class ConeRoadContext:
                     lo=float(np.interp(y,[p[1] for p in left],[p[0] for p in left]))
                     hi=float(np.interp(y,[p[1] for p in right],[p[0] for p in right]))
                     row['boundary_relation']='inside' if lo<x<hi else 'outside'
-            row['scene_supported']=row['red_ground_near_base']>=.15 and row['boundary_relation']=='inside'
+            row['scene_supported']=row['boundary_relation']=='inside' and (
+                not context.get('red_ground_required',True) or row['red_ground_near_base']>=.15)
         return detections

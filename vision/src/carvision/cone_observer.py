@@ -157,6 +157,10 @@ class ConeObserverDrive:
             if action=='cone_settings':
                 if self.observing or self.run.active or self.short.active:raise ValueError('先停止识别、短测和避障，再保存参数')
                 candidate=copy.deepcopy(self.settings)
+                if 'scene_surface' in payload:
+                    if payload['scene_surface'] not in ('red_running_track','indoor_white_line_track'):
+                        raise ValueError('请选择红色跑道或室内白线赛道')
+                    candidate.setdefault('scene',{})['surface']=payload['scene_surface']
                 for key in ('blue_hsv_lower','blue_hsv_upper','confirm_frames'):
                     if key in payload:candidate[key]=payload[key]
                 if 'red_ground_percent' in payload:
