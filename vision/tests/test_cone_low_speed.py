@@ -159,6 +159,112 @@ def test_near_cone_inside_body_clearance_still_stops(settings):
     with pytest.raises(ValueError,match='车身净空'):ctl.step(data,3.1)
 
 
+@pytest.mark.parametrize('ego,pulse,direction',[(.22,1550,'right'),(.78,1690,'left')])
+def test_soft_white_boundary_steers_inward_without_braking(settings,ego,pulse,direction):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    for t in (3.1,3.2,3.3):
+        intent=ctl.step(observation(t,cones=[],ego_fraction=ego,ego_range=[ego-.01,ego+.01]),t)
+        assert intent['action']=='search' and intent['esc_us']==1600
+        assert intent['steering_us']==pulse and intent['boundary_correction']==direction
+
+
+def test_white_boundary_correction_hysteresis_avoids_alternating_at_threshold(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    for t,ego in ((3.1,.25),(3.2,.27),(3.3,.28)):
+        assert ctl.step(observation(t,cones=[],ego_fraction=ego),t)['steering_us']==1550
+    assert ctl.step(observation(3.4,cones=[],ego_fraction=.5),3.4)['steering_us']==1610
+    assert ctl.boundary_turn is None
+
+
+@pytest.mark.parametrize('ego',[.13,.87])
+def test_white_boundary_body_clearance_still_stops(settings,ego):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    with pytest.raises(ValueError,match='净空不足'):
+        ctl.step(observation(3.1,cones=[],ego_fraction=ego),3.1)
+
+
+def test_inward_correction_cannot_turn_into_nearby_cone(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    data=observation(3.1,ego_fraction=.23)
+    data['cones'][0].update(fraction=.43,y_fraction=.71,image_close=True)
+    with pytest.raises(ValueError,match='净空'):ctl.step(data,3.1)
+
+
+def test_soft_boundary_navigator_keeps_full_corridor_and_cone_data(settings):
+    data=row();data['road_context']['left_inner']=[[190.,y] for y in np.linspace(180,260,12)]
+    nav=LowSpeedNavigator(trial_settings(settings)).update(np.zeros((360,480,3),np.uint8),data,1.)
+    assert nav['ready'] and nav['boundary_correction']=='right'
+    assert nav['lane_bounds_px'] and nav['cones'] and not nav.get('boundary_danger')
+
+
+def test_soft_boundary_seen_by_either_camera_requests_correction_not_veto(settings):
+    data=row();data['road_context']['left_inner']=[[190.,y] for y in np.linspace(180,260,12)]
+    image=np.zeros((360,480,3),np.uint8)
+    nav=DualLowSpeedNavigator(trial_settings(settings)).update_views(
+        {'primary':image,'secondary':image},{'primary':row(),'secondary':data},1.)
+    assert nav['ready'] and nav['boundary_correction']=='right' and not nav.get('boundary_danger')
+
+
+def test_two_cones_automatically_link_only_after_ordered_exit_evidence(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    def seen(t,key,x,y,ego):
+        cone={'id':key,'fraction':x,'half_width':.03,'near':y>=.60,
+              'y_fraction':y,'image_close':y>=.70,'exit_band':y>=.70,'reference_distance_m':None}
+        return observation(t,cones=[cone],ego_fraction=ego,source_camera='secondary')
+    # First cone: approach, move to its left, then three distinct exit frames.
+    for i,y in enumerate((.55,.63,.71,.73,.75)):
+        t=3.1+i*.1
+        assert ctl.step(seen(t,'first',.70,y,.38),t)['action']=='search'
+    for t in np.arange(3.6,4.9,.1):
+        assert ctl.step(observation(float(t),cones=[],ego_fraction=.38,source_camera='secondary'),float(t))['action']=='search'
+    assert ctl.count==1 and ctl.auto_count==1 and ctl.manual_count==0
+    assert ctl.phase=='driving' and 'first' in ctl.passed_ids
+    # Second cone: alternate side, keep moving, then clear its rear.
+    for i,y in enumerate((.55,.63,.71,.73,.75)):
+        t=5.+i*.1
+        assert ctl.step(seen(t,'second',.30,y,.62),t)['action']=='search'
+    assert ctl.side=='right'
+    for t in np.arange(5.5,6.8,.1):
+        ctl.step(observation(float(t),cones=[],ego_fraction=.62,source_camera='secondary'),float(t))
+    assert ctl.count==2 and ctl.auto_count==2 and ctl.phase=='driving'
+    intents=[]
+    for t in np.arange(6.8,8.2,.1):
+        intents.append(ctl.step(observation(float(t),cones=[],ego_fraction=.5,source_camera='secondary'),float(t)))
+    assert any(i['action']=='brake' for i in intents)
+    assert ctl.phase=='complete' and intents[-1]['action']=='neutral'
+    assert ctl.progress()['pass_estimate_unverified'] and not ctl.progress()['field_verified']
+
+
+def test_repeated_frame_cannot_build_automatic_pass_evidence(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    data=observation(3.1,ego_fraction=.38);data['cones'][0].update(fraction=.70,y_fraction=.55,exit_band=False)
+    ctl.step(data,3.1)
+    data=observation(3.2,ego_fraction=.38);data['cones'][0].update(fraction=.70,y_fraction=.74,exit_band=True)
+    for t in (3.2,3.21,3.22):ctl.step(data,t)
+    assert ctl.pass_gate_hits==1
+
+
+def test_reappearing_target_resets_tail_continuation(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    ctl.step(observation(3.1),3.1)
+    ctl.step(observation(3.2,cones=[]),3.2)
+    ctl.step(observation(3.4,cones=[]),3.4)
+    assert ctl.tail_powered>0
+    ctl.step(observation(3.5),3.5)
+    assert ctl.tail_powered==0 and not ctl.review_pending and ctl.count==0
+
+
+@pytest.mark.parametrize('after',['review','complete'])
+def test_end_brake_cannot_resume_driving_when_lines_disappear(settings,after):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    ctl.step(observation(3.1,cones=[]),3.1);ctl._brake(3.2,'结束本段',after=after)
+    for t in (3.25,3.4,4.,4.2):
+        lost=observation(t,cones=[]);lost.pop('lane_bounds_px')
+        assert ctl.step(lost,t)['action']!='search'
+    assert ctl.phase==after
+    assert ctl.step(observation(4.3),4.3)['action']=='neutral'
+
+
 @pytest.mark.parametrize('case',['freshness','white','early_loss','close_cone','other_cone'])
 def test_runtime_hazards_interrupt_powered_segment(settings,case):
     ctl=LowSpeedController(trial_settings(settings),0.)
@@ -338,6 +444,13 @@ function render(owner,canStart,review){env.renderCone({cone_trial:{low_speed_tri
 render('page',true,false);assert(!env.el('cone-test-start').disabled);assert(env.el('cone-drive-start').disabled);
 assert(env.el('cone-test-confirm').disabled);render('page',false,true);assert(!env.el('cone-test-confirm').disabled);
 render('other',true,true);assert(env.el('cone-test-start').disabled);assert(env.el('cone-test-confirm').disabled);
+assert(env.el('cone-white-save').disabled);
+const thresholdSettings={scene:{white_v_min:210},driving:{},blue_hsv_lower:[100,110,50],blue_hsv_upper:[135,255,255],confirm_frames:3};
+env.renderCone({cone_trial:{observing:true,settings:thresholdSettings,avoidance:{active:false},short_test:{active:false},readiness:{missing:[]}}});
+assert(!env.el('cone-white-save').disabled);assert.equal(env.el('cone-white-v').value,210);
+vm.runInContext('coneWhiteDirty=true',env);env.el('cone-white-v').value=195;
+env.renderCone({cone_trial:{observing:true,settings:thresholdSettings,avoidance:{active:false},readiness:{missing:[]}}});
+assert.equal(env.el('cone-white-v').value,195);
 console.log('Experimental controls preserve ownership; no motion sent');
 '''
     result=subprocess.run([node,'-e',js],input=json.dumps({'source':source}),text=True,encoding='utf-8',capture_output=True,timeout=10)

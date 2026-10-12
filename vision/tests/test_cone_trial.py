@@ -218,6 +218,39 @@ def test_observer_initialization_failure_exits_cleanly(tmp_path,monkeypatch):
     assert not drive.observing and drive.reason=='reader unavailable'
 
 
+def test_white_brightness_saves_during_observation_without_actuator(tmp_path):
+    config=tmp_path/'cone.json';config.write_bytes(CONFIG.read_bytes())
+    base=Driver();drive=ConeObserverDrive(base,{},config,tmp_path)
+    drive.observing=True
+    before=json.loads(json.dumps(drive.settings))
+    result=drive.request('cone_white_threshold',{'white_v_min':215})['cone_trial']
+    assert result['settings']['scene']['white_v_min']==215
+    assert drive.reset_reader and drive.latest is None and not base.calls
+    assert drive.settings['ground']==before['ground'] and drive.settings['driving']==before['driving']
+    assert ConeObserverDrive(base,{},config,tmp_path).settings['scene']['white_v_min']==215
+    for active in (drive.run,drive.short):
+        active.active=True
+        with pytest.raises(ValueError,match='结束本轮'):drive.request('cone_white_threshold',{'white_v_min':180})
+        active.active=False
+    assert drive.settings['scene']['white_v_min']==215
+
+
+@pytest.mark.parametrize('threshold',[-1,256,True,200.5,'200',None])
+def test_white_brightness_invalid_values_do_not_write(tmp_path,threshold):
+    config=tmp_path/'cone.json';config.write_bytes(CONFIG.read_bytes())
+    drive=ConeObserverDrive(Driver(),{},config,tmp_path)
+    with pytest.raises(ValueError,match='亮度阈值'):
+        drive.request('cone_white_threshold',{'white_v_min':threshold})
+    assert not drive.local_config.exists() and not drive.reset_reader
+
+
+@pytest.mark.parametrize('threshold',[0,180,200,255])
+def test_white_brightness_is_used_by_both_camera_readers(settings,threshold):
+    settings.setdefault('scene',{})['white_v_min']=threshold
+    reader=ConeCamera({},settings)
+    for road in reader.roads.values():assert road.lane.config.white_v_min==threshold
+
+
 def test_field_dimensions_save_in_centimeters_without_enabling_drive(tmp_path):
     config=tmp_path/'cone.json';config.write_bytes(CONFIG.read_bytes())
     drive=ConeObserverDrive(Driver(),{},config,tmp_path)

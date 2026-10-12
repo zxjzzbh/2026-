@@ -103,7 +103,7 @@ class ConeObserverDrive:
         self.thread=None;self.observing=False;self.closed=False
         self.latest=self.preview=None;self.reason='已录入车宽、车长、赛道及锥桶尺寸；可开始实际画面识别'
         self.updated=None
-        self.run=ConeRun(actuator_factory,self.root/'run');self.reset_navigation=False
+        self.run=ConeRun(actuator_factory,self.root/'run');self.reset_navigation=False;self.reset_reader=False
         self.short=ConeShortRun(self.root/'run',factory=short_actuator_factory,clock=self.clock,on_event=self._short_evidence)
 
     def status(self):
@@ -122,6 +122,9 @@ class ConeObserverDrive:
                 'low_speed_line_policy':'either_camera_with_bounded_hold',
                 'low_speed_drive_mode':'continuous',
                 'low_speed_steering_adjustable':True,
+                'low_speed_boundary_policy':'inward_correction_with_hard_clearance',
+                'low_speed_pass_policy':'visual_estimate_with_review_fallback',
+                'white_threshold_adjustable':True,
                 'hardware_output':run['hardware_output'] or short['hardware_output'],'can_observe':not self.observing and not self.closed,
                 'can_drive':execution_readiness(self.settings)['ready'],'avoidance':run,'short_test':short,
                 'reason':self.run.reason if self.run.active else self.reason,'settings':copy.deepcopy(self.settings),'readiness':execution_readiness(self.settings),
@@ -158,6 +161,15 @@ class ConeObserverDrive:
                 self._start_observer();return self.status()
             if action=='cone_cancel':
                 self.run.cancel('用户停止避障');return self.status()
+            if action=='cone_white_threshold':
+                if self.run.active or self.short.active:raise ValueError('先结束本轮行驶，再调整白线亮度阈值')
+                value=payload.get('white_v_min')
+                candidate=copy.deepcopy(self.settings);candidate.setdefault('scene',{})['white_v_min']=value
+                from .cone_planning import validate_settings
+                validate_settings(candidate);self._save(candidate)
+                self.reset_reader=True;self.latest=self.preview=self.updated=None
+                self.reason='白线亮度阈值已保存，两路锥桶识别画面即将更新'
+                return self.status()
             if action=='cone_calibration':
                 if self.observing or self.run.active or self.short.active:raise ValueError('先停止识别、短测和避障，再保存标定')
                 self._save(import_ground_calibration(self.settings,payload.get('calibration')))
@@ -260,6 +272,8 @@ class ConeObserverDrive:
             reader=ConeCamera(self.states,self.settings,self.clock)
             while not self.stop.is_set():
                 with self.lock:
+                    if self.reset_reader:
+                        reader=ConeCamera(self.states,self.settings,self.clock);self.reset_reader=False
                     if self.reset_navigation:
                         reader.navigator=DualLowSpeedNavigator(self.run.s) if self.run.profile==PROFILE else ConeNavigator(self.settings)
                         reader.navigation=None;self.reset_navigation=False

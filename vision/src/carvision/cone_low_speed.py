@@ -1,8 +1,8 @@
 """Supervised image-feedback trial using historical, NOT verified, estimates.
 
-No new calibration or verified flags. White-line guards run on every frame;
-forward output is continuous until a hazard, operator review or session limit.
-An operator, not image disappearance or elapsed time, confirms each pass.
+No new calibration or verified flags. White-line proximity steers inward;
+body-clearance, obstacle and lease guards still stop motion. Ordered image
+evidence permits estimated pass handoff; insufficient evidence needs review.
 """
 import copy
 import math
@@ -38,7 +38,8 @@ def trial_settings(settings,payload=None):
         'left_us':left,'right_us':right,'turn_margin_m':.03,
         'reported_braking_m':.17,'stopping_budget_m':.27,'reported_turn_radius_m':12.03,
         'reported_displacement_m':.63,'reported_drive_s':1.5,'estimate_verified':False,
-        'tail_powered_limit_s':1.0,'clearance_m':.05}
+        'tail_powered_limit_s':1.0,'clearance_m':.05,'boundary_soft_fraction':.06,
+        'boundary_release_fraction':.04,'boundary_hard_margin_m':.03}
     return s
 
 
@@ -87,12 +88,20 @@ class LowSpeedNavigator:
             if abs(H[0,0])<1e-8:return fail('旧标定中心参考无效')
             centre=float(-(H[0,1]*y+H[0,2])/H[0,0])
             q=(centre-left)/width;centres.append(q)
-            if not half+.03<q<1-half-.03:
-                result['boundary_danger']=True
-                return fail('接近白线保护边界，已禁止前进')
         result.update(ego_fraction=float(np.mean(centres)),half_envelope=half,
+                      ego_range=[min(centres),max(centres)],
                       lane_bounds_px=[corridor(y0),corridor(y1)],lane_rows=[y0,y1],
                       guard='fresh_white_lines_and_image_envelope',metric_boundary_verified=False)
+        hard=(g['vehicle_width_m']/2+.03)/g['lane_width_m']
+        if min(centres)<=hard or max(centres)>=1-hard:
+            result['boundary_danger']=True
+            return fail('车身白线净空不足，主动刹车')
+        soft=half+.06
+        correction='right' if min(centres)<soft else 'left' if max(centres)>1-soft else None
+        if min(centres)<soft and max(centres)>1-soft:
+            result['boundary_danger']=True
+            return fail('左右白线同时侵入纠偏区，无法确定可通行方向')
+        result['boundary_correction']=correction
         for track in row['tracks']:
             if not track.get('visible'):continue
             x,y=track['foot_pixel'];x1,b1,x2,b2=track['bbox_xyxy']
@@ -108,6 +117,7 @@ class LowSpeedNavigator:
                    'y_fraction':float(y/h),'near':bool(y>=max(y1*.94,h*.60)),'bbox_xyxy':track['bbox_xyxy'],
                    'image_close':bool(y/h>=(.95 if self.camera=='primary' else .70)),
                    'other_close':bool(y/h>=(.95 if self.camera=='primary' else .65)),
+                   'exit_band':bool(y/h>=max(.90 if self.camera=='primary' else .70,high/h-.045)),
                    'reference_distance_m':None}
             if self.camera=='primary':entry['near']=bool(y/h>=.90)
             try:entry['reference_distance_m']=self.projection.point([x,y])[1]-g['rear_axle_to_front_m']
@@ -186,6 +196,12 @@ class DualLowSpeedNavigator:
             return self.latest
         source=self.selected if self.selected in choices else choices[0]
         self.selected=source;result=current[source]
+        corrections={current[c].get('boundary_correction') for c in fresh}-{None}
+        if len(corrections)>1:
+            self.latest={**result,'ready':False,'boundary_danger':True,
+                         'reason':'双摄白线纠偏方向冲突，停车核对'}
+            return self.latest
+        if corrections:result['boundary_correction']=next(iter(corrections))
         result['line_sources']=fresh
         result['reason']=('第一路' if source=='primary' else '第二路')+('白线短暂漏检，限时沿用最近边界' if result['line_held'] else '白线已确认，可进行低速试验')
         self.latest=result;return result
@@ -203,19 +219,41 @@ class LowSpeedController:
         self.phase_after_brake='observing';self.next_after=None;self.selected_pulse=1610
         self.last_observation_t=None;self.await_since=None
         self.line_missing_since=None;self.held_powered_s=0.;self.source_camera=None;self.last_target_fraction=None
+        self.boundary_turn=None;self.auto_count=0;self.manual_count=0;self.passed_ids=set()
+        self.target_aliases=set();self.pass_min_y=None;self.pass_last_y=None;self.pass_last_s=None;self.pass_gate_hits=0
+        self.return_started=None;self.centred_since=None
 
     def progress(self):
-        return {'operator_confirmed_count':self.count,'target_id':self.target,'side':self.side,
+        return {'operator_confirmed_count':self.manual_count,'estimated_pass_count':self.auto_count,
+                'passed_count':self.count,'target_id':self.target,'side':self.side,
                 'can_confirm_pass':self.phase=='review','powered_s':self.powered_s,
                 'source_camera':self.source_camera,'held_powered_s':self.held_powered_s,
                 'left_us':self.options['left_us'],'right_us':self.options['right_us'],
-                'field_verified':False,'automatic_pass_count':False}
+                'boundary_correction':self.boundary_turn,'pass_gate_frames':self.pass_gate_hits,
+                'field_verified':False,'automatic_pass_count':True,'pass_estimate_unverified':True}
 
     def confirm_pass(self):
         if self.phase!='review':raise ValueError('当前未进入车尾通过确认阶段')
+        self.manual_count+=1
+        self._passed()
+        self.phase='complete' if self.count>=2 else 'observing';self.await_since=None
+
+    def _passed(self):
+        self.passed_ids.update(self.target_aliases)
         self.count+=1;self.target=None;self.near_seen=False;self.tail_powered=0.;self.review_pending=False
         self.source_camera=None;self.last_target_fraction=None
-        self.phase='complete' if self.count>=2 else 'observing';self.await_since=None
+        self.target_aliases=set();self.pass_min_y=self.pass_last_y=self.pass_last_s=None;self.pass_gate_hits=0
+
+    def _pass_observation(self,target,nav,sign):
+        t=nav['captured_s']
+        if t==self.pass_last_s:return
+        y=target['y_fraction'];self.pass_min_y=y if self.pass_min_y is None else min(self.pass_min_y,y)
+        core=(self.s['geometry']['vehicle_width_m']/2+self.options['clearance_m'])/self.s['geometry']['lane_width_m']+target['half_width']
+        qualifies=(not nav.get('line_held') and target.get('exit_band',False)
+            and y-self.pass_min_y>=.06 and sign*(nav['ego_fraction']-target['fraction'])>core
+            and (self.pass_last_y is None or y>=self.pass_last_y-.02))
+        self.pass_gate_hits=self.pass_gate_hits+1 if qualifies else 0
+        self.pass_last_y=y;self.pass_last_s=t
 
     def _brake(self,now,reason,after='observing'):
         self.phase='braking';self.deadline=now+.12;self.phase_after_brake=after;self.wait_reason=reason
@@ -233,8 +271,17 @@ class LowSpeedController:
         if not nav.get('experimental'):raise ValueError('低速测试画面尚未就绪')
         # Confirmation and completion are stationary latches. A segmentation
         # gap must never turn them into a resumable lane-following state.
-        if self.phase=='complete':return {**neutral,'phase':'complete','reason':'两桶均已人工确认通过，测试结束'}
+        if self.phase=='complete':return {**neutral,'phase':'complete','reason':'两桶通过流程已结束，保持停车'}
         if self.phase=='review':return {**neutral,'phase':'review','reason':'已停车：确认车尾确实通过当前桶后，再继续'}
+        if self.phase in ('braking','settling') and self.phase_after_brake in ('review','complete'):
+            # Once a terminal/review stop begins, a line gap cannot convert it
+            # into the resumable waiting-lines state and restart the vehicle.
+            if self.phase=='braking':
+                if now<self.deadline:return {**neutral,'action':'brake','esc_us':1400,'phase':'braking','reason':self.wait_reason}
+                self.phase='settling';self.deadline=now+self.options['settle_s']
+            if now<self.deadline:return {**neutral,'phase':'settling','reason':self.wait_reason}
+            self.phase=self.phase_after_brake
+            return {**neutral,'phase':self.phase,'reason':self.wait_reason}
         if nav.get('boundary_danger'):raise ValueError(nav.get('reason','白线保护触发'))
         if not nav.get('lane_bounds_px') or 'ego_fraction' not in nav:
             if self.line_missing_since is None:self.line_missing_since=now
@@ -259,6 +306,7 @@ class LowSpeedController:
             if now<self.deadline:return {**neutral,'phase':'settling','reason':'中位观察，等待新鲜白线与锥桶画面'}
             self.phase=self.phase_after_brake
         if self.phase=='review':return {**neutral,'phase':'review','reason':'已停车：确认车尾确实通过当前桶后，再继续'}
+        if self.phase=='complete':return {**neutral,'phase':'complete','reason':'两桶视觉估计通过并回正，测试结束'}
         if nav.get('line_held') and self.held_powered_s>=.15:
             if self.phase=='driving':
                 self._brake(now,'丢线期间有限前进已到，制动等待')
@@ -272,12 +320,26 @@ class LowSpeedController:
             if now-self.await_since>3:raise ValueError('蓝色障碍持续不明确，结束本轮')
             return {**neutral,'phase':'observing','reason':'等待蓝色障碍连续确认'}
         self.await_since=None
-        cones=nav['cones'];ego=nav['ego_fraction'];half=nav['half_envelope'];reserved=.03
+        cones=[c for c in nav['cones'] if c['id'] not in self.passed_ids]
+        ego=nav['ego_fraction'];half=nav['half_envelope'];reserved=.03
+        if self.count>=2:
+            if self.return_started is None:self.return_started=now
+            if now-self.return_started>3:raise ValueError('两桶衔接结束，回正超时，已停车')
+            self.target_fraction=.5
+            if abs(ego-.5)<.05 and not nav.get('boundary_correction') and not nav.get('line_held'):
+                if self.centred_since is None:self.centred_since=now
+                if now-self.centred_since>=.3:
+                    self._brake(now,'两桶视觉估计通过，已回归车道',after='complete')
+                    return {**neutral,'action':'brake','esc_us':1400,'phase':'braking','reason':self.wait_reason}
+            else:self.centred_since=None
+            return self._forward(nav,now,neutral,'两桶视觉估计通过，低速回归车道中心')
         if self.target is None and not cones:
             self.target_fraction=.5
             return self._forward(nav,now,neutral,'沿白线持续低速前进，搜索蓝色锥桶')
         if self.target is None:
             target=cones[0];choices=[]
+            if self.count and target['y_fraction']>(.88 if nav.get('source_camera')=='primary' else .65):
+                raise ValueError('新目标首次出现已在近处，不能确认第二桶身份')
             for side,sign in [('left',-1),('right',1)]:
                 if self.first_side and side==self.first_side:continue
                 target_x=target['fraction']+sign*(half+target['half_width']+reserved)
@@ -286,6 +348,7 @@ class LowSpeedController:
             _,self.side,self.target_fraction=min(choices)
             if self.first_side is None:self.first_side=self.side
             self.target=target['id']
+            self.target_aliases.add(self.target)
         source=nav.get('source_camera')
         if self.source_camera and source and source!=self.source_camera and self.target is not None:
             # Reassociate only a unique similar track-relative position. IDs
@@ -293,12 +356,16 @@ class LowSpeedController:
             candidates=[c for c in cones if self.last_target_fraction is not None and abs(c['fraction']-self.last_target_fraction)<.18]
             if len(candidates)!=1:raise ValueError('白线已切换摄像头，但锥桶对应关系不明确，停车核对')
             self.target=candidates[0]['id']
+            self.target_aliases.add(self.target)
+            self.pass_min_y=self.pass_last_y=self.pass_last_s=None;self.pass_gate_hits=0
         self.source_camera=source
         target=next((c for c in cones if c['id']==self.target),None)
         if target:
+            self.review_pending=False;self.tail_powered=0.
             self.last_target_fraction=target['fraction']
             self.near_seen|=target['near']
             sign=-1 if self.side=='left' else 1
+            self._pass_observation(target,nav,sign)
             self.target_fraction=target['fraction']+sign*(half+target['half_width']+reserved)
             if not half+reserved<=self.target_fraction<=1-half-reserved:raise ValueError('绕行侧接近白线，停止试验')
             # The .17m report is not a live measurement. Add .10m reserve;
@@ -315,10 +382,15 @@ class LowSpeedController:
                     raise ValueError('近处锥桶侵入车身净空或转向不能远离，主动刹车')
         elif not self.near_seen:raise ValueError('目标提前丢失，结束本轮；不会算作已通过')
         else:
-            # Limited continuation follows fresh white lines, never an open-loop
-            # steering timer. It is an estimate; the operator confirms the tail.
+            # Keep the passing-side offset while the rear clears. Automatic
+            # handoff requires several distinct near-exit observations with
+            # approach and side clearance, then bounded powered continuation.
+            # It remains an estimate, not measured odometry or a verified pass.
             self.review_pending=True
             if self.tail_powered>=self.options['tail_powered_limit_s']:
+                if self.pass_gate_hits>=3 and not nav.get('line_held'):
+                    self.auto_count+=1;self._passed()
+                    return self.step(nav,now)
                 if self.phase!='braking':self._brake(now,'目标离开近处视野，停车确认车尾',after='review')
                 return {**neutral,'action':'brake','esc_us':1400,'phase':'braking','reason':self.wait_reason}
         for other in cones:
@@ -333,14 +405,32 @@ class LowSpeedController:
         right=self.options['right_us'] if self.target else 1570
         left=self.options['left_us'] if self.target else 1650
         steer=1610 if abs(difference)<.025 else right if difference>0 else left
+        lo,hi=nav.get('ego_range',[ego,ego]);soft=half+self.options['boundary_soft_fraction']
+        hard=(self.s['geometry']['vehicle_width_m']/2+self.options['boundary_hard_margin_m'])/self.s['geometry']['lane_width_m']
+        if lo<=hard or hi>=1-hard:raise ValueError('车身白线净空不足，主动刹车')
+        requested=nav.get('boundary_correction')
+        if requested:self.boundary_turn=requested
+        elif lo<soft:self.boundary_turn='right'
+        elif hi>1-soft:self.boundary_turn='left'
+        elif self.boundary_turn=='right' and lo>=soft+self.options['boundary_release_fraction']:self.boundary_turn=None
+        elif self.boundary_turn=='left' and hi<=1-soft-self.options['boundary_release_fraction']:self.boundary_turn=None
+        if self.boundary_turn:
+            steer=self.options['right_us'] if self.boundary_turn=='right' else self.options['left_us']
+            reason=('接近左白线，保持低速向右纠偏' if self.boundary_turn=='right' else '接近右白线，保持低速向左纠偏')
         # New endpoints have no measured radius. Use an extra image-space
         # boundary reserve rather than pretending the old 12m radius applies.
         shift=self.options['turn_margin_m']/self.s['geometry']['lane_width_m']
         predicted=ego+(shift if steer<1610 else -shift if steer>1610 else 0)
-        if not half+reserved<predicted<1-half-reserved:raise ValueError('预计靠近白线，主动刹车')
+        if not hard<predicted<1-hard:raise ValueError('纠偏后车身净空仍不足，主动刹车')
+        # A white-line correction is not allowed to steer into a nearby cone.
+        for cone in nav['cones']:
+            if not cone.get('image_close',cone['y_fraction']>=.70):continue
+            core=(self.s['geometry']['vehicle_width_m']/2+self.options['clearance_m'])/self.s['geometry']['lane_width_m']+cone['half_width']
+            if min(abs(cone['fraction']-ego),abs(cone['fraction']-predicted))<=core:
+                raise ValueError('纠偏方向与近处锥桶净空冲突，主动刹车')
         if self.phase!='driving':
             if self.next_after is not None and nav['captured_s']<=self.next_after:
                 return {**neutral,'phase':'observing','reason':'等待制动后的新相机帧'}
             self.phase='driving';self.deadline=None
         return {**neutral,'action':'search','esc_us':self.s['driving']['forward_us'],'steering_us':steer,
-                'phase':'driving','reason':reason}
+                'phase':'driving','reason':reason,'boundary_correction':self.boundary_turn}

@@ -23,18 +23,21 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <p id="cone-cameras"></p>
 <details id="cone-low-speed-section" open><summary>旧数据 · 持续低速绕桶（无需重新标定）</summary>
 <p>沿用已有相机参考、车宽 29.5 cm、车长 42 cm、白线内宽 125 cm，以及此前约 17 cm 刹车记录。沿白线持续前进，发现蓝桶后连续调整方向；绕桶转向可在下方单独调整，不改原遥控和红绿灯。不会将估算参数标成已验证。</p>
+<div class="cone-settings"><label>白线亮度阈值（0–255）<input id="cone-white-v" type="number" min="0" max="255" step="1" value="200"></label>
+<button id="cone-white-save" type="button">应用白线亮度阈值</button></div>
+<p id="cone-white-status">当前 200：越大越只保留亮白，越小越容易识别较暗白线。观察时可调整并保存；行驶过程中锁定。</p>
 <div class="cone-settings"><label>测试油门（μs）<input id="cone-test-forward" type="number" min="1501" max="1600" step="1" value="1600"></label>
 <label>本轮运行时限（秒）<input id="cone-test-duration" type="number" min="5" max="120" step="1" value="60"></label></div>
 <div class="cone-settings"><label>绕桶左转 PWM（μs，越大越强）<input id="cone-test-left" type="number" min="1650" max="1750" step="5" value="1690"></label>
 <label>绕桶右转 PWM（μs，越小越强）<input id="cone-test-right" type="number" min="1550" max="1570" step="5" value="1550"></label></div>
-<p>中位 1610；原绕桶左 1650／右 1570，现默认左 1690／右 1550。范围限于车端已有手动范围，数值不代表实测轮角。结束本轮后修改，重新准备生效；无桶循线仍用原较小转向。</p>
+<p>中位 1610；默认左 1690／右 1550。绕桶及靠边纠偏使用这些档位，无桶居中时小幅修正。结束本轮后修改，重新准备生效。</p>
 <p id="cone-test-steering-state" role="status">转向参数在下一次准备时生效</p>
-<p>3 秒中位后持续前进，不再每隔 0.25 秒刹车，也不再累计前进 4 秒就结束。时限包含初始化和等待。任一路可靠白线即可继续；短暂漏检最多沿用边界 0.8 秒、期间前进预算 0.15 秒。持续丢线、靠近边界、近处蓝桶挡路或失联时仍主动停车；不能保证盲行不越线。</p>
+<p>3 秒中位后持续前进。靠近左白线向右纠偏，靠近右白线向左纠偏；回到内侧后恢复绕桶方向。任一路可靠白线即可引导；车身净空不足、纠偏会撞桶、持续丢线或失联时停车，空格／Esc 急停。</p>
 <p id="cone-test-line-state" role="status">白线依据：等待两路画面</p>
 <div class="cone-actions"><button id="cone-test-prepare" type="button">准备低速测试（电调关闭）</button><button id="cone-test-start" type="button" disabled>开始持续低速绕桶</button></div>
-<button id="cone-test-confirm" type="button" disabled>车尾已过当前桶，继续</button>
+<button id="cone-test-confirm" type="button" disabled>证据不足时：车尾已过当前桶，继续</button>
 <button id="cone-test-stop" type="button">急停并结束本轮</button>
-<p id="cone-test-progress" role="status">准备后打开电调，确认车辆静止、场地就绪，再开始。第一桶离开近处视野后有限续行并停车，现场确认车尾已通过再处理第二桶；画面消失不会自动算通过。</p>
+<p id="cone-test-progress" role="status">连续接近、从指定侧留出净空、多帧抵达近处出口并有限续行后，自动衔接第二桶；两桶结束后回正停车。通过次数为视觉估计，证据不足才停车核对。</p>
 </details>
 <details id="cone-short-section" open><summary>1570／1650 固定档转向与刹车短测</summary>
 <p>不需要先填车身尺寸或地面标定。两项转向短测会固定 S3 后低速前进画弧；刹车短测则以 1610 μs 回中直行。均自动限时制动，不是仅原地摆舵。</p>
@@ -100,7 +103,7 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <p id="cone-readiness"></p></details></section>'''
 
 STATE = '''
-let coneActive=false,coneDirty=false,coneBusy=false,coneImageBusy=false,coneImageURL=null,coneError='';
+let coneActive=false,coneDirty=false,coneWhiteDirty=false,coneBusy=false,coneImageBusy=false,coneImageURL=null,coneError='';
 const coneInputs=['cone-h-low','cone-h-high','cone-s-low','cone-v-low','cone-confirm','cone-red-percent'];
 let coneDriveActive=false,coneDriveOwned=false,coneToken=null,coneSequence=0,conePulseBusy=false,coneRunQueue=Promise.resolve();
 let coneLastSnapshot=-Infinity;
@@ -112,6 +115,10 @@ function renderCone(s){
  const c=s.cone_trial||{};coneActive=!!c.observing;
  const a=c.avoidance||{};coneDriveActive=!!a.active;coneDriveOwned=a.owner_client===client;coneToken=a.run_token;
  const q=c.short_test||{},qo=q.output||{};
+ el('cone-white-v').disabled=el('cone-white-save').disabled=stale||coneBusy||coneDriveActive||!!q.active;
+ const whiteValue=c.settings?.scene?.white_v_min??200;
+ if(!coneWhiteDirty&&!coneBusy)el('cone-white-v').value=whiteValue;
+ el('cone-white-status').textContent='已保存亮度阈值：'+whiteValue+' / 255。越大越只保留亮白；越小越容易混入地面反光。应用后两路锥桶识别同时更新，其他任务不变。';
  el('cone-surface').disabled=el('cone-save-surface').disabled=stale||coneBusy||coneActive||coneDriveActive||!!q.active;
  if(!coneDirty&&!coneBusy&&c.settings)el('cone-surface').value=c.settings.scene?.surface||'red_running_track';
  coneShortActive=!!q.active;coneShortOwned=q.owner_client===client;coneShortToken=q.run_token;coneShortRound=q.round??0;
@@ -134,7 +141,7 @@ function renderCone(s){
  el('cone-test-start').disabled=stale||coneBusy||!coneDriveOwned||!a.can_request_start||!oldTrial;
  el('cone-test-confirm').disabled=stale||coneBusy||!coneDriveOwned||!oldTrial||!trial.can_confirm_pass;
  for(const id of ['cone-test-forward','cone-test-duration','cone-test-left','cone-test-right'])el(id).disabled=stale||coneBusy||coneDriveActive||coneShortActive;
- if(oldTrial)el('cone-test-progress').textContent=(a.reason||'')+' · 已人工确认 '+(trial.operator_confirmed_count||0)+'/2'+(trial.side?' · 当前从'+(trial.side==='left'?'左':'右')+'侧绕过':'')+' · 累计前进指令 '+(trial.powered_s||0).toFixed(2)+' 秒';
+ if(oldTrial)el('cone-test-progress').textContent=(a.reason||'')+' · 已过 '+(trial.passed_count??trial.operator_confirmed_count??0)+'/2（视觉估计 '+(trial.estimated_pass_count||0)+'，现场确认 '+(trial.operator_confirmed_count||0)+'）'+(trial.side?' · 当前从'+(trial.side==='left'?'左':'右')+'侧绕过':'')+' · 累计前进指令 '+(trial.powered_s||0).toFixed(2)+' 秒';
  el('cone-drive-start').title=a.start_blocked_reason||'';
  el('cone-run-state').textContent=a.reason||'尚未准备避障';
  const nav=c.latest?.navigation,phases={needs_calibration:'待标定',calibration_only:'位移标定观察',waiting_for_feedback:'等待反馈',waiting_for_two_cones:'等待确认前方两只锥桶',pass_first_cone:'按指定侧绕第一桶',pass_second_cone:'换边绕第二桶',follow_lane:'低速循迹',avoid_cones:'绕行锥桶',return_to_lane:'回归赛道',waiting_for_clear_route:'没有可通过路线',complete:'交错绕桶完成',fault:'已停止'};
@@ -142,7 +149,7 @@ function renderCone(s){
  const slalom=nav?.slalom||a.slalom;
  const slalomReasons={cones_too_close_for_alternation:'两桶前后间距不足，无法安排有顺序的换边',need_two_confirmed_cones_ahead:'需要先确认前方两只锥桶',no_feasible_alternating_route:'当前桶距、边界、视野或转弯半径不支持交错路线',slalom_wrong_side_or_clearance:'通过侧别或净空不符合要求',slalom_pose_discontinuity:'位移反馈不连续，请重新准备',slalom_cone_position_changed:'锥桶位置发生变化，请重新准备',slalom_wrong_order:'通过顺序不符合要求',slalom_pass_without_ordered_side_evidence:'缺少按顺序交错通过的位姿证据',slalom_reference_tracking_error:'车辆偏离选定路线，请重新准备',slalom_reference_view_unavailable:'选定路线超出当前可信视野',slalom_reference_blocked:'选定路线的车身净空或白线边界不满足要求',following_locked_alternating_route:'正在跟随选定交错路线',alternating_cones_passed_and_lane_recovered:'两桶已交错通过并回正',no_lane_recovery_route:'暂时没有可行的回正路线'};
  el('cone-slalom').textContent=slalom?.order?.length?('本轮顺序：'+slalom.order.map((p,i)=>(i+1)+'号桶（'+p.id+'）从'+(p.side==='left'?'左':'右')+'侧通过').join(' → ')+' · 已核验 '+(slalom.passed_ids?.length||0)+'/2'+(nav?.reason?' · '+(slalomReasons[nav.reason]||nav.reason):'')):(slalomReasons[nav?.reason]||'等待确认两只锥桶及交错路线');
- if(oldTrial)el('cone-slalom').textContent='旧数据低速试验：白线实时保护，两桶选择相反侧；通过数量由现场确认，不是自动完赛判定。';
+ if(oldTrial)el('cone-slalom').textContent='旧数据低速试验：靠边向内纠偏，两桶选择相反侧；多帧通过证据充分时自动衔接，计数为视觉估计。';
  el('cone-navigation').textContent=nav?((phases[nav.phase]||nav.phase)+' · '+(nav.reason||'')+(nav.side?' · 路线 '+({left:'向左',right:'向右',center:'居中'}[nav.side]||nav.side):'')+(nav.passed_ids?' · 已过 '+nav.passed_ids.length+'/2':'')+(nav.motion?.valid?' · 速度 '+nav.motion.speed_mps.toFixed(3)+' m/s · 位移 '+nav.motion.travel_m.toFixed(2)+' m':'')):'开始识别后显示选路、位移和通过计数';
  document.querySelectorAll('[data-cone-drive],[data-cone-motion]').forEach(input=>{
   input.disabled=stale||coneBusy||coneActive||coneDriveActive;
@@ -181,11 +188,16 @@ document.querySelectorAll('[data-cone-drive],[data-cone-motion]').forEach(input=
 for(const id of ['cone-steering-verified','cone-odometry-verified'])el(id).addEventListener('change',()=>coneDirty=true);
 async function coneAction(action,body={}){
  if(coneBusy)return;coneError='';coneBusy=true;if(lastStatus)render(lastStatus);
- try{const s=await send(action,body);if(action==='cone_settings')coneDirty=false;render(s);}
+ try{const s=await send(action,body);if(action==='cone_settings')coneDirty=false;if(action==='cone_white_threshold')coneWhiteDirty=false;render(s);}
  catch(e){coneError=e.message;feedback(e.message,'error');}
  finally{coneBusy=false;if(lastStatus)render(lastStatus);}
 }
 el('cone-surface').addEventListener('change',()=>coneDirty=true);
+el('cone-white-v').addEventListener('input',()=>coneWhiteDirty=true);
+el('cone-white-save').addEventListener('click',()=>{
+ const input=el('cone-white-v');if(!input.checkValidity()){input.reportValidity();return;}
+ coneAction('cone_white_threshold',{white_v_min:Number(input.value)});
+});
 el('cone-save-surface').addEventListener('click',()=>coneAction('cone_settings',{scene_surface:el('cone-surface').value}));
 el('cone-observe').addEventListener('click',()=>coneAction('cone_observe'));
 el('cone-stop').addEventListener('click',()=>coneAction('cone_stop'));

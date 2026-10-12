@@ -36,7 +36,9 @@ class ConeRoadContext:
         # saturated paint here; leave the manual/traffic preview untouched.
         # Each fixed camera has its own ground ROI; cabinet/window edges above
         # that ROI must never veto the other camera as a white-line hazard.
-        config=replace(config,white_v_min=200,white_s_max=70,
+        threshold=settings.get('scene',{}).get('white_v_min',200)
+        if type(threshold) is not int or not 0<=threshold<=255:raise ValueError('白线亮度阈值必须为 0–255 的整数')
+        config=replace(config,white_v_min=threshold,white_s_max=70,
                        roi_top=.60 if camera=='primary' else .38)
         if settings.get('scene',{}).get('surface')=='indoor_white_line_track':
             # In the fixed H65 view the nearby white edges leave the image
