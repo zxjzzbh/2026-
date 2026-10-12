@@ -14,6 +14,7 @@ import numpy as np
 
 from .autonomy_profile import GroundProjection
 from .brake_parking import numeric
+from .cone_trial_output import validate_limits
 
 PROFILE='legacy_low_speed'
 
@@ -28,10 +29,13 @@ def trial_settings(settings,payload=None):
     if g['lane_width_m']<=g['vehicle_width_m']+.24:raise ValueError('白线内宽不足以进行该低速试验')
     if 'test_burst_s' in payload:raise ValueError('旧分段测试页面已过期，请刷新后使用持续前进入口')
     forward=payload.get('test_forward_us',1600);duration=payload.get('test_run_s',60.)
+    left=payload.get('test_left_us',1690);right=payload.get('test_right_us',1550)
+    validate_limits(right,left)
     if type(forward) is not int or not 1501<=forward<=1600:raise ValueError('测试油门仅允许 1501–1600 μs')
     if not numeric(duration) or not 5<=duration<=120:raise ValueError('本轮运行时限仅允许 5–120 秒')
     s.setdefault('driving',{})['forward_us']=forward
     s['low_speed_test']={'drive_mode':'continuous','settle_s':.55,'max_run_s':duration,'reaction_horizon_s':.25,
+        'left_us':left,'right_us':right,'turn_margin_m':.03,
         'reported_braking_m':.17,'stopping_budget_m':.27,'reported_turn_radius_m':12.03,
         'reported_displacement_m':.63,'reported_drive_s':1.5,'estimate_verified':False,
         'tail_powered_limit_s':1.0,'clearance_m':.05}
@@ -204,6 +208,7 @@ class LowSpeedController:
         return {'operator_confirmed_count':self.count,'target_id':self.target,'side':self.side,
                 'can_confirm_pass':self.phase=='review','powered_s':self.powered_s,
                 'source_camera':self.source_camera,'held_powered_s':self.held_powered_s,
+                'left_us':self.options['left_us'],'right_us':self.options['right_us'],
                 'field_verified':False,'automatic_pass_count':False}
 
     def confirm_pass(self):
@@ -301,7 +306,13 @@ class LowSpeedController:
             distance=target.get('reference_distance_m')
             close=(numeric(distance) and 0<=distance<=self.options['stopping_budget_m']) or target.get('image_close',target['y_fraction']>=.70)
             if close and abs(target['fraction']-ego)<half+target['half_width']+reserved:
-                raise ValueError('近处锥桶仍在车身通道内，主动刹车')
+                # Planning includes a larger swing reserve. Do not call that
+                # entire buffer an unavoidable collision: allow a turn AWAY
+                # only when the current body + 5cm clearance is already clear.
+                core=(self.s['geometry']['vehicle_width_m']/2+self.options['clearance_m'])/self.s['geometry']['lane_width_m']+target['half_width']
+                away=sign*(self.target_fraction-ego)>.005 and sign*(ego-target['fraction'])>0
+                if abs(target['fraction']-ego)<=core or not away:
+                    raise ValueError('近处锥桶侵入车身净空或转向不能远离，主动刹车')
         elif not self.near_seen:raise ValueError('目标提前丢失，结束本轮；不会算作已通过')
         else:
             # Limited continuation follows fresh white lines, never an open-loop
@@ -319,11 +330,13 @@ class LowSpeedController:
     def _forward(self,nav,now,neutral,reason):
         ego=nav['ego_fraction'];half=nav['half_envelope'];reserved=.03
         difference=self.target_fraction-ego
-        steer=1610 if abs(difference)<.025 else 1570 if difference>0 else 1650
-        # Nominal stopping corridor reserves body swing and reported braking.
-        reach=.5*self.options['reaction_horizon_s']+self.options['stopping_budget_m']
-        shift=reach*reach/(2*self.options['reported_turn_radius_m'])/self.s['geometry']['lane_width_m']
-        predicted=ego+(shift if steer==1570 else -shift if steer==1650 else 0)
+        right=self.options['right_us'] if self.target else 1570
+        left=self.options['left_us'] if self.target else 1650
+        steer=1610 if abs(difference)<.025 else right if difference>0 else left
+        # New endpoints have no measured radius. Use an extra image-space
+        # boundary reserve rather than pretending the old 12m radius applies.
+        shift=self.options['turn_margin_m']/self.s['geometry']['lane_width_m']
+        predicted=ego+(shift if steer<1610 else -shift if steer>1610 else 0)
         if not half+reserved<predicted<1-half-reserved:raise ValueError('预计靠近白线，主动刹车')
         if self.phase!='driving':
             if self.next_after is not None and nav['captured_s']<=self.next_after:

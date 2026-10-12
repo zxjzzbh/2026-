@@ -121,6 +121,7 @@ class ConeObserverDrive:
                 'logic_revision':'slalom-continuity-20261012','legacy_reference_available':True,'low_speed_trial_available':True,
                 'low_speed_line_policy':'either_camera_with_bounded_hold',
                 'low_speed_drive_mode':'continuous',
+                'low_speed_steering_adjustable':True,
                 'hardware_output':run['hardware_output'] or short['hardware_output'],'can_observe':not self.observing and not self.closed,
                 'can_drive':execution_readiness(self.settings)['ready'],'avoidance':run,'short_test':short,
                 'reason':self.run.reason if self.run.active else self.reason,'settings':copy.deepcopy(self.settings),'readiness':execution_readiness(self.settings),

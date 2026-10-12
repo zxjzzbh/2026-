@@ -47,7 +47,9 @@ def test_profile_uses_reported_limits_without_changing_verified_flags(settings):
 
 
 @pytest.mark.parametrize('values',[{'test_forward_us':1601},{'test_forward_us':True},
-    {'test_run_s':121},{'test_run_s':float('nan')},{'test_run_s':True},{'test_burst_s':.25}])
+    {'test_run_s':121},{'test_run_s':float('nan')},{'test_run_s':True},{'test_burst_s':.25},
+    {'test_left_us':1755},{'test_left_us':1645},{'test_left_us':True},
+    {'test_right_us':1545},{'test_right_us':1575}])
 def test_trial_cannot_expand_actuator_envelope(settings,values):
     with pytest.raises(ValueError):trial_settings(settings,values)
 
@@ -90,7 +92,7 @@ def test_continuous_forward_has_no_periodic_braking_or_four_second_cutoff(settin
     for t in np.arange(3.01,12.,.05):
         intent=ctl.step(observation(float(t),cones=None if with_cone else []),float(t))
         assert intent['action']=='search' and intent['esc_us']==1600
-        assert intent['steering_us']==(1650 if with_cone else 1610)
+        assert intent['steering_us']==(1690 if with_cone else 1610)
     assert ctl.powered_s>8.
 
 
@@ -98,7 +100,31 @@ def test_cruising_updates_steering_when_cone_appears_without_braking(settings):
     ctl=LowSpeedController(trial_settings(settings),0.)
     assert ctl.step(observation(3.1,cones=[]),3.1)['steering_us']==1610
     result=ctl.step(observation(3.2),3.2)
-    assert result['action']=='search' and result['steering_us']==1650
+    assert result['action']=='search' and result['steering_us']==1690
+
+
+def test_cone_turning_is_tunable_but_empty_lane_uses_old_small_corrections(settings):
+    ctl=LowSpeedController(trial_settings(settings,{'test_left_us':1730,'test_right_us':1560}),0.)
+    assert ctl.step(observation(3.1,cones=[],ego_fraction=.55),3.1)['steering_us']==1650
+    assert ctl.step(observation(3.2),3.2)['steering_us']==1730
+    ctl=LowSpeedController(trial_settings(settings,{'test_left_us':1730,'test_right_us':1560}),0.)
+    data=observation(3.1);data['cones'][0]['fraction']=.34
+    assert ctl.step(data,3.1)['steering_us']==1560
+
+
+def test_near_cone_inside_turn_buffer_can_move_away_when_body_clear(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    data=observation(3.1,ego_fraction=.438,half_envelope=.203)
+    data['cones'][0].update(fraction=.663,half_width=.034,y_fraction=.714,image_close=True)
+    intent=ctl.step(data,3.1)
+    assert intent['action']=='search' and intent['steering_us']==1690
+
+
+def test_near_cone_inside_body_clearance_still_stops(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    data=observation(3.1,ego_fraction=.438,half_envelope=.203)
+    data['cones'][0].update(fraction=.61,half_width=.034,y_fraction=.714,image_close=True)
+    with pytest.raises(ValueError,match='车身净空'):ctl.step(data,3.1)
 
 
 @pytest.mark.parametrize('case',['freshness','white','early_loss','close_cone','other_cone'])

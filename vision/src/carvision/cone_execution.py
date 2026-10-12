@@ -8,6 +8,14 @@ from pathlib import Path
 from .brake_output import BrakeActuator
 from .cone_navigation import execution_readiness,actuator_settings,ConeDrivingController
 from .cone_low_speed import PROFILE,trial_settings,LowSpeedController
+from .cone_trial_output import ConeTrialActuator
+
+
+def make_actuator(settings):
+    options=settings.get('low_speed_test')
+    if options:
+        return ConeTrialActuator(actuator_settings(settings),right_us=options['right_us'],left_us=options['left_us'],run=True,esc_mode='F/B')
+    return BrakeActuator(actuator_settings(settings),run=True,esc_mode='F/B',forward_limit_us=1625)
 
 
 def base_idle(base):
@@ -18,7 +26,7 @@ def base_idle(base):
 
 class ConeRun:
     def __init__(self,actuator_factory=None,log_root=None):
-        self.factory=actuator_factory or (lambda s:BrakeActuator(actuator_settings(s),run=True,esc_mode='F/B',forward_limit_us=1625))
+        self.factory=actuator_factory or make_actuator
         self.active=False;self.phase='idle';self.reason='尚未准备避障';self.actuator=None
         self.owner=self.token=None;self.sequence=-1;self.lease_until=0.;self.prepared_s=0.
         self.s=self.controller=self.navigation=self.intent=self.execution=None
@@ -27,6 +35,7 @@ class ConeRun:
 
     def status(self,settings,base,now):
         ready=execution_readiness(settings);nav=self.navigation or {}
+        turn=(self.s or {}).get('low_speed_test') or {}
         can_start=(self.active and self.phase=='ready' and nav.get('action')=='follow_candidate_path'
             and 0<=now-nav.get('captured_s',-1e9)<=.25 and abs((nav.get('motion') or {}).get('speed_mps',1))<=.025)
         if self.profile==PROFILE:
@@ -34,6 +43,7 @@ class ConeRun:
                        and 0<=now-nav.get('captured_s',-1e9)<=.25)
         return {'active':self.active,'phase':self.phase,'reason':self.reason,'owner_client':self.owner,'run_token':self.token,
             'profile':self.profile,'low_speed_test':self.controller.progress() if isinstance(self.controller,LowSpeedController) else None,
+            'steering_limits_us':[turn['right_us'],turn['left_us']] if self.profile==PROFILE and 'left_us' in turn else None,
             'can_prepare':not self.active and base_idle(base),'can_start':can_start,
             'can_request_start':self.active and self.phase=='ready',
             'hardware_output':bool(self.actuator and getattr(self.actuator,'run',False)),

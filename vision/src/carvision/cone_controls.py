@@ -22,9 +22,13 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <span id="cone-placeholder">开始识别后显示真实画面</span></div>
 <p id="cone-cameras"></p>
 <details id="cone-low-speed-section" open><summary>旧数据 · 持续低速绕桶（无需重新标定）</summary>
-<p>沿用已有相机参考、车宽 29.5 cm、车长 42 cm、白线内宽 125 cm，以及此前约 17 cm 刹车记录。沿白线持续前进，发现蓝桶后连续调整方向；1570 右转／1650 左转。不会将估算参数标成已验证。</p>
+<p>沿用已有相机参考、车宽 29.5 cm、车长 42 cm、白线内宽 125 cm，以及此前约 17 cm 刹车记录。沿白线持续前进，发现蓝桶后连续调整方向；绕桶转向可在下方单独调整，不改原遥控和红绿灯。不会将估算参数标成已验证。</p>
 <div class="cone-settings"><label>测试油门（μs）<input id="cone-test-forward" type="number" min="1501" max="1600" step="1" value="1600"></label>
 <label>本轮运行时限（秒）<input id="cone-test-duration" type="number" min="5" max="120" step="1" value="60"></label></div>
+<div class="cone-settings"><label>绕桶左转 PWM（μs，越大越强）<input id="cone-test-left" type="number" min="1650" max="1750" step="5" value="1690"></label>
+<label>绕桶右转 PWM（μs，越小越强）<input id="cone-test-right" type="number" min="1550" max="1570" step="5" value="1550"></label></div>
+<p>中位 1610；原绕桶左 1650／右 1570，现默认左 1690／右 1550。范围限于车端已有手动范围，数值不代表实测轮角。结束本轮后修改，重新准备生效；无桶循线仍用原较小转向。</p>
+<p id="cone-test-steering-state" role="status">转向参数在下一次准备时生效</p>
 <p>3 秒中位后持续前进，不再每隔 0.25 秒刹车，也不再累计前进 4 秒就结束。时限包含初始化和等待。任一路可靠白线即可继续；短暂漏检最多沿用边界 0.8 秒、期间前进预算 0.15 秒。持续丢线、靠近边界、近处蓝桶挡路或失联时仍主动停车；不能保证盲行不越线。</p>
 <p id="cone-test-line-state" role="status">白线依据：等待两路画面</p>
 <div class="cone-actions"><button id="cone-test-prepare" type="button">准备低速测试（电调关闭）</button><button id="cone-test-start" type="button" disabled>开始持续低速绕桶</button></div>
@@ -124,11 +128,12 @@ function renderCone(s){
  for(const id of [...coneInputs,'cone-save','cone-save-dimensions','cone-save-driving','cone-save-calibration','cone-calibration-json','cone-steering-verified','cone-odometry-verified'])el(id).disabled=stale||coneBusy||coneActive||coneDriveActive;
  el('cone-prepare').disabled=stale||coneBusy||!a.can_prepare;
  const oldTrial=a.profile==='legacy_low_speed',trial=a.low_speed_test||{};
+ el('cone-test-steering-state').textContent=a.steering_limits_us?((a.active?'本轮':'上轮')+'实际设置：左 '+a.steering_limits_us[1]+' μs ／ 右 '+a.steering_limits_us[0]+' μs'):'转向参数在下一次准备时生效';
  el('cone-drive-start').disabled=stale||coneBusy||!coneDriveOwned||!a.can_request_start||oldTrial;
  el('cone-test-prepare').disabled=stale||coneBusy||!a.can_prepare||!c.low_speed_trial_available;
  el('cone-test-start').disabled=stale||coneBusy||!coneDriveOwned||!a.can_request_start||!oldTrial;
  el('cone-test-confirm').disabled=stale||coneBusy||!coneDriveOwned||!oldTrial||!trial.can_confirm_pass;
- for(const id of ['cone-test-forward','cone-test-duration'])el(id).disabled=stale||coneBusy||coneDriveActive||coneShortActive;
+ for(const id of ['cone-test-forward','cone-test-duration','cone-test-left','cone-test-right'])el(id).disabled=stale||coneBusy||coneDriveActive||coneShortActive;
  if(oldTrial)el('cone-test-progress').textContent=(a.reason||'')+' · 已人工确认 '+(trial.operator_confirmed_count||0)+'/2'+(trial.side?' · 当前从'+(trial.side==='left'?'左':'右')+'侧绕过':'')+' · 累计前进指令 '+(trial.powered_s||0).toFixed(2)+' 秒';
  el('cone-drive-start').title=a.start_blocked_reason||'';
  el('cone-run-state').textContent=a.reason||'尚未准备避障';
@@ -219,9 +224,10 @@ el('cone-drive-start').addEventListener('click',async()=>{
 });
 el('cone-drive-stop').addEventListener('click',()=>coneAction('cone_cancel'));
 el('cone-test-prepare').addEventListener('click',()=>{
- for(const id of ['cone-test-forward','cone-test-duration'])if(!el(id).checkValidity()){el(id).reportValidity();return;}
+ for(const id of ['cone-test-forward','cone-test-duration','cone-test-left','cone-test-right'])if(!el(id).checkValidity()){el(id).reportValidity();return;}
  coneSequence=0;coneAction('cone_prepare',{profile:'legacy_low_speed',esc_off:true,fb_mode_confirmed:true,
-  test_forward_us:Number(el('cone-test-forward').value),test_run_s:Number(el('cone-test-duration').value)});
+  test_forward_us:Number(el('cone-test-forward').value),test_run_s:Number(el('cone-test-duration').value),
+  test_left_us:Number(el('cone-test-left').value),test_right_us:Number(el('cone-test-right').value)});
 });
 async function sendConeTest(action,body){
  if(coneBusy)return;coneBusy=true;coneError='';if(lastStatus)render(lastStatus);
