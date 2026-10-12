@@ -14,6 +14,28 @@ def parser():
     p = argparse.ArgumentParser(description="SmartCar perception, 2026 race decisions and dataset tools")
     p.add_argument("--debug", action="store_true", help="show Python traceback on error")
     sub = p.add_subparsers(dest="command", required=True)
+    for command, help_text in (
+        ("crosswalk-replay", "inspect crosswalks in pictures/video or an explicitly selected camera; no motion"),
+        ("crosswalk-plan", "replay measured observation JSONL through the crosswalk-only decision stage"),
+    ):
+        d = sub.add_parser(command, help=help_text)
+        d.add_argument("--output", required=True, help="new output folder")
+        d.add_argument("--race-config", help="defaults to configs/crosswalk-3s.json")
+        if command != "crosswalk-plan":
+            d.add_argument("--config", help="lane detector config")
+            d.add_argument("--vision-config", help="crosswalk detector config")
+        if command == "crosswalk-plan":
+            d.add_argument("--input", required=True, help="Observation JSONL, file only; not a live driver")
+        if command == "crosswalk-replay":
+            d.add_argument("--source", required=True, help="image/video path or camera:N / camera:/dev/v4l/by-id/...")
+            d.add_argument("--profile", help="optional existing camera calibration; estimates stay unverified")
+            d.add_argument("--camera-name", choices=["primary", "secondary"], default="primary")
+            d.add_argument("--camera-pose-us", nargs=2, type=int, help="actual fixed secondary pose, not a command")
+            d.add_argument("--show", action="store_true")
+            d.add_argument("--save-video", action="store_true")
+            d.add_argument("--max-frames", type=int, default=1800)
+            d.add_argument("--seconds", type=float, default=30, help="maximum camera observation time, at most 180")
+            d.add_argument("--fallback-fps", type=float)
     d = sub.add_parser("doctor", help="report Python, OpenCV, YOLO and CUDA environment")
     d.add_argument("--output", help="optional JSON report file")
     sub.add_parser("cameras", help="read-only Linux camera inventory including metadata nodes and stable device paths")
@@ -145,7 +167,11 @@ def parser():
 def main(argv=None):
     args = parser().parse_args(argv)
     try:
-        if args.command == "doctor":
+        if args.command.startswith("crosswalk-"):
+            from .crosswalk_lab import crosswalk_replay, crosswalk_plan
+            result = {"crosswalk-replay": crosswalk_replay,
+                      "crosswalk-plan": crosswalk_plan}[args.command](args)
+        elif args.command == "doctor":
             result = workflows.doctor()
             if args.output:
                 path = Path(args.output)

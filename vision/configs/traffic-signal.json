@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "algorithm": "fixture_photometry_v1",
+  "min_emission_value": 230.0,
+  "min_brightness_margin": 25.0,
+  "bloom_min_brightness_margin": 15.0,
+  "nonwhite_min_brightness_margin": 75.0,
+  "min_emission_fraction": 0.25,
+  "off_max_value": 225.0,
+  "green_confirm_s": 0.6,
+  "green_min_frames": 3,
+  "max_frame_gap_s": 0.8,
+  "recommended_camera": "primary",
+  "field_verified": false,
+  "development_sessions": [
+    "20261009T140315Z-3d05bebd",
+    "20261009T142826Z-a586a2f6",
+    "20261009T135022Z-1b527877"
+  ],
+  "provenance": "Developed using the team's 76 indoor 1m frames, 70 indoor 0.5m frames and 8 negative frames. All 154 labels were inspected during development: replay scores are development checks, not an independent field accuracy claim. H65 bloom often removes lens evidence; use primary for the traffic-light rule adapter."
+}

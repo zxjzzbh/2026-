@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "esc_model": "火凤凰 New Rain 480A 双向有刷电调",
+  "required_esc_mode": "F/B",
+  "camera": "secondary",
+  "image_size": [480, 360],
+  "references": [
+    {"distance_m": 0.65, "far_edge_y_normalized": 0.6016713091922006, "role": "approach", "measured": true},
+    {"distance_m": 0.50, "far_edge_y_normalized": 0.6545961002785515, "role": "creep", "measured": true},
+    {"distance_m": 0.25, "far_edge_y_normalized": 0.7465181058495822, "role": "near_distance_reference", "measured": true}
+  ],
+  "brake_trigger_distance_m": 0.55,
+  "pwm": {
+    "neutral_us": 1500,
+    "steering_center_us": 1610,
+    "search_us": 1575,
+    "creep_us": 1575,
+    "brake_us": 1400
+  },
+  "arming_s": 3.0,
+  "no_progress_s": 2.0,
+  "brake_pulse_s": 0.12,
+  "brake_release_s": 0.08,
+  "max_brake_pulses": 3,
+  "brake_timeout_s": 3.0,
+  "stop_confirm_s": 0.5,
+  "hold_s": 10.0,
+  "speech_text": "我是山东大学启航队的智能车，请为我加油",
+  "max_frame_age_s": 0.25,
+  "max_approach_s": 10.0,
+  "actuator_lease_s": 0.25,
+  "tuning_verified": false,
+  "notes": "Original 65/50/25 cm measurements are unchanged. Default trigger is 55 cm, interpolated from the original references. Web distance edits persist separately in brake-parking.local.json and are snapshotted at each start; a running round keeps its distance. Both forward stages remain 1575 us and arming remains 3 s. Stationary hold is 10 s with one full team announcement. Brake 1400 us and pulse timing are unchanged; physical braking performance is not verified."
+}

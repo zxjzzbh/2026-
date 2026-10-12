@@ -1,0 +1,143 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>红绿灯真实图像采集</title><style>
+*{box-sizing:border-box}body{font:15px/1.55 system-ui,sans-serif;background:#f3f5f8;color:#192236;margin:0}main{max-width:1350px;margin:auto;padding:24px}h1{font-size:27px;margin:0}h2{font-size:18px;margin:0 0 10px}p{margin:8px 0}.muted{color:#637087}section,.camera{background:#fff;border:1px solid #e0e5ee;border-radius:14px;padding:18px;margin:14px 0}.cameras{display:grid;grid-template-columns:1fr 1fr;gap:14px}.camera{margin:0;padding:12px}.selected{border:2px solid #4862dc}canvas{width:100%;height:auto;background:#172132;display:block;touch-action:none;cursor:crosshair}button,input,select{font:inherit;border:1px solid #ccd4e4;border-radius:8px;padding:9px 12px;background:white}button{cursor:pointer}button:disabled{opacity:.45;cursor:default}.primary{background:#4057d6;color:white;border-color:#4057d6}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.fields{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}label{display:grid;gap:5px}input,select{min-width:0;width:100%}.red{border-color:#dc4848;color:#b42323}.green{border-color:#36a16d;color:#177346}.yellow{border-color:#d6ac35;color:#906708}#message{padding:12px;background:#eaf0ff;border-radius:8px;min-height:45px}.preview-title{display:flex;justify-content:space-between;gap:10px}.badge{font-size:13px;color:#5f6e86}.recent{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.sample img{width:100%;border-radius:6px}.sample{min-width:0}.sample small{display:block;overflow-wrap:anywhere}code{overflow-wrap:anywhere}.footer{font-size:13px;color:#647188}#output{font-size:13px;overflow-wrap:anywhere}@media(max-width:850px){.fields{grid-template-columns:1fr 1fr}.cameras{grid-template-columns:1fr}.recent{grid-template-columns:1fr 1fr}main{padding:12px}}
+</style></head><body><main>
+<h1>红绿灯 · 真实图像采集</h1>
+<p class="muted">读取现有车载双摄，只保存图像与标签，不发送车辆控制指令。先完成静态采集，再采真实灯色切换过程。</p>
+<p class="muted">当前识别已按154张标注图开发：主摄像头作为红绿灯判断主源；H65强过曝时保持未知。橙色虚线为自动灯组框，绿色实线为人工标注框。</p>
+<div id="message" role="status">正在连接采集服务…</div>
+<div class="cameras">
+ <article class="camera selected" id="card-primary"><div class="preview-title"><h2>主摄像头 · USB2.0</h2><span class="badge" id="status-primary">连接中</span></div><canvas id="canvas-primary" width="480" height="360" aria-label="主摄像头真实画面"></canvas><p class="badge" id="hint-primary"></p></article>
+ <article class="camera" id="card-secondary"><div class="preview-title"><h2>第二路 · H65</h2><span class="badge" id="status-secondary">连接中</span></div><canvas id="canvas-secondary" width="480" height="360" aria-label="第二路H65真实画面"></canvas><p class="badge" id="hint-secondary"></p></article>
+</div>
+<section><h2>1. 填写当前摆位</h2><div class="fields">
+ <label>场景／摆位名称<input id="scene" maxlength="100" placeholder="例如：室外正对灯具1米"></label>
+ <label>前轮到灯具投影距离（cm，尺量）<input id="distance" type="number" min="0" max="1000" placeholder="没量过就留空"></label>
+ <label>光照<select id="lighting"><option value="unknown">待确认</option><option>室内</option><option>室外顺光</option><option>室外逆光</option><option>阴影</option><option>阴天</option><option>傍晚</option></select></label>
+ <label>实物灯具布局<select id="layout"><option value="unknown">待确认</option><option>横向三灯</option><option>竖向三灯</option><option>其他</option></select></label>
+</div><label style="margin-top:12px">备注<input id="notes" maxlength="300" placeholder="真实灯具／背景干扰／有遮挡／倒计时正在切换等"></label></section>
+<section><h2>2. 静态照片：按实际亮灯状态保存</h2>
+ <div class="row"><label style="min-width:200px">当前保存哪一路<select id="camera"><option value="primary">主摄像头 USB2.0</option><option value="secondary">第二路 H65</option></select></label>
+ <button id="freeze">冻结当前画面</button><button id="live">恢复实时</button><button id="clear-box">清除框</button></div>
+ <p class="muted">可直接点灯色拍照；需要灯体框时，在画面上拖框，会自动冻结。框住整套灯具外壳，不只框亮点。保存的是冻结的那张原JPEG，框不会画进原图。</p>
+ <div class="row" id="capture-buttons"><button class="red" data-label="red">红灯 · 保存</button><button class="yellow" data-label="yellow">黄灯 · 保存</button><button class="green" data-label="green">绿灯 · 保存</button><button data-label="off">灯具全灭 · 保存</button><button data-label="no_light">画面无灯具 · 保存</button><button data-label="transition">切换／多灯同时亮</button><button data-label="unlabeled">待标注 · 保存</button></div>
+ <p class="footer">“全灭”指有灯具但没有亮灯；“无灯具”是负样本。旧算法的参考结果不自动成为标签，也不允许车辆通行。</p>
+</section>
+<section><h2>3. 真实灯色变化序列</h2><div class="row">
+ <label>时长（秒）<input id="seconds" type="number" min="1" max="60" value="20"></label>
+ <label>目标保存频率（帧/秒/路）<input id="fps" type="number" min="1" max="5" value="3"></label>
+ <button class="primary" id="record">录制两路灯色变化</button><button id="record-stop">结束序列</button>
+</div><p id="record-state">未录制。建议20秒，覆盖真实红灯倒计时与转绿；所有序列帧均保存为待标注。</p>
+<p class="footer">这是带时间记录的JPEG帧序列，实际帧率受5G影响，两路不保证同步。不会用固定等待时间伪造绿灯。</p></section>
+<section><div class="row"><h2>本批次采集与历史标注</h2><strong id="counts">0张</strong><button id="new-session">新建场景批次</button><button id="export">导出所选批次清单CSV</button></div><p id="output"></p>
+<div class="fields"><label>标注批次<select id="review-session"></select></label>
+<label>灯色筛选<select id="review-label"><option value="all">全部状态</option><option value="unlabeled">只看待标注</option><option value="red">红灯</option><option value="yellow">黄灯</option><option value="green">绿灯</option><option value="off">全灭</option><option value="no_light">无灯具</option><option value="transition">切换／多灯</option></select></label>
+<label>相机筛选<select id="review-camera"><option value="all">两路全部</option><option value="primary">主摄像头</option><option value="secondary">第二路H65</option></select></label>
+<label>每页张数<select id="review-size"><option value="16">16张</option><option value="32">32张</option><option value="64">64张</option></select></label></div>
+<p id="review-summary" role="status">正在载入全部采集记录…</p>
+<div class="row"><button id="review-prev">上一页</button><span id="review-page-info">第1页</span><button id="review-next">下一页</button>
+<label>跳到页<input id="review-jump" type="number" min="1" value="1" style="width:80px"></label><button id="review-go">跳转</button><button id="review-refresh">刷新批次与列表</button></div>
+<p class="footer">按采集先后排列，图片下方选择灯色即保存；点击缩略图看原图。选择历史批次只切换标注列表，不改变实时采集正在写入的批次。</p>
+<div id="recent" class="recent"></div></section>
+<p class="footer">原图是车端实际返回的预览JPEG（当前480×360），不是声明为640×480的原生采集。图片、人工标签、算法参考与拍摄条件分开保存。同一摆位／一段序列不要拆到训练集和验证集两边。</p>
+<button id="exit">退出采集程序</button>
+</main><script>
+const key=__CAPTURE_TOKEN__,el=id=>document.getElementById(id),cameras=['primary','secondary'];
+const labels={red:'红灯',yellow:'黄灯',green:'绿灯',off:'全灭',no_light:'无灯具',transition:'切换／多灯',unlabeled:'待标注',unknown:'未知'};
+const views=Object.fromEntries(cameras.map(c=>[c,{frame:null,image:null,box:null,loading:null}]));
+let frozen=false,pin=null,freezePromise=null,generation=0,latest=null,recentKey='',pollBusy=false,saving=false,initialNotice=false;
+let reviewSession=null,reviewPage=1,reviewPages=1,reviewRevision=-1,reviewBusy=false,reviewPending=false;
+function message(text,error=false){el('message').textContent=text;el('message').style.background=error?'#fff0f0':'#eaf0ff';}
+async function api(path,body){const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Capture-Key':key},body:JSON.stringify(body||{})});const d=await r.json();if(!r.ok)throw Error(d.error||'请求失败');return d;}
+function meta(){const n=el('distance');if(n.value!==''&&!n.checkValidity())throw Error('请填写正确的尺量距离，没量过则留空');return {scene:el('scene').value,lighting:el('lighting').value,layout:el('layout').value,notes:el('notes').value,distance_cm:n.value===''?null:Number(n.value)};}
+function selected(){return el('camera').value;}
+function selectCamera(c){el('camera').value=c;for(const v of cameras)el('card-'+v).classList.toggle('selected',v===c);}
+function draw(c){const v=views[c],canvas=el('canvas-'+c),ctx=canvas.getContext('2d');if(!v.image)return;ctx.drawImage(v.image,0,0,canvas.width,canvas.height);ctx.strokeStyle='#ff9c35';ctx.lineWidth=2;ctx.setLineDash([6,4]);for(const [x1,y1,x2,y2] of v.frame?.prediction?.boxes||[])ctx.strokeRect(x1,y1,x2-x1,y2-y1);ctx.setLineDash([]);if(v.box){const [x1,y1,x2,y2]=v.box;ctx.strokeStyle='#36f296';ctx.lineWidth=2;ctx.strokeRect(x1*canvas.width,y1*canvas.height,(x2-x1)*canvas.width,(y2-y1)*canvas.height);}}
+async function freeze(){
+ if(pin)return pin;if(freezePromise)return freezePromise;
+ const frames=Object.fromEntries(cameras.filter(c=>views[c].frame&&latest?.cameras[c]?.ok).map(c=>[c,views[c].frame.id]));
+ if(!frames[selected()])throw Error('所选相机没有新鲜画面');
+ frozen=true;const g=++generation;
+ freezePromise=api('/api/freeze',{frames}).then(d=>{if(g!==generation)throw Error('画面已恢复实时，请重新冻结');pin=d.token;message('已冻结真实画面，可拖框或选择实际灯色保存。');return pin;}).catch(e=>{if(g===generation)live();throw e;});
+ return freezePromise;
+}
+function live(){generation++;frozen=false;pin=null;freezePromise=null;for(const c of cameras){views[c].box=null;draw(c);}message('实时采集中。选择实际灯色即可保存照片。');}
+function point(canvas,e){const r=canvas.getBoundingClientRect();return [Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))];}
+for(const c of cameras){const canvas=el('canvas-'+c);let start=null;
+ canvas.addEventListener('pointerdown',e=>{if(!views[c].image||saving)return;selectCamera(c);start=point(canvas,e);canvas.setPointerCapture(e.pointerId);freeze().catch(e=>message(e.message,true));views[c].box=[...start,...start];});
+ canvas.addEventListener('pointermove',e=>{if(!start)return;const p=point(canvas,e);views[c].box=[Math.min(start[0],p[0]),Math.min(start[1],p[1]),Math.max(start[0],p[0]),Math.max(start[1],p[1])];draw(c);});
+ canvas.addEventListener('pointerup',()=>{start=null;const b=views[c].box;if(b&&(b[2]-b[0]<.01||b[3]-b[1]<.01))views[c].box=null;draw(c);});
+ canvas.addEventListener('pointercancel',()=>{start=null;});
+}
+async function save(label){if(saving)return;saving=true;try{const token=await freeze(),c=selected();const d=await api('/api/capture',{token,camera:c,label,box:views[c].box,metadata:meta()});live();message('已保存 '+labels[d.label]+' · '+c+' · '+(d.bbox_xyxy?'带灯体框':'仅状态标签'));await poll();}catch(e){message(e.message,true);}finally{saving=false;}}
+document.querySelectorAll('[data-label]').forEach(b=>b.onclick=()=>save(b.dataset.label));
+el('freeze').onclick=()=>freeze().catch(e=>message(e.message,true));el('live').onclick=live;
+el('clear-box').onclick=()=>{views[selected()].box=null;draw(selected());};el('camera').onchange=()=>selectCamera(selected());
+el('new-session').onclick=async()=>{try{const d=await api('/api/session');live();reviewPage=1;recentKey='';await loadSessions(d.session_id);await poll();message('新批次已建立，旧批次仍可在标注批次中选择。');}catch(e){message(e.message,true);}};
+el('export').onclick=async()=>{try{message('清单已保存：'+(await api('/api/export',{session_id:reviewSession})).path);}catch(e){message(e.message,true);}};
+el('record').onclick=async()=>{try{if(!el('seconds').checkValidity()||!el('fps').checkValidity())throw Error('检查序列时长和帧率');live();await api('/api/record',{cameras,seconds:Number(el('seconds').value),fps:Number(el('fps').value),metadata:meta()});message('正在保存真实灯色变化，帧标签为待标注。');await poll();}catch(e){message(e.message,true);}};
+el('record-stop').onclick=async()=>{try{await api('/api/record-stop');await poll();message('序列已结束，图像已保存。');}catch(e){message(e.message,true);}};
+el('exit').onclick=async()=>{await api('/api/exit');message('采集程序已退出，所有已保存文件保留。');clearInterval(timer);};
+function reviewQuery(){return new URLSearchParams({session:reviewSession||'',page:String(reviewPage),page_size:el('review-size').value,label:el('review-label').value,camera:el('review-camera').value}).toString();}
+async function loadSessions(preferred){
+ const r=await fetch('/api/sessions',{cache:'no-store'});const data=await r.json();if(!r.ok)throw Error(data.error||'批次读取失败');
+ const chosen=preferred||reviewSession||data.active_session_id;el('review-session').replaceChildren();
+ for(const row of data.sessions){const op=document.createElement('option');op.value=row.session_id;
+  const when=row.created_utc?new Date(row.created_utc).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false}):row.session_id;
+  op.textContent=when+' · '+row.count+'张'+(row.active_capture?' · 当前采集':'');el('review-session').append(op);}
+ reviewSession=data.sessions.some(s=>s.session_id===chosen)?chosen:data.active_session_id;el('review-session').value=reviewSession;
+ await loadReview(true);
+}
+function renderReview(data){
+ const signature=reviewSession+':'+data.page+':'+data.page_size+':'+data.items.map(x=>x.sample_id+':'+x.label).join();
+ el('review-summary').textContent='所选批次共 '+data.session_total+' 张；当前筛选 '+data.total+' 张，显示第 '+data.first+'–'+data.last+' 张。';
+ el('review-page-info').textContent='第 '+data.page+' / '+data.pages+' 页';
+ el('review-prev').disabled=data.page<=1;el('review-next').disabled=data.page>=data.pages;
+ el('review-jump').max=String(data.pages);if(document.activeElement!==el('review-jump'))el('review-jump').value=data.page;
+ if(signature===recentKey)return;recentKey=signature;el('recent').replaceChildren();
+ data.items.forEach((row,index)=>{const card=document.createElement('div');card.className='sample';const link=document.createElement('a');
+  link.href='/sample/'+row.sample_id+'.jpg?session='+encodeURIComponent(row.session_id);link.target='_blank';link.rel='noopener';
+  const im=document.createElement('img');im.src=link.href;im.alt='第'+(data.first+index)+'张 '+row.camera+' '+labels[row.label];im.loading='lazy';link.append(im);
+  const caption=document.createElement('small');caption.textContent='第'+(data.first+index)+'张 · '+row.camera+' · '+(row.bbox_xyxy?'已框选':'未框选');
+  const s=document.createElement('select');for(const k of ['red','yellow','green','off','no_light','transition','unlabeled']){const op=document.createElement('option');op.value=k;op.textContent=labels[k];s.append(op);}
+  s.value=row.label;s.setAttribute('aria-label','修改样本标签 '+row.sample_id.slice(0,6));
+  s.onchange=async()=>{s.disabled=true;try{await api('/api/relabel',{session_id:row.session_id,sample_id:row.sample_id,label:s.value});message('标签已保存，原图未改变。');await loadReview(true);await poll();}catch(e){s.value=row.label;message(e.message,true);}finally{s.disabled=false;}};
+  card.append(link,caption,s);el('recent').append(card);
+ });
+}
+async function loadReview(force=false){
+ if(!reviewSession)return;
+ if(reviewBusy){reviewPending=true;return;}
+ reviewBusy=true;const query=reviewQuery();
+ try{const r=await fetch('/api/samples?'+query,{cache:'no-store'}),data=await r.json();if(!r.ok)throw Error(data.error||'图片列表读取失败');
+  if(query!==reviewQuery()){reviewPending=true;return;}
+  reviewPage=data.page;reviewPages=data.pages;reviewRevision=data.data_revision;if(force)recentKey='';renderReview(data);
+ }catch(e){el('review-summary').textContent=e.message;message(e.message,true);}
+ finally{reviewBusy=false;if(reviewPending){reviewPending=false;loadReview();}}
+}
+el('review-session').onchange=()=>{reviewSession=el('review-session').value;reviewPage=1;loadReview(true);};
+for(const id of ['review-label','review-camera','review-size'])el(id).onchange=()=>{reviewPage=1;loadReview(true);};
+el('review-prev').onclick=()=>{if(reviewPage>1){reviewPage--;loadReview();}};
+el('review-next').onclick=()=>{if(reviewPage<reviewPages){reviewPage++;loadReview();}};
+el('review-go').onclick=()=>{if(el('review-jump').checkValidity()){reviewPage=Number(el('review-jump').value);loadReview();}else el('review-jump').reportValidity();};
+el('review-refresh').onclick=()=>loadSessions().catch(e=>message(e.message,true));
+async function poll(){if(pollBusy)return;pollBusy=true;try{
+ const r=await fetch('/api/status',{cache:'no-store'});if(!r.ok)throw Error('本地采集服务未响应');latest=await r.json();
+ if(!initialNotice&&cameras.some(c=>latest.cameras[c]?.ok)){initialNotice=true;message('已连接真实摄像头。选择灯色保存；需要标注时先冻结或拖框。');}
+ for(const c of cameras){const row=latest.cameras[c],v=views[c];el('status-'+c).textContent=row.ok?(frozen?'已冻结':'真实画面在线'):'断流／未连接';
+  if(row.frame){const f=row.frame,shown=frozen&&v.frame?v.frame:f,stable=frozen?shown.prediction.stability:row.signal;
+   const signalText=!row.ok&&!frozen?'画面失效／未知':stable?.green_confirmed?'绿灯已连续确认':shown.prediction.state==='green'?'绿灯候选，确认中':labels[shown.prediction.state]||shown.prediction.state;
+   el('hint-'+c).textContent=shown.image_size.join('×')+' · '+(shown.prediction.recommended_source?'主判断源':'辅助观察')+' · '+signalText+'（视觉参考，不驱动车辆）';
+   if(!frozen&&row.ok&&v.frame?.id!==f.id&&v.loading!==f.id){v.loading=f.id;const im=new Image();im.onload=()=>{if(v.loading!==f.id)return;v.loading=null;if(frozen)return;v.image=im;v.frame=f;const canvas=el('canvas-'+c);canvas.width=f.image_size[0];canvas.height=f.image_size[1];draw(c);};im.onerror=()=>{if(v.loading===f.id)v.loading=null;};im.src='/frame/'+f.id+'.jpg';}
+  }else el('hint-'+c).textContent=row.error||'等待车端画面';
+ }
+ el('counts').textContent=latest.saved+' 张 · '+Object.entries(latest.counts).map(([k,n])=>labels[k]+n).join(' / ');
+ el('output').textContent='保存到电脑：'+latest.output;
+ el('record').disabled=!!latest.recording;el('new-session').disabled=!!latest.recording;
+ document.querySelectorAll('[data-label]').forEach(b=>b.disabled=!!latest.recording);
+ el('record-state').textContent=latest.recording?'序列采集中：已保存 '+latest.recording.saved+' 帧，所有帧待标注；目标 '+latest.recording.seconds+' 秒。':latest.last_recording?'上次序列结束：'+latest.last_recording.saved+' 帧；'+latest.last_recording.reason:'未录制。建议20秒，覆盖真实红灯倒计时与转绿。';
+ if(!reviewSession)await loadSessions();
+ else if(reviewSession===latest.session_id&&reviewRevision!==latest.data_revision)loadReview();
+}catch(e){message(e.message,true);}finally{pollBusy=false;}}
+const timer=setInterval(poll,700);poll();
+</script></body></html>

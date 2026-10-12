@@ -1,0 +1,17 @@
+{
+  "baseline_date": "2026-10-09",
+  "source": "team 5G connection handoff and development-status.json",
+  "hardware": "Raspberry Pi 5 + RasAdapter5A UART; no independent STM32",
+  "manual_center_us_reported": 1610,
+  "manual_input_lease_ms_reported": 500,
+  "output_watchdog_ms_reported": 250,
+  "autonomy_center_us_in_reference_file": 1650,
+  "source_commit_available": "9b5d51c3611556a5fc220d9abbc4b3e8e68560fe",
+  "complete_deployed_20261009_source_available": false,
+  "validated_front_distance_span_m": [0.5, 1.5],
+  "secondary_calibrated_pose_us": [1600, 1150],
+  "calibration_image_size": [640, 480],
+  "crosswalk_hold_s_user_selected": 3,
+  "hardware_output": false,
+  "note": "Context metadata only. Not a driver configuration or authorization; no servo pulse or lease is changed by the crosswalk lab."
+}

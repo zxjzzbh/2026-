@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "required_esc_mode": "F/B",
+  "camera": "dual",
+  "motion_camera": "secondary",
+  "image_size": [
+    480,
+    360
+  ],
+  "pwm": {
+    "neutral_us": 1500,
+    "steering_center_us": 1610,
+    "search_us": 1600,
+    "creep_us": 1600,
+    "brake_us": 1400
+  },
+  "arming_s": 3.0,
+  "max_frame_age_s": 0.25,
+  "actuator_lease_s": 0.25,
+  "brake_pulse_s": 0.12,
+  "brake_release_s": 0.1,
+  "max_brake_pulses": 3,
+  "brake_timeout_s": 3.0,
+  "stop_confirm_s": 0.5,
+  "max_approach_s": 5.0,
+  "max_wait_green_s": 45.0,
+  "red_window_s": 2.0,
+  "red_confirm_percent": 50.0,
+  "green_action": "speech_only",
+  "speech_text": "红绿灯结束，开始前行",
+  "no_progress_s": 2.0,
+  "field_verified": false,
+  "notes": "Both cameras use the same original TrafficSignalDetector/profile. Each counts its own fresh distinct frames in a full trailing 2-second window. Either camera can confirm red or green at the shared red_confirm_percent (legacy key). Red wins red/green conflicts, yellow also holds. Votes reset when stationary waiting starts so pre-stop green cannot complete a run. Secondary remains ground-motion source. Start does not require lamp visibility. Green completion is speech only, with no forward output.",
+  "cameras": [
+    "primary",
+    "secondary"
+  ]
+}

@@ -141,7 +141,7 @@ class DualCameraObservationBuilder:
             cameras = []
         vehicle = self.profile.data["vehicle"]
         front = front_extent_m(vehicle)
-        lane_values, light_values = [], []
+        lane_values, light_values, crosswalk_values = [], [], []
         for name, data, projection, _new in cameras:
             result = data.get("perception", {})
             features = data.get("ground_features", {})
@@ -179,6 +179,7 @@ class DualCameraObservationBuilder:
                         issues.append(f"{name}.{label}: {exc}")
             if features.get("task_region_visible") is True:
                 obs.task_monitor_valid = True
+                crosswalk_values.append(result.get("presence", {}).get("crosswalk", "unknown"))
             light = result.get("traffic_light_state")
             if light in ("red", "yellow", "green"):
                 light_values.append(light)
@@ -219,6 +220,8 @@ class DualCameraObservationBuilder:
                 obs.lane_valid = False
                 issues.append("dual_camera_metric_lane_conflict")
         obs.traffic_light_state = light_values[0] if light_values and len(set(light_values)) == 1 else "unknown"
+        obs.crosswalk_state = ("present" if "present" in crosswalk_values else
+                               "absent" if crosswalk_values and all(v == "absent" for v in crosswalk_values) else "unknown")
         obs.traffic_zone_entered = obs.traffic_stop_distance_m is not None and 0 <= obs.traffic_stop_distance_m <= 1
         obs.passed_cone_ids = self.cones.update(obs.cones, packet.get("pose"), now, rear_extent_m(vehicle) or 0)
         # Gate inputs are supplied by the authenticated local handover gateway,

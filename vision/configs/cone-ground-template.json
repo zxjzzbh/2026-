@@ -1,0 +1,18 @@
+{
+  "camera": "secondary",
+  "image_size": [480, 360],
+  "measured_fixed_camera": false,
+  "accepted_error_m": null,
+  "points": [
+    {"pixel": [null, null], "ground_m": [null, null]},
+    {"pixel": [null, null], "ground_m": [null, null]},
+    {"pixel": [null, null], "ground_m": [null, null]},
+    {"pixel": [null, null], "ground_m": [null, null]}
+  ],
+  "check_points": [
+    {"pixel": [null, null], "ground_m": [null, null]},
+    {"pixel": [null, null], "ground_m": [null, null]}
+  ],
+  "valid_polygon_px": [],
+  "notes": "Fill measured rear-axle-frame coordinates in metres: x right, y forward. Use four noncollinear fit points and two independent check points from the actual fixed H65 view. Polygon is the convex measured ground region in 480x360 pixels. No values in this template are field measurements."
+}

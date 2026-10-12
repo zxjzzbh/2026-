@@ -32,14 +32,14 @@ def test_complete_synthetic_race_requires_every_stage():
         phases.add(d['phase'])
         events.extend(d['events'])
         assert d['hardware_output'] is False
-    required = set(p.value for p in Phase) - {Phase.FAILED.value, Phase.ESTOP.value}
+    required = set(p.value for p in Phase) - {Phase.FAILED.value, Phase.ESTOP.value, Phase.CROSSWALK_EXIT.value}
     assert phases == required
     assert c.summary()['payment_bonus_points'] == 5
     assert c.summary()['parking_slot_id'] == 'right'
     assert len([e for e in events if e['event'] == 'play_announcement']) == 1
 
 
-@pytest.mark.parametrize('setting', [{'crosswalk_hold_s': 3}, {'crosswalk_stop_distance_m': .3},
+@pytest.mark.parametrize('setting', [{'crosswalk_hold_s': 0}, {'crosswalk_hold_s': 20}, {'crosswalk_stop_distance_m': .3},
                                     {'payment_window_s': 31}, {'max_stationary_s': 21},
                                     {'cruise_speed_mps': float('nan')}])
 def test_rules_cannot_silently_use_invalid_draft_values(setting):

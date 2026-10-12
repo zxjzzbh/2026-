@@ -1,0 +1,16 @@
+{
+  "school": "山东大学",
+  "team": "启航队",
+  "crosswalk_hold_s": 3.0,
+  "crosswalk_stop_distance_m": 0.25,
+  "announcement_required": false,
+  "confirmation_s": 0.2,
+  "maximum_frame_gap_s": 0.25,
+  "maximum_feedback_age_s": 0.25,
+  "stopped_speed_mps": 0.01,
+  "cruise_speed_mps": 0.15,
+  "approach_speed_mps": 0.08,
+  "steering_gain": 0.7,
+  "maximum_steering_normalized": 0.6,
+  "vehicle_width_m": 0.3
+}
