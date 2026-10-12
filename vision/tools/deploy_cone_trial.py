@@ -22,13 +22,15 @@ from carvision.brake_controls import extend_controls as brake
 from carvision.traffic_controls import extend_controls as traffic
 from carvision.cone_controls import extend_controls as cones
 
-MODULES=('cone_vision','cone_road','cone_planning','cone_navigation','cone_execution','cone_short_output','cone_short_trial','cone_observer','cone_controls')
+MODULES=('cone_vision','cone_road','cone_planning','cone_slalom','cone_navigation','cone_execution','cone_short_output','cone_short_trial','cone_observer','cone_controls')
 FIXTURES=['vision/tests/fixtures/'+p.name for p in (ROOT/'vision/tests/fixtures').glob('cone*.jpg')]
 FILES=['vision/src/carvision/'+n+'.py' for n in MODULES]+[
     'vision/configs/cone-trial.json','vision/configs/cone-ground-template.json','vision/tools/serve_crosswalk_trial.py',
-    'vision/tools/cone_trial.py','vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_short.py','vision/CONE_TEST.md']+FIXTURES
+    'vision/tools/cone_trial.py','vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_short.py','vision/tests/test_cone_slalom.py','vision/CONE_TEST.md']+FIXTURES
 SHORT_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_short_output','cone_short_trial','cone_observer','cone_controls')]+[
     'vision/tests/test_cone_short.py','vision/configs/cone-legacy-ground-candidate.json','vision/CONE_TEST.md']
+SLALOM_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_planning','cone_slalom','cone_execution','cone_controls')]+[
+    'vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_slalom.py','vision/CONE_TEST.md']
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
     'vision/src/carvision/'+n+'.py' for n in ('traffic_driving','traffic_trial','traffic_controls','traffic_signal',
         'traffic_voting','brake_output','autonomy_profile','config','lane','traffic_preview',
@@ -62,13 +64,19 @@ def extended_unit(data):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--handoff',type=Path,required=True)
-    parser.add_argument('--short-test-only',action='store_true',help='Only add fixed-PWM measurement entry; preserve launcher, existing cone config and every other control module')
+    scope=parser.add_mutually_exclusive_group()
+    scope.add_argument('--short-test-only',action='store_true',help='Only add fixed-PWM measurement entry; preserve launcher, existing cone config and every other control module')
+    scope.add_argument('--slalom-only',action='store_true',help='Update only alternating cone logic and UI on an existing v2 console; preserve launcher, calibration and all other tasks')
     args=parser.parse_args()
-    files=SHORT_FILES if args.short_test_only else FILES
+    files=SLALOM_FILES if args.slalom_only else SHORT_FILES if args.short_test_only else FILES
     protected_files=list(PROTECTED)
     if args.short_test_only:
         protected_files+=['vision/tools/serve_crosswalk_trial.py','vision/configs/cone-trial.json']+[
             'vision/src/carvision/'+n+'.py' for n in ('cone_execution','cone_navigation','cone_planning','cone_vision','cone_road')]
+    if args.slalom_only:
+        protected_files+=['vision/tools/serve_crosswalk_trial.py','vision/tools/serve_parking_payment.py',
+            'vision/configs/cone-trial.json','vision/configs/cone-legacy-ground-candidate.json']+[
+            'vision/src/carvision/'+n+'.py' for n in ('cone_navigation','cone_vision','cone_road','cone_observer','cone_short_trial','cone_short_output')]
     cfg=json.loads((args.handoff/'connection.json').read_text(encoding='utf-8-sig'))['ssh']
     record=ROOT/'run'/('cone-console-deploy-'+time.strftime('%Y%m%d-%H%M%S'))
     record.mkdir(parents=True,exist_ok=False)
@@ -83,7 +91,10 @@ def main():
         client.connect(cfg['host'],port=cfg.get('port',22),username=cfg['username'],password=cfg['password'],
             look_for_keys=False,allow_agent=False,timeout=6)
         sftp=client.open_sftp()
-        if not idle(status()):raise RuntimeError('Control active; no files or service changed')
+        before_status=status()
+        if not idle(before_status):raise RuntimeError('Control active; no files or service changed')
+        if args.slalom_only and (before_status.get('cone_trial') or {}).get('program')!='blue-cone-avoidance-v2':
+            raise RuntimeError('Slalom-only update requires the existing cone v2 console')
         protected={}
         for rel in protected_files:
             try:protected[rel]=read(sftp,REMOTE+'/'+rel)
@@ -97,7 +108,7 @@ def main():
         controls=SimpleNamespace(SCRIPT=ast.literal_eval(node),HTML='')
         brake(controls);traffic(controls);cones(controls)
         (record/'extended-controls.js').write_text(controls.SCRIPT.removeprefix('<script>').removesuffix('</script>'),encoding='utf-8')
-        before_unit=read(sftp,UNIT);unit=before_unit if args.short_test_only else extended_unit(before_unit)
+        before_unit=read(sftp,UNIT);unit=before_unit if args.short_test_only or args.slalom_only else extended_unit(before_unit)
         (record/'service.before.conf').write_bytes(before_unit)
         remote_backup=REMOTE+'/run/'+record.name
         command(client,['mkdir','-p',remote_backup]);put_atomic(sftp,remote_backup+'/service.before.conf',before_unit)
@@ -113,6 +124,7 @@ def main():
             put_atomic(sftp,REMOTE+'/'+rel,(ROOT/rel).read_bytes());changed.append(rel)
         tests=['test_cone_trial.py','test_cone_navigation.py','test_cone_short.py','test_traffic_trial.py','test_traffic_driving.py','test_traffic_voting.py',
                'test_brake_trial.py','test_brake_parking_program.py','test_parking_speech.py']
+        if not args.short_test_only:tests.append('test_cone_slalom.py')
         audit['pi_tests']=command(client,['env','PYTHONPATH='+REMOTE+'/vision/src',PYTHON,'-m','pytest',
             *[REMOTE+'/vision/tests/'+n for n in tests],'-q'],timeout=60)
         if not idle(status()):raise RuntimeError('Control became active; no restart')
@@ -136,6 +148,8 @@ def main():
                 time.sleep(.5)
         if not idle(after) or after['cone_trial']['hardware_output']:
             raise RuntimeError('Deployed console did not remain idle')
+        if not args.short_test_only and not after['cone_trial']['avoidance'].get('slalom_required'):
+            raise RuntimeError('Alternating cone enforcement not loaded')
         if (after['cone_trial'].get('short_test') or {}).get('program')!='cone-fixed-short-v1':raise RuntimeError('Short-test entry missing')
         for rel,data in protected.items():
             try:actual=read(sftp,REMOTE+'/'+rel)
@@ -144,7 +158,7 @@ def main():
         audit.update(deployed=True,backup=remote_backup,protected_files_unchanged=True,
             geometry=after['cone_trial']['settings']['geometry'],
             after={key:after.get(key) for key in ('mode','hardware_output','worker_started','boot_test_phase')},
-            short_test_only=args.short_test_only,service_configuration_unchanged=read(sftp,UNIT)==before_unit,
+            short_test_only=args.short_test_only,slalom_only=args.slalom_only,service_configuration_unchanged=read(sftp,UNIT)==before_unit,
             sha256={rel:hashlib.sha256((ROOT/rel).read_bytes()).hexdigest() for rel in files})
     except Exception as exc:
         audit['error']=str(exc)

@@ -85,19 +85,26 @@ def test_flow_calibration_preview_does_not_enable_driving(measured,monkeypatch):
     assert result['motion']['pose']['y_m']==.1 and not execution_readiness(measured)['ready']
 
 
-def test_actual_camera_detection_flows_into_plan_and_steering(measured,monkeypatch):
+@pytest.mark.parametrize('two_cones',[False,True])
+def test_actual_camera_detection_flows_into_plan_and_steering(measured,monkeypatch,two_cones):
     monkeypatch.setattr(ConeOdometry,'update',lambda *args:good_motion())
+    if two_cones:measured['ground']['homography'][1]=[0,-.08,28.8]  # Synthetic longer visible corridor.
     im=image();cv2.fillPoly(im,[np.array([[235,229],[245,229],[255,270],[225,270]])],(255,0,0))
+    if two_cones:cv2.fillPoly(im,[np.array([[235,183],[245,183],[255,211],[225,211]])],(255,0,0))
     _,jpg=cv2.imencode('.jpg',im)
     state=SimpleNamespace(condition=threading.RLock(),raw_jpeg=jpg.tobytes(),raw_frame_id=0,raw_received_ms=1000.,state='ok')
     timer=[1.];reader=ConeCamera({'secondary':state},measured,lambda:timer[0])
     for i in range(3):
         timer[0]=1+i*.1;state.raw_frame_id=i;state.raw_received_ms=timer[0]*1000;result=reader.read()
     decision=reader.navigation
-    assert decision['action']=='follow_candidate_path' and decision['phase']=='avoid_cones'
     assert any(t['confirmed'] for t in result['cameras']['secondary']['tracks'])
+    if not two_cones:
+        assert decision['action']=='stop' and decision['phase']=='waiting_for_two_cones'
+        return
+    assert decision['action']=='follow_candidate_path' and decision['phase']=='pass_first_cone'
+    assert len({c['side'] for c in decision['slalom']['order']})==2
     assert 1570<=steering_for_path(decision['path'],measured)<=1650
-    assert steering_for_path(decision['path'],measured)!=1610
+    assert min(p['x_m'] for p in decision['path'])<0<max(p['x_m'] for p in decision['path'])
     assert not decision['hardware_output']
 
 

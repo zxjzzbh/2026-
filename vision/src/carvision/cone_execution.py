@@ -32,7 +32,8 @@ class ConeRun:
             'can_request_start':self.active and self.phase=='ready',
             'hardware_output':bool(self.actuator and getattr(self.actuator,'run',False)),
             'readiness':ready,'intent':self.intent,'field_verified':False,'log_directory':str(self.folder) if self.folder else None,
-            'start_blocked_reason':'' if can_start else '需要完成标定、看到左右白线、得到新鲜路径与静止反馈'}
+            'slalom_required':True,'slalom':nav.get('slalom'),
+            'start_blocked_reason':'' if can_start else '需要完成标定、确认两桶与左右白线、得到交错路线与静止反馈'}
 
     def prepare(self,settings,base,payload,now):
         if self.active or not base_idle(base):raise ValueError('先结束当前遥控、斑马线或红绿灯测试')

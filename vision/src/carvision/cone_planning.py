@@ -14,6 +14,7 @@ import numpy as np
 
 from .autonomy_profile import GroundProjection
 from .brake_parking import numeric
+from .cone_slalom import SlalomProgress
 
 
 def load_settings(path):
@@ -110,8 +111,12 @@ def path_clear(path,cones,settings,lane_bounds,lane_heading_rad=0.):
     half=g['vehicle_width_m']/2+pad;front=g['rear_axle_to_front_m']+pad;rear=g['rear_overhang_m']+pad
     left,right=lane_bounds
     road_co,road_si=math.cos(lane_heading_rad),math.sin(lane_heading_rad)
+    driving=settings.get('driving',{})
+    radii=[driving.get(k) for k in ('steering_radius_1570_cm','steering_radius_1650_cm')]
+    limits=sorted(100/r for r in radii) if all(numeric(r) and r!=0 for r in radii) else None
     for p in path:
         if abs(p['curvature'])>1/m['minimum_turn_radius_m']:return False
+        if limits and not limits[0]<=p['curvature']<=limits[1]:return False
         co,si=math.cos(p['yaw_rad']),math.sin(p['yaw_rad'])
         corners=[road_co*(p['x_m']+co*x+si*y)-road_si*(p['y_m']-si*x+co*y)
                  for x in (-half,half) for y in (-rear,front)]
@@ -129,7 +134,7 @@ class ConeRoutePlanner:
     def __init__(self,settings):
         self.s=copy.deepcopy(settings);self.side_lock=None
 
-    def plan(self,cones,*,lane_bounds,lane_fresh=True,coverage_forward_m=None,lane_heading_rad=0.,return_to_center=True):
+    def plan(self,cones,*,lane_bounds,lane_fresh=True,coverage_forward_m=None,lane_heading_rad=0.,return_to_center=True,required_sides=None):
         report=readiness(self.s)
         stop={'action':'stop','path':[],'hardware_output':False,'field_collision_clearance_verified':False}
         if not report['metric_planning_ready']:return {**stop,'reason':'needs_measured_configuration','missing':report['missing']}
@@ -147,6 +152,9 @@ class ConeRoutePlanner:
             if not isinstance(c,dict) or not isinstance(c.get('id'),str) or any(not numeric(c.get(k)) for k in ('x_m','y_m','radius_m')) or c['radius_m']<=0:
                 return {**stop,'reason':'invalid_obstacle_geometry'}
         if len({c['id'] for c in cones})!=len(cones):return {**stop,'reason':'duplicate_obstacle_id'}
+        if required_sides is not None and (not isinstance(required_sides,dict)
+                or any(required_sides.get(c['id']) not in ('left','right') for c in cones)):
+            return {**stop,'reason':'invalid_required_cone_sides'}
         horizon=coverage_forward_m-g['rear_axle_to_front_m']-m['braking_distance_m']
         obstacles=sorted(cones,key=lambda c:c['y_m'])
         margin=g['clearance_m']+self.s['ground']['max_error_m']+m['maximum_tracking_error_m']+.025
@@ -166,8 +174,12 @@ class ConeRoutePlanner:
             next_options=[]
             for offset,knots in options:
                 normal=road_co*c['x_m']-road_si*c['y_m']
-                targets=[offset,normal-c['radius_m']-needed,normal+c['radius_m']+needed]
+                reserve=m['maximum_tracking_error_m']+.02 if required_sides is not None else 0.
+                targets=[offset,normal-c['radius_m']-needed-reserve,normal+c['radius_m']+needed+reserve]
                 for target in targets:
+                    if required_sides is not None:
+                        sign=-1 if required_sides[c['id']]=='left' else 1
+                        if sign*(target-normal)<c['radius_m']+needed-.005-1e-9:continue
                     if not left+needed<=target<=right-needed:continue
                     if enter<=knots[-1][0]:
                         # Very close cones must share the current side; no
@@ -184,6 +196,9 @@ class ConeRoutePlanner:
             # it; otherwise hold the side and replan as new road is observed.
             for end in ((left+right)/2,offset) if return_to_center else (offset,):
                 path=smooth_path(knots+[(horizon,path_x(end,horizon))],road_slope=math.tan(lane_heading_rad))
+                # The existing white-line observer requires a near-forward road
+                # view. Do not offer a slalom that would immediately lose it.
+                if required_sides is not None and any(abs(p['yaw_rad']-lane_heading_rad)>.4 for p in path):continue
                 if not path_clear(path,obstacles,self.s,lane_bounds,lane_heading_rad):continue
                 normals=[road_co*p['x_m']-road_si*p['y_m'] for p in path]
                 side='right' if max(normals)>abs(min(normals)) else 'left'
@@ -193,10 +208,11 @@ class ConeRoutePlanner:
                 if self.side_lock and side not in (self.side_lock,'center'):cost+=10
                 candidates.append((cost,side,path))
         if not candidates:return {**stop,'reason':'no_swept_collision_clear_route'}
-        _,side,path=min(candidates,key=lambda x:x[0])
+        cost,side,path=min(candidates,key=lambda x:x[0])
         if obstacles:self.side_lock=side
         else:self.side_lock=None
         return {'action':'follow_candidate_path','reason':'all_observed_cones_checked','side':side,'path':path,
+                'cost':cost,'required_sides':dict(required_sides or {}),
                 'hardware_output':False,'field_collision_clearance_verified':False}
 
 
@@ -239,17 +255,76 @@ class ConePassCounter:
 
 
 class ConeMission:
-    """Pure state machine for a measured-feedback execution adapter.
-
-    Until the pending physical data/feedback interface is supplied, the web
-    integration only exposes observations and these non-executing decisions.
-    """
+    """Two ordered opposite-side passes, then lane recovery. No hardware I/O."""
     def __init__(self,settings):
         self.s=settings;self.planner=ConeRoutePlanner(settings);self.counter=ConePassCounter(settings)
         self.phase='waiting_for_measurements';self.last_id=self.last_t=None
+        self.slalom=None
+        self.reference=[];self.reference_index=0
+        self.reference_returns_to_lane=False
+
+    def _progress(self):
+        return self.slalom.status() if self.slalom else {'required':True,'order':[],
+            'passed_ids':[],'gate_verified_ids':[],'complete':False,'fault':None}
+
+    def _set_reference(self,path,pose,arguments):
+        co,si=math.cos(pose['yaw_rad']),math.sin(pose['yaw_rad'])
+        self.reference=[{**p,'x_m':pose['x_m']+co*p['x_m']+si*p['y_m'],
+            'y_m':pose['y_m']-si*p['x_m']+co*p['y_m'],'yaw_rad':p['yaw_rad']+pose['yaw_rad']}
+            for p in path]
+        self.reference_index=0
+        h=arguments['lane_heading_rad'];end=path[-1]
+        self.reference_returns_to_lane=abs(math.cos(h)*end['x_m']-math.sin(h)*end['y_m']-sum(arguments['lane_bounds'])/2)<.001
+
+    def _follow_reference(self,pose,cones,arguments):
+        stop={'action':'stop','path':[],'hardware_output':False,'field_collision_clearance_verified':False}
+        if not arguments['lane_fresh']:return {**stop,'reason':'lane_boundaries_unknown'}
+        bounds=arguments['lane_bounds']
+        if (not isinstance(bounds,(tuple,list)) or len(bounds)!=2 or not all(numeric(v) for v in bounds)
+                or bounds[0]>=bounds[1]
+                or bounds[1]-bounds[0]>self.s['geometry']['lane_width_m']+2*self.s['ground']['max_error_m']):
+            return {**stop,'reason':'lane_boundaries_unknown'}
+        lookahead=self.s.get('driving',{}).get('lookahead_m',.4)
+        end=self.reference[-1]
+        if (self._progress()['complete'] and self.reference_returns_to_lane
+                and math.hypot(end['x_m']-pose['x_m'],end['y_m']-pose['y_m'])<lookahead+.2):
+            # Supply a straight, centred lookahead after the finite recovery
+            # curve. These points are still clipped to freshly observed road
+            # and collision checked below; the controller never chases a point
+            # immediately behind the vehicle at the original path endpoint.
+            for distance in np.arange(.02,1.01,.02):
+                self.reference.append({'x_m':end['x_m']+math.sin(self.slalom.heading)*distance,
+                    'y_m':end['y_m']+math.cos(self.slalom.heading)*distance,
+                    'yaw_rad':self.slalom.heading,'curvature':0.})
+        # Track the chosen world path instead of rebuilding a tighter turn from
+        # rest at every frame. The two-cone side assignment is never reselected.
+        index=min(range(self.reference_index,len(self.reference)),key=lambda i:
+            math.hypot(self.reference[i]['x_m']-pose['x_m'],self.reference[i]['y_m']-pose['y_m']))
+        self.reference_index=index
+        nearest=self.reference[index]
+        if math.hypot(nearest['x_m']-pose['x_m'],nearest['y_m']-pose['y_m'])>self.s['motion']['maximum_tracking_error_m']:
+            return {**stop,'reason':'slalom_reference_tracking_error'}
+        coverage=arguments['coverage_forward_m'];heading=arguments['lane_heading_rad']
+        if not numeric(coverage) or not numeric(heading) or abs(heading)>.4:
+            return {**stop,'reason':'slalom_reference_view_unavailable'}
+        horizon=coverage-self.s['geometry']['rear_axle_to_front_m']-self.s['motion']['braking_distance_m']
+        path=[];co,si=math.cos(pose['yaw_rad']),math.sin(pose['yaw_rad'])
+        for point in self.reference[index:]:
+            dx,dy=point['x_m']-pose['x_m'],point['y_m']-pose['y_m']
+            x,y=co*dx-si*dy,si*dx+co*dy
+            if 0<y<=horizon:path.append({**point,'x_m':x,'y_m':y,'yaw_rad':point['yaw_rad']-pose['yaw_rad']})
+        if not path or path[-1]['y_m']<lookahead:
+            return {**stop,'reason':'slalom_reference_view_unavailable'}
+        current={'x_m':0.,'y_m':0.,'yaw_rad':0.,'curvature':0.}
+        if not path_clear([current]+path,cones,self.s,arguments['lane_bounds'],heading):
+            return {**stop,'reason':'slalom_reference_blocked'}
+        return {'action':'follow_candidate_path','reason':'following_locked_alternating_route',
+                'path':path,'required_sides':dict(self.slalom.sides),
+                'hardware_output':False,'field_collision_clearance_verified':False}
 
     def step(self,sample,now):
-        stop={'action':'stop','hardware_output':False,'phase':self.phase,'passed_ids':sorted(self.counter.passed)}
+        stop={'action':'stop','hardware_output':False,'phase':self.phase,
+              'passed_ids':self._progress()['passed_ids'],'slalom':self._progress()}
         ready=readiness(self.s)
         if not ready['metric_planning_ready']:return {**stop,'reason':'needs_measured_configuration','missing':ready['missing']}
         fid,t=sample.get('frame_id'),sample.get('captured_s')
@@ -262,20 +337,69 @@ class ConeMission:
         passed=self.counter.update(sample.get('observed_world',[]),pose)
         if passed['reason']!='pose_based_pass_check' or sample.get('unresolved_obstacles'):
             self.phase='waiting_for_feedback';return {**stop,'phase':self.phase,'reason':'pose_or_obstacle_uncertain'}
-        if passed['complete']:
+        if self.slalom:
+            self.slalom.update(pose,t,self.counter.world)
+            progress=self._progress()
+            stop.update(slalom=progress,passed_ids=progress['passed_ids'])
+            if progress['fault']:
+                self.phase='fault';return {**stop,'phase':self.phase,'reason':progress['fault']}
+        if self._progress()['complete']:
             offset=sample.get('lane_offset_m')
-            if numeric(offset) and abs(offset)<=self.s['motion']['maximum_tracking_error_m']:
-                self.phase='complete';return {**stop,**passed,'phase':self.phase,'reason':'two_cones_passed_and_lane_recovered'}
+            heading=sample.get('lane_heading_rad')
+            if (sample.get('lane_valid') is True and numeric(offset) and numeric(heading)
+                    and abs(offset)<=self.s['motion']['maximum_tracking_error_m'] and abs(heading)<=.05):
+                self.phase='complete';return {**stop,'phase':self.phase,'reason':'alternating_cones_passed_and_lane_recovered'}
             self.phase='return_to_lane'
         cones=[];co,si=math.cos(pose['yaw_rad']),math.sin(pose['yaw_rad'])
-        for key,c in self.counter.world.items():
-            if key in self.counter.passed:continue
+        anchors={c['id']:c for c in self.slalom.cones} if self.slalom else self.counter.world
+        for key,c in anchors.items():
+            if key in self._progress()['passed_ids']:continue
             dx,dy=c['x_m']-pose['x_m'],c['y_m']-pose['y_m']
             cones.append({**c,'x_m':co*dx-si*dy,'y_m':si*dx+co*dy})
-        result=self.planner.plan(cones,lane_bounds=sample.get('lane_bounds_m'),
-            lane_fresh=sample.get('lane_valid') is True,coverage_forward_m=sample.get('coverage_forward_m'),
-            lane_heading_rad=sample.get('lane_heading_rad',0.),
-            return_to_center=passed['complete'] or not self.counter.world or len(self.counter.world)==2)
+        arguments=dict(lane_bounds=sample.get('lane_bounds_m'),lane_fresh=sample.get('lane_valid') is True,
+            coverage_forward_m=sample.get('coverage_forward_m'),lane_heading_rad=sample.get('lane_heading_rad',0.))
+        if self.slalom is None:
+            if len(cones)!=2 or any(c['id'] not in self.counter.seen_ahead or c['y_m']<=0 for c in cones):
+                self.phase='waiting_for_two_cones'
+                return {**stop,'phase':self.phase,'reason':'need_two_confirmed_cones_ahead'}
+            ordered=sorted(cones,key=lambda c:c['y_m'])
+            g=self.s['geometry'];m=self.s['motion']
+            margin=g['clearance_m']+self.s['ground']['max_error_m']+m['maximum_tracking_error_m']+.025
+            occupied=g['vehicle_length_m']+sum(c['radius_m'] for c in ordered)+2*margin
+            if ordered[1]['y_m']-ordered[0]['y_m']<=occupied:
+                self.phase='waiting_for_clear_route'
+                return {**stop,'phase':self.phase,'reason':'cones_too_close_for_alternation'}
+            candidates=[]
+            for sides in [('left','right'),('right','left')]:
+                required=dict(zip([c['id'] for c in ordered],sides))
+                candidate=ConeRoutePlanner(self.s).plan(cones,**arguments,required_sides=required)
+                if candidate['action']=='follow_candidate_path':candidates.append(candidate)
+            if not candidates:
+                self.phase='waiting_for_clear_route'
+                return {**stop,'phase':self.phase,'reason':'no_feasible_alternating_route'}
+            result=min(candidates,key=lambda r:r['cost'])
+            self.slalom=SlalomProgress(self.s,[self.counter.world[c['id']] for c in ordered],
+                result['required_sides'],pose,pose['yaw_rad']+arguments['lane_heading_rad'],t)
+            self._set_reference(result['path'],pose,arguments)
+        else:
+            if self._progress()['complete'] and not self.reference_returns_to_lane:
+                # If the initial visible region could only support holding the
+                # exit side, add one finite recovery path. Never chase a moving
+                # distant lane-centre target on every frame.
+                coverage=arguments['coverage_forward_m']
+                result={'action':'stop','path':[],'reason':'no_lane_recovery_route'}
+                if numeric(coverage):
+                    for distance in np.arange(1.,coverage+.25,.25):
+                        candidate=self.planner.plan([],**{**arguments,'coverage_forward_m':min(distance,coverage)},required_sides={})
+                        if candidate['action']=='stop':continue
+                        self._set_reference(candidate['path'],pose,arguments)
+                        if self.reference_returns_to_lane:break
+                if not self.reference_returns_to_lane:
+                    self.phase='waiting_for_clear_route';return {**stop,**result,'phase':self.phase}
+            result=self._follow_reference(pose,cones,arguments)
+            if result['reason']=='slalom_reference_tracking_error':
+                self.phase='fault';return {**stop,**result,'phase':self.phase}
         if result['action']=='stop':self.phase='waiting_for_clear_route'
-        elif self.phase!='return_to_lane':self.phase='avoid_cones' if cones else 'follow_lane'
-        return {**result,'phase':self.phase,'passed_ids':passed['passed_ids'],'requires_verified_execution_adapter':True}
+        elif self.phase!='return_to_lane':self.phase='pass_first_cone' if not self.slalom.passed else 'pass_second_cone'
+        return {**result,'phase':self.phase,'passed_ids':self._progress()['passed_ids'],
+                'slalom':self._progress(),'requires_verified_execution_adapter':True}

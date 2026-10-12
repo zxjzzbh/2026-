@@ -1,7 +1,7 @@
 """Optional real-camera cone observation card on the existing driving console."""
 
 HTML = '''<section class="drive-panel" id="cone-test">
-<h3>蓝色锥桶 · 独立测试</h3>
+<h3>蓝色锥桶 · 交错绕行</h3>
 <p id="cone-state" role="status">等待锥桶识别服务</p>
 <p>第二路 H65 为主视角，第一路辅助观察。两路画面中的同一锥桶不会直接计作两个。</p>
 <p>红色塑胶直道 · 两侧白线内侧为边界，整车含轮胎不得越线。蓝色用于找锥桶，红色地面辅助确认场景。</p>
@@ -12,6 +12,8 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <button type="button" id="cone-drive-start" disabled>开始避障</button></div>
 <button type="button" id="cone-drive-stop">停止避障</button>
 <p id="cone-run-state" role="status"></p><p id="cone-navigation" role="status"></p>
+<p id="cone-slalom" role="status">等待确认两只锥桶及交错路线</p>
+<p>必须按“第一桶左侧 → 第二桶右侧”或相反顺序通过，再回归车道。左右指车从锥桶的哪一侧经过。路线不可行时停车，不退回同侧绕行。</p>
 <p>首次准备时保持 F/B、电调关闭；准备完成后打开电调，确认车辆静止、场地空旷，再点“开始避障”。3 秒中位后低速绕行，完成两桶后停车；空格／Esc 可停止。</p>
 <div class="cone-viewer"><img id="cone-preview" alt="实际双摄锥桶识别：左第一路，右第二路 H65" width="960" height="360" hidden>
 <span id="cone-placeholder">开始识别后显示真实画面</span></div>
@@ -108,7 +110,10 @@ function renderCone(s){
  el('cone-drive-start').disabled=stale||coneBusy||!coneDriveOwned||!a.can_request_start;
  el('cone-drive-start').title=a.start_blocked_reason||'';
  el('cone-run-state').textContent=a.reason||'尚未准备避障';
- const nav=c.latest?.navigation,phases={needs_calibration:'待标定',calibration_only:'位移标定观察',waiting_for_feedback:'等待反馈',follow_lane:'低速循迹',avoid_cones:'绕行锥桶',return_to_lane:'回归赛道',waiting_for_clear_route:'没有可通过路线',complete:'两桶完成',fault:'已停止'};
+ const nav=c.latest?.navigation,phases={needs_calibration:'待标定',calibration_only:'位移标定观察',waiting_for_feedback:'等待反馈',waiting_for_two_cones:'等待确认前方两只锥桶',pass_first_cone:'按指定侧绕第一桶',pass_second_cone:'换边绕第二桶',follow_lane:'低速循迹',avoid_cones:'绕行锥桶',return_to_lane:'回归赛道',waiting_for_clear_route:'没有可通过路线',complete:'交错绕桶完成',fault:'已停止'};
+ const slalom=nav?.slalom||a.slalom;
+ const slalomReasons={cones_too_close_for_alternation:'两桶前后间距不足，无法安排有顺序的换边',need_two_confirmed_cones_ahead:'需要先确认前方两只锥桶',no_feasible_alternating_route:'当前桶距、边界、视野或转弯半径不支持交错路线',slalom_wrong_side_or_clearance:'通过侧别或净空不符合要求',slalom_pose_discontinuity:'位移反馈不连续，请重新准备',slalom_cone_position_changed:'锥桶位置发生变化，请重新准备',slalom_wrong_order:'通过顺序不符合要求',slalom_pass_without_ordered_side_evidence:'缺少按顺序交错通过的位姿证据',slalom_reference_tracking_error:'车辆偏离选定路线，请重新准备',slalom_reference_view_unavailable:'选定路线超出当前可信视野',slalom_reference_blocked:'选定路线的车身净空或白线边界不满足要求',following_locked_alternating_route:'正在跟随选定交错路线',alternating_cones_passed_and_lane_recovered:'两桶已交错通过并回正',no_lane_recovery_route:'暂时没有可行的回正路线'};
+ el('cone-slalom').textContent=slalom?.order?.length?('本轮顺序：'+slalom.order.map((p,i)=>(i+1)+'号桶（'+p.id+'）从'+(p.side==='left'?'左':'右')+'侧通过').join(' → ')+' · 已核验 '+(slalom.passed_ids?.length||0)+'/2'+(nav?.reason?' · '+(slalomReasons[nav.reason]||nav.reason):'')):(slalomReasons[nav?.reason]||'等待确认两只锥桶及交错路线');
  el('cone-navigation').textContent=nav?((phases[nav.phase]||nav.phase)+' · '+(nav.reason||'')+(nav.side?' · 路线 '+({left:'向左',right:'向右',center:'居中'}[nav.side]||nav.side):'')+(nav.passed_ids?' · 已过 '+nav.passed_ids.length+'/2':'')+(nav.motion?.valid?' · 速度 '+nav.motion.speed_mps.toFixed(3)+' m/s · 位移 '+nav.motion.travel_m.toFixed(2)+' m':'')):'开始识别后显示选路、位移和通过计数';
  document.querySelectorAll('[data-cone-drive],[data-cone-motion]').forEach(input=>{
   input.disabled=stale||coneBusy||coneActive||coneDriveActive;

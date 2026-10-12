@@ -158,7 +158,7 @@ def test_mission_stale_camera_fault_and_missing_pose_do_not_advance(measured):
     mission=ConeMission(measured)
     sample={'frame_id':1,'captured_s':1,'lane_bounds_m':[-1,1],'lane_valid':True,'coverage_forward_m':6,
         'observed_world':[],'pose':pose()}
-    assert mission.step(sample,1)['phase']=='follow_lane'
+    assert mission.step(sample,1)['phase']=='waiting_for_two_cones'
     assert mission.step(sample,1.01)['phase']=='fault'
     sample.update(frame_id=2,captured_s=1.1)
     assert mission.step(sample,1.1)['action']=='stop'  # fault latches
