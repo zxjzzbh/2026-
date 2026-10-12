@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-12T17:35:19.015090+08:00",
+  "checked_at": "2026-10-12T17:39:16.965407+08:00",
   "base_commit": "082f0c473e65b1511904733e706d3628af66840c",
   "scope": "indoor white-line cone observation",
   "local_tests": {
@@ -17,14 +17,13 @@
     "skipped": 1
   },
   "ui_syntax": "passed with actual preserved manual control template",
-  "deployment": "rolled_back; concurrent teammate modifications confirmed by user",
+  "deployment": "deployed after teammate paused; original service and other task files preserved",
   "motion_commands_sent": false,
   "automatic_start": false,
   "config_calibration_values_modified": false,
   "open_field_unfinished_work_included": false,
   "physical_slalom_verified": false,
   "pending": [
-    "exclusive vehicle editing/control window",
     "small distant cone confirmation",
     "ground mapping coverage at current cone/white-line locations",
     "measured steering radii, braking distance and visual odometry acceptance"
@@ -37,5 +36,19 @@
     "vision/src/carvision/cone_controls.py": "5738b1e8878cc5d5c274281afef9815f991041feec01b96c61ee0b79f73469dd",
     "vision/tests/test_cone_trial.py": "e3c0ebe32bcf3a071370d4f2e66806eaf3ab526a7a612368a57415717e86ffa3",
     "vision/tools/deploy_cone_trial.py": "e91e894039d41ba18bd163f36e7bd0cdd779195bc0fb3f67e63291317d1626ec"
-  }
+  },
+  "deployed_code_commit": "8d7947c",
+  "vehicle_backup": "/home/pi/smartcar-race-20261002/run/cone-console-deploy-20261012-173601",
+  "live_observation": {
+    "primary_white_lines": false,
+    "secondary_white_lines": true,
+    "usable_secondary_cones_confirmed": 1,
+    "old_calibration_contains_current_cone_contact": false,
+    "old_calibration_white_edge_points": {
+      "left": 0,
+      "right": 0
+    }
+  },
+  "scene_setting_changed": "indoor_white_line_track",
+  "external_control_observation": "A short-test session appeared after opening the console; on follow-up it was already cancelled during arming with drive_started_s null. No start/prepare/output requests were sent by this assistant."
 }
