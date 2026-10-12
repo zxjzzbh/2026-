@@ -34,13 +34,27 @@ SLALOM_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_planning','cone_sl
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
     'vision/src/carvision/'+n+'.py' for n in ('traffic_driving','traffic_trial','traffic_controls','traffic_signal',
         'traffic_voting','brake_output','autonomy_profile','config','lane','traffic_preview',
-        'manual_drive','manual_hardware','steering_pwm_controls','parking_payment','payment_console')]+[
-    'vision/configs/traffic-driving.json','vision/configs/traffic-signal.json','vision/configs/cone-trial.local.json']))
+        'manual_drive','manual_hardware','steering_pwm_controls','parking_payment','payment_console','payment_controls',
+        'departure','departure_trial','departure_controls','parking_bay','parking_bay_console','parking_bay_controls','parking_mission')]+[
+    'vision/configs/traffic-driving.json','vision/configs/traffic-signal.json','vision/configs/cone-trial.local.json',
+    'vision/configs/departure.local.json','vision/configs/parking-bay.json','vision/configs/parking-bay.local.json']))
 
 
 def idle(status):
     c=status.get('cone_trial') or {}
-    return original_idle(status) and not (c.get('avoidance') or {}).get('active') and not (c.get('short_test') or {}).get('active')
+    return (original_idle(status) and not (c.get('avoidance') or {}).get('active')
+            and not (c.get('short_test') or {}).get('active')
+            and not (status.get('departure_trial') or {}).get('active')
+            and not (status.get('parking_payment') or {}).get('motion_locked')
+            and not (status.get('parking_bay') or {}).get('motor_output_enabled')
+            and not (status.get('parking_mission') or {}).get('active'))
+
+
+def verify_protected(sftp, protected):
+    for rel,data in protected.items():
+        try:actual=read(sftp,REMOTE+'/'+rel)
+        except FileNotFoundError:actual=None
+        if actual!=data:raise RuntimeError('Protected control file changed: '+rel)
 
 
 def extended_unit(data):
@@ -127,13 +141,20 @@ def main():
         if not args.short_test_only:tests.append('test_cone_slalom.py')
         sample_path=remote_backup+'/cone-trial.repository.json'
         put_atomic(sftp,sample_path,(ROOT/'vision/configs/cone-trial.json').read_bytes())
+        # Deployment tools belong to the PC. Provide reference sources only
+        # inside this backup for offline predicates exercised by Pi tests.
+        deploy_sources=remote_backup+'/deploy-test-sources'
+        command(client,['mkdir','-p',deploy_sources])
+        for name in ('deploy_traffic_trial.py','deploy_cone_trial.py'):
+            put_atomic(sftp,deploy_sources+'/'+name,(ROOT/'vision/tools'/name).read_bytes())
         audit['pi_tests']=command(client,['env','PYTHONPATH='+REMOTE+'/vision/src',
-            'CARVISION_REPOSITORY_CONE_CONFIG='+sample_path,PYTHON,'-m','pytest',
+            'CARVISION_REPOSITORY_CONE_CONFIG='+sample_path,'CARVISION_DEPLOY_SOURCE_DIR='+deploy_sources,PYTHON,'-m','pytest',
             *[REMOTE+'/vision/tests/'+n for n in tests],'-q'],timeout=60)
         if not idle(status()):raise RuntimeError('Control became active; no restart')
         put_atomic(sftp,remote_backup+'/service.new.conf',unit)
         if not idle(status()):raise RuntimeError('Control no longer idle; no restart')
         if read(sftp,UNIT)!=before_unit:raise RuntimeError('Service configuration changed during deployment; no restart')
+        verify_protected(sftp,protected)
         if unit!=before_unit:
             unit_changed=True
             command(client,['install','-m','644',remote_backup+'/service.new.conf',UNIT],password=cfg['password'])
@@ -153,11 +174,12 @@ def main():
             raise RuntimeError('Deployed console did not remain idle')
         if not args.short_test_only and not after['cone_trial']['avoidance'].get('slalom_required'):
             raise RuntimeError('Alternating cone enforcement not loaded')
+        if after['cone_trial'].get('logic_revision')!='slalom-continuity-20261012':
+            raise RuntimeError('Optimized cone logic not loaded')
         if (after['cone_trial'].get('short_test') or {}).get('program')!='cone-fixed-short-v1':raise RuntimeError('Short-test entry missing')
-        for rel,data in protected.items():
-            try:actual=read(sftp,REMOTE+'/'+rel)
-            except FileNotFoundError:actual=None
-            if actual!=data:raise RuntimeError('Protected control file changed: '+rel)
+        verify_protected(sftp,protected)
+        for rel in files:
+            if read(sftp,REMOTE+'/'+rel)!=(ROOT/rel).read_bytes():raise RuntimeError('Uploaded file mismatch: '+rel)
         audit.update(deployed=True,backup=remote_backup,protected_files_unchanged=True,
             geometry=after['cone_trial']['settings']['geometry'],
             after={key:after.get(key) for key in ('mode','hardware_output','worker_started','boot_test_phase')},

@@ -12,7 +12,7 @@ import numpy as np
 
 from .autonomy_profile import GroundProjection,fit_ground_calibration
 from .brake_parking import numeric
-from .cone_planning import ConeMission,readiness
+from .cone_planning import ConeMission,readiness,distance_to_path
 
 
 DEFAULT_DRIVING={
@@ -192,7 +192,7 @@ class ConeNavigator:
             dx=pose['x_m']-prior_pose['x_m'];dy=pose['y_m']-prior_pose['y_m']
             co0,si0=math.cos(prior_pose['yaw_rad']),math.sin(prior_pose['yaw_rad'])
             px,py=co0*dx-si0*dy,si0*dx+co0*dy
-            error=min(math.hypot(p['x_m']-px,p['y_m']-py) for p in path)
+            error,_=distance_to_path([{'x_m':0.,'y_m':0.}]+path,px,py)
             if error>self.s['motion']['maximum_tracking_error_m']:
                 raise ValueError('实测车辆位置偏离上一条路径，停止并重新准备')
         projection=self.odometry.projection

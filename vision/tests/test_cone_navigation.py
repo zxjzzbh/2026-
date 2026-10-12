@@ -85,6 +85,16 @@ def test_flow_calibration_preview_does_not_enable_driving(measured,monkeypatch):
     assert result['motion']['pose']['y_m']==.1 and not execution_readiness(measured)['ready']
 
 
+def test_motion_between_previous_route_samples_is_not_deviation(measured,monkeypatch):
+    measured['motion']['maximum_tracking_error_m']=.015
+    nav=ConeNavigator(measured);im=image()
+    nav.previous_route=(good_motion()['pose'],[
+        {'x_m':0.,'y_m':0.}, {'x_m':0.,'y_m':.04}])
+    monkeypatch.setattr(nav.odometry,'update',lambda *args:good_motion(.02,.2))
+    result=nav.update(im,{'frame_id':1,'captured_s':1.,'road_context':context(measured,im),'tracks':[]},1.)
+    assert result['phase']=='waiting_for_two_cones'
+
+
 @pytest.mark.parametrize('two_cones',[False,True])
 def test_actual_camera_detection_flows_into_plan_and_steering(measured,monkeypatch,two_cones):
     monkeypatch.setattr(ConeOdometry,'update',lambda *args:good_motion())

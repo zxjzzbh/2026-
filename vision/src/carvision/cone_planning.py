@@ -105,6 +105,24 @@ def smooth_path(knots,step=.02,road_slope=0.):
     return rows
 
 
+def distance_to_path(path,x,y,start_index=0):
+    """Distance to the sampled polyline, with monotone segment progress.
+
+    Distance to vertices alone includes sampling error even on the route.
+    Clamp projections to segments so points beyond an endpoint still fail.
+    """
+    if not path or not 0<=start_index<len(path):raise ValueError('empty or invalid reference path')
+    last=path[-1]
+    best=(math.hypot(x-last['x_m'],y-last['y_m']),len(path)-1)
+    for i in range(start_index,len(path)-1):
+        a,b=path[i],path[i+1]
+        dx,dy=b['x_m']-a['x_m'],b['y_m']-a['y_m'];length2=dx*dx+dy*dy
+        fraction=min(1.,max(0.,((x-a['x_m'])*dx+(y-a['y_m'])*dy)/length2)) if length2 else 0.
+        error=math.hypot(x-a['x_m']-fraction*dx,y-a['y_m']-fraction*dy)
+        if error<best[0]:best=(error,i+1 if fraction==1. else i)
+    return best
+
+
 def path_clear(path,cones,settings,lane_bounds,lane_heading_rad=0.):
     g=settings['geometry'];m=settings['motion']
     # Include localization/tracking uncertainty and half a sampling step so
@@ -300,11 +318,9 @@ class ConeMission:
                     'yaw_rad':self.slalom.heading,'curvature':0.})
         # Track the chosen world path instead of rebuilding a tighter turn from
         # rest at every frame. The two-cone side assignment is never reselected.
-        index=min(range(self.reference_index,len(self.reference)),key=lambda i:
-            math.hypot(self.reference[i]['x_m']-pose['x_m'],self.reference[i]['y_m']-pose['y_m']))
+        error,index=distance_to_path(self.reference,pose['x_m'],pose['y_m'],self.reference_index)
         self.reference_index=index
-        nearest=self.reference[index]
-        if math.hypot(nearest['x_m']-pose['x_m'],nearest['y_m']-pose['y_m'])>self.s['motion']['maximum_tracking_error_m']:
+        if error>self.s['motion']['maximum_tracking_error_m']:
             return {**stop,'reason':'slalom_reference_tracking_error'}
         coverage=arguments['coverage_forward_m'];heading=arguments['lane_heading_rad']
         if not numeric(coverage) or not numeric(heading) or abs(heading)>.4:
@@ -337,7 +353,7 @@ class ConeMission:
         if self.phase in ('fault','complete'):return {**stop,'reason':'terminal_state'}
         pose=sample.get('pose') or {}
         passed=self.counter.update(sample.get('observed_world',[]),pose)
-        if passed['reason']!='pose_based_pass_check' or sample.get('unresolved_obstacles'):
+        if passed['reason']!='pose_based_pass_check':
             self.phase='waiting_for_feedback';return {**stop,'phase':self.phase,'reason':'pose_or_obstacle_uncertain'}
         if self.slalom:
             self.slalom.update(pose,t,self.counter.world)
@@ -345,6 +361,11 @@ class ConeMission:
             stop.update(slalom=progress,passed_ids=progress['passed_ids'])
             if progress['fault']:
                 self.phase='fault';return {**stop,'phase':self.phase,'reason':progress['fault']}
+        # A fresh measured pose remains useful while a blue candidate is being
+        # confirmed. Keep continuity/jump checks alive during the neutral pause;
+        # unknown obstacles still prevent all forward and completion decisions.
+        if sample.get('unresolved_obstacles'):
+            self.phase='waiting_for_feedback';return {**stop,'phase':self.phase,'reason':'pose_or_obstacle_uncertain'}
         if self._progress()['complete']:
             offset=sample.get('lane_offset_m')
             heading=sample.get('lane_heading_rad')

@@ -7,7 +7,7 @@ import subprocess
 
 import pytest
 
-from carvision.cone_planning import ConeMission, ConeRoutePlanner, path_clear, load_settings
+from carvision.cone_planning import ConeMission, ConeRoutePlanner, path_clear, load_settings, distance_to_path
 from carvision.cone_slalom import SlalomProgress
 from carvision.cone_navigation import steering_for_path, driving_settings, execution_readiness
 from pathlib import Path
@@ -102,6 +102,82 @@ def test_obstacle_moves_after_commit_latches_fault(measured):
     result = step(mission,sample(1,[cone('near',.2,2.5),cones[1]]))
     assert result['phase']=='fault' and result['reason']=='slalom_cone_position_changed'
     assert step(mission,sample(2,cones))['action']=='stop'
+
+
+def test_brief_uncertain_obstacle_pause_keeps_fresh_pose_history(measured):
+    cones=[cone('near',0,2.5),cone('far',0,7.)]
+    mission=ConeMission(measured)
+    first=step(mission,sample(0,cones))
+    for i in range(1,6):
+        data=sample(i,cones)
+        data['unresolved_obstacles']=['temporary-blue-shape']
+        result=step(mission,data)
+        assert result['action']=='stop'
+    resumed=step(mission,sample(6,cones))
+    assert resumed['action']=='follow_candidate_path'
+    assert resumed['slalom']['order']==first['slalom']['order']
+    assert resumed['slalom']['passed_ids']==[]
+
+
+def test_uncertain_obstacle_does_not_hide_pose_jump(measured):
+    cones=[cone('near',0,2.5),cone('far',0,7.)]
+    mission=ConeMission(measured);step(mission,sample(0,cones))
+    data=sample(1,cones,pose(y=1.))
+    data['unresolved_obstacles']=['temporary-blue-shape']
+    result=step(mission,data)
+    assert result['phase']=='fault'
+    assert result['reason']=='slalom_pose_discontinuity'
+
+
+def test_between_reference_samples_is_not_tracking_deviation(measured):
+    measured['motion']['maximum_tracking_error_m']=.006
+    cones=[cone('near',0,2.5),cone('far',0,7.)]
+    mission=ConeMission(measured)
+    initial=sample(0,cones);initial['pose']['error_bound_m']=.001
+    result=step(mission,initial)
+    a,b=result['path'][:2]
+    data=sample(1,cones,pose((a['x_m']+b['x_m'])/2,(a['y_m']+b['y_m'])/2))
+    data['pose']['error_bound_m']=.001
+    result=step(mission,data)
+    assert result['action']=='follow_candidate_path'
+
+
+@pytest.mark.parametrize('x,y,expected',[(.03,.01,.03),(0.,-.02,.02),(0.,.05,.03)])
+def test_path_projection_keeps_lateral_and_endpoint_error(x,y,expected):
+    path=[{'x_m':0.,'y_m':0.},{'x_m':0.,'y_m':.02}]
+    error,_=distance_to_path(path,x,y)
+    assert error==pytest.approx(expected)
+
+
+def test_path_projection_cannot_rewind_completed_segments():
+    path=[{'x_m':0.,'y_m':0.},{'x_m':0.,'y_m':1.},{'x_m':0.,'y_m':2.}]
+    error,index=distance_to_path(path,0.,.1,start_index=1)
+    assert error==pytest.approx(.9) and index==1
+
+
+def test_deployment_respects_other_live_tasks_and_calibration():
+    # Execute the actual read-only predicates without importing SSH/hardware
+    # libraries into the offline suite.
+    import ast
+    tools=Path(os.environ.get('CARVISION_DEPLOY_SOURCE_DIR',Path(__file__).parents[1]/'tools'))
+    namespace={}
+    for filename,names in [('deploy_traffic_trial.py',{'idle'}),
+                           ('deploy_cone_trial.py',{'idle','verify_protected'})]:
+        tree=ast.parse((tools/filename).read_text(encoding='utf-8'))
+        functions=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in names]
+        exec(compile(ast.Module(body=functions,type_ignores=[]),str(tools/filename),'exec'),namespace)
+        if filename=='deploy_traffic_trial.py':namespace['original_idle']=namespace['idle']
+    base={'mode':'disabled','boot_test_phase':'esc_off'}
+    assert namespace['idle'](base)
+    for key,value in [('departure_trial',{'active':True}),('parking_payment',{'motion_locked':True}),
+                      ('parking_mission',{'active':True}),('parking_bay',{'motor_output_enabled':True}),
+                      ('cone_trial',{'short_test':{'active':True}})]:
+        assert not namespace['idle']({**base,key:value})
+    namespace.update(REMOTE='/car',read=lambda _sftp,path:b'original')
+    namespace['verify_protected'](None,{'config.local.json':b'original'})
+    namespace['read']=lambda _sftp,path:b'changed-during-deployment'
+    with pytest.raises(RuntimeError,match='Protected control file changed'):
+        namespace['verify_protected'](None,{'config.local.json':b'original'})
 
 
 @pytest.mark.parametrize('case',['jump','gap','deviation'])
