@@ -74,3 +74,22 @@ def test_dense_actual_inner_edges_remain_on_supported_pixels(settings):
         y=round(l[1]);row=(mask[y-1:y+2]>0).mean(0)>=.5
         assert row[round(l[0])-1] and not row[round(l[0])]
         assert row[round(r[0])+1] and not row[round(r[0])]
+
+
+def test_live_green_track_glare_does_not_merge_into_left_white_boundary(settings):
+    image=cv2.imdecode(np.frombuffer((ROOT/'tests/fixtures/cone-track-glare-secondary.jpg').read_bytes(),np.uint8),1)
+    result=ConeRoadContext(settings).inspect(image,np.zeros(image.shape[:2],np.uint8))
+    assert result['valid'],result['boundary_diagnostics']
+    left=np.asarray(result['left_inner']);right=np.asarray(result['right_inner'])
+    # Real tape flares outward below the crossbar. The green reflection in the
+    # middle of the image must not supply an almost vertical "left boundary".
+    assert np.polyfit(left[:,1],left[:,0],1)[0]<-1
+    assert np.polyfit(right[:,1],right[:,0],1)[0]>1
+    assert left[:,1].min()>145 and left[:,1].max()>225
+
+
+def test_primary_cabinet_edges_above_track_do_not_become_white_line_danger(settings):
+    image=cv2.imdecode(np.frombuffer((ROOT/'tests/fixtures/cone-track-glare-primary.jpg').read_bytes(),np.uint8),1)
+    result=ConeRoadContext(settings,'primary').inspect(image,np.zeros(image.shape[:2],np.uint8))
+    for side in ('left_inner','right_inner'):
+        assert all(p[1]>=image.shape[0]*.60 for p in result[side])

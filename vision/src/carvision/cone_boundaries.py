@@ -13,11 +13,12 @@ def adaptive_inner_edges(image,blue_mask,config):
     hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
     mask=cv2.inRange(hsv,(0,0,config.white_v_min),(179,config.white_s_max,255))
     mask[blue_mask>0]=0
-    mask[:round(h*.28)]=0
+    first_row=round(h*config.roi_top)
+    mask[:first_row]=0
     mask=cv2.morphologyEx(mask,cv2.MORPH_OPEN,np.ones((3,3),np.uint8))
     step=max(2,round(h/120));minimum=max(2,round(w*config.min_run_fraction))
     maximum=max(minimum,round(w*config.max_run_fraction));pairs=[]
-    for y in range(round(h*.28),round(h*.90),step):
+    for y in range(first_row,round(h*.90),step):
         row=(mask[max(0,y-1):min(h,y+2)]>0).mean(axis=0)>=.5
         changes=np.diff(np.pad(row.astype(np.int8),(1,1)))
         starts,ends=np.where(changes==1)[0],np.where(changes==-1)[0]
@@ -27,7 +28,8 @@ def adaptive_inner_edges(image,blue_mask,config):
         for l in left:
             for r in right:
                 if config.min_width_fraction*w<r-l<config.max_width_fraction*w:pairs.append((y,l,r))
-    diag={'detector':'adaptive_paired_rows','paired_candidates':len(pairs),'support_rows':0}
+    diag={'detector':'adaptive_paired_rows','paired_candidates':len(pairs),'support_rows':0,
+          'roi_top':config.roi_top,'white_v_min':config.white_v_min,'white_s_max':config.white_s_max}
     if len(pairs)<8:return [],[],mask,{**diag,'reason':'too_few_observed_pairs'}
     data=np.asarray(pairs,float);ys=data[:,0];groups=np.unique(ys,return_index=True)[1]
     tolerance=max(2.5,w*.007);required_span=h*.12;best=None

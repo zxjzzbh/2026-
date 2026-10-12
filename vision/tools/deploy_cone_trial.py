@@ -31,6 +31,7 @@ SHORT_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_short_output','cone
     'vision/tests/test_cone_short.py','vision/configs/cone-legacy-ground-candidate.json','vision/CONE_TEST.md']
 SLALOM_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_planning','cone_slalom','cone_execution','cone_controls','cone_boundaries','cone_road','cone_navigation','cone_low_speed','cone_trial_output','cone_observer')]+[
     'vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_slalom.py','vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py','vision/tests/test_cone_boundaries.py','vision/tests/fixtures/cone-white-mask-20261012.png','vision/configs/cone-primary-ground-reference.json','vision/CONE_TEST.md']
+SLALOM_FILES+=['vision/tests/fixtures/cone-track-glare-'+camera+'.jpg' for camera in ('primary','secondary')]
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
     'vision/src/carvision/'+n+'.py' for n in ('traffic_driving','traffic_trial','traffic_controls','traffic_signal',
         'traffic_voting','brake_output','autonomy_profile','config','lane','traffic_preview',

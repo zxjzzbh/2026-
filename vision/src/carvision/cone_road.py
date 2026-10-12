@@ -30,6 +30,14 @@ def inner_edge(mask,x,y,direction):
 class ConeRoadContext:
     def __init__(self,settings,camera='secondary'):
         self.s=settings;config=load_config(None).lane
+        # The generic preview threshold also includes pale green floor glare.
+        # In the cone corridor that merges the left tape with the floor, so
+        # it is discarded as an over-wide paint run. Require brighter, less
+        # saturated paint here; leave the manual/traffic preview untouched.
+        # Each fixed camera has its own ground ROI; cabinet/window edges above
+        # that ROI must never veto the other camera as a white-line hazard.
+        config=replace(config,white_v_min=200,white_s_max=70,
+                       roi_top=.60 if camera=='primary' else .38)
         if settings.get('scene',{}).get('surface')=='indoor_white_line_track':
             # In the fixed H65 view the nearby white edges leave the image
             # above the car bonnet. Fit the observed mid-ground, not the bonnet.
@@ -52,7 +60,9 @@ class ConeRoadContext:
                 l=inner_edge(white,*lp,1);r=inner_edge(white,*rp,-1)
                 if l and r and l[0]<r[0]:left.append(l);right.append(r)
         enough=lane.valid and len(left)>=max(6,len(lane.left)*.65)
-        diagnostics={'detector':'fixed_band','baseline_reason':lane.reason,'support_rows':len(left)}
+        diagnostics={'detector':'fixed_band','baseline_reason':lane.reason,'support_rows':len(left),
+                     'roi_top':self.lane.config.roi_top,'white_v_min':self.lane.config.white_v_min,
+                     'white_s_max':self.lane.config.white_s_max}
         if not enough:
             adaptive_left,adaptive_right,adaptive_white,diagnostics=adaptive_inner_edges(image,blue_mask,self.lane.config)
             diagnostics['baseline_reason']=lane.reason

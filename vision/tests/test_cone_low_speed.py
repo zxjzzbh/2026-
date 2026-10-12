@@ -77,6 +77,29 @@ def test_higher_visible_white_band_does_not_make_far_cone_a_pass_event(settings)
     assert result['ready'] and not result['cones'][0]['near']
 
 
+def test_live_glare_pair_reaches_continuous_forward_without_false_primary_veto(settings):
+    import cv2
+    from carvision.cone_road import ConeRoadContext
+    from carvision.cone_vision import BlueConeDetector,ImageConeTracker
+    s=trial_settings(settings);s['scene']['surface']='indoor_white_line_track'
+    navigator=DualLowSpeedNavigator(s);images={};rows={}
+    for camera in ('primary','secondary'):
+        image=cv2.imdecode(np.frombuffer((ROOT/f'tests/fixtures/cone-track-glare-{camera}.jpg').read_bytes(),np.uint8),1)
+        images[camera]=image
+        detections,mask=BlueConeDetector(s).detect(image)
+        road=ConeRoadContext(s,camera);context=road.inspect(image,mask)
+        road.enrich(detections,image,context);tracker=ImageConeTracker(camera,s)
+        for i in range(4):tracks=tracker.update(detections,i,3+i*.1)
+        rows[camera]={'frame_id':4,'captured_s':3.3,'road_context':context,'tracks':tracks}
+    nav=navigator.update_views(images,rows,3.3)
+    assert nav['ready'] and nav['source_camera']=='secondary',nav
+    assert nav['line_sources']==['secondary'] and not nav['line_held']
+    controller=LowSpeedController(s,0.)
+    intent=controller.step(nav,3.3)
+    assert intent['action']=='search' and intent['esc_us']==1600
+    assert intent['steering_us']==1690
+
+
 @pytest.mark.parametrize('case',['lost','near_edge','crossed','stale'])
 def test_white_line_or_frame_guard_stops_before_any_drive(settings,case):
     data=row();now=1.
