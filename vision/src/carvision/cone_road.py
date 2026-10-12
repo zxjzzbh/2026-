@@ -5,6 +5,7 @@ from dataclasses import replace
 
 from .config import load_config
 from .lane import LaneDetector
+from .cone_boundaries import adaptive_inner_edges
 
 
 def red_mask(image):
@@ -51,6 +52,12 @@ class ConeRoadContext:
                 l=inner_edge(white,*lp,1);r=inner_edge(white,*rp,-1)
                 if l and r and l[0]<r[0]:left.append(l);right.append(r)
         enough=lane.valid and len(left)>=max(6,len(lane.left)*.65)
+        diagnostics={'detector':'fixed_band','baseline_reason':lane.reason,'support_rows':len(left)}
+        if not enough:
+            adaptive_left,adaptive_right,adaptive_white,diagnostics=adaptive_inner_edges(image,blue_mask,self.lane.config)
+            diagnostics['baseline_reason']=lane.reason
+            if adaptive_left:
+                left,right,white=adaptive_left,adaptive_right,adaptive_white;enough=True
         region=np.zeros(image.shape[:2],np.uint8)
         if enough:
             cv2.fillPoly(region,[np.asarray(left+right[::-1],np.int32)],255)
@@ -64,6 +71,7 @@ class ConeRoadContext:
         require_red=self.s.get('scene',{}).get('surface','red_running_track')!='indoor_white_line_track'
         valid=bool(enough and (red_supported or not require_red))
         return {'valid':valid,'white_lines_detected':bool(enough),'red_ground_supported':red_supported,
+                'boundary_diagnostics':diagnostics,
                 'red_ground_required':require_red,
                 'red_ground_fraction':ratio,'left_inner':left if enough else [],'right_inner':right if enough else [],
                 'reason':('white_inner_edges_on_red_track' if require_red else 'white_inner_edges_on_indoor_track') if valid else 'red_ground_not_confirmed' if enough else lane.reason if not lane.valid else 'white_inner_edges_incomplete',

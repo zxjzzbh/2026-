@@ -112,7 +112,7 @@ class ConeRun:
                 navigation and navigation.get('experimental') and navigation.get('lane_bounds_px'))
             if self.actuator is None:
                 if not fresh or not feedback_ok:
-                    if now-self.prepared_s>5:raise ValueError('未取得可信跑道与位移反馈，准备失败')
+                    if now-self.prepared_s>5:raise ValueError('等待任一路可靠白线超时，准备未完成' if self.profile==PROFILE else '未取得可信跑道与位移反馈，准备失败')
                     return
                 token=self.token;handle=self.factory(self.s)
                 if not self.active or self.token!=token:

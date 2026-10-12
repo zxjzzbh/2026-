@@ -105,7 +105,7 @@ class LowSpeedNavigator:
             if not track.get('confirmed') or not track.get('ground_contact_usable') or track.get('clipped'):
                 result['uncertain'].append(track['id']);continue
             entry={'id':track['id'],'fraction':(x-left)/width,'half_width':max((x2-x1)/width/2,g['cone_base_width_m']/g['lane_width_m']/2),
-                   'y_fraction':float(y/h),'near':bool(y>=y1*.94),'bbox_xyxy':track['bbox_xyxy'],
+                   'y_fraction':float(y/h),'near':bool(y>=max(y1*.94,h*.60)),'bbox_xyxy':track['bbox_xyxy'],
                    'image_close':bool(y/h>=(.95 if self.camera=='primary' else .70)),
                    'other_close':bool(y/h>=(.95 if self.camera=='primary' else .65)),
                    'reference_distance_m':None}

@@ -68,6 +68,15 @@ def test_real_image_pipeline_uses_observed_white_lines_without_metric_extrapolat
     assert json.loads(json.dumps(result,allow_nan=False))['cones'][0]['near'] is False
 
 
+def test_higher_visible_white_band_does_not_make_far_cone_a_pass_event(settings):
+    nav=LowSpeedNavigator(trial_settings(settings));data=row()
+    data['road_context']['left_inner']=[[100.,y] for y in np.linspace(140,215,12)]
+    data['road_context']['right_inner']=[[380.,y] for y in np.linspace(140,215,12)]
+    data['tracks'][0]['foot_pixel']=[290.,210.]
+    result=nav.update(np.zeros((360,480,3),np.uint8),data,1.)
+    assert result['ready'] and not result['cones'][0]['near']
+
+
 @pytest.mark.parametrize('case',['lost','near_edge','crossed','stale'])
 def test_white_line_or_frame_guard_stops_before_any_drive(settings,case):
     data=row();now=1.

@@ -22,15 +22,15 @@ from carvision.brake_controls import extend_controls as brake
 from carvision.traffic_controls import extend_controls as traffic
 from carvision.cone_controls import extend_controls as cones
 
-MODULES=('cone_vision','cone_road','cone_planning','cone_slalom','cone_navigation','cone_low_speed','cone_trial_output','cone_execution','cone_short_output','cone_short_trial','cone_observer','cone_controls')
-FIXTURES=['vision/tests/fixtures/'+p.name for p in (ROOT/'vision/tests/fixtures').glob('cone*.jpg')]
+MODULES=('cone_vision','cone_boundaries','cone_road','cone_planning','cone_slalom','cone_navigation','cone_low_speed','cone_trial_output','cone_execution','cone_short_output','cone_short_trial','cone_observer','cone_controls')
+FIXTURES=['vision/tests/fixtures/'+p.name for p in (ROOT/'vision/tests/fixtures').glob('cone*.jpg')]+['vision/tests/fixtures/cone-white-mask-20261012.png']
 FILES=['vision/src/carvision/'+n+'.py' for n in MODULES]+[
     'vision/configs/cone-trial.json','vision/configs/cone-ground-template.json','vision/configs/cone-primary-ground-reference.json','vision/tools/serve_crosswalk_trial.py',
-    'vision/tools/cone_trial.py','vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_short.py','vision/tests/test_cone_slalom.py','vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py','vision/CONE_TEST.md']+FIXTURES
+    'vision/tools/cone_trial.py','vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_short.py','vision/tests/test_cone_slalom.py','vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py','vision/tests/test_cone_boundaries.py','vision/CONE_TEST.md']+FIXTURES
 SHORT_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_short_output','cone_short_trial','cone_observer','cone_controls')]+[
     'vision/tests/test_cone_short.py','vision/configs/cone-legacy-ground-candidate.json','vision/CONE_TEST.md']
-SLALOM_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_planning','cone_slalom','cone_execution','cone_controls','cone_road','cone_navigation','cone_low_speed','cone_trial_output','cone_observer')]+[
-    'vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_slalom.py','vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py','vision/configs/cone-primary-ground-reference.json','vision/CONE_TEST.md']
+SLALOM_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_planning','cone_slalom','cone_execution','cone_controls','cone_boundaries','cone_road','cone_navigation','cone_low_speed','cone_trial_output','cone_observer')]+[
+    'vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_slalom.py','vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py','vision/tests/test_cone_boundaries.py','vision/tests/fixtures/cone-white-mask-20261012.png','vision/configs/cone-primary-ground-reference.json','vision/CONE_TEST.md']
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
     'vision/src/carvision/'+n+'.py' for n in ('traffic_driving','traffic_trial','traffic_controls','traffic_signal',
         'traffic_voting','brake_output','autonomy_profile','config','lane','traffic_preview',
@@ -138,7 +138,7 @@ def main():
             put_atomic(sftp,REMOTE+'/'+rel,(ROOT/rel).read_bytes());changed.append(rel)
         tests=['test_cone_trial.py','test_cone_navigation.py','test_cone_short.py','test_traffic_trial.py','test_traffic_driving.py','test_traffic_voting.py',
                'test_brake_trial.py','test_brake_parking_program.py','test_parking_speech.py']
-        if not args.short_test_only:tests+=['test_cone_slalom.py','test_cone_low_speed.py','test_cone_trial_output.py']
+        if not args.short_test_only:tests+=['test_cone_slalom.py','test_cone_low_speed.py','test_cone_trial_output.py','test_cone_boundaries.py']
         sample_path=remote_backup+'/cone-trial.repository.json'
         put_atomic(sftp,sample_path,(ROOT/'vision/configs/cone-trial.json').read_bytes())
         # Deployment tools belong to the PC. Provide reference sources only

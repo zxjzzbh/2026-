@@ -159,7 +159,8 @@ function renderCone(s){
  const fresh=coneActive&&c.frame_age_s!=null&&c.frame_age_s>=0&&c.frame_age_s<=.25;
  el('cone-cameras').textContent=fresh?Object.entries(c.latest?.cameras||{}).map(([key,v])=>{
   const visible=v.tracks.filter(t=>t.visible),confirmed=visible.filter(t=>t.confirmed&&t.kind==='cone_candidate');
-  return (key==='secondary'?'第二路 H65':'第一路')+'：已确认 '+confirmed.length+' 个，待判断 '+visible.filter(t=>t.kind==='unresolved_blue').length+' 处；白线内边界'+(v.lane_valid?'已识别':'未确认')+'；红色地面 '+Math.round((v.road_context?.red_ground_fraction??0)*100)+'%';
+  const bd=v.road_context?.boundary_diagnostics,detail=bd?('（'+(bd.detector==='adaptive_paired_rows'?'自适应':'固定')+'取样，有效配对 '+bd.support_rows+' 行）'):'';
+  return (key==='secondary'?'第二路 H65':'第一路')+'：已确认 '+confirmed.length+' 个，待判断 '+visible.filter(t=>t.kind==='unresolved_blue').length+' 处；白线内边界'+(v.lane_valid?'已识别':'未确认')+detail+'；红色地面 '+Math.round((v.road_context?.red_ground_fraction??0)*100)+'%';
  }).join(' / '):'尚无新鲜识别结果';
  const names={'geometry.rear_axle_to_front_m':'后轴到车头距离','geometry.rear_overhang_m':'后悬长度','geometry.clearance_m':'车身与障碍余量','geometry.measured':'完整车辆尺寸',
   'ground.verified_mapping':'已有地面标定的当前姿态／白线覆盖复核','ground.max_error_m':'已有地面标定的当前姿态／白线覆盖复核','motion.minimum_turn_radius_m':'实测转弯半径','motion.maximum_tracking_error_m':'允许路径偏差','motion.braking_distance_m':'实测制动距离','motion.verified':'转向和制动实测确认','motion.pose_feedback_verified':'光流位移实测确认',
