@@ -93,3 +93,21 @@ def test_primary_cabinet_edges_above_track_do_not_become_white_line_danger(setti
     result=ConeRoadContext(settings,'primary').inspect(image,np.zeros(image.shape[:2],np.uint8))
     for side in ('left_inner','right_inner'):
         assert all(p[1]>=image.shape[0]*.60 for p in result[side])
+
+
+def test_clear_live_short_visible_pair_is_accepted_with_stronger_shape_checks(settings):
+    image=cv2.imdecode(np.frombuffer((ROOT/'tests/fixtures/cone-track-short-secondary.jpg').read_bytes(),np.uint8),1)
+    road=ConeRoadContext(settings);result=road.inspect(image,np.zeros(image.shape[:2],np.uint8))
+    assert result['valid'],result['boundary_diagnostics']
+    d=result['boundary_diagnostics']
+    assert d['short_span_checked'] and d['support_rows']>=10
+    span=np.ptp(np.asarray(result['left_inner'])[:,1])
+    assert image.shape[0]*.09<=span<image.shape[0]*.12
+
+
+def test_short_parallel_bright_marks_cannot_use_short_span_exception(settings):
+    image=np.full((360,480,3),(35,100,35),np.uint8)
+    cv2.line(image,(100,190),(100,224),(255,255,255),5)
+    cv2.line(image,(380,190),(380,224),(255,255,255),5)
+    result=ConeRoadContext(settings).inspect(image,np.zeros(image.shape[:2],np.uint8))
+    assert not result['valid']

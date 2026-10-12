@@ -61,17 +61,19 @@ class LowSpeedNavigator:
         if not 0<=now-t<=.25:return fail('第二路图像过期')
         road=row['road_context']
         if not road.get('valid'):return fail('左右白线未同时确认，保持停车')
+        short_pair=(road.get('boundary_diagnostics') or {}).get('short_span_checked') is True
+        minimum_span=h*(.09 if short_pair else .10)
         edges=[]
         for key in ('left_inner','right_inner'):
             points=np.asarray(road.get(key,[]),float)
             if points.ndim!=2 or points.shape[0]<6 or points.shape[1]!=2 or not np.isfinite(points).all():
                 return fail('白线点不足')
             fit=np.polyfit(points[:,1],points[:,0],1)
-            if np.ptp(points[:,1])<h*.10 or np.max(np.abs(np.polyval(fit,points[:,1])-points[:,0]))>8:
+            if np.ptp(points[:,1])<minimum_span or np.max(np.abs(np.polyval(fit,points[:,1])-points[:,0]))>8:
                 return fail('白线形状不稳定，仅支持直道低速试验')
             edges.append((fit,points[:,1].min(),points[:,1].max()))
         y0=max(p[1] for p in edges);y1=min(p[2] for p in edges)
-        if y1-y0<h*.10:return fail('左右白线共同可见范围不足')
+        if y1-y0<minimum_span:return fail('左右白线共同可见范围不足')
         def corridor(y):return [float(np.polyval(e[0],y)) for e in edges]
         # Short image-space extension of observed straight edges, not extension
         # of the old metric calibration polygon. The bonnet is excluded.

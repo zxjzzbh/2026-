@@ -166,7 +166,10 @@ function renderCone(s){
  const fresh=coneActive&&c.frame_age_s!=null&&c.frame_age_s>=0&&c.frame_age_s<=.25;
  el('cone-cameras').textContent=fresh?Object.entries(c.latest?.cameras||{}).map(([key,v])=>{
   const visible=v.tracks.filter(t=>t.visible),confirmed=visible.filter(t=>t.confirmed&&t.kind==='cone_candidate');
-  const bd=v.road_context?.boundary_diagnostics,detail=bd?('（'+(bd.detector==='adaptive_paired_rows'?'自适应':'固定')+'取样，有效配对 '+bd.support_rows+' 行）'):'';
+  const bd=v.road_context?.boundary_diagnostics;
+  const why={too_few_observed_pairs:'白线配对点不足',no_continuous_boundary_pair:'白色候选未组成连续双边界',short_boundary_pair_not_strong_enough:'短视野线形尚不可靠',insufficient_refined_support:'连续边界长度不足',boundary_pair_has_large_gap:'边界中断过长'};
+  const span=bd?.observed_y_range?Math.round(bd.observed_y_range[1]-bd.observed_y_range[0]):null;
+  const detail=bd?('（有效配对 '+bd.support_rows+' 行'+(span!=null?'，共同可见 '+span+' 像素':'')+(bd.short_span_checked?'，短视野已确认':'')+(!v.lane_valid&&why[bd.reason]?'；'+why[bd.reason]:'')+'）'):'';
   return (key==='secondary'?'第二路 H65':'第一路')+'：已确认 '+confirmed.length+' 个，待判断 '+visible.filter(t=>t.kind==='unresolved_blue').length+' 处；白线内边界'+(v.lane_valid?'已识别':'未确认')+detail+'；红色地面 '+Math.round((v.road_context?.red_ground_fraction??0)*100)+'%';
  }).join(' / '):'尚无新鲜识别结果';
  const names={'geometry.rear_axle_to_front_m':'后轴到车头距离','geometry.rear_overhang_m':'后悬长度','geometry.clearance_m':'车身与障碍余量','geometry.measured':'完整车辆尺寸',

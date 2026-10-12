@@ -32,7 +32,7 @@ def adaptive_inner_edges(image,blue_mask,config):
           'roi_top':config.roi_top,'white_v_min':config.white_v_min,'white_s_max':config.white_s_max}
     if len(pairs)<8:return [],[],mask,{**diag,'reason':'too_few_observed_pairs'}
     data=np.asarray(pairs,float);ys=data[:,0];groups=np.unique(ys,return_index=True)[1]
-    tolerance=max(2.5,w*.007);required_span=h*.12;best=None
+    tolerance=max(2.5,w*.007);required_span=h*.09;best=None
     rng=np.random.default_rng(20261012)
     # Deterministic bounded hypotheses keep performance and frame-to-frame
     # behavior repeatable. Both sides share the very same inlier rows.
@@ -48,6 +48,11 @@ def adaptive_inner_edges(image,blue_mask,config):
         if count<8:continue
         span=float(np.ptp(ys[good]))
         if span<required_span or count/(span/step+1)<.65:continue
+        # Nearby tape can leave the image sides after only 33–42 px of
+        # shared support at 360p. Accept that shorter band only with dense,
+        # outward-diverging pairs; short posts/glare are not a corridor.
+        if span<h*.12 and (count<10 or count/(span/step+1)<.8
+                           or slopes[0]>=-.25 or slopes[1]<=.25):continue
         score=(count,span,-float(np.median(residual[good])))
         if best is None or score>best[0]:best=(score,residual)
     if best is None:return [],[],mask,{**diag,'reason':'no_continuous_boundary_pair'}
@@ -67,7 +72,15 @@ def adaptive_inner_edges(image,blue_mask,config):
         return [],[],mask,{**diag,'reason':'insufficient_refined_support'}
     if np.max(np.diff(selected[:,0]))>h*.06:
         return [],[],mask,{**diag,'reason':'boundary_pair_has_large_gap'}
+    short_span=bool(np.ptp(selected[:,0])<h*.12)
+    if short_span:
+        fit=np.polyfit(selected[:,0],selected[:,1:],1)
+        err=np.max(np.abs(selected[:,1:]-(selected[:,0,None]*fit[0]+fit[1])))
+        density=len(selected)/(np.ptp(selected[:,0])/step+1)
+        if len(selected)<10 or density<.8 or fit[0,0]>=-.25 or fit[0,1]<=.25 or err>max(2.,w*.005):
+            return [],[],mask,{**diag,'reason':'short_boundary_pair_not_strong_enough'}
     left=[[float(l),float(y)] for y,l,r in selected]
     right=[[float(r),float(y)] for y,l,r in selected]
     return left,right,mask,{**diag,'support_rows':len(left),'reason':'observed_adaptive_inner_edges',
+                            'short_span_checked':short_span,
                             'observed_y_range':[float(selected[0,0]),float(selected[-1,0])]}

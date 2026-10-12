@@ -100,6 +100,22 @@ def test_live_glare_pair_reaches_continuous_forward_without_false_primary_veto(s
     assert intent['steering_us']==1690
 
 
+def test_live_short_visible_pair_reaches_driving_pipeline(settings):
+    import cv2
+    from carvision.cone_road import ConeRoadContext
+    from carvision.cone_vision import BlueConeDetector,ImageConeTracker
+    s=trial_settings(settings);s['scene']['surface']='indoor_white_line_track'
+    image=cv2.imdecode(np.frombuffer((ROOT/'tests/fixtures/cone-track-short-secondary.jpg').read_bytes(),np.uint8),1)
+    detections,mask=BlueConeDetector(s).detect(image);road=ConeRoadContext(s)
+    context=road.inspect(image,mask);road.enrich(detections,image,context);tracker=ImageConeTracker('secondary',s)
+    for i in range(4):tracks=tracker.update(detections,i,3+i*.1)
+    data={'frame_id':4,'captured_s':3.3,'road_context':context,'tracks':tracks}
+    nav=DualLowSpeedNavigator(s).update_views({'secondary':image},{'secondary':data},3.3)
+    assert nav['ready'] and not nav.get('boundary_danger'),nav
+    result=LowSpeedController(s,0.).step(nav,3.3)
+    assert result['action']=='search' and result['esc_us']==1600
+
+
 @pytest.mark.parametrize('case',['lost','near_edge','crossed','stale'])
 def test_white_line_or_frame_guard_stops_before_any_drive(settings,case):
     data=row();now=1.
