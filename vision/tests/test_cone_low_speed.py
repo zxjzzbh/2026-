@@ -1,0 +1,193 @@
+"""Bounded supervised trial regressions; no vehicle or actuator is opened."""
+import copy
+import json
+import os
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from carvision.cone_low_speed import PROFILE,trial_settings,LowSpeedNavigator,LowSpeedController
+from carvision.cone_navigation import reuse_legacy_ground,execution_readiness
+from carvision.cone_planning import load_settings
+from carvision.cone_execution import ConeRun
+
+ROOT=Path(__file__).parents[1]
+
+
+@pytest.fixture
+def settings():
+    s=load_settings(Path(os.environ.get('CARVISION_REPOSITORY_CONE_CONFIG',ROOT/'configs/cone-trial.json')))
+    reference=json.loads((ROOT/'configs/cone-legacy-ground-candidate.json').read_text(encoding='utf-8'))
+    s=reuse_legacy_ground(s,reference);s['geometry']['lane_width_m']=1.25
+    return s
+
+
+def observation(t,cones=None,**kwargs):
+    cone={'id':'one','fraction':.66,'half_width':.03,'near':True,'y_fraction':.60,
+          'reference_distance_m':None,'bbox_xyxy':[290,190,305,217]}
+    return {'experimental':True,'ready':True,'captured_s':t,'frame_id':round(t*100),
+            'ego_fraction':.5,'half_envelope':.20,'cones':[cone] if cones is None else cones,
+            'lane_bounds_px':[[100,380],[50,430]],'uncertain':[],**kwargs}
+
+
+def row(t=1.,fid=1):
+    return {'captured_s':t,'frame_id':fid,'road_context':{'valid':True,
+        'left_inner':[[100.,y] for y in np.linspace(180,260,12)],
+        'right_inner':[[380.,y] for y in np.linspace(180,260,12)]},
+        'tracks':[{'id':'one','visible':True,'confirmed':True,'ground_contact_usable':True,
+                   'clipped':False,'foot_pixel':[290,210],'bbox_xyxy':[281,181,300,217]}]}
+
+
+def test_profile_uses_reported_limits_without_changing_verified_flags(settings):
+    before=copy.deepcopy(settings);s=trial_settings(settings)
+    assert settings==before and not execution_readiness(s)['ready']
+    assert s['driving']['forward_us']==1600 and s['low_speed_test']['stopping_budget_m']==.27
+    assert not s['motion']['verified'] and not s['ground']['verified']
+
+
+@pytest.mark.parametrize('values',[{'test_forward_us':1601},{'test_forward_us':True},
+    {'test_burst_s':.5},{'test_burst_s':float('nan')}])
+def test_trial_cannot_expand_actuator_envelope(settings,values):
+    with pytest.raises(ValueError):trial_settings(settings,values)
+
+
+def test_no_history_does_not_silently_use_pixel_defaults(settings):
+    settings['ground']['historical_verified']=False
+    with pytest.raises(ValueError):trial_settings(settings)
+
+
+def test_real_image_pipeline_uses_observed_white_lines_without_metric_extrapolation(settings):
+    nav=LowSpeedNavigator(trial_settings(settings));data=row()
+    result=nav.update(np.zeros((360,480,3),np.uint8),data,1.)
+    assert result['ready'] and len(result['cones'])==1
+    assert result['cones'][0]['reference_distance_m'] is None
+    assert not result['field_verified'] and not result['metric_boundary_verified']
+    assert json.loads(json.dumps(result,allow_nan=False))['cones'][0]['near'] is False
+
+
+@pytest.mark.parametrize('case',['lost','near_edge','crossed','stale'])
+def test_white_line_or_frame_guard_stops_before_any_drive(settings,case):
+    data=row();now=1.
+    if case=='lost':data['road_context']['valid']=False
+    if case=='near_edge':data['road_context']['left_inner']=[[225.,y] for y in np.linspace(180,260,12)]
+    if case=='crossed':data['road_context']['left_inner']=[[400.,y] for y in np.linspace(180,260,12)]
+    if case=='stale':now=1.4
+    result=LowSpeedNavigator(trial_settings(settings)).update(np.zeros((360,480,3),np.uint8),data,now)
+    assert not result['ready'] and result['action']=='stop'
+
+
+def test_ambiguous_blue_in_corridor_cannot_be_ignored(settings):
+    data=row();data['tracks'][0]['ground_contact_usable']=False
+    result=LowSpeedNavigator(trial_settings(settings)).update(np.zeros((360,480,3),np.uint8),data,1.)
+    assert not result['ready'] and result['uncertain']==['one']
+
+
+def test_single_burst_deadline_is_not_extended_by_fresh_frames(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    assert ctl.step(observation(1),1)['action']=='neutral'
+    assert ctl.step(observation(3.01),3.01)['action']=='search'
+    for t in (3.08,3.16,3.24):assert ctl.step(observation(t),t)['action']=='search'
+    stopped=ctl.step(observation(3.27),3.27)
+    assert stopped['action']=='brake' and stopped['esc_us']==1400
+    assert ctl.step(observation(3.40),3.40)['action']=='neutral'
+    assert ctl.step(observation(3.8),3.8)['action']=='neutral'
+    assert ctl.step(observation(4.0),4.0)['action']=='search'
+
+
+@pytest.mark.parametrize('case',['freshness','white','early_loss','close_cone','other_cone'])
+def test_runtime_hazards_interrupt_powered_segment(settings,case):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    first=observation(3.01)
+    if case=='early_loss':first['cones'][0]['near']=False
+    ctl.step(first,3.01);data=observation(3.1)
+    if case=='freshness':data['captured_s']=2.
+    if case=='white':data.pop('lane_bounds_px')
+    if case=='early_loss':data['cones']=[]
+    if case=='close_cone':data['cones'][0].update(y_fraction=.72,fraction=.55)
+    if case=='other_cone':data['cones'].append({**data['cones'][0],'id':'two','y_fraction':.7,'fraction':.5})
+    with pytest.raises(ValueError):ctl.step(data,3.1)
+
+
+def test_disappearance_never_automatically_counts_pass_and_next_side_alternates(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    ctl.step(observation(3.01),3.01)
+    for t in np.arange(3.06,15,.05):
+        ctl.step(observation(float(t),cones=[]),float(t))
+        if ctl.phase=='review':break
+    assert ctl.phase=='review' and ctl.count==0
+    assert ctl.tail_powered<1.1
+    assert ctl.step(observation(15.,cones=[]),15.)['action']=='neutral'
+    ctl.confirm_pass();assert ctl.count==1
+    next_cone={'id':'two','fraction':.34,'half_width':.03,'near':False,
+               'y_fraction':.55,'reference_distance_m':None}
+    intent=ctl.step(observation(15.1,cones=[next_cone]),15.1)
+    assert intent['action']=='search' and ctl.side=='right'
+    with pytest.raises(ValueError):ctl.confirm_pass()
+
+
+def test_power_and_wall_clock_limits_stop_the_trial(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    ctl.powered_s=4.
+    with pytest.raises(ValueError,match='累计前进'):ctl.step(observation(3.1),3.1)
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    with pytest.raises(ValueError,match='时限'):ctl.step(observation(61.),61.)
+
+
+class Actuator:
+    run=True
+    def __init__(self):self.intents=[];self.closed=False
+    def send(self,intent):self.intents.append(intent);return {'hardware_output':True}
+    def close(self):self.closed=True
+
+
+def test_experimental_session_is_exclusive_leased_and_never_implicitly_starts(settings,tmp_path):
+    created=[]
+    def factory(s):
+        a=Actuator();created.append(a);return a
+    run=ConeRun(factory,tmp_path)
+    base={'mode':'disabled','boot_test_phase':'esc_off','setup_token':'test-setup'}
+    payload={'profile':PROFILE,'client':'page','setup_token':'test-setup','esc_off':True,'fb_mode_confirmed':True}
+    run.prepare(settings,base,payload,1.)
+    assert not created
+    run.tick(observation(1.1),1.1)
+    assert created[0].intents[-1]['action']=='neutral'
+    assert run.status(settings,base,1.1)['can_start']
+    with pytest.raises(ValueError):run.command('cone_start',{'client':'other','run_token':run.token,'trial_sequence':1},1.2)
+    run.command('cone_start',{'client':'page','run_token':run.token,'trial_sequence':1,
+        'fb_mode_confirmed':True,'esc_on_static':True,'field_ready':True},1.2)
+    run.tick(observation(1.3),1.3)
+    assert all(i['action']=='neutral' for i in created[0].intents)
+    run.tick(observation(1.8),1.8)
+    assert not run.active and created[0].closed and run.phase=='fault'
+    with pytest.raises(ValueError):run.command('cone_start',{},2.)
+
+
+def test_normal_mode_still_requires_calibration(settings,tmp_path):
+    run=ConeRun(lambda _:pytest.fail('must not open actuator'),tmp_path)
+    base={'mode':'disabled','boot_test_phase':'esc_off','setup_token':'x'}
+    with pytest.raises(ValueError,match='标定未完成'):
+        run.prepare(settings,base,{'client':'page','setup_token':'x','esc_off':True,'fb_mode_confirmed':True},1.)
+
+
+def test_low_speed_buttons_use_own_prepared_session_and_manual_pass_confirmation():
+    import os,shutil,subprocess
+    from carvision.cone_controls import STATE,SCRIPT
+    node=os.environ.get('SMARTCAR_NODE') or shutil.which('node')
+    if not node:pytest.skip('Node is required for actual page render logic')
+    source=STATE+SCRIPT[:SCRIPT.index('async function coneAction')]
+    js=r'''
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict'),nodes=new Map();
+const env={stale:false,client:'page',held:new Set(),gamepadControl:null,document:{querySelectorAll(){return []}},el(id){
+ if(!nodes.has(id))nodes.set(id,{disabled:false,dataset:{},textContent:'',addEventListener(){}});return nodes.get(id)}};
+vm.createContext(env);vm.runInContext(JSON.parse(fs.readFileSync(0,'utf8')).source,env);
+function render(owner,canStart,review){env.renderCone({cone_trial:{low_speed_trial_available:true,avoidance:{
+ active:true,can_prepare:false,profile:'legacy_low_speed',owner_client:owner,can_request_start:canStart,
+ low_speed_test:{can_confirm_pass:review,operator_confirmed_count:0}},readiness:{ready:false,missing:['ground.verified_mapping']}}});}
+render('page',true,false);assert(!env.el('cone-test-start').disabled);assert(env.el('cone-drive-start').disabled);
+assert(env.el('cone-test-confirm').disabled);render('page',false,true);assert(!env.el('cone-test-confirm').disabled);
+render('other',true,true);assert(env.el('cone-test-start').disabled);assert(env.el('cone-test-confirm').disabled);
+console.log('Experimental controls preserve ownership; no motion sent');
+'''
+    result=subprocess.run([node,'-e',js],input=json.dumps({'source':source}),text=True,encoding='utf-8',capture_output=True,timeout=10)
+    assert result.returncode==0,result.stdout+result.stderr

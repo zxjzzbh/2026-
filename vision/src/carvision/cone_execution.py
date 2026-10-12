@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .brake_output import BrakeActuator
 from .cone_navigation import execution_readiness,actuator_settings,ConeDrivingController
+from .cone_low_speed import PROFILE,trial_settings,LowSpeedController
 
 
 def base_idle(base):
@@ -22,28 +23,39 @@ class ConeRun:
         self.owner=self.token=None;self.sequence=-1;self.lease_until=0.;self.prepared_s=0.
         self.s=self.controller=self.navigation=self.intent=self.execution=None
         self.log_root=Path(log_root) if log_root else None;self.folder=self.log=None;self.last_record=None
+        self.profile='calibrated'
 
     def status(self,settings,base,now):
         ready=execution_readiness(settings);nav=self.navigation or {}
         can_start=(self.active and self.phase=='ready' and nav.get('action')=='follow_candidate_path'
             and 0<=now-nav.get('captured_s',-1e9)<=.25 and abs((nav.get('motion') or {}).get('speed_mps',1))<=.025)
+        if self.profile==PROFILE:
+            can_start=(self.active and self.phase=='ready' and nav.get('experimental') and nav.get('ready')
+                       and bool(nav.get('cones')) and 0<=now-nav.get('captured_s',-1e9)<=.25)
         return {'active':self.active,'phase':self.phase,'reason':self.reason,'owner_client':self.owner,'run_token':self.token,
+            'profile':self.profile,'low_speed_test':self.controller.progress() if isinstance(self.controller,LowSpeedController) else None,
             'can_prepare':not self.active and base_idle(base),'can_start':can_start,
             'can_request_start':self.active and self.phase=='ready',
             'hardware_output':bool(self.actuator and getattr(self.actuator,'run',False)),
             'readiness':ready,'intent':self.intent,'field_verified':False,'log_directory':str(self.folder) if self.folder else None,
             'slalom_required':True,'slalom':nav.get('slalom'),
-            'start_blocked_reason':'' if can_start else '需要完成标定、确认两桶与左右白线、得到交错路线与静止反馈'}
+            'start_blocked_reason':'' if can_start else ('需要新鲜左右白线和前方蓝桶，保持 F/B 并确认静止' if self.profile==PROFILE
+                else '需要完成标定、确认两桶与左右白线、得到交错路线与静止反馈')}
 
     def prepare(self,settings,base,payload,now):
         if self.active or not base_idle(base):raise ValueError('先结束当前遥控、斑马线或红绿灯测试')
-        report=execution_readiness(settings)
-        if not report['ready']:raise ValueError('避障标定未完成：'+', '.join(report['missing']))
+        profile=payload.get('profile','calibrated')
+        if profile not in ('calibrated',PROFILE):raise ValueError('未知避障测试类型')
+        candidate=trial_settings(settings,payload) if profile==PROFILE else copy.deepcopy(settings)
+        if profile!='legacy_low_speed':
+            report=execution_readiness(settings)
+            if not report['ready']:raise ValueError('避障标定未完成：'+', '.join(report['missing']))
         if payload.get('setup_token')!=base.get('setup_token'):raise ValueError('页面已变化，请刷新')
         if payload.get('esc_off') is not True or payload.get('fb_mode_confirmed') is not True:raise ValueError('准备时电调关闭、保持 F/B')
         client=payload.get('client')
         if not isinstance(client,str) or not 1<=len(client)<=128:raise ValueError('页面身份无效')
-        self.s=copy.deepcopy(settings);self.active=True;self.phase='preparing';self.reason='等待新鲜跑道画面与地面位移反馈'
+        self.s=candidate;self.profile=profile;self.active=True;self.phase='preparing'
+        self.reason='等待新鲜白线与蓝桶；旧数据短段试验' if profile==PROFILE else '等待新鲜跑道画面与地面位移反馈'
         self.owner,self.token=client,secrets.token_hex(16);self.sequence=-1;self.lease_until=now+.5;self.prepared_s=now
         self.controller=self.navigation=self.intent=self.execution=None
         if self.log_root:
@@ -62,12 +74,19 @@ class ConeRun:
         if type(sequence) is not int or sequence<=self.sequence:raise ValueError('old or invalid cone sequence')
         if action=='cone_start':
             nav=self.navigation or {}
-            if (self.phase!='ready' or nav.get('action')!='follow_candidate_path'
+            acceptable=(nav.get('experimental') and nav.get('ready') and bool(nav.get('cones'))) if self.profile==PROFILE else (
+                nav.get('action')=='follow_candidate_path' and abs((nav.get('motion') or {}).get('speed_mps',1))<=.025)
+            if (self.phase!='ready' or not acceptable
                     or not 0<=now-nav.get('captured_s',-1e9)<=.25
-                    or abs((nav.get('motion') or {}).get('speed_mps',1))>.025):
-                raise ValueError('暂不能开始：需要左右白线、新鲜可通过路线及静止反馈')
+                    ):
+                raise ValueError('暂不能开始：需要新鲜白线和可通过的蓝桶画面')
             if any(payload.get(k) is not True for k in ('fb_mode_confirmed','esc_on_static','field_ready')):raise ValueError('开始前需 F/B、电调打开且静止、场地就绪')
-            self.controller=ConeDrivingController(self.s,now);self.phase='arming';self.reason='3 秒中位后开始低速避障'
+            self.controller=LowSpeedController(self.s,now) if self.profile==PROFILE else ConeDrivingController(self.s,now)
+            self.phase='arming';self.reason='3 秒中位后开始低速避障'
+        elif action=='cone_test_confirm':
+            if not isinstance(self.controller,LowSpeedController) or payload.get('tail_passed') is not True:
+                raise ValueError('仅低速测试允许现场确认车尾通过')
+            self.controller.confirm_pass()
         elif action!='cone_keepalive':raise ValueError('未知避障请求')
         self.sequence=sequence;self.lease_until=now+.5
 
@@ -79,8 +98,10 @@ class ConeRun:
             self.navigation=navigation
             motion=(navigation or {}).get('motion') or {}
             fresh=navigation and 0<=now-navigation.get('captured_s',-1e9)<=.25
+            feedback_ok=bool(motion.get('valid')) if self.profile!=PROFILE else bool(
+                navigation and navigation.get('experimental') and navigation.get('lane_bounds_px'))
             if self.actuator is None:
-                if not fresh or not motion.get('valid'):
+                if not fresh or not feedback_ok:
                     if now-self.prepared_s>5:raise ValueError('未取得可信跑道与位移反馈，准备失败')
                     return
                 token=self.token;handle=self.factory(self.s)
@@ -89,7 +110,7 @@ class ConeRun:
                 self.actuator=handle
                 if not self.active:
                     handle.close();self.actuator=None;return
-            if not fresh or not motion.get('valid'):raise ValueError('图像／位移反馈失效，主动制动结束')
+            if not fresh or not feedback_ok:raise ValueError((navigation or {}).get('reason','图像／白线或位移反馈失效，主动制动结束'))
             if self.controller is None:
                 self.phase='ready';self.reason='准备完成，打开电调并确认静止后开始'
                 intent={'action':'neutral','esc_us':1500,'steering_us':1610,'phase':'ready','reason':self.reason}

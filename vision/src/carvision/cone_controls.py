@@ -21,6 +21,16 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <div class="cone-viewer"><img id="cone-preview" alt="实际双摄锥桶识别：左第一路，右第二路 H65" width="960" height="360" hidden>
 <span id="cone-placeholder">开始识别后显示真实画面</span></div>
 <p id="cone-cameras"></p>
+<details id="cone-low-speed-section" open><summary>旧数据 · 低速绕桶测试（无需重新标定）</summary>
+<p>沿用已有相机参考、车宽 29.5 cm、车长 42 cm、白线内宽 125 cm，以及此前约 17 cm 刹车记录。逐段前进、有限 F/B 刹车后重新看图；1570 右转／1650 左转。不会将估算参数标成已验证。</p>
+<div class="cone-settings"><label>测试油门（μs）<input id="cone-test-forward" type="number" min="1501" max="1600" step="1" value="1600"></label>
+<label>每段前进（秒）<input id="cone-test-burst" type="number" min="0.15" max="0.4" step="0.05" value="0.25"></label></div>
+<p>每段后制动 0.12 秒、中位观察 0.55 秒；本轮累计通电前进最多 4 秒，整个会话最多 60 秒。白线丢失、靠近边界、近处蓝桶挡路、画面或页面失联会停车。名义距离与转向仍属旧数据估计，不能保证实际不越线。</p>
+<div class="cone-actions"><button id="cone-test-prepare" type="button">准备低速测试（电调关闭）</button><button id="cone-test-start" type="button" disabled>开始低速绕桶</button></div>
+<button id="cone-test-confirm" type="button" disabled>车尾已过当前桶，继续</button>
+<button id="cone-test-stop" type="button">急停并结束本轮</button>
+<p id="cone-test-progress" role="status">准备后打开电调，确认车辆静止、场地就绪，再开始。第一桶离开近处视野后有限续行并停车，现场确认车尾已通过再处理第二桶；画面消失不会自动算通过。</p>
+</details>
 <details id="cone-short-section" open><summary>1570／1650 固定档转向与刹车短测</summary>
 <p>不需要先填车身尺寸或地面标定。两项转向短测会固定 S3 后低速前进画弧；刹车短测则以 1610 μs 回中直行。均自动限时制动，不是仅原地摆舵。</p>
 <div class="cone-settings">
@@ -112,13 +122,20 @@ function renderCone(s){
  el('cone-stop').disabled=stale||coneBusy||!coneActive;
  for(const id of [...coneInputs,'cone-save','cone-save-dimensions','cone-save-driving','cone-save-calibration','cone-calibration-json','cone-steering-verified','cone-odometry-verified'])el(id).disabled=stale||coneBusy||coneActive||coneDriveActive;
  el('cone-prepare').disabled=stale||coneBusy||!a.can_prepare;
- el('cone-drive-start').disabled=stale||coneBusy||!coneDriveOwned||!a.can_request_start;
+ const oldTrial=a.profile==='legacy_low_speed',trial=a.low_speed_test||{};
+ el('cone-drive-start').disabled=stale||coneBusy||!coneDriveOwned||!a.can_request_start||oldTrial;
+ el('cone-test-prepare').disabled=stale||coneBusy||!a.can_prepare||!c.low_speed_trial_available;
+ el('cone-test-start').disabled=stale||coneBusy||!coneDriveOwned||!a.can_request_start||!oldTrial;
+ el('cone-test-confirm').disabled=stale||coneBusy||!coneDriveOwned||!oldTrial||!trial.can_confirm_pass;
+ for(const id of ['cone-test-forward','cone-test-burst'])el(id).disabled=stale||coneBusy||coneDriveActive||coneShortActive;
+ if(oldTrial)el('cone-test-progress').textContent=(a.reason||'')+' · 已人工确认 '+(trial.operator_confirmed_count||0)+'/2'+(trial.side?' · 当前从'+(trial.side==='left'?'左':'右')+'侧绕过':'')+' · 累计前进指令 '+(trial.powered_s||0).toFixed(2)+' 秒';
  el('cone-drive-start').title=a.start_blocked_reason||'';
  el('cone-run-state').textContent=a.reason||'尚未准备避障';
  const nav=c.latest?.navigation,phases={needs_calibration:'待标定',calibration_only:'位移标定观察',waiting_for_feedback:'等待反馈',waiting_for_two_cones:'等待确认前方两只锥桶',pass_first_cone:'按指定侧绕第一桶',pass_second_cone:'换边绕第二桶',follow_lane:'低速循迹',avoid_cones:'绕行锥桶',return_to_lane:'回归赛道',waiting_for_clear_route:'没有可通过路线',complete:'交错绕桶完成',fault:'已停止'};
  const slalom=nav?.slalom||a.slalom;
  const slalomReasons={cones_too_close_for_alternation:'两桶前后间距不足，无法安排有顺序的换边',need_two_confirmed_cones_ahead:'需要先确认前方两只锥桶',no_feasible_alternating_route:'当前桶距、边界、视野或转弯半径不支持交错路线',slalom_wrong_side_or_clearance:'通过侧别或净空不符合要求',slalom_pose_discontinuity:'位移反馈不连续，请重新准备',slalom_cone_position_changed:'锥桶位置发生变化，请重新准备',slalom_wrong_order:'通过顺序不符合要求',slalom_pass_without_ordered_side_evidence:'缺少按顺序交错通过的位姿证据',slalom_reference_tracking_error:'车辆偏离选定路线，请重新准备',slalom_reference_view_unavailable:'选定路线超出当前可信视野',slalom_reference_blocked:'选定路线的车身净空或白线边界不满足要求',following_locked_alternating_route:'正在跟随选定交错路线',alternating_cones_passed_and_lane_recovered:'两桶已交错通过并回正',no_lane_recovery_route:'暂时没有可行的回正路线'};
  el('cone-slalom').textContent=slalom?.order?.length?('本轮顺序：'+slalom.order.map((p,i)=>(i+1)+'号桶（'+p.id+'）从'+(p.side==='left'?'左':'右')+'侧通过').join(' → ')+' · 已核验 '+(slalom.passed_ids?.length||0)+'/2'+(nav?.reason?' · '+(slalomReasons[nav.reason]||nav.reason):'')):(slalomReasons[nav?.reason]||'等待确认两只锥桶及交错路线');
+ if(oldTrial)el('cone-slalom').textContent='旧数据低速试验：白线实时保护，两桶选择相反侧；通过数量由现场确认，不是自动完赛判定。';
  el('cone-navigation').textContent=nav?((phases[nav.phase]||nav.phase)+' · '+(nav.reason||'')+(nav.side?' · 路线 '+({left:'向左',right:'向右',center:'居中'}[nav.side]||nav.side):'')+(nav.passed_ids?' · 已过 '+nav.passed_ids.length+'/2':'')+(nav.motion?.valid?' · 速度 '+nav.motion.speed_mps.toFixed(3)+' m/s · 位移 '+nav.motion.travel_m.toFixed(2)+' m':'')):'开始识别后显示选路、位移和通过计数';
  document.querySelectorAll('[data-cone-drive],[data-cone-motion]').forEach(input=>{
   input.disabled=stale||coneBusy||coneActive||coneDriveActive;
@@ -199,6 +216,19 @@ el('cone-drive-start').addEventListener('click',async()=>{
  catch(e){coneError=e.message;}finally{coneBusy=false;if(lastStatus)render(lastStatus);}
 });
 el('cone-drive-stop').addEventListener('click',()=>coneAction('cone_cancel'));
+el('cone-test-prepare').addEventListener('click',()=>{
+ for(const id of ['cone-test-forward','cone-test-burst'])if(!el(id).checkValidity()){el(id).reportValidity();return;}
+ coneSequence=0;coneAction('cone_prepare',{profile:'legacy_low_speed',esc_off:true,fb_mode_confirmed:true,
+  test_forward_us:Number(el('cone-test-forward').value),test_burst_s:Number(el('cone-test-burst').value)});
+});
+async function sendConeTest(action,body){
+ if(coneBusy)return;coneBusy=true;coneError='';if(lastStatus)render(lastStatus);
+ try{render(await coneRunSend(action,body));}catch(e){coneError=e.message;}
+ finally{coneBusy=false;if(lastStatus)render(lastStatus);}
+}
+el('cone-test-start').addEventListener('click',()=>sendConeTest('cone_start',{fb_mode_confirmed:true,esc_on_static:true,field_ready:true}));
+el('cone-test-confirm').addEventListener('click',()=>sendConeTest('cone_test_confirm',{tail_passed:true}));
+el('cone-test-stop').addEventListener('click',()=>stop('stop',false,'stop_button'));
 el('cone-short-prepare').addEventListener('click',()=>{
  coneShortSequence=0;coneAction('cone_short_prepare',{esc_off:true,fb_mode_confirmed:true});
 });

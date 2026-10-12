@@ -19,6 +19,7 @@ from .cone_road import ConeRoadContext
 from .cone_navigation import (ConeNavigator,driving_settings,validate_driving,execution_readiness,import_ground_calibration,reuse_legacy_ground)
 from .cone_execution import ConeRun
 from .cone_short_trial import ConeShortRun
+from .cone_low_speed import PROFILE,LowSpeedNavigator
 
 
 class ConeCamera:
@@ -114,7 +115,7 @@ class ConeObserverDrive:
                 base['pending_hardware_start']=not (run['hardware_output'] or short['hardware_output'])
                 base['hardware_output']=run['hardware_output'] or short['hardware_output']
             return {**base,'cone_status_s':self.clock(),'cone_trial':{'program':'blue-cone-avoidance-v2','observing':self.observing,
-                'logic_revision':'slalom-continuity-20261012','legacy_reference_available':True,
+                'logic_revision':'slalom-continuity-20261012','legacy_reference_available':True,'low_speed_trial_available':True,
                 'hardware_output':run['hardware_output'] or short['hardware_output'],'can_observe':not self.observing and not self.closed,
                 'can_drive':execution_readiness(self.settings)['ready'],'avoidance':run,'short_test':short,
                 'reason':self.run.reason if self.run.active else self.reason,'settings':copy.deepcopy(self.settings),'readiness':execution_readiness(self.settings),
@@ -141,7 +142,7 @@ class ConeObserverDrive:
                 self.short.command(action,payload);return self.status()
             if action=='cone_short_stop':
                 self.short.cancel('用户结束固定档短测，输出已回中位');return self.status()
-            if action in ('cone_start','cone_keepalive'):
+            if action in ('cone_start','cone_keepalive','cone_test_confirm'):
                 if self.short.active:raise ValueError('固定档短测占用控制权')
                 self.run.command(action,payload,self.clock());return self.status()
             if action=='cone_prepare':
@@ -254,7 +255,8 @@ class ConeObserverDrive:
             while not self.stop.is_set():
                 with self.lock:
                     if self.reset_navigation:
-                        reader.navigator=ConeNavigator(self.settings);reader.navigation=None;self.reset_navigation=False
+                        reader.navigator=LowSpeedNavigator(self.run.s) if self.run.profile==PROFILE else ConeNavigator(self.settings)
+                        reader.navigation=None;self.reset_navigation=False
                 try:sample=reader.read()
                 except (ValueError,cv2.error) as exc:
                     with self.lock:
