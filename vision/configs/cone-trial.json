@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "camera": "secondary",
+  "aux_camera": "primary",
+  "image_size": [480, 360],
+  "target_count": 2,
+  "blue_hsv_lower": [100, 110, 50],
+  "blue_hsv_upper": [135, 255, 255],
+  "confirm_frames": 3,
+  "confirm_s": 0.15,
+  "track_timeout_s": 0.6,
+  "max_frame_age_s": 0.25,
+  "scene": {
+    "surface": "red_running_track",
+    "boundary_policy": "whole_vehicle_inside_white_inner_edges",
+    "red_ground_min_fraction": 0.15,
+    "blue_only_obstacles_reported": true
+  },
+  "geometry": {
+    "measured": false,
+    "lane_width_m": 1.23,
+    "vehicle_width_m": 0.295,
+    "vehicle_length_m": 0.42,
+    "rear_axle_to_front_m": 0.335,
+    "rear_overhang_m": 0.085,
+    "cone_height_m": 0.08,
+    "cone_base_width_m": 0.075,
+    "clearance_m": null
+  },
+  "ground": {
+    "verified": false,
+    "image_size": [480, 360],
+    "coordinate_frame": "rear_axle_x_right_y_forward",
+    "homography": null,
+    "valid_polygon_px": null,
+    "max_error_m": null
+  },
+  "motion": {
+    "verified": false,
+    "minimum_turn_radius_m": null,
+    "maximum_tracking_error_m": null,
+    "braking_distance_m": null,
+    "pose_feedback_verified": false
+  },
+  "notes": "2026-10-11 user supplied: lane width 1.23m, overall width .295m, rear axle to front .335m, rear overhang .085m, total length .42m derived from those two measurements and consistent with the historical repo length; cone diameter .075m, height .08m. Clearance and motion calibration remain pending. Historical 2026-10-07 camera mapping exists and is preserved separately pending current pose and lane-edge coverage checks."
+}
