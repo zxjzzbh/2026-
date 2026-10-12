@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-12",
+  "scope": "Handoff archive and reviewable offline patch; active runtime code unchanged by this upload",
+  "archive_bytes": 3861893,
+  "archive_sha256": "0280e7cccc6db28c48e8825fa039c260d7378951863b90629cab577202069f73",
+  "archive_payload_files": 965,
+  "source_head_at_packaging": "68c314f14d4e141406005a7c9458ce0780b4a63c",
+  "runtime_deployment_commit": "8d7947c46ab959b2adb23da0e5f7023884375608",
+  "steering_patch_deployed": false,
+  "steering_patch_field_verified": false,
+  "current_pi_full_tree_rechecked": false,
+  "excluded": "Credentials, private keys, tokens, environments, caches, large media, model weights. See REDACTIONS.json.",
+  "validation": "Archive CRC and payload SHA256 passed; patch reproduces candidate after LF normalization; 192 passed / 2 platform skips in recorded steering software tests."
+}

@@ -1,0 +1,96 @@
+{
+  "base_git_sha": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+  "overlays": {
+    "vision/src/carvision/manual_drive.py": "live protected snapshot 2026-10-12 17:36:01",
+    "vision/src/carvision/manual_controls.py": "live protected snapshot 2026-10-12 17:36:01",
+    "vision/src/carvision/steering_pwm_controls.py": "live protected snapshot 2026-10-12 17:36:01",
+    "vision/tools/serve_boot_test.py": "live protected snapshot 2026-10-12 17:36:01",
+    "vision/src/carvision/console_layout.py": "unchanged dependency from live protected snapshot 2026-10-12 17:36:01"
+  },
+  "vehicle_offline": true,
+  "deployed": false,
+  "requested": {
+    "center_us": 1610,
+    "left_us": 1790,
+    "right_us": 1430,
+    "span_us": 180,
+    "field_verified": false
+  },
+  "offline_test_results": {
+    "passed": 192,
+    "failed": 0,
+    "skipped": 2,
+    "skips": [
+      "Linux termios is unavailable on Windows",
+      "Pi worker Unix sockets are unavailable on Windows"
+    ],
+    "prior_test_fixture_update": "Two title assertions aligned with already-deployed dashboard labels; failure also reproduced on baseline."
+  },
+  "completed_at": "2026-10-12T18:14:28.432912+08:00",
+  "modified_files": [
+    {
+      "path": "vision/deployment/boot-test-template.json",
+      "before_sha256": "c04afd42bf2b5db90e4a33b061fc2f5327a6ad7a61a7818e0b57d098ca4c7896",
+      "after_sha256": "973a323be341002701a81f6d6721eb4f41c9467d60b6ef4a1bd8882a16329b21"
+    },
+    {
+      "path": "vision/src/carvision/manual_controls.py",
+      "before_sha256": "a22587546e74996d100a313e5617061b9a54079d604f7e53d92186df91bf515d",
+      "after_sha256": "4947e7637620391bf2d1f3216854340517bb35ac4b77999577fe98264e543796"
+    },
+    {
+      "path": "vision/src/carvision/manual_drive.py",
+      "before_sha256": "0e9c5cffe17cead5240527801b6a5f2274b4aaa602aaeba720882bc1c552bbf0",
+      "after_sha256": "79e03ba167fe0c10dcf362d9777401eb41eefe86d45a25743b5bd6ac0a29ec38"
+    },
+    {
+      "path": "vision/src/carvision/manual_steering.py",
+      "before_sha256": null,
+      "after_sha256": "a82b1faaf674e61bed1246110529e20acf9acc04833a7e3b552df57880954b03"
+    },
+    {
+      "path": "vision/src/carvision/pi5_pwm.py",
+      "before_sha256": "b4454f4cbd04aff163e6a56bc4d8889f7a56710a4a18ad8a0235f967524e151c",
+      "after_sha256": "2e5502ee01c671d6ab782a7a65b543b07639aed26c66313e891213beec06d957"
+    },
+    {
+      "path": "vision/src/carvision/rasadapter5.py",
+      "before_sha256": "15a5fdf56f5649ae98b2007e19edf304a6ae48d21cd75c4a6530c70298557c57",
+      "after_sha256": "eb64bc4189383b9144af539d04f1cb389652f6b4aea020e9233486e74e0f6191"
+    },
+    {
+      "path": "vision/src/carvision/steering_pwm_controls.py",
+      "before_sha256": "a91bf4140e1b8df54991f310b4dc7ed6551d8810145312b9536d54f4a260e64a",
+      "after_sha256": "0b50051eaf8174d910727bb7ef3b4d0bd1b311c55b5b3462522fc69a087855c7"
+    },
+    {
+      "path": "vision/tests/js/manual_heartbeat.cjs",
+      "before_sha256": "d1b30cf9b37129accee45e911ea5fb3ba2e4c575e996e5155f430a39faa077d2",
+      "after_sha256": "d7bb721f74a8d75476d6ce7b8b23f904034b7f1732da3ead7024d4cfd09c757d"
+    },
+    {
+      "path": "vision/tests/js/steering_pwm.cjs",
+      "before_sha256": "cff3c26742a4edcc1251ed8cb429428e2f8de6120ba5e635640185ddae852758",
+      "after_sha256": "5fdb5d0ada1bbf9de2a08b126f13ead10e4fcaa81ac9197482bdf091ecb2f352"
+    },
+    {
+      "path": "vision/tests/test_symmetric_manual_steering.py",
+      "before_sha256": null,
+      "after_sha256": "cffd7e8293153838ad1b50f3b2c7695de2ee0ce1f8c295abb7b903403a5b02d8"
+    },
+    {
+      "path": "vision/tools/serve_boot_test.py",
+      "before_sha256": "d5fc52ebf34afd35e507adf8a325f9f9054fd3c79c1b8d8812a25c2a1af913c7",
+      "after_sha256": "c545f10530864ff24eac035081a06231918125242380eb89b276555220f268fb"
+    }
+  ],
+  "physical_motion_sent": false,
+  "github_pushed": false,
+  "scope": "Manual keyboard/gamepad directions and isolated S3 PWM tuning; generic autonomy transport range unchanged",
+  "deployment_pending": [
+    "Compare current Pi files with recorded baselines and merge teammate changes",
+    "Run Linux offline tests and regenerate reviewed boot-test-checks manifest including new manual_steering module",
+    "Install merged changes with ESC off; restart control service into disabled waiting state",
+    "Raised-wheel S3 endpoint validation before ground driving"
+  ]
+}

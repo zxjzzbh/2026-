@@ -15,3 +15,6 @@
 *.png binary
 *.jpg binary
 *.pdf binary
+
+# Preserve reviewed patch bytes; a blank diff-context line must contain one space.
+docs/handoff/2026-10-12/pending-steering/*.patch -text whitespace=-blank-at-eol

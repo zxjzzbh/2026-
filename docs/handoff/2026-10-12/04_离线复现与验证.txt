@@ -1,0 +1,28 @@
+离线复现、软件验证与包校验
+
+包级校验（Python标准库，不联网、不访问硬件）：
+  python verify_package.py
+脚本核对MANIFEST.sha256所有文件及额外文件，文件被编辑后校验失败是预期；先在原始解压目录校验。
+
+环境：Python>=3.10；本地验证环境Python3.12。每个源码目录vision/pyproject.toml、requirements.txt是对应版本的依赖声明。建议新虚拟环境：
+  python -m venv .venv
+  .venv\Scripts\python -m pip install -e "路径\sources\manual-next\vision[test]"
+Linux用.venv/bin/python。Node.js用于已有浏览器JavaScript模拟测试；设SMARTCAR_NODE为实际node可执行路径。Pi缺Node的跳过项如需执行，应在有Node环境补跑。
+
+重要：一次只指定一个源码树的PYTHONPATH。不要让旧可编辑安装误导入另一工作树。Windows PowerShell示例（位于目标源码树）：
+  $env:PYTHONPATH = (Join-Path $PWD 'vision\src')
+  $env:SMARTCAR_NODE = (Get-Command node).Source
+  python -m pytest -q -rs vision/tests/test_symmetric_manual_steering.py vision/tests/test_steering_pwm.py vision/tests/test_pi5_pwm.py vision/tests/test_rasadapter5.py vision/tests/test_uart_target_steering.py vision/tests/test_boot_test.py vision/tests/test_boot_preparation.py vision/tests/test_boundary_steering_center.py vision/tests/test_manual_drive.py vision/tests/test_manual_heartbeat.py vision/tests/test_ground_continuous_drive.py vision/tests/test_straight_steering_hold.py vision/tests/test_gamepad_controls.py
+上述是最终候选192通过/2跳过的范围；原始JUnit见pending/steering_symmetric180/symmetric-tests.xml。两个UI标题断言调整为已部署页面标题，旧基线也复现过原断言失败，没有削弱运动保护断言。
+
+室内锥桶源：在sources/cones中独立安装对应vision[test]，显式设置PYTHONPATH后：
+  python -m pytest -q -rs vision/tests
+原历史结果1189通过/3平台跳过，见evidence/today/indoor-tests.xml及cone-indoor-20261012.json。其中vehicle308通过/1跳过见vehicle_snapshot_173601/deployment.json；不是打包时又跑了Pi。
+本包打包过程另检查了源码哈希、11文件变更哈希、已部署锥桶文件哈希、补丁可应用、ZIP CRC与全包清单。具体本次校验结果见PACKAGE_VALIDATION.json。
+
+补丁复现：复制sources/manual-base到临时目录，在该临时目录执行git apply --check，然后git apply pending/steering_symmetric180/symmetric-manual-steering.patch的绝对路径。结果应与manual-next逐文件内容一致；Windows Git可能转换CRLF/LF，字节哈希应以包内manual-next及provenance为准。不要在原始包或车端直接实验。本包自带三份源码是为比对保真，绝不是建议三个服务一起运行。
+
+普通pytest为离线软件检查；禁止为补齐跳过项擅自使用--hardware/输出参数或运行真实drive/start命令。Pi软件测试也不能自动把车轮角度、控制方向、地面映射等物理verified标志设为真。
+基础依赖NumPy2.2.6、OpenCV4.11.0.86、PyYAML6.0.2、pytest8.3.5；平台选择标准或headless OpenCV以pyproject为准。YOLO/ONNX依赖可选，当前传统视觉锥桶调试不需为此下载权重。
+
+端口说明：Pi8080是车端HTTP；本机8082是当前控制台转发；旧18080属于早期入口。127.0.0.1始终是操作电脑自己，另一台电脑要启动自己的连接转发脚本，不能直接沿用原电脑的本地连接。sources/cones/connect-car.cmd为仓库现有连接入口；需要的私有连接配置由车主另行提供，不包含在包里。

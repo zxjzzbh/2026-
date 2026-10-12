@@ -1,0 +1,15 @@
+{
+  "runtime_fields_redacted": [],
+  "excluded": [
+    "private connection.json/HANDOFF.md",
+    "SSH private keys and credential stores",
+    "Tailscale node state and invite/login links",
+    "Wi-Fi secrets and authentication tokens",
+    "virtual environments/caches/.git metadata",
+    "large videos/system images/model weights",
+    "private payment QR images/full raw chat logs"
+  ],
+  "source_policy": "Copied source bytes preserved exactly; sensitive runtime JSON fields sanitized when present; source hashes retained.",
+  "scan": "Known credentials and strong private-key/GitHub/Tailscale token patterns checked; no credential-context hits. Reviewed public documentation URLs and hardware identifiers preserved.",
+  "not_a_guarantee": "Pattern scan is an engineering check, not a formal proof of absence of all possible private data."
+}
