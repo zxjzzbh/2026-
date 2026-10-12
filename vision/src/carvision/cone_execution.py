@@ -110,7 +110,8 @@ class ConeRun:
                 self.actuator=handle
                 if not self.active:
                     handle.close();self.actuator=None;return
-            if not fresh or not feedback_ok:raise ValueError((navigation or {}).get('reason','图像／白线或位移反馈失效，主动制动结束'))
+            if not fresh or (not feedback_ok and self.profile!=PROFILE):
+                raise ValueError((navigation or {}).get('reason','图像／白线或位移反馈失效，主动制动结束'))
             if self.controller is None:
                 self.phase='ready';self.reason='准备完成，打开电调并确认静止后开始'
                 intent={'action':'neutral','esc_us':1500,'steering_us':1610,'phase':'ready','reason':self.reason}

@@ -25,7 +25,8 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <p>沿用已有相机参考、车宽 29.5 cm、车长 42 cm、白线内宽 125 cm，以及此前约 17 cm 刹车记录。逐段前进、有限 F/B 刹车后重新看图；1570 右转／1650 左转。不会将估算参数标成已验证。</p>
 <div class="cone-settings"><label>测试油门（μs）<input id="cone-test-forward" type="number" min="1501" max="1600" step="1" value="1600"></label>
 <label>每段前进（秒）<input id="cone-test-burst" type="number" min="0.15" max="0.4" step="0.05" value="0.25"></label></div>
-<p>每段后制动 0.12 秒、中位观察 0.55 秒；本轮累计通电前进最多 4 秒，整个会话最多 60 秒。白线丢失、靠近边界、近处蓝桶挡路、画面或页面失联会停车。名义距离与转向仍属旧数据估计，不能保证实际不越线。</p>
+<p>每段后制动 0.12 秒、中位观察 0.55 秒；本轮累计通电前进最多 4 秒，整个会话最多 60 秒。任一路可靠白线即可继续；两路短暂漏检沿用最近边界最多 0.8 秒，期间前进总预算 0.15 秒。持续丢线先制动等待，靠近边界、近处蓝桶挡路、画面或页面失联会停车。看不见边界时不能保证不越线，不会无限盲走。</p>
+<p id="cone-test-line-state" role="status">白线依据：等待两路画面</p>
 <div class="cone-actions"><button id="cone-test-prepare" type="button">准备低速测试（电调关闭）</button><button id="cone-test-start" type="button" disabled>开始低速绕桶</button></div>
 <button id="cone-test-confirm" type="button" disabled>车尾已过当前桶，继续</button>
 <button id="cone-test-stop" type="button">急停并结束本轮</button>
@@ -132,6 +133,7 @@ function renderCone(s){
  el('cone-drive-start').title=a.start_blocked_reason||'';
  el('cone-run-state').textContent=a.reason||'尚未准备避障';
  const nav=c.latest?.navigation,phases={needs_calibration:'待标定',calibration_only:'位移标定观察',waiting_for_feedback:'等待反馈',waiting_for_two_cones:'等待确认前方两只锥桶',pass_first_cone:'按指定侧绕第一桶',pass_second_cone:'换边绕第二桶',follow_lane:'低速循迹',avoid_cones:'绕行锥桶',return_to_lane:'回归赛道',waiting_for_clear_route:'没有可通过路线',complete:'交错绕桶完成',fault:'已停止'};
+ el('cone-test-line-state').textContent=nav?.experimental?('白线依据：'+(nav.line_sources?.length?nav.line_sources.map(x=>x==='primary'?'第一路':'第二路').join('、'):(nav.line_held?'沿用最近边界 '+Number(nav.line_age_s||0).toFixed(2)+' 秒':'等待任一路恢复'))+(nav.source_camera?' · 当前引导：'+(nav.source_camera==='primary'?'第一路':'第二路'):'')):'白线依据：低速测试准备后显示';
  const slalom=nav?.slalom||a.slalom;
  const slalomReasons={cones_too_close_for_alternation:'两桶前后间距不足，无法安排有顺序的换边',need_two_confirmed_cones_ahead:'需要先确认前方两只锥桶',no_feasible_alternating_route:'当前桶距、边界、视野或转弯半径不支持交错路线',slalom_wrong_side_or_clearance:'通过侧别或净空不符合要求',slalom_pose_discontinuity:'位移反馈不连续，请重新准备',slalom_cone_position_changed:'锥桶位置发生变化，请重新准备',slalom_wrong_order:'通过顺序不符合要求',slalom_pass_without_ordered_side_evidence:'缺少按顺序交错通过的位姿证据',slalom_reference_tracking_error:'车辆偏离选定路线，请重新准备',slalom_reference_view_unavailable:'选定路线超出当前可信视野',slalom_reference_blocked:'选定路线的车身净空或白线边界不满足要求',following_locked_alternating_route:'正在跟随选定交错路线',alternating_cones_passed_and_lane_recovered:'两桶已交错通过并回正',no_lane_recovery_route:'暂时没有可行的回正路线'};
  el('cone-slalom').textContent=slalom?.order?.length?('本轮顺序：'+slalom.order.map((p,i)=>(i+1)+'号桶（'+p.id+'）从'+(p.side==='left'?'左':'右')+'侧通过').join(' → ')+' · 已核验 '+(slalom.passed_ids?.length||0)+'/2'+(nav?.reason?' · '+(slalomReasons[nav.reason]||nav.reason):'')):(slalomReasons[nav?.reason]||'等待确认两只锥桶及交错路线');

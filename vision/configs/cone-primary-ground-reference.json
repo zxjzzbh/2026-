@@ -1,0 +1,56 @@
+{
+  "verified": true,
+  "detector_verified": false,
+  "detector_model_sha256": null,
+  "monitored_region_m": null,
+  "image_size": [
+    640,
+    480
+  ],
+  "pose_us": null,
+  "homography": [
+    [
+      -0.002300330363986803,
+      0.00024382168432288113,
+      0.705910770297147
+    ],
+    [
+      -9.561979387872016e-05,
+      -0.0015287451378034234,
+      -1.702559082150832
+    ],
+    [
+      0.0001003090102334037,
+      -0.009412406515288487,
+      1.0
+    ]
+  ],
+  "valid_polygon_px": [
+    [
+      108.59028796196895,
+      401.72817039498835
+    ],
+    [
+      598.824039346556,
+      415.55500086830915
+    ],
+    [
+      581.8250557597462,
+      234.67766154619417
+    ],
+    [
+      87.90410958904108,
+      225.91324200913243
+    ]
+  ],
+  "independent_check_rms_m": 0.015178554254800164,
+  "independent_check_max_error_m": 0.02164887047559179,
+  "calibration_record": "run/pi5-calibration-20261007-01/145544-765763-native-ground-reference/primary-ground-acceptance.json",
+  "validated_front_distance_span_m": [
+    0.5,
+    1.5
+  ],
+  "frontmost_to_rear_axle_m": 0.34,
+  "source_commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+  "historical_reference_only": true
+}

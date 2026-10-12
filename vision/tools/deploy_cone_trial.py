@@ -25,12 +25,12 @@ from carvision.cone_controls import extend_controls as cones
 MODULES=('cone_vision','cone_road','cone_planning','cone_slalom','cone_navigation','cone_low_speed','cone_execution','cone_short_output','cone_short_trial','cone_observer','cone_controls')
 FIXTURES=['vision/tests/fixtures/'+p.name for p in (ROOT/'vision/tests/fixtures').glob('cone*.jpg')]
 FILES=['vision/src/carvision/'+n+'.py' for n in MODULES]+[
-    'vision/configs/cone-trial.json','vision/configs/cone-ground-template.json','vision/tools/serve_crosswalk_trial.py',
+    'vision/configs/cone-trial.json','vision/configs/cone-ground-template.json','vision/configs/cone-primary-ground-reference.json','vision/tools/serve_crosswalk_trial.py',
     'vision/tools/cone_trial.py','vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_short.py','vision/tests/test_cone_slalom.py','vision/tests/test_cone_low_speed.py','vision/CONE_TEST.md']+FIXTURES
 SHORT_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_short_output','cone_short_trial','cone_observer','cone_controls')]+[
     'vision/tests/test_cone_short.py','vision/configs/cone-legacy-ground-candidate.json','vision/CONE_TEST.md']
 SLALOM_FILES=['vision/src/carvision/'+n+'.py' for n in ('cone_planning','cone_slalom','cone_execution','cone_controls','cone_road','cone_navigation','cone_low_speed','cone_observer')]+[
-    'vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_slalom.py','vision/tests/test_cone_low_speed.py','vision/CONE_TEST.md']
+    'vision/tests/test_cone_trial.py','vision/tests/test_cone_navigation.py','vision/tests/test_cone_slalom.py','vision/tests/test_cone_low_speed.py','vision/configs/cone-primary-ground-reference.json','vision/CONE_TEST.md']
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
     'vision/src/carvision/'+n+'.py' for n in ('traffic_driving','traffic_trial','traffic_controls','traffic_signal',
         'traffic_voting','brake_output','autonomy_profile','config','lane','traffic_preview',

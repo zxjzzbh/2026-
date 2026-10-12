@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from carvision.cone_low_speed import PROFILE,trial_settings,LowSpeedNavigator,LowSpeedController
+from carvision.cone_low_speed import PROFILE,trial_settings,LowSpeedNavigator,DualLowSpeedNavigator,LowSpeedController
 from carvision.cone_navigation import reuse_legacy_ground,execution_readiness
 from carvision.cone_planning import load_settings
 from carvision.cone_execution import ConeRun
@@ -106,7 +106,86 @@ def test_runtime_hazards_interrupt_powered_segment(settings,case):
     if case=='early_loss':data['cones']=[]
     if case=='close_cone':data['cones'][0].update(y_fraction=.72,fraction=.55)
     if case=='other_cone':data['cones'].append({**data['cones'][0],'id':'two','y_fraction':.7,'fraction':.5})
-    with pytest.raises(ValueError):ctl.step(data,3.1)
+    if case=='white':
+        assert ctl.step(data,3.1)['action']=='brake'
+        assert ctl.count==0
+    else:
+        with pytest.raises(ValueError):ctl.step(data,3.1)
+
+
+@pytest.mark.parametrize('available',['primary','secondary'])
+def test_either_camera_can_supply_white_boundaries(settings,available):
+    data=row();data['camera_id']=available
+    images={available:np.zeros((360,480,3),np.uint8)}
+    result=DualLowSpeedNavigator(trial_settings(settings)).update_views(images,{available:data},1.)
+    assert result['ready'] and result['source_camera']==available
+    assert result['line_sources']==[available] and not result['line_held']
+    json.dumps(result,allow_nan=False)
+
+
+def test_lane_memory_expires_from_real_observation_not_reused_frame(settings):
+    nav=DualLowSpeedNavigator(trial_settings(settings));image=np.zeros((360,480,3),np.uint8)
+    assert nav.update_views({'secondary':image},{'secondary':row()},1.)['ready']
+    for i,t in enumerate((1.1,1.3,1.6),2):
+        data=row(t,i);data['road_context']['valid']=False
+        result=nav.update_views({'secondary':image},{'secondary':data},t)
+        assert result['line_held'] and result['line_observed_s']==1.
+        assert result['line_age_s']==pytest.approx(t-1.)
+    data=row(1.9,5);data['road_context']['valid']=False
+    result=nav.update_views({'secondary':image},{'secondary':data},1.9)
+    assert not result['ready'] and not result.get('lane_bounds_px')
+
+
+def test_stale_camera_is_not_rescued_by_line_memory(settings):
+    nav=DualLowSpeedNavigator(trial_settings(settings));images={'secondary':np.zeros((360,480,3),np.uint8)}
+    nav.update_views(images,{'secondary':row()},1.)
+    result=nav.update_views(images,{'secondary':row()},1.4)
+    assert not result['ready'] and result['captured_s']==1.
+
+
+def test_visible_boundary_danger_overrides_another_camera(settings):
+    nav=DualLowSpeedNavigator(trial_settings(settings));a=row();b=row()
+    b['road_context']['left_inner']=[[225.,y] for y in np.linspace(180,260,12)]
+    image=np.zeros((360,480,3),np.uint8)
+    result=nav.update_views({'primary':image,'secondary':image},{'primary':a,'secondary':b},1.)
+    assert result['boundary_danger'] and not result['ready']
+
+
+def test_arming_survives_single_frame_line_miss_without_driving(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    lost=observation(1.);lost.pop('lane_bounds_px')
+    assert ctl.step(lost,1.)['action']=='neutral'
+    assert ctl.step(observation(1.1),1.1)['action']=='neutral'
+    assert ctl.step(observation(3.1),3.1)['action']=='search'
+
+
+def test_line_hold_has_independent_power_budget_and_cannot_extend_burst(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    ctl.step(observation(3.01),3.01)
+    assert ctl.step(observation(3.06,line_held=True),3.06)['action']=='search'
+    assert ctl.step(observation(3.18,line_held=True),3.18)['action']=='brake'
+    assert ctl.step(observation(3.4,line_held=True),3.4)['action']=='neutral'
+    assert ctl.step(observation(4.,line_held=True),4.)['action']=='neutral'
+    assert ctl.step(observation(4.1,line_held=False),4.1)['action']=='search'
+
+
+def test_both_lines_missing_pause_then_end_without_extra_pass(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.);ctl.step(observation(3.01),3.01)
+    def lost(t):
+        data=observation(t);data.pop('lane_bounds_px');return data
+    assert ctl.step(lost(3.1),3.1)['action']=='brake'
+    assert ctl.step(lost(3.3),3.3)['action']=='neutral'
+    assert ctl.step(lost(4.),4.)['action']=='neutral'
+    assert ctl.count==0
+    with pytest.raises(ValueError,match='持续未恢复'):ctl.step(lost(6.2),6.2)
+
+
+def test_camera_switch_reassociates_unique_cone_without_double_count(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    ctl.step(observation(3.01,source_camera='secondary'),3.01)
+    next_view=observation(3.1,source_camera='primary');next_view['cones'][0]['id']='primary-one'
+    assert ctl.step(next_view,3.1)['action']=='search'
+    assert ctl.target=='primary-one' and ctl.count==0
 
 
 def test_disappearance_never_automatically_counts_pass_and_next_side_alternates(settings):

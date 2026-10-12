@@ -27,7 +27,7 @@ def inner_edge(mask,x,y,direction):
 
 
 class ConeRoadContext:
-    def __init__(self,settings):
+    def __init__(self,settings,camera='secondary'):
         self.s=settings;config=load_config(None).lane
         if settings.get('scene',{}).get('surface')=='indoor_white_line_track':
             # In the fixed H65 view the nearby white edges leave the image
@@ -35,6 +35,11 @@ class ConeRoadContext:
             # Metric projection still requires >=6 calibrated edge points,
             # >=0.3 m span, measured width and the original fit error limits.
             config=replace(config,sample_top=.50,sample_bottom=.76,lookahead_y=.63)
+            if camera=='primary':
+                # The lower camera sees the track later in the image. Keep its
+                # own ROI and the original paint-width/inner-edge checks rather
+                # than treating broad floor glare as a white boundary.
+                config=replace(config,sample_top=.60,sample_bottom=.85,lookahead_y=.70)
         self.lane=LaneDetector(config)
 
     def inspect(self,image,blue_mask):

@@ -19,7 +19,7 @@ from .cone_road import ConeRoadContext
 from .cone_navigation import (ConeNavigator,driving_settings,validate_driving,execution_readiness,import_ground_calibration,reuse_legacy_ground)
 from .cone_execution import ConeRun
 from .cone_short_trial import ConeShortRun
-from .cone_low_speed import PROFILE,LowSpeedNavigator
+from .cone_low_speed import PROFILE,DualLowSpeedNavigator
 
 
 class ConeCamera:
@@ -27,7 +27,8 @@ class ConeCamera:
         self.states,self.s,self.clock=states,settings,clock
         self.detectors={c:BlueConeDetector(settings) for c in ('primary','secondary')}
         self.trackers={c:ImageConeTracker(c,settings) for c in self.detectors}
-        self.ids={};self.views={};self.rows={};self.road=ConeRoadContext(settings)
+        self.ids={};self.views={};self.rows={};self.images={};self.road=ConeRoadContext(settings)
+        self.roads={'secondary':self.road,'primary':ConeRoadContext(settings,'primary')}
         self.preview=None;self.sequence=0
         self.navigator=ConeNavigator(settings);self.navigation=None
 
@@ -47,20 +48,20 @@ class ConeCamera:
                 if image is None or [image.shape[1],image.shape[0]]!=self.s['image_size']:raise ValueError('image size changed')
                 if camera in self.ids and fid<self.ids[camera]:self.trackers[camera]=ImageConeTracker(camera,self.s)
                 detections,mask=self.detectors[camera].detect(image)
-                context=self.road.inspect(image,mask)
-                self.road.enrich(detections,image,context)
+                context=self.roads[camera].inspect(image,mask)
+                self.roads[camera].enrich(detections,image,context)
                 tracks=self.trackers[camera].update(detections,fid,ms/1000)
                 row={'camera_id':camera,'frame_id':fid,'captured_s':ms/1000,'tracks':tracks,
                      'lane_valid':context['valid'],'lane_reason':context['reason'],'road_context':context,
                      'metric_cones':[],'metric_unresolved':[]}
                 if camera==self.s['camera'] and readiness(self.s)['metric_planning_ready']:
                     row['metric_cones'],row['metric_unresolved']=project_tracks(tracks,self.s)
-                if camera==self.s['camera']:
+                if camera==self.s['camera'] and not isinstance(self.navigator,DualLowSpeedNavigator):
                     try:self.navigation=self.navigator.update(image,row,self.clock())
                     except (ValueError,cv2.error) as exc:
                         self.navigation={'action':'stop','phase':'waiting_for_feedback','reason':str(exc),'hardware_output':False}
                         self.navigator.latest=self.navigation
-                display=self.navigator.draw(image) if camera==self.s['camera'] else image.copy()
+                display=self.navigator.draw(image) if camera==self.s['camera'] and not isinstance(self.navigator,DualLowSpeedNavigator) else image.copy()
                 for track in tracks:
                     x1,y1,x2,y2=track['bbox_xyxy'];color=(0,160,255) if track['kind']=='unresolved_blue' else (255,160,40)
                     if not track['visible']:color=(150,150,150)
@@ -69,15 +70,17 @@ class ConeCamera:
                 for points in (context['left_inner'],context['right_inner']):
                     if points:cv2.polylines(display,[np.asarray(points,np.int32)],False,(0,230,100) if context['valid'] else (0,180,255),2)
                 cv2.putText(display,camera.upper()+' BLUE CONES / LIVE',(8,20),cv2.FONT_HERSHEY_SIMPLEX,.4,(240,240,240),1)
-                self.rows[camera]=row;self.views[camera]=display;self.ids[camera]=fid;changed=True
+                self.rows[camera]=row;self.images[camera]=image;self.views[camera]=display;self.ids[camera]=fid;changed=True
             except (KeyError,ValueError,cv2.error):
-                self.rows.pop(camera,None);self.views.pop(camera,None)
+                self.rows.pop(camera,None);self.views.pop(camera,None);self.images.pop(camera,None)
         if not self.rows:raise ValueError('两路摄像头均无新鲜画面')
         if not changed:return None
+        if isinstance(self.navigator,DualLowSpeedNavigator):
+            self.navigation=self.navigator.update_views(self.images,self.rows,self.clock())
         self.sequence+=1
         panes=[]
         for camera in ('primary','secondary'):
-            if camera in self.views:panes.append(self.views[camera])
+            if camera in self.views:panes.append(self.navigator.draw_camera(camera,self.views[camera]) if isinstance(self.navigator,DualLowSpeedNavigator) else self.views[camera])
             else:
                 blank=np.zeros((360,480,3),np.uint8)
                 cv2.putText(blank,camera.upper()+' NO FRAME',(10,25),cv2.FONT_HERSHEY_SIMPLEX,.5,(170,170,170),1);panes.append(blank)
@@ -116,6 +119,7 @@ class ConeObserverDrive:
                 base['hardware_output']=run['hardware_output'] or short['hardware_output']
             return {**base,'cone_status_s':self.clock(),'cone_trial':{'program':'blue-cone-avoidance-v2','observing':self.observing,
                 'logic_revision':'slalom-continuity-20261012','legacy_reference_available':True,'low_speed_trial_available':True,
+                'low_speed_line_policy':'either_camera_with_bounded_hold',
                 'hardware_output':run['hardware_output'] or short['hardware_output'],'can_observe':not self.observing and not self.closed,
                 'can_drive':execution_readiness(self.settings)['ready'],'avoidance':run,'short_test':short,
                 'reason':self.run.reason if self.run.active else self.reason,'settings':copy.deepcopy(self.settings),'readiness':execution_readiness(self.settings),
@@ -255,7 +259,7 @@ class ConeObserverDrive:
             while not self.stop.is_set():
                 with self.lock:
                     if self.reset_navigation:
-                        reader.navigator=LowSpeedNavigator(self.run.s) if self.run.profile==PROFILE else ConeNavigator(self.settings)
+                        reader.navigator=DualLowSpeedNavigator(self.run.s) if self.run.profile==PROFILE else ConeNavigator(self.settings)
                         reader.navigation=None;self.reset_navigation=False
                 try:sample=reader.read()
                 except (ValueError,cv2.error) as exc:
