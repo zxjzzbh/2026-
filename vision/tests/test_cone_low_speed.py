@@ -47,7 +47,7 @@ def test_profile_uses_reported_limits_without_changing_verified_flags(settings):
 
 
 @pytest.mark.parametrize('values',[{'test_forward_us':1601},{'test_forward_us':True},
-    {'test_burst_s':.5},{'test_burst_s':float('nan')}])
+    {'test_run_s':121},{'test_run_s':float('nan')},{'test_run_s':True},{'test_burst_s':.25}])
 def test_trial_cannot_expand_actuator_envelope(settings,values):
     with pytest.raises(ValueError):trial_settings(settings,values)
 
@@ -83,16 +83,22 @@ def test_ambiguous_blue_in_corridor_cannot_be_ignored(settings):
     assert not result['ready'] and result['uncertain']==['one']
 
 
-def test_single_burst_deadline_is_not_extended_by_fresh_frames(settings):
+@pytest.mark.parametrize('with_cone',[True,False])
+def test_continuous_forward_has_no_periodic_braking_or_four_second_cutoff(settings,with_cone):
     ctl=LowSpeedController(trial_settings(settings),0.)
     assert ctl.step(observation(1),1)['action']=='neutral'
-    assert ctl.step(observation(3.01),3.01)['action']=='search'
-    for t in (3.08,3.16,3.24):assert ctl.step(observation(t),t)['action']=='search'
-    stopped=ctl.step(observation(3.27),3.27)
-    assert stopped['action']=='brake' and stopped['esc_us']==1400
-    assert ctl.step(observation(3.40),3.40)['action']=='neutral'
-    assert ctl.step(observation(3.8),3.8)['action']=='neutral'
-    assert ctl.step(observation(4.0),4.0)['action']=='search'
+    for t in np.arange(3.01,12.,.05):
+        intent=ctl.step(observation(float(t),cones=None if with_cone else []),float(t))
+        assert intent['action']=='search' and intent['esc_us']==1600
+        assert intent['steering_us']==(1650 if with_cone else 1610)
+    assert ctl.powered_s>8.
+
+
+def test_cruising_updates_steering_when_cone_appears_without_braking(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    assert ctl.step(observation(3.1,cones=[]),3.1)['steering_us']==1610
+    result=ctl.step(observation(3.2),3.2)
+    assert result['action']=='search' and result['steering_us']==1650
 
 
 @pytest.mark.parametrize('case',['freshness','white','early_loss','close_cone','other_cone'])
@@ -205,12 +211,20 @@ def test_disappearance_never_automatically_counts_pass_and_next_side_alternates(
     with pytest.raises(ValueError):ctl.confirm_pass()
 
 
-def test_power_and_wall_clock_limits_stop_the_trial(settings):
-    ctl=LowSpeedController(trial_settings(settings),0.)
-    ctl.powered_s=4.
-    with pytest.raises(ValueError,match='累计前进'):ctl.step(observation(3.1),3.1)
-    ctl=LowSpeedController(trial_settings(settings),0.)
-    with pytest.raises(ValueError,match='时限'):ctl.step(observation(61.),61.)
+def test_configured_wall_clock_limit_stops_continuous_trial(settings):
+    ctl=LowSpeedController(trial_settings(settings,{'test_run_s':10}),0.)
+    assert ctl.step(observation(3.1,cones=[]),3.1)['action']=='search'
+    with pytest.raises(ValueError,match='10 秒运行时限'):ctl.step(observation(10.),10.)
+
+
+@pytest.mark.parametrize('phase',['review','complete'])
+def test_confirmation_and_completion_cannot_resume_after_line_loss(settings,phase):
+    ctl=LowSpeedController(trial_settings(settings),0.);ctl.phase=phase
+    lost=observation(3.1);lost.pop('lane_bounds_px')
+    result=ctl.step(lost,3.1)
+    assert result['action']=='neutral' and result['phase']==phase
+    result=ctl.step(observation(3.2,cones=[]),3.2)
+    assert result['action']=='neutral' and result['phase']==phase
 
 
 class Actuator:
@@ -229,7 +243,7 @@ def test_experimental_session_is_exclusive_leased_and_never_implicitly_starts(se
     payload={'profile':PROFILE,'client':'page','setup_token':'test-setup','esc_off':True,'fb_mode_confirmed':True}
     run.prepare(settings,base,payload,1.)
     assert not created
-    run.tick(observation(1.1),1.1)
+    run.tick(observation(1.1,cones=[]),1.1)
     assert created[0].intents[-1]['action']=='neutral'
     assert run.status(settings,base,1.1)['can_start']
     with pytest.raises(ValueError):run.command('cone_start',{'client':'other','run_token':run.token,'trial_sequence':1},1.2)

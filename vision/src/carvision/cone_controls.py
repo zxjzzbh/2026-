@@ -21,13 +21,13 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <div class="cone-viewer"><img id="cone-preview" alt="实际双摄锥桶识别：左第一路，右第二路 H65" width="960" height="360" hidden>
 <span id="cone-placeholder">开始识别后显示真实画面</span></div>
 <p id="cone-cameras"></p>
-<details id="cone-low-speed-section" open><summary>旧数据 · 低速绕桶测试（无需重新标定）</summary>
-<p>沿用已有相机参考、车宽 29.5 cm、车长 42 cm、白线内宽 125 cm，以及此前约 17 cm 刹车记录。逐段前进、有限 F/B 刹车后重新看图；1570 右转／1650 左转。不会将估算参数标成已验证。</p>
+<details id="cone-low-speed-section" open><summary>旧数据 · 持续低速绕桶（无需重新标定）</summary>
+<p>沿用已有相机参考、车宽 29.5 cm、车长 42 cm、白线内宽 125 cm，以及此前约 17 cm 刹车记录。沿白线持续前进，发现蓝桶后连续调整方向；1570 右转／1650 左转。不会将估算参数标成已验证。</p>
 <div class="cone-settings"><label>测试油门（μs）<input id="cone-test-forward" type="number" min="1501" max="1600" step="1" value="1600"></label>
-<label>每段前进（秒）<input id="cone-test-burst" type="number" min="0.15" max="0.4" step="0.05" value="0.25"></label></div>
-<p>每段后制动 0.12 秒、中位观察 0.55 秒；本轮累计通电前进最多 4 秒，整个会话最多 60 秒。任一路可靠白线即可继续；两路短暂漏检沿用最近边界最多 0.8 秒，期间前进总预算 0.15 秒。持续丢线先制动等待，靠近边界、近处蓝桶挡路、画面或页面失联会停车。看不见边界时不能保证不越线，不会无限盲走。</p>
+<label>本轮运行时限（秒）<input id="cone-test-duration" type="number" min="5" max="120" step="1" value="60"></label></div>
+<p>3 秒中位后持续前进，不再每隔 0.25 秒刹车，也不再累计前进 4 秒就结束。时限包含初始化和等待。任一路可靠白线即可继续；短暂漏检最多沿用边界 0.8 秒、期间前进预算 0.15 秒。持续丢线、靠近边界、近处蓝桶挡路或失联时仍主动停车；不能保证盲行不越线。</p>
 <p id="cone-test-line-state" role="status">白线依据：等待两路画面</p>
-<div class="cone-actions"><button id="cone-test-prepare" type="button">准备低速测试（电调关闭）</button><button id="cone-test-start" type="button" disabled>开始低速绕桶</button></div>
+<div class="cone-actions"><button id="cone-test-prepare" type="button">准备低速测试（电调关闭）</button><button id="cone-test-start" type="button" disabled>开始持续低速绕桶</button></div>
 <button id="cone-test-confirm" type="button" disabled>车尾已过当前桶，继续</button>
 <button id="cone-test-stop" type="button">急停并结束本轮</button>
 <p id="cone-test-progress" role="status">准备后打开电调，确认车辆静止、场地就绪，再开始。第一桶离开近处视野后有限续行并停车，现场确认车尾已通过再处理第二桶；画面消失不会自动算通过。</p>
@@ -128,7 +128,7 @@ function renderCone(s){
  el('cone-test-prepare').disabled=stale||coneBusy||!a.can_prepare||!c.low_speed_trial_available;
  el('cone-test-start').disabled=stale||coneBusy||!coneDriveOwned||!a.can_request_start||!oldTrial;
  el('cone-test-confirm').disabled=stale||coneBusy||!coneDriveOwned||!oldTrial||!trial.can_confirm_pass;
- for(const id of ['cone-test-forward','cone-test-burst'])el(id).disabled=stale||coneBusy||coneDriveActive||coneShortActive;
+ for(const id of ['cone-test-forward','cone-test-duration'])el(id).disabled=stale||coneBusy||coneDriveActive||coneShortActive;
  if(oldTrial)el('cone-test-progress').textContent=(a.reason||'')+' · 已人工确认 '+(trial.operator_confirmed_count||0)+'/2'+(trial.side?' · 当前从'+(trial.side==='left'?'左':'右')+'侧绕过':'')+' · 累计前进指令 '+(trial.powered_s||0).toFixed(2)+' 秒';
  el('cone-drive-start').title=a.start_blocked_reason||'';
  el('cone-run-state').textContent=a.reason||'尚未准备避障';
@@ -219,9 +219,9 @@ el('cone-drive-start').addEventListener('click',async()=>{
 });
 el('cone-drive-stop').addEventListener('click',()=>coneAction('cone_cancel'));
 el('cone-test-prepare').addEventListener('click',()=>{
- for(const id of ['cone-test-forward','cone-test-burst'])if(!el(id).checkValidity()){el(id).reportValidity();return;}
+ for(const id of ['cone-test-forward','cone-test-duration'])if(!el(id).checkValidity()){el(id).reportValidity();return;}
  coneSequence=0;coneAction('cone_prepare',{profile:'legacy_low_speed',esc_off:true,fb_mode_confirmed:true,
-  test_forward_us:Number(el('cone-test-forward').value),test_burst_s:Number(el('cone-test-burst').value)});
+  test_forward_us:Number(el('cone-test-forward').value),test_run_s:Number(el('cone-test-duration').value)});
 });
 async function sendConeTest(action,body){
  if(coneBusy)return;coneBusy=true;coneError='';if(lastStatus)render(lastStatus);

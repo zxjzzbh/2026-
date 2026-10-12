@@ -1,7 +1,7 @@
 """Supervised image-feedback trial using historical, NOT verified, estimates.
 
 No new calibration or verified flags. White-line guards run on every frame;
-short powered intervals are separated by finite F/B braking and observation.
+forward output is continuous until a hazard, operator review or session limit.
 An operator, not image disappearance or elapsed time, confirms each pass.
 """
 import copy
@@ -26,11 +26,12 @@ def trial_settings(settings,payload=None):
     for key in ('lane_width_m','vehicle_width_m','vehicle_length_m','rear_axle_to_front_m','rear_overhang_m','cone_base_width_m'):
         if not numeric(g.get(key)) or g[key]<=0:raise ValueError('已有车身尺寸缺失：'+key)
     if g['lane_width_m']<=g['vehicle_width_m']+.24:raise ValueError('白线内宽不足以进行该低速试验')
-    forward=payload.get('test_forward_us',1600);burst=payload.get('test_burst_s',.25)
+    if 'test_burst_s' in payload:raise ValueError('旧分段测试页面已过期，请刷新后使用持续前进入口')
+    forward=payload.get('test_forward_us',1600);duration=payload.get('test_run_s',60.)
     if type(forward) is not int or not 1501<=forward<=1600:raise ValueError('测试油门仅允许 1501–1600 μs')
-    if not numeric(burst) or not .15<=burst<=.4:raise ValueError('每段前进仅允许 0.15–0.40 秒')
+    if not numeric(duration) or not 5<=duration<=120:raise ValueError('本轮运行时限仅允许 5–120 秒')
     s.setdefault('driving',{})['forward_us']=forward
-    s['low_speed_test']={'burst_s':burst,'settle_s':.55,'max_powered_s':4.,'max_run_s':60.,
+    s['low_speed_test']={'drive_mode':'continuous','settle_s':.55,'max_run_s':duration,'reaction_horizon_s':.25,
         'reported_braking_m':.17,'stopping_budget_m':.27,'reported_turn_radius_m':12.03,
         'reported_displacement_m':.63,'reported_drive_s':1.5,'estimate_verified':False,
         'tail_powered_limit_s':1.0,'clearance_m':.05}
@@ -216,7 +217,8 @@ class LowSpeedController:
 
     def step(self,nav,now):
         neutral={'action':'neutral','esc_us':1500,'steering_us':1610,'phase':self.phase,'reason':self.wait_reason,'experimental':True}
-        if now<self.last_step or now-self.started>self.options['max_run_s']:raise ValueError('低速试验时限已到，请结束本轮')
+        if now<self.last_step:raise ValueError('控制时钟倒退，结束本轮')
+        if now-self.started>=self.options['max_run_s']:raise ValueError(f"本轮 {self.options['max_run_s']:g} 秒运行时限已到，已停车")
         if self.phase=='driving':
             elapsed=now-self.last_step;self.powered_s+=elapsed
             if self.review_pending:self.tail_powered+=elapsed
@@ -224,6 +226,10 @@ class LowSpeedController:
         self.last_step=now
         if not nav or not 0<=now-nav.get('captured_s',-1e9)<=.25:raise ValueError('引导画面中断，已结束试验')
         if not nav.get('experimental'):raise ValueError('低速测试画面尚未就绪')
+        # Confirmation and completion are stationary latches. A segmentation
+        # gap must never turn them into a resumable lane-following state.
+        if self.phase=='complete':return {**neutral,'phase':'complete','reason':'两桶均已人工确认通过，测试结束'}
+        if self.phase=='review':return {**neutral,'phase':'review','reason':'已停车：确认车尾确实通过当前桶后，再继续'}
         if nav.get('boundary_danger'):raise ValueError(nav.get('reason','白线保护触发'))
         if not nav.get('lane_bounds_px') or 'ego_fraction' not in nav:
             if self.line_missing_since is None:self.line_missing_since=now
@@ -239,7 +245,6 @@ class LowSpeedController:
         self.line_missing_since=None
         if self.phase=='waiting_lines':self.phase='observing'
         if not nav.get('line_held'):self.held_powered_s=0.
-        if self.phase=='complete':return {**neutral,'phase':'complete','reason':'两桶均已人工确认通过，测试结束'}
         if now<self.started+3:return {**neutral,'reason':'3 秒中位初始化'}
         if self.phase=='arming':self.phase='observing'
         if self.phase=='braking':
@@ -254,7 +259,6 @@ class LowSpeedController:
                 self._brake(now,'丢线期间有限前进已到，制动等待')
                 return {**neutral,'action':'brake','esc_us':1400,'phase':'braking','reason':self.wait_reason}
             return {**neutral,'phase':'observing','reason':'等待任一路新白线，不延长丢线前进时间'}
-        if self.powered_s>=self.options['max_powered_s']:raise ValueError('本轮累计前进预算已到，结束试验')
         if nav.get('uncertain'):
             if self.phase=='driving':
                 self._brake(now,'蓝色障碍暂未确认，制动等待')
@@ -264,8 +268,10 @@ class LowSpeedController:
             return {**neutral,'phase':'observing','reason':'等待蓝色障碍连续确认'}
         self.await_since=None
         cones=nav['cones'];ego=nav['ego_fraction'];half=nav['half_envelope'];reserved=.03
+        if self.target is None and not cones:
+            self.target_fraction=.5
+            return self._forward(nav,now,neutral,'沿白线持续低速前进，搜索蓝色锥桶')
         if self.target is None:
-            if not cones:return {**neutral,'phase':'observing','reason':'等待前方蓝桶；不盲目前进搜索'}
             target=cones[0];choices=[]
             for side,sign in [('left',-1),('right',1)]:
                 if self.first_side and side==self.first_side:continue
@@ -308,20 +314,20 @@ class LowSpeedController:
             if other['id']==self.target:continue
             if other.get('other_close',other['y_fraction']>=.65) and abs(other['fraction']-ego)<half+other['half_width']+reserved:
                 raise ValueError('另一锥桶进入近处行驶通道，主动刹车')
+        return self._forward(nav,now,neutral,'持续低速绕桶：从'+('左' if self.side=='left' else '右')+'侧通过；白线持续检查')
+
+    def _forward(self,nav,now,neutral,reason):
+        ego=nav['ego_fraction'];half=nav['half_envelope'];reserved=.03
         difference=self.target_fraction-ego
         steer=1610 if abs(difference)<.025 else 1570 if difference>0 else 1650
         # Nominal stopping corridor reserves body swing and reported braking.
-        reach=.5*self.options['burst_s']+self.options['stopping_budget_m']
+        reach=.5*self.options['reaction_horizon_s']+self.options['stopping_budget_m']
         shift=reach*reach/(2*self.options['reported_turn_radius_m'])/self.s['geometry']['lane_width_m']
         predicted=ego+(shift if steer==1570 else -shift if steer==1650 else 0)
         if not half+reserved<predicted<1-half-reserved:raise ValueError('预计靠近白线，主动刹车')
-        if self.phase=='driving' and now>=self.deadline:
-            self._brake(now,'短段前进完成，主动制动后重新观察')
-            return {**neutral,'action':'brake','esc_us':1400,'phase':'braking','reason':self.wait_reason}
         if self.phase!='driving':
             if self.next_after is not None and nav['captured_s']<=self.next_after:
                 return {**neutral,'phase':'observing','reason':'等待制动后的新相机帧'}
-            burst=min(self.options['burst_s'],max(0.,.15-self.held_powered_s)) if nav.get('line_held') else self.options['burst_s']
-            self.phase='driving';self.deadline=now+burst
+            self.phase='driving';self.deadline=None
         return {**neutral,'action':'search','esc_us':self.s['driving']['forward_us'],'steering_us':steer,
-                'phase':'driving','reason':'短段低速绕桶：从'+('左' if self.side=='left' else '右')+'侧通过；白线持续检查'}
+                'phase':'driving','reason':reason}

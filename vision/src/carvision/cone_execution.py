@@ -31,7 +31,7 @@ class ConeRun:
             and 0<=now-nav.get('captured_s',-1e9)<=.25 and abs((nav.get('motion') or {}).get('speed_mps',1))<=.025)
         if self.profile==PROFILE:
             can_start=(self.active and self.phase=='ready' and nav.get('experimental') and nav.get('ready')
-                       and bool(nav.get('cones')) and 0<=now-nav.get('captured_s',-1e9)<=.25)
+                       and 0<=now-nav.get('captured_s',-1e9)<=.25)
         return {'active':self.active,'phase':self.phase,'reason':self.reason,'owner_client':self.owner,'run_token':self.token,
             'profile':self.profile,'low_speed_test':self.controller.progress() if isinstance(self.controller,LowSpeedController) else None,
             'can_prepare':not self.active and base_idle(base),'can_start':can_start,
@@ -39,7 +39,7 @@ class ConeRun:
             'hardware_output':bool(self.actuator and getattr(self.actuator,'run',False)),
             'readiness':ready,'intent':self.intent,'field_verified':False,'log_directory':str(self.folder) if self.folder else None,
             'slalom_required':True,'slalom':nav.get('slalom'),
-            'start_blocked_reason':'' if can_start else ('需要新鲜左右白线和前方蓝桶，保持 F/B 并确认静止' if self.profile==PROFILE
+            'start_blocked_reason':'' if can_start else ('需要任一路可靠白线及新鲜画面，保持 F/B 并确认静止；无需先看到锥桶' if self.profile==PROFILE
                 else '需要完成标定、确认两桶与左右白线、得到交错路线与静止反馈')}
 
     def prepare(self,settings,base,payload,now):
@@ -55,7 +55,7 @@ class ConeRun:
         client=payload.get('client')
         if not isinstance(client,str) or not 1<=len(client)<=128:raise ValueError('页面身份无效')
         self.s=candidate;self.profile=profile;self.active=True;self.phase='preparing'
-        self.reason='等待新鲜白线与蓝桶；旧数据短段试验' if profile==PROFILE else '等待新鲜跑道画面与地面位移反馈'
+        self.reason='等待任一路可靠白线；旧数据持续低速试验' if profile==PROFILE else '等待新鲜跑道画面与地面位移反馈'
         self.owner,self.token=client,secrets.token_hex(16);self.sequence=-1;self.lease_until=now+.5;self.prepared_s=now
         self.controller=self.navigation=self.intent=self.execution=None
         if self.log_root:
@@ -74,12 +74,12 @@ class ConeRun:
         if type(sequence) is not int or sequence<=self.sequence:raise ValueError('old or invalid cone sequence')
         if action=='cone_start':
             nav=self.navigation or {}
-            acceptable=(nav.get('experimental') and nav.get('ready') and bool(nav.get('cones'))) if self.profile==PROFILE else (
+            acceptable=(nav.get('experimental') and nav.get('ready')) if self.profile==PROFILE else (
                 nav.get('action')=='follow_candidate_path' and abs((nav.get('motion') or {}).get('speed_mps',1))<=.025)
             if (self.phase!='ready' or not acceptable
                     or not 0<=now-nav.get('captured_s',-1e9)<=.25
                     ):
-                raise ValueError('暂不能开始：需要新鲜白线和可通过的蓝桶画面')
+                raise ValueError('暂不能开始：需要新鲜白线和无未确认近处障碍的画面')
             if any(payload.get(k) is not True for k in ('fb_mode_confirmed','esc_on_static','field_ready')):raise ValueError('开始前需 F/B、电调打开且静止、场地就绪')
             self.controller=LowSpeedController(self.s,now) if self.profile==PROFILE else ConeDrivingController(self.s,now)
             self.phase='arming';self.reason='3 秒中位后开始低速避障'
