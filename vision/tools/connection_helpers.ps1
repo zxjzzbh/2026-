@@ -25,6 +25,16 @@ function Test-OwnedCarForward($Listener, $Process, [string]$Entry) {
     return $Process.CommandLine.IndexOf(('"' + $Entry + '"'), [StringComparison]::OrdinalIgnoreCase) -ge 0
 }
 
+function Test-CarSameConsole($LocalResult, $RemoteResult) {
+    if (-not $LocalResult.Ok -or -not $RemoteResult.Ok) { return $false }
+    $localIdentity = Get-CarProperty $LocalResult.Data 'setup_token'
+    $remoteIdentity = Get-CarProperty $RemoteResult.Data 'setup_token'
+    # Compare only in memory; never log console session tokens.
+    return ($localIdentity -is [string] -and $remoteIdentity -is [string] -and
+        -not [string]::IsNullOrWhiteSpace($localIdentity) -and
+        $localIdentity -ceq $remoteIdentity)
+}
+
 function Get-CarHttpStatus([string]$Url, [int]$TimeoutMs = 3000) {
     $failure = $null
     for ($httpAttempt = 0; $httpAttempt -lt 2; $httpAttempt++) {

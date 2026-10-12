@@ -22,4 +22,13 @@ $owner.Name='python.exe';$listener.LocalAddress='0.0.0.0'
 Assert-Car (-not (Test-OwnedCarForward $listener $owner $entry)) 'Non-loopback listener must not be killed.'
 $listener.LocalAddress='127.0.0.1';$owner.ProcessId=124
 Assert-Car (-not (Test-OwnedCarForward $listener $owner $entry)) 'PID must match the actual listener.'
-Write-Output '10 connection safety checks passed; no network or process changes.'
+$localResult=[pscustomobject]@{Ok=$true;Data=[pscustomobject]@{setup_token='test-console-identity'}}
+$remoteResult=[pscustomobject]@{Ok=$true;Data=[pscustomobject]@{setup_token='test-console-identity'}}
+Assert-Car (Test-CarSameConsole $localResult $remoteResult) 'Matching live console identity allows reuse.'
+$localResult.Data.setup_token='another-console'
+Assert-Car (-not (Test-CarSameConsole $localResult $remoteResult)) 'Another car or service must not be reused.'
+$localResult.Data.setup_token='';$remoteResult.Data.setup_token=''
+Assert-Car (-not (Test-CarSameConsole $localResult $remoteResult)) 'Missing identities are not a match.'
+$localResult.Ok=$false;$localResult.Data.setup_token='test-console';$remoteResult.Data.setup_token='test-console'
+Assert-Car (-not (Test-CarSameConsole $localResult $remoteResult)) 'Failed HTTP cannot authorize reuse.'
+Write-Output '14 connection safety checks passed; no network or process changes.'
