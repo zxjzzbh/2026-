@@ -18,6 +18,8 @@ def main():
     from carvision.payment_controls import extend_controls,add_endpoints
     from carvision.departure_trial import DepartureTrialDrive
     from carvision.departure_controls import extend_controls as departure_controls,add_endpoints as departure_endpoints
+    from carvision.parking_bay_console import ParkingBayDrive
+    from carvision.parking_bay_controls import extend_controls as bay_controls,add_endpoints as bay_endpoints
     original=web_preview.make_server
     wrappers=[]
     def make_server(address,state,secondary=None,drive=None):
@@ -25,11 +27,13 @@ def main():
         if secondary is not None:attach_payment_capture(secondary)
         extend_controls(manual_controls)
         departure_controls(manual_controls)
+        bay_controls(manual_controls)
         states={'primary':state,**({'secondary':secondary} if secondary else {})}
         payment=PaymentConsoleDrive(drive,states,ROOT)
         departure=DepartureTrialDrive(payment,states,ROOT)
-        wrappers.extend([departure,payment])
-        return departure_endpoints(add_endpoints(original(address,state,secondary,departure),payment),departure)
+        bay=ParkingBayDrive(departure,states,ROOT)
+        wrappers.extend([bay,departure,payment])
+        return bay_endpoints(departure_endpoints(add_endpoints(original(address,state,secondary,bay),payment),departure),bay)
     web_preview.make_server=make_server
     path=ROOT/'vision/tools/serve_crosswalk_trial.py'
     spec=importlib.util.spec_from_file_location('existing_race_console',path)

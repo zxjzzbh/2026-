@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "forward_us": 1600,
+  "left_us": 1690,
+  "right_us": 1550,
+  "max_run_s": 600,
+  "max_stage_s": 120,
+  "parking_search_s": 45,
+  "crosswalk_hold_s": 10,
+  "payment_window_s": 30,
+  "max_frame_age_s": 0.25,
+  "page_lease_s": 0.5,
+  "arming_s": 3,
+  "school_team_speech": "我是山东大学启航队的智能车，请为我加油"
+}
