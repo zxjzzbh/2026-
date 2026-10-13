@@ -17,7 +17,8 @@ dependencies = [
 [project.optional-dependencies]
 yolo = ["ultralytics==8.3.228"]
 export = ["onnx==1.17.0", "onnxruntime==1.20.1"]
-test = ["pytest==8.3.5"]
+deploy = ["paramiko==5.0.0"]
+test = ["pytest==8.3.5", "paramiko==5.0.0"]
 
 [project.scripts]
 carvision = "carvision.cli:main"
