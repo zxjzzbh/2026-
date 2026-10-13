@@ -189,6 +189,9 @@ class ParkingBayDrive:
                 # and any client-supplied side/evidence cannot redirect a run.
                 self.entry.command(action,payload,now,
                     start_selection=self._selection_for_start(now) if action=='parking_trial_start' else None)
+                if action=='parking_trial_keepalive' and payload.get('compact_ack') is True:
+                    return {'parking_keepalive':True,'active':self.entry.active,'phase':self.entry.phase,
+                            'parking_trial_status_s':self.clock()}
                 return self.status()
             if self.entry.active and not action.startswith('parking_bay_'):
                 if action=='status':return self.status()
@@ -274,7 +277,7 @@ class ParkingBayDrive:
                     t=ms/1000 if isinstance(ms,(int,float)) else -1
                     if failed or not jpg or type(fid) is not int or not 0<=self.clock()-t<=self.settings['max_frame_age_s']:raise ValueError('第二路没有新鲜画面')
                     if self.last==(fid,t):
-                        if self.stop.wait(.04):break
+                        if self.stop.wait(.01):break
                         continue
                     processing_started=self.clock()
                     image=cv2.imdecode(np.frombuffer(jpg,np.uint8),cv2.IMREAD_COLOR)
@@ -323,10 +326,10 @@ class ParkingBayDrive:
                     if fid%10==0:(self.folder/'latest.jpg').write_bytes(jpg)
                 except (ValueError,KeyError,cv2.error) as exc:
                     with self.lock:
-                        self.entry_sample={'fresh':False,'reason':str(exc)}
+                        self.entry_sample={**(self.entry_sample or {}),'fresh':False,'reason':str(exc)}
                         self.reason=str(exc);self.latest={};self.recommendation=self.selector.snapshot(str(exc),stale=True);self.preview=None;self.updated=None
                         self.selector.pending=None;self.selector.since=None;self.selector.count=0
-                if self.stop.wait(.03 if self.entry.active else .10):break
+                if self.stop.wait(.005 if self.entry.active else .02):break
         except Exception as exc:
             with self.lock:self.reason='停车观察异常：'+str(exc);self.preview=None;self.updated=None
         finally:

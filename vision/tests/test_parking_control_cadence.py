@@ -160,3 +160,14 @@ def test_cancel_during_output_open_closes_returned_handle_without_reviving(tmp_p
         assert a.closed and not a.commands and not w.entry.active
         assert w.entry.actuator is None and not w.output_initializing
     finally:release.set();thread.join(3);w.close()
+
+
+def test_compact_keepalive_retains_authority_and_deadline_without_full_status(tmp_path,monkeypatch):
+    w,a,now=wrapper(tmp_path)
+    monkeypatch.setattr(w,'status',lambda:pytest.fail('heartbeat must not build full status'))
+    ack=w.request('parking_trial_keepalive',command(w.entry,0,compact_ack=True))
+    assert ack['parking_keepalive'] is True and 'parking_bay' not in ack
+    assert w.entry.lease_until==pytest.approx(.6)
+    with pytest.raises(ValueError):w.request('parking_trial_keepalive',command(w.entry,1,compact_ack=True,client='wrong'))
+    assert w.entry.lease_until==pytest.approx(.6)
+    w.close()

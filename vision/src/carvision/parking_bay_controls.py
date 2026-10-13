@@ -153,7 +153,7 @@ for(const id of ['parking-bay-surface','parking-bay-width','parking-bay-blue','p
 setInterval(async()=>{
  if(!parkingTrialActive||!parkingTrialOwned||stale||document.hidden||parkingTrialPulseBusy||parkingTrialStopping)return;
  parkingTrialPulseBusy=true;
- try{render(await parkingTrialRunSend('parking_trial_keepalive'));}
+ try{await parkingTrialRunSend('parking_trial_keepalive',{compact_ack:true});}
  catch(e){if(parkingTrialActive&&!parkingTrialStopping){parkingTrialError=e.message;await parkingTrialCancel();}}
  finally{parkingTrialPulseBusy=false;}
 },100);

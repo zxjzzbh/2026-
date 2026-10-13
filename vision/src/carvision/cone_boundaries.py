@@ -8,6 +8,35 @@ import cv2
 import numpy as np
 
 
+def _complete_best(data,groups,tolerance,required_span,h,step):
+    """Same ordered hypotheses and acceptance checks, evaluated in a batch."""
+    ys=data[:,0];i,j=np.triu_indices(len(data),1);dy=ys[j]-ys[i]
+    keep=np.abs(dy)>=required_span;i,j,dy=i[keep],j[keep],dy[keep]
+    if not len(i):return None
+    slopes=(data[j,1:]-data[i,1:])/dy[:,None]
+    keep=((slopes[:,0]>=-6)&(slopes[:,0]<=.15)&(slopes[:,1]>=-.15)&
+          (slopes[:,1]<=6)&(slopes[:,1]-slopes[:,0]>=-.05))
+    i,slopes=i[keep],slopes[keep]
+    if not len(i):return None
+    predicted=data[i,None,1:]+(ys[None,:,None]-data[i,None,0,None])*slopes[:,None,:]
+    residual=np.max(np.abs(data[None,:,1:]-predicted),axis=2)
+    good=residual<=tolerance
+    count=np.maximum.reduceat(good,groups,axis=1).sum(axis=1)
+    span=np.max(np.where(good,ys,-np.inf),axis=1)-np.min(np.where(good,ys,np.inf),axis=1)
+    density=count/(span/step+1)
+    keep=(count>=8)&(span>=required_span)&(density>=.65)
+    keep&=(span>=h*.12)|((count>=10)&(density>=.8)&(slopes[:,0]<-.25)&(slopes[:,1]>.25))
+    indices=np.flatnonzero(keep)
+    if not len(indices):return None
+    indices=indices[count[indices]==count[indices].max()]
+    indices=indices[span[indices]==span[indices].max()]
+    best=None
+    for k in indices:
+        score=(int(count[k]),float(span[k]),-float(np.median(residual[k,good[k]])))
+        if best is None or score>best[0]:best=(score,residual[k])
+    return best
+
+
 def adaptive_inner_edges(image,blue_mask,config,*,complete_small_sets=False):
     h,w=image.shape[:2]
     hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
@@ -43,6 +72,9 @@ def adaptive_inner_edges(image,blue_mask,config,*,complete_small_sets=False):
     exhaustive=complete_small_sets and len(data)<=64
     hypotheses=((i,j) for i in range(len(data)) for j in range(i+1,len(data))) if exhaustive else rng.integers(0,len(data),size=(192,2))
     diag['hypothesis_policy']='complete_small_set' if exhaustive else 'sampled'
+    if exhaustive:
+        best=_complete_best(data,groups,tolerance,required_span,h,step)
+        hypotheses=()
     for i,j in hypotheses:
         dy=ys[j]-ys[i]
         if abs(dy)<required_span:continue

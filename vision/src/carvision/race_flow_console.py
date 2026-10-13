@@ -86,6 +86,9 @@ class RaceFlowDrive:
             self.drive.request(action,payload);return self.status()
         with self.lock:
             if self.closed:raise ValueError('总流程服务已关闭')
+            if action=='parking_trial_keepalive' and payload.get('compact_ack') is True:
+                if self.active:raise ValueError('全流程占用控制权')
+                return self.drive.request(action,payload)
             if action=='race_enter':
                 if self.active:raise ValueError('本轮自动流程已开始')
                 if not self.live:raise ValueError('当前仅加载软件；车端使用 --race-live 才允许显式启动')
