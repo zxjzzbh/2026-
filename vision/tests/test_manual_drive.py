@@ -247,6 +247,21 @@ def test_stop_rejects_delayed_motion_until_a_new_release_and_sequence():
     assert len([c for c in backend.calls if c[0]=='motion'])==2
 
 
+def test_timeout_reason_survives_late_release_and_is_returned_to_operator():
+    drive, backend, clock = prepared()
+    command(drive, 1); drive.tick()
+    clock.now = .201; drive.tick()
+    reason = drive.reason
+    assert '控制消息超时' in reason
+    drive.request('stop', {'stop_source': 'window_blur'})
+    assert drive.mode == 'emergency' and drive.reason == reason
+    assert drive.pulse == 1500
+    with pytest.raises(DriveError, match='控制消息超时'):
+        command(drive, 2)
+    drive.request('reset', {})
+    assert drive.mode == 'disabled'
+
+
 def test_release_confirmation_after_urgent_stop_does_not_expire_an_idle_lease():
     drive,backend,clock=prepared()
     command(drive,1);drive.tick()

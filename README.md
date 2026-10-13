@@ -1,6 +1,6 @@
 # 2026 室外 5G 远程驾驶无人车赛
 
-2026-10-13：[完整比赛流程整合](vision/RACE_FLOW.md)。手动切换后按挡板、斑马线、红绿灯、两桶、停车、缴费衔接，保留原单项测试。当前为本地软件整合，停车有效反馈仍有缺项；检查入口 `check-race-flow.cmd`，后续显式部署入口 `update-race-flow.cmd`。
+2026-10-13：[完整比赛流程整合](vision/RACE_FLOW.md)。手动切换后按挡板、斑马线、红绿灯、两桶、停车、缴费衔接，保留原单项测试。最新分项与完整流程代码已整理到主线，停车入位仍属待实车验收的试验功能。检查入口 `check-race-flow.cmd`，显式部署入口 `update-race-flow.cmd`。
 
 2026-10-12：[今日改动与完整 AI 交接包](docs/handoff/2026-10-12/README.md)。包含交错绕桶、室内白线部署记录，以及 **1610 μs 中位、左右 ±180 μs 的待部署手动转向补丁**。压缩包内多份源码的来源与部署状态分别说明，不能整包覆盖车端。
 
@@ -13,7 +13,9 @@
 
 电脑最终版本与车端部署差异见 [当前进度](docs/current-status.md)。采集原图、人工标注数据集、运行日志和连接凭据保留在本地，不包含在本次源码提交中；测试所需的三张小图片夹具随代码提交。
 
-**当前基线（2026-10-08）：Raspberry Pi 5 + RasAdapter5A 串口扩展板，纯树莓派应用控制，不使用独立 STM32。**
+**当前硬件：Raspberry Pi 5 + RasAdapter5A 串口扩展板，不使用独立 STM32、不依赖 ROS。**
+
+主线已合入10月9日的开机等待页、持续5G遥控与启动依赖，以及后续比赛流程。新电脑入口、部署记录与剩余验证见 [当前进度](docs/current-status.md)，分支用途和历史保留点见 [分支说明](docs/branches.md)。
 
 当前源码已经包含双摄感知、网页遥控、UART 执行、比赛状态机和自主运行框架。有限低速/5G 测试有历史记录；**完整自主赛道尚未实车验收，真实自主输出仍被未完成标定项阻止。**
 
@@ -76,7 +78,7 @@ python -m carvision autonomy-demo --profile vision/configs/autonomy-pi5.json --r
 python tools/audit_snapshot_20261008.py
 ```
 
-输出目录必须是新目录。原配置的正常检查结果是 **18 个准备缺项**；demo 的 complete 只代表决策回放完成，不能当作车已经跑完。本次本地 Windows 完整测试集 868 通过 / 3 跳过（Linux 专用项）。CI 在 Linux/Windows 上运行软件检查，不操作硬件。
+输出目录必须是新目录。原配置的正常检查结果是 **18 个准备缺项**；demo 的 complete 只代表决策回放完成，不能当作车已经跑完。最近测试结果见[当前进度](docs/current-status.md)。CI 在 Linux/Windows 上运行软件检查，不操作硬件。
 
 实车相关入口见 [MANUAL_BENCH](vision/MANUAL_BENCH.md)、[红绿灯场地测试](vision/TRAFFIC_SIGNAL.md) 与 [AUTONOMY_PI5](vision/AUTONOMY_PI5.md)，先阅读当前状态；文档保留历史段落。不要沿用旧GPIO接线或旧开机记录。斑马线和红绿灯场地测试已部署，红绿灯最后反光过滤微调已于10月10日同步；完整自主赛道仍未验收。
 

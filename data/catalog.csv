@@ -1,1 +1,2 @@
 id,scene,source,storage_url,sha256,split,usage_permission,notes
+synthetic-test-fixtures,offline-regression,vision/tests Python generators,repository-source,see docs/reviews/publication-manifest-20261009.json,test,team source; overall license undecided,Generated during tests; not field training or validation data
