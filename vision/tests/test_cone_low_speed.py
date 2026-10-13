@@ -46,6 +46,21 @@ def test_profile_uses_reported_limits_without_changing_verified_flags(settings):
     assert not s['motion']['verified'] and not s['ground']['verified']
 
 
+@pytest.mark.parametrize('pulse',[1601,1610,1625])
+def test_debug_throttle_reaches_shared_guard_and_retains_watchdog(settings,pulse):
+    from carvision.cone_navigation import actuator_settings
+    from carvision.cone_trial_output import ConePulseGuard
+    from carvision.cone_controls import HTML
+    s=trial_settings(settings,{'test_forward_us':pulse});ctl=LowSpeedController(s,0.)
+    intent=ctl.step(observation(3.1,cones=[]),3.1);writes=[]
+    guard=ConePulseGuard(actuator_settings(s),lambda *v:writes.append(v),mode='F/B')
+    guard.accept({**intent,'sequence':0,'sent_s':3.1},3.1)
+    assert writes[-2:]==[(3,1610),(4,pulse)]
+    guard.tick(3.31);assert guard.fault and guard.esc==1400
+    guard.tick(3.45);assert writes[-2:]==[(4,1500),(3,1610)]
+    assert 'id="cone-test-forward" type="number" min="1501" max="1625" step="1" value="1600"' in HTML
+
+
 def test_real_run_unconfirmed_blue_does_not_insert_brake_and_settle():
     data=json.loads((ROOT/'tests/fixtures/cone-continuity-20261013.json').read_text(encoding='utf-8'))
     ctl=LowSpeedController(data['settings'],data['started_s']);moving=False
@@ -80,7 +95,7 @@ def test_boundary_margin_warning_steers_inward_without_braking(settings):
         assert result['action']=='search' and result['steering_us']==1350
 
 
-@pytest.mark.parametrize('values',[{'test_forward_us':1601},{'test_forward_us':True},
+@pytest.mark.parametrize('values',[{'test_forward_us':1626},{'test_forward_us':True},
     {'test_run_s':121},{'test_run_s':float('nan')},{'test_run_s':True},{'test_burst_s':.25},
     {'test_left_us':1875},{'test_left_us':1645},{'test_left_us':True},
     {'test_right_us':1345},{'test_right_us':1575}])
@@ -117,7 +132,7 @@ def test_installed_current_endpoint_radius_names_remain_compatible(settings):
 def test_simplified_panel_has_no_dangling_calibration_or_short_test_nodes():
     import re,shutil,subprocess
     from carvision.cone_controls import HTML,STATE,SCRIPT
-    for removed in ('cone-short-section','cone-short-1570','cone-prepare','cone-drive-start','cone-calibration-json','cone-save-calibration','data-cone-geometry'):
+    for removed in ('cone-short-section','cone-short-1570','cone-prepare','cone-drive-start','cone-calibration-json','cone-save-calibration','data-cone-geometry','cone-test-duration','cone-test-confirm'):
         assert removed not in HTML
     ids=re.findall(r'id="([^"]+)"',HTML)
     assert len(ids)==len(set(ids))
@@ -672,7 +687,7 @@ def test_normal_mode_still_requires_calibration(settings,tmp_path):
         run.prepare(settings,base,{'client':'page','setup_token':'x','esc_off':True,'fb_mode_confirmed':True},1.)
 
 
-def test_low_speed_buttons_use_own_prepared_session_and_manual_pass_confirmation():
+def test_continuous_buttons_keep_ownership_without_pass_confirmation_or_timer():
     import os,shutil,subprocess
     from carvision.cone_controls import STATE,SCRIPT
     node=os.environ.get('SMARTCAR_NODE') or shutil.which('node')
@@ -687,8 +702,8 @@ function render(owner,canStart,review){env.renderCone({cone_trial:{low_speed_tri
  active:true,can_prepare:false,profile:'legacy_low_speed',owner_client:owner,can_request_start:canStart,
  low_speed_test:{can_confirm_pass:review,operator_confirmed_count:0}},readiness:{ready:false,missing:['ground.verified_mapping']}}});}
 render('page',true,false);assert(!env.el('cone-test-start').disabled);
-assert(env.el('cone-test-confirm').disabled);render('page',false,true);assert(!env.el('cone-test-confirm').disabled);
-render('other',true,true);assert(env.el('cone-test-start').disabled);assert(env.el('cone-test-confirm').disabled);
+assert(!nodes.has('cone-test-confirm')&&!nodes.has('cone-test-duration'));
+render('other',true,true);assert(env.el('cone-test-start').disabled);
 assert(env.el('cone-white-save').disabled);
 const thresholdSettings={scene:{white_v_min:210},driving:{},blue_hsv_lower:[100,110,50],blue_hsv_upper:[135,255,255],confirm_frames:3};
 env.renderCone({cone_trial:{observing:true,settings:thresholdSettings,avoidance:{active:false},short_test:{active:false},readiness:{missing:[]}}});

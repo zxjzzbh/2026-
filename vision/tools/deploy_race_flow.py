@@ -19,12 +19,13 @@ from deploy_cone_trial import idle,PROTECTED,verify_protected
 MODULES=('race_flow','race_flow_camera','race_flow_console','race_flow_controls',
          'parking_bay','parking_bay_console','parking_bay_controls','parking_mission',
          'steering','manual_drive','manual_hardware','rasadapter5','pi5_pwm',
-         'brake_parking','brake_output','cone_low_speed','cone_trial_output','cone_navigation','cone_execution',
+         'brake_parking','brake_output','cone_low_speed','cone_continuous','cone_trial_output','cone_navigation','cone_execution',
          'cone_planning','cone_observer','cone_controls','autonomy_profile','autonomy_motion','rasadapter5_executor')
 FILES=['vision/src/carvision/'+name+'.py' for name in MODULES]+[
     'vision/tools/serve_race_flow.py','vision/tools/serve_parking_payment.py','vision/tools/race_flow.py',
     'vision/configs/race-flow.json','vision/configs/parking-bay.json','vision/tests/test_race_flow.py',
     'vision/tests/test_parking_bay.py','vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py',
+    'vision/tests/test_cone_continuous.py','vision/tests/test_cone_slalom.py',
     'vision/tests/fixtures/cone-track-short-secondary.jpg','vision/tests/fixtures/cone-track-glare-primary.jpg',
     'vision/tests/fixtures/cone-track-glare-secondary.jpg',
     'vision/tests/fixtures/cone-continuity-20261013.json',
@@ -80,8 +81,10 @@ def main(argv=None):
     def status():return json.loads(command(client,['curl','--fail','--silent','--max-time','3','http://127.0.0.1:8080/api/drive/status']))
     try:
         client.connect(cfg['host'],port=cfg.get('port',22),username=cfg['username'],password=cfg['password'],
-                       look_for_keys=False,allow_agent=False,timeout=6)
+                       look_for_keys=False,allow_agent=False,timeout=6,banner_timeout=6,auth_timeout=6)
+        client.get_transport().set_keepalive(15)
         if not flow_idle(status()):raise RuntimeError('当前仍有车辆控制会话，未修改任何文件')
+        print('Idle controller verified; checking source versions.',flush=True)
         sftp=client.open_sftp()
         for rel in PREREQUISITES:
             if read(sftp,REMOTE+'/'+rel)!=(ROOT/rel).read_bytes():
@@ -108,17 +111,21 @@ def main(argv=None):
             except FileNotFoundError:protected[rel]=None
         unit_before=read(sftp,UNIT);unit_after=extend_unit(unit_before)
         (record/'service.before.conf').write_bytes(unit_before)
-        remote_backup=REMOTE+'/run/'+record.name;command(client,['mkdir','-p',remote_backup])
+        remote_backup=REMOTE+'/run/'+record.name
+        # One directory command avoids dozens of SSH session round trips on 5G.
+        parents={str(Path(rel).parent).replace('\\','/') for rel in FILES}
+        directories=[remote_backup]+[remote_backup+'/before/'+p for p in sorted(parents)]+[REMOTE+'/'+p for p in sorted(parents)]
+        command(client,['mkdir','-p',*directories])
         put_atomic(sftp,remote_backup+'/service.before.conf',unit_before)
+        print('Backing up the installed files.',flush=True)
         for rel in FILES:
             try:backup[rel]=read(sftp,REMOTE+'/'+rel)
             except FileNotFoundError:backup[rel]=None
             if backup[rel] is not None:
                 local=record/'before'/rel;local.parent.mkdir(parents=True,exist_ok=True);local.write_bytes(backup[rel])
-                command(client,['mkdir','-p',remote_backup+'/before/'+str(Path(rel).parent).replace('\\','/')])
                 put_atomic(sftp,remote_backup+'/before/'+rel,backup[rel])
+        print('Synchronizing changed files; installed manual runtime is preserved.',flush=True)
         for rel in FILES:
-            command(client,['mkdir','-p',REMOTE+'/'+str(Path(rel).parent).replace('\\','/')])
             keep=(rel.startswith('vision/configs/') and backup[rel] is not None) or preserved_runtime(rel,backup[rel])
             desired[rel]=backup[rel] if keep else (ROOT/rel).read_bytes()
             if desired[rel]!=backup[rel]:
@@ -127,11 +134,13 @@ def main(argv=None):
         for name in ('race-flow','brake-parking','traffic-driving','cone-trial','parking-bay','cone-legacy-ground-candidate'):
             path=ROOT/'vision/configs'/(name+'.json')
             put_atomic(sftp,test_root+'/vision/configs/'+path.name,path.read_bytes())
+        print('Running software-only regressions on the car.',flush=True)
         audit['tests']=command(client,['env','PYTHONPATH='+REMOTE+'/vision/src','CARVISION_FLOW_TEST_ROOT='+test_root,
             'CARVISION_SKIP_PC_DEPLOY_TESTS=1',
             'CARVISION_REPOSITORY_CONE_CONFIG='+test_root+'/vision/configs/cone-trial.json',
             PYTHON,'-m','pytest',REMOTE+'/vision/tests/test_race_flow.py',REMOTE+'/vision/tests/test_parking_bay.py',
-            REMOTE+'/vision/tests/test_cone_low_speed.py',REMOTE+'/vision/tests/test_cone_trial_output.py','-q'],timeout=60)
+            REMOTE+'/vision/tests/test_cone_low_speed.py',REMOTE+'/vision/tests/test_cone_continuous.py',
+            REMOTE+'/vision/tests/test_cone_trial_output.py','-q'],timeout=60)
         if manifest.get('preserved_runtime_hashes'):
             audit['manual_regression_tests']=command(client,['env','PYTHONPATH='+REMOTE+'/vision/src',
                 'CARVISION_REPOSITORY_CONE_CONFIG='+test_root+'/vision/configs/cone-trial.json',PYTHON,'-m','pytest',
@@ -143,6 +152,7 @@ def main(argv=None):
         put_atomic(sftp,remote_backup+'/service.new.conf',unit_after)
         unit_changed=True;command(client,['install','-m','644',remote_backup+'/service.new.conf',UNIT],password=cfg['password'])
         command(client,['systemctl','daemon-reload'],password=cfg['password'])
+        print('Tests passed; restarting the idle preview service.',flush=True)
         restarted=True;command(client,['systemctl','restart','smartcar-preview.service'],password=cfg['password'])
         deadline=time.monotonic()+20
         while True:

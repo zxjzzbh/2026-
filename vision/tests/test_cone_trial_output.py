@@ -71,7 +71,7 @@ def test_invalid_neutral_or_forward_profile_cannot_move_steering():
     writes=[];guard=ConePulseGuard(settings(),lambda *p:writes.append(p),mode='F/B')
     with pytest.raises(ValueError):guard.accept(command(0,0,1690,'neutral'),0)
     assert all(ch!=3 or value==1610 for ch,value in writes)
-    bad=settings();bad['pwm']['search_us']=1625
+    bad=settings();bad['pwm']['search_us']=1626
     with pytest.raises(ValueError):ConePulseGuard(bad,lambda *p:None,mode='F/B')
 
 

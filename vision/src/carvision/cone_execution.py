@@ -8,6 +8,7 @@ from pathlib import Path
 from .brake_output import BrakeActuator
 from .cone_navigation import execution_readiness,actuator_settings,ConeDrivingController
 from .cone_low_speed import PROFILE,trial_settings,LowSpeedController
+from .cone_continuous import ContinuousConeController
 from .cone_trial_output import ConeTrialActuator
 
 
@@ -57,6 +58,8 @@ class ConeRun:
         profile=payload.get('profile','calibrated')
         if profile not in ('calibrated',PROFILE):raise ValueError('未知避障测试类型')
         candidate=trial_settings(settings,payload) if profile==PROFILE else copy.deepcopy(settings)
+        if profile==PROFILE:
+            candidate['low_speed_test'].update(manual_stop_only=True,max_run_s=None)
         if profile!='legacy_low_speed':
             report=execution_readiness(settings)
             if not report['ready']:raise ValueError('避障标定未完成：'+', '.join(report['missing']))
@@ -91,7 +94,7 @@ class ConeRun:
                     ):
                 raise ValueError('暂不能开始：需要新鲜相机画面，且无未确认的近处障碍')
             if any(payload.get(k) is not True for k in ('fb_mode_confirmed','esc_on_static','field_ready')):raise ValueError('开始前需 F/B、电调打开且静止、场地就绪')
-            self.controller=LowSpeedController(self.s,now) if self.profile==PROFILE else ConeDrivingController(self.s,now)
+            self.controller=ContinuousConeController(self.s,now) if self.profile==PROFILE else ConeDrivingController(self.s,now)
             self.phase='arming';self.reason='3 秒中位后开始低速避障'
         elif action=='cone_test_confirm':
             if not isinstance(self.controller,LowSpeedController) or payload.get('tail_passed') is not True:

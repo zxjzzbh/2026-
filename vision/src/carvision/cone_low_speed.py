@@ -33,7 +33,7 @@ def trial_settings(settings,payload=None):
     forward=payload.get('test_forward_us',1600);duration=payload.get('test_run_s',60.)
     left=payload.get('test_left_us',LEFT_US);right=payload.get('test_right_us',RIGHT_US)
     validate_limits(right,left)
-    if type(forward) is not int or not 1501<=forward<=1600:raise ValueError('测试油门仅允许 1501–1600 μs')
+    if type(forward) is not int or not 1501<=forward<=1625:raise ValueError('测试油门仅允许 1501–1625 μs')
     if not numeric(duration) or not 5<=duration<=120:raise ValueError('本轮运行时限仅允许 5–120 秒')
     s['driving']=radius_settings(s.get('driving',{}));s['driving']['forward_us']=forward
     s['low_speed_test']={'drive_mode':'continuous','settle_s':.55,'max_run_s':duration,'reaction_horizon_s':.25,
@@ -121,8 +121,11 @@ class LowSpeedNavigator:
         self.last_boundary_s=t
         result['boundary_outside_frames']=self.outside_frames
         if self.outside_frames>=3 and t-self.outside_since>=.15:
-            result['boundary_danger']=True
-            return fail('近处参考中心连续位于白线外，结束本轮')
+            if self.s.get('low_speed_test',{}).get('manual_stop_only'):
+                result['boundary_warning']='近处参考位于白线外，保持低速向内纠偏'
+            else:
+                result['boundary_danger']=True
+                return fail('近处参考中心连续位于白线外，结束本轮')
         soft=half+.06
         correction='right' if near<soft else 'left' if near>1-soft else None
         result['boundary_correction']=correction
@@ -148,7 +151,7 @@ class LowSpeedNavigator:
             left,right=corridor(y);width=right-left
             if width<=0:return fail('白线相交')
             # Ignore only objects wholly outside the observed/short-extended
-            # corridor; an overlapping ambiguous blue shape always stops.
+            # corridor; ambiguous blue shapes remain visible as candidates.
             if x2<left or x1>right:continue
             entry={'id':track['id'],'fraction':(x-left)/width,'half_width':max((x2-x1)/width/2,g['cone_base_width_m']/g['lane_width_m']/2),
                    'image_fraction':float(x/w),'half_image_width':float((x2-x1)/w/2),
@@ -158,7 +161,8 @@ class LowSpeedNavigator:
                    'exit_band':bool(y/h>=max(.90 if self.camera=='primary' else .70,high/h-.045)),
                    'reference_distance_m':None}
             if self.camera=='primary':entry['near']=bool(y/h>=.90)
-            if not track.get('confirmed') or not track.get('ground_contact_usable') or track.get('clipped'):
+            if (track.get('kind','cone_candidate')!='cone_candidate' or not track.get('confirmed')
+                    or not track.get('ground_contact_usable') or track.get('clipped')):
                 result['uncertain'].append(track['id'])
                 if track.get('kind')=='cone_candidate' or track.get('confirmed'):
                     result['uncertain_cones'].append({**entry,'provisional':True})
@@ -185,6 +189,8 @@ class LowSpeedNavigator:
                 and q>=history['entry']['y_fraction']-.03)
             low,high=(.55,.97) if self.camera=='primary' else (.4,.78)
             if not low<=q<=high and not continuation:continue
+            if track.get('kind','cone_candidate')!='cone_candidate' and not continuation:
+                uncertain.append(track['id']);continue
             if not track.get('confirmed'):
                 uncertain.append(track['id'])
                 if track.get('kind')!='cone_candidate':continue

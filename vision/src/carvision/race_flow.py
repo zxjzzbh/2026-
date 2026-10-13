@@ -14,6 +14,7 @@ from pathlib import Path
 from .brake_parking import BrakeParkingController, numeric, load_settings as load_brake
 from .traffic_driving import TrafficDrivingController, load_settings as load_traffic
 from .cone_low_speed import LowSpeedController, trial_settings
+from .cone_continuous import ContinuousConeController
 from .cone_planning import load_settings as load_cones
 from .cone_navigation import reuse_legacy_ground
 from .departure import DepartureSequence
@@ -131,7 +132,7 @@ class RaceFlowController:
         self.guide=LowSpeedController(self.b['cones'],now,initialized=True)
         if stage=='crosswalk':self.controller=BrakeParkingController(self.b['brake'],'straight')
         elif stage=='traffic':self.controller=FlowTrafficController(self.b['traffic'],now,self.s['max_stage_s'])
-        elif stage=='cones':self.controller=LowSpeedController(self.b['cones'],now,stop_on_complete=False,initialized=True)
+        elif stage=='cones':self.controller=ContinuousConeController(self.b['cones'],now,initialized=True,handoff_after_two=True)
 
     def _out(self,reason=None,intent=None,events=None):
         raw=intent or {'action':'neutral','esc_us':1500,'steering_us':1610}

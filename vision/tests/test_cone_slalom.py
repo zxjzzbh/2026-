@@ -279,7 +279,8 @@ function render(can,owner,count,reason){env.renderCone({cone_trial:{
  avoidance:{active:true,profile:'legacy_low_speed',owner_client:owner,can_request_start:can,reason,
  low_speed_test:{passed_count:count}},latest:{navigation:{}},readiness:{missing:[]}}});}
 render(true,'page',0,'等待开始');assert(!env.el('cone-test-start').disabled);
-render(true,'page',1,'第二桶避让');assert(env.el('cone-test-progress').textContent.includes('已过 1/2'));
+render(true,'page',1,'第二桶避让');assert(env.el('cone-test-progress').textContent.includes('已过 1 个'));
+assert(env.el('cone-test-progress').textContent.includes('持续运行，由你停止'));
 render(true,'other',1,'第二桶避让');assert(env.el('cone-test-start').disabled);
 render(false,'page',1,'白线无可通行空间');assert(env.el('cone-test-start').disabled);
 assert(env.el('cone-test-progress').textContent.includes('白线无可通行空间'));

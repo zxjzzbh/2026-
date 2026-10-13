@@ -23,8 +23,8 @@ def validate_limits(right,left):
 class ConePulseGuard(PulseGuard):
     def __init__(self,settings,write,*,mode,right_us=RIGHT_US,left_us=LEFT_US):
         validate_limits(right_us,left_us)
-        if not 1500<settings.get('pwm',{}).get('search_us',0)<=1600:
-            raise ValueError('锥桶测试油门上限为 1600 μs')
+        if not 1500<settings.get('pwm',{}).get('search_us',0)<=1625:
+            raise ValueError('锥桶测试油门上限为 1625 μs')
         self.right_us,self.left_us=right_us,left_us;self.actual_steering=1610;self.actual_write=write
         super().__init__(settings,self._write,mode=mode,forward_limit_us=1625)
 
