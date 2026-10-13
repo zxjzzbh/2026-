@@ -15,6 +15,7 @@ from .cone_trial_output import ConeTrialActuator
 from .parking_entry import ParkingEntryController
 from .parking_control import MetricParkingController, calibration_tables
 from .steering import LEFT_US, RIGHT_US
+from .parking_log import ParkingLog
 
 
 EVIDENCE_SELECTION_SOURCES = frozenset(('layout', 'blocked_side', 'visible_ground', 'blue_board_position'))
@@ -50,8 +51,9 @@ def _clean(value):
 
 
 class ParkingEntryRun:
-    def __init__(self, factory=None, log_root=None):
+    def __init__(self, factory=None, log_root=None, *, async_log=False):
         self.factory = factory or make_actuator
+        self.async_log = async_log
         self.log_root = Path(log_root) if log_root else None
         self.active = False
         self.phase = 'idle'
@@ -171,7 +173,8 @@ class ParkingEntryRun:
                 self.folder.mkdir(parents=True, exist_ok=False)
                 (self.folder / 'settings.json').write_text(
                     json.dumps(_clean(self.s), ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
-                self.log = (self.folder / 'decisions.jsonl').open('w', encoding='utf-8')
+                path = self.folder / 'decisions.jsonl'
+                self.log = ParkingLog(path) if self.async_log else path.open('w', encoding='utf-8')
             except Exception:
                 self.cancel('无法创建停车入位日志', phase='fault')
                 raise

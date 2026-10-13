@@ -88,7 +88,8 @@ class ParkingBayDrive:
         self.revision=secrets.token_hex(8);self.selector=BaySelection(self.settings['selection_confirm_s'])
         self.latest={};self.recommendation={};self.preview=None;self.updated=None;self.folder=None;self.last=None
         self.reason='停车模块待观察；当前只显示实际识别与选区，不启动车辆'
-        self.entry=ParkingEntryRun(factory=entry_factory,log_root=self.root/'run')
+        self.entry=ParkingEntryRun(factory=entry_factory,log_root=self.root/'run',async_log=True)
+        self.control_thread=None
         self.motion=GroundMotionEstimate();self.far_tracker=ParkingFarTracker();self.entry_sample=None
         self.road=None
         self.metric_feedback=None
@@ -215,7 +216,25 @@ class ParkingBayDrive:
             else:raise ValueError('未知停车观察动作；本接口不提供电机输出')
             return self.status()
 
+    def _control_tick(self):
+        # Serialize ownership/start/cancel with this tick, never with image
+        # processing or observation file I/O. tick checks BOTH the page lease
+        # and the original capture timestamp before every output renewal.
+        with self.lock:
+            self.entry.tick(self.entry_sample,self.clock())
+
+    def _control_run(self):
+        try:
+            while not self.stop.wait(.04):
+                self._control_tick()
+        except Exception as exc:
+            with self.lock:
+                if self.entry.active:self.entry.cancel('停车控制循环异常：'+str(exc),phase='fault')
+            self.stop.set()
+
     def _run(self):
+        self.control_thread=threading.Thread(target=self._control_run,name='parking-entry-control',daemon=True)
+        self.control_thread.start()
         try:
             while not self.stop.is_set():
                 try:
@@ -224,7 +243,6 @@ class ParkingBayDrive:
                     t=ms/1000 if isinstance(ms,(int,float)) else -1
                     if failed or not jpg or type(fid) is not int or not 0<=self.clock()-t<=self.settings['max_frame_age_s']:raise ValueError('第二路没有新鲜画面')
                     if self.last==(fid,t):
-                        self.entry.tick(self.entry_sample,self.clock())
                         if self.stop.wait(.04):break
                         continue
                     processing_started=self.clock()
@@ -253,39 +271,45 @@ class ParkingBayDrive:
                                   'motion':motion,**timings}
                     if self.entry.active and self.metric_feedback is not None:
                         entry_sample['parking_world']=self.metric_feedback.update(image,fid,t,observation,self.clock())
-                    self.entry_sample=entry_sample
                     recommendation=self.selector.update(observation,fid,t,now)
                     label='SUGGEST '+recommendation['selected_slot'].upper()+(' / VISUAL' if recommendation['confirmed'] else ' / TENTATIVE')
                     cv2.putText(overlay,label,(8,24),cv2.FONT_HERSHEY_SIMPLEX,.5,(0,210,0) if recommendation['confirmed'] else (0,170,255),2)
                     ok,encoded=cv2.imencode('.jpg',overlay)
                     with self.lock:
                         if not self.active:break
+                        self.entry_sample=entry_sample
                         self.last=(fid,t);self.latest={**observation,'frame_id':fid,'captured_s':t,'camera_id':'secondary',**timings}
                         self.recommendation=recommendation;self.updated=t;self.preview=encoded.tobytes() if ok else None
                         self.reason=(observation.get('reason') or recommendation['reason']) if not observation.get('layout_found') else recommendation['reason']
-                        with (self.folder/'observations.jsonl').open('a',encoding='utf-8') as f:
-                            handle=getattr(self.entry,'actuator',None)
-                            f.write(json.dumps({'observation':self.latest,'selection':recommendation,
-                                'hardware_output':bool(handle and getattr(handle,'run',False)),
-                                'output_scope':'parking_entry','perception_hardware_output':False},ensure_ascii=False,allow_nan=False)+'\n')
-                        if fid%10==0:(self.folder/'latest.jpg').write_bytes(jpg)
-                    self.entry.tick(entry_sample,self.clock())
+                        handle=getattr(self.entry,'actuator',None)
+                        record={'observation':self.latest,'selection':recommendation,
+                            'hardware_output':bool(handle and getattr(handle,'run',False)),
+                            'output_scope':'parking_entry','perception_hardware_output':False}
+                    # Neither journal/image writes nor detection hold the
+                    # control lock. A slow frame will still expire at 250 ms.
+                    with (self.folder/'observations.jsonl').open('a',encoding='utf-8') as f:
+                        f.write(json.dumps(record,ensure_ascii=False,allow_nan=False)+'\n')
+                    if fid%10==0:(self.folder/'latest.jpg').write_bytes(jpg)
                 except (ValueError,KeyError,cv2.error) as exc:
-                    self.entry.tick({'fresh':False,'reason':str(exc)},self.clock())
                     with self.lock:
+                        self.entry_sample={'fresh':False,'reason':str(exc)}
                         self.reason=str(exc);self.latest={};self.recommendation=self.selector.snapshot(str(exc),stale=True);self.preview=None;self.updated=None
                         self.selector.pending=None;self.selector.since=None;self.selector.count=0
                 if self.stop.wait(.03 if self.entry.active else .10):break
         except Exception as exc:
             with self.lock:self.reason='停车观察异常：'+str(exc);self.preview=None;self.updated=None
         finally:
-            if self.entry.active:self.entry.cancel('停车观察线程结束，输出已释放',phase='fault')
-            with self.lock:self.active=False
+            self.stop.set()
+            with self.lock:
+                if self.entry.active:self.entry.cancel('停车观察线程结束，输出已释放',phase='fault')
+                self.active=False
+            if self.control_thread is not threading.current_thread():self.control_thread.join(timeout=2)
 
     def image(self):
         with self.lock:return self.preview if self.updated is not None and self.clock()-self.updated<=.5 else None
 
     def close(self):
-        self.closed=True;self.stop.set()
-        if self.entry.active:self.entry.cancel('停车服务关闭，输出已释放')
+        with self.lock:
+            self.closed=True;self.stop.set()
+            if self.entry.active:self.entry.cancel('停车服务关闭，输出已释放')
         if self.thread and self.thread is not threading.current_thread():self.thread.join(timeout=2)

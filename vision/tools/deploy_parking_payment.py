@@ -26,7 +26,7 @@ from carvision.departure_controls import extend_controls as departure
 from carvision.parking_bay_controls import extend_controls as parking_bay
 
 FILES=['vision/src/carvision/'+n+'.py' for n in ('parking_payment','payment_console','payment_controls','departure','departure_trial','departure_controls',
-    'parking_bay','parking_mission','parking_bay_console','parking_bay_controls','parking_entry','parking_entry_run','parking_guidance','parking_path','parking_control','parking_feedback','parking_far_tracker')]+[
+    'parking_bay','parking_mission','parking_bay_console','parking_bay_controls','parking_entry','parking_entry_run','parking_log','parking_guidance','parking_path','parking_control','parking_feedback','parking_far_tracker')]+[
     'vision/tools/serve_parking_payment.py','vision/tests/test_parking_payment.py','vision/tests/test_departure.py',
     'vision/configs/parking-bay.json','vision/tests/test_parking_bay.py','vision/tests/test_parking_path.py','vision/tests/test_parking_entry_run.py','vision/tools/parking_bay.py']
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
