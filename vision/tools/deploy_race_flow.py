@@ -27,6 +27,7 @@ FILES=['vision/src/carvision/'+name+'.py' for name in MODULES]+[
     'vision/tests/test_parking_bay.py','vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py',
     'vision/tests/fixtures/cone-track-short-secondary.jpg','vision/tests/fixtures/cone-track-glare-primary.jpg',
     'vision/tests/fixtures/cone-track-glare-secondary.jpg',
+    'vision/tests/fixtures/cone-continuity-20261013.json',
     'vision/RACE_FLOW.md','vision/PARKING_BAY.md']
 PREREQUISITES=['vision/src/carvision/'+name+'.py' for name in (
     'cone_boundaries','cone_road')]

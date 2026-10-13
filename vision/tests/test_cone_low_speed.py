@@ -46,6 +46,40 @@ def test_profile_uses_reported_limits_without_changing_verified_flags(settings):
     assert not s['motion']['verified'] and not s['ground']['verified']
 
 
+def test_real_run_unconfirmed_blue_does_not_insert_brake_and_settle():
+    data=json.loads((ROOT/'tests/fixtures/cone-continuity-20261013.json').read_text(encoding='utf-8'))
+    ctl=LowSpeedController(data['settings'],data['started_s']);moving=False
+    for row in data['steps']:
+        result=ctl.step(row['navigation'],row['now_s'])
+        moving|=result['action']=='search'
+        if moving:assert result['action']=='search',result
+
+
+def test_far_heading_intersection_is_not_body_boundary_collision(settings):
+    s=trial_settings(settings);nav=LowSpeedNavigator(s);data=row()
+    # Historical centre reference is kept; change the observed far edge while
+    # the nearest actual edge leaves ample room around the camera centre.
+    H=nav.projection.h
+    for side in ('left_inner','right_inner'):
+        points=[]
+        for y in np.linspace(180,260,12):
+            q=.05+(y-180)/80*.40;center=-(H[0,1]*y+H[0,2])/H[0,0]
+            left=center-q*240;points.append([left if side=='left_inner' else left+240,y])
+        data['road_context'][side]=points
+    data['tracks']=[]
+    result=nav.update(np.zeros((360,480,3),np.uint8),data,1.)
+    assert not result.get('boundary_danger') and result['ready']
+    assert result['ego_near_fraction']==pytest.approx(.45)
+
+
+def test_boundary_margin_warning_steers_inward_without_braking(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    for i in range(15):
+        t=3.1+i*.1
+        result=ctl.step(observation(t,cones=[],ego_fraction=.12,ego_near_fraction=.12,ego_range=[.05,.12]),t)
+        assert result['action']=='search' and result['steering_us']==1350
+
+
 @pytest.mark.parametrize('values',[{'test_forward_us':1601},{'test_forward_us':True},
     {'test_run_s':121},{'test_run_s':float('nan')},{'test_run_s':True},{'test_burst_s':.25},
     {'test_left_us':1875},{'test_left_us':1645},{'test_left_us':True},
@@ -159,20 +193,25 @@ def test_live_short_visible_pair_reaches_driving_pipeline(settings):
 
 
 @pytest.mark.parametrize('case',['near_edge','crossed','stale'])
-def test_white_line_or_frame_guard_stops_before_any_drive(settings,case):
+def test_boundary_warnings_are_not_frame_loss_or_departure(settings,case):
     data=row();now=1.
     if case=='lost':data['road_context']['valid']=False
     if case=='near_edge':data['road_context']['left_inner']=[[225.,y] for y in np.linspace(180,260,12)]
     if case=='crossed':data['road_context']['left_inner']=[[400.,y] for y in np.linspace(180,260,12)]
     if case=='stale':now=1.4
     result=LowSpeedNavigator(trial_settings(settings)).update(np.zeros((360,480,3),np.uint8),data,now)
-    assert not result['ready'] and result['action']=='stop'
+    if case=='stale':assert not result['ready'] and result['action']=='stop'
+    else:
+        assert result['ready'] and not result.get('boundary_danger')
+        if case=='near_edge':assert result['boundary_correction']=='right'
+        else:assert result['line_missing']
 
 
-def test_ambiguous_blue_in_corridor_cannot_be_ignored(settings):
+def test_ambiguous_blue_is_a_visible_candidate_not_a_stop_latch(settings):
     data=row();data['tracks'][0]['ground_contact_usable']=False
     result=LowSpeedNavigator(trial_settings(settings)).update(np.zeros((360,480,3),np.uint8),data,1.)
-    assert not result['ready'] and result['uncertain']==['one']
+    assert result['ready'] and result['uncertain']==['one']
+    assert result['uncertain_cones'][0]['id']=='one' and result['uncertain_cones'][0]['provisional']
 
 
 @pytest.mark.parametrize('with_cone',[True,False])
@@ -289,11 +328,11 @@ def test_white_boundary_correction_hysteresis_avoids_alternating_at_threshold(se
     assert ctl.boundary_turn is None
 
 
-@pytest.mark.parametrize('ego',[.13,.87])
-def test_white_boundary_body_clearance_still_stops(settings,ego):
+@pytest.mark.parametrize('ego,pulse',[(.13,1350),(.87,1870)])
+def test_white_boundary_margin_continues_inward(settings,ego,pulse):
     ctl=LowSpeedController(trial_settings(settings),0.)
-    with pytest.raises(ValueError,match='净空不足'):
-        ctl.step(observation(3.1,cones=[],ego_fraction=ego),3.1)
+    result=ctl.step(observation(3.1,cones=[],ego_fraction=ego),3.1)
+    assert result['action']=='search' and result['steering_us']==pulse
 
 
 def test_inward_correction_cannot_turn_into_nearby_cone(settings):
@@ -378,7 +417,7 @@ def test_end_brake_cannot_resume_driving_when_lines_disappear(settings,after):
     assert ctl.step(observation(4.3),4.3)['action']=='neutral'
 
 
-@pytest.mark.parametrize('case',['freshness','early_loss','close_cone','other_cone'])
+@pytest.mark.parametrize('case',['freshness','close_cone','other_cone'])
 def test_runtime_hazards_interrupt_powered_segment(settings,case):
     ctl=LowSpeedController(trial_settings(settings),0.)
     first=observation(3.01)
@@ -423,12 +462,42 @@ def test_stale_camera_is_not_rescued_by_line_memory(settings):
     assert not result['ready'] and result['captured_s']==1.
 
 
-def test_visible_boundary_danger_overrides_another_camera(settings):
+def test_single_view_margin_warning_does_not_veto_other_camera(settings):
     nav=DualLowSpeedNavigator(trial_settings(settings));a=row();b=row()
     b['road_context']['left_inner']=[[225.,y] for y in np.linspace(180,260,12)]
     image=np.zeros((360,480,3),np.uint8)
     result=nav.update_views({'primary':image,'secondary':image},{'primary':a,'secondary':b},1.)
-    assert result['boundary_danger'] and not result['ready']
+    assert not result.get('boundary_danger') and result['ready']
+    assert result['boundary_correction']=='right'
+
+
+def test_persistent_nearest_reference_outside_only_stops_without_safe_view(settings):
+    nav=DualLowSpeedNavigator(trial_settings(settings));image=np.zeros((360,480,3),np.uint8)
+    for i,t in enumerate((1.,1.1,1.2,1.3)):
+        b=row(t,i);b['tracks']=[]
+        b['road_context']['left_inner']=[[280.,y] for y in np.linspace(180,260,12)]
+        b['road_context']['right_inner']=[[470.,y] for y in np.linspace(180,260,12)]
+        result=nav.update_views({'secondary':image},{'secondary':b},t)
+    assert result['boundary_danger'] and result['boundary_outside_frames']>=3
+    a=row(1.31,10);a['tracks']=[];b['captured_s']=1.31;b['frame_id']=10
+    result=nav.update_views({'primary':image,'secondary':image},{'primary':a,'secondary':b},1.31)
+    assert result['ready'] and result['source_camera']=='primary' and result['boundary_disagreement']
+
+
+def test_early_target_gap_keeps_running_without_counting_a_pass(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    data=observation(3.1);data['cones'][0]['near']=False;ctl.step(data,3.1)
+    assert ctl.step(observation(3.2,cones=[]),3.2)['action']=='search'
+    assert ctl.count==0 and ctl.target=='one'
+
+
+def test_unconfirmed_near_candidate_steers_without_becoming_a_pass(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    candidate={'id':'maybe','fraction':.60,'half_width':.03,'near':True,'provisional':True}
+    data=observation(3.1,cones=[],uncertain=['maybe'],uncertain_cones=[candidate])
+    result=ctl.step(data,3.1)
+    assert result['action']=='search' and result['steering_us']==1870
+    assert ctl.count==0 and ctl.target is None
 
 
 def test_arming_survives_single_frame_line_miss_without_driving(settings):

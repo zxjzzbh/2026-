@@ -49,6 +49,7 @@ class LowSpeedNavigator:
     def __init__(self,settings,camera='secondary'):
         self.s=settings;self.latest=None;self.last_id=None
         self.near_history={}
+        self.outside_since=None;self.outside_frames=0;self.last_boundary_s=None
         self.camera=camera
         self.projection=GroundProjection(settings['ground'],require_verified=False)
 
@@ -64,7 +65,8 @@ class LowSpeedNavigator:
                 # Losing segmentation is not losing the camera. Keep current
                 # cone pixels, but never label image fractions as lane space.
                 result.update(self.image_guidance(row,w,h),line_missing=True,guard='image_only_boundary_unknown')
-                result.update(ready=not result['uncertain'],action='visual_trial_ready' if not result['uncertain'] else 'stop')
+                result.update(ready=True,action='visual_trial_ready')
+                self.outside_since=None;self.outside_frames=0
             self.latest={**result,'reason':reason};return self.latest
         if not 0<=now-t<=.25:return fail('第二路图像过期')
         road=row['road_context']
@@ -93,8 +95,7 @@ class LowSpeedNavigator:
         for y in (y0,(y0+y1)/2,y1):
             left,right=corridor(y);width=right-left
             if width<=0:
-                result['boundary_danger']=True
-                return fail('白线相交，主动刹车')
+                return fail('边界线形相交，暂用图像引导继续观察')
             if not w*.15<width<w*1.8:return fail('白线宽度异常，继续图像引导')
             # Historical X=0 line is a nominal camera reference, not feedback.
             H=self.projection.h
@@ -102,19 +103,30 @@ class LowSpeedNavigator:
             centre=float(-(H[0,1]*y+H[0,2])/H[0,0])
             q=(centre-left)/width;centres.append(q)
         result.update(ego_fraction=float(np.mean(centres)),half_envelope=half,
+                      ego_near_fraction=float(centres[-1]),boundary_position_source='nearest_observed_row',
                       ego_range=[min(centres),max(centres)],
                       lane_bounds_px=[corridor(y0),corridor(y1)],lane_rows=[y0,y1],
                       guard='fresh_white_lines_and_image_envelope',metric_boundary_verified=False)
         hard=(g['vehicle_width_m']/2+.03)/g['lane_width_m']
-        if min(centres)<=hard or max(centres)>=1-hard:
+        # Far rows describe heading/lookahead, not where the car body is.
+        # Use the nearest observed row for inward correction; a reserve-margin
+        # warning is not a measured collision or a reason to latch the run off.
+        near=centres[-1]
+        result['boundary_margin_warning']=near<=hard or near>=1-hard
+        if not 0<near<1:
+            if self.outside_since is None or self.last_boundary_s is None or t-self.last_boundary_s>.25:
+                self.outside_since=t;self.outside_frames=0
+            self.outside_frames+=1
+        else:self.outside_since=None;self.outside_frames=0
+        self.last_boundary_s=t
+        result['boundary_outside_frames']=self.outside_frames
+        if self.outside_frames>=3 and t-self.outside_since>=.15:
             result['boundary_danger']=True
-            return fail('车身白线净空不足，主动刹车')
+            return fail('近处参考中心连续位于白线外，结束本轮')
         soft=half+.06
-        correction='right' if min(centres)<soft else 'left' if max(centres)>1-soft else None
-        if min(centres)<soft and max(centres)>1-soft:
-            result['boundary_danger']=True
-            return fail('左右白线同时侵入纠偏区，无法确定可通行方向')
+        correction='right' if near<soft else 'left' if near>1-soft else None
         result['boundary_correction']=correction
+        result['uncertain_cones']=[]
         self.near_history={key:value for key,value in self.near_history.items() if 0<=t-value['captured_s']<=2.}
         for track in row['tracks']:
             if not track.get('visible'):continue
@@ -138,8 +150,6 @@ class LowSpeedNavigator:
             # Ignore only objects wholly outside the observed/short-extended
             # corridor; an overlapping ambiguous blue shape always stops.
             if x2<left or x1>right:continue
-            if not track.get('confirmed') or not track.get('ground_contact_usable') or track.get('clipped'):
-                result['uncertain'].append(track['id']);continue
             entry={'id':track['id'],'fraction':(x-left)/width,'half_width':max((x2-x1)/width/2,g['cone_base_width_m']/g['lane_width_m']/2),
                    'image_fraction':float(x/w),'half_image_width':float((x2-x1)/w/2),
                    'y_fraction':float(y/h),'near':bool(y>=max(y1*.94,h*.60)),'bbox_xyxy':track['bbox_xyxy'],
@@ -148,14 +158,19 @@ class LowSpeedNavigator:
                    'exit_band':bool(y/h>=max(.90 if self.camera=='primary' else .70,high/h-.045)),
                    'reference_distance_m':None}
             if self.camera=='primary':entry['near']=bool(y/h>=.90)
+            if not track.get('confirmed') or not track.get('ground_contact_usable') or track.get('clipped'):
+                result['uncertain'].append(track['id'])
+                if track.get('kind')=='cone_candidate' or track.get('confirmed'):
+                    result['uncertain_cones'].append({**entry,'provisional':True})
+                continue
             try:entry['reference_distance_m']=self.projection.point([x,y])[1]-g['rear_axle_to_front_m']
             except ValueError:pass  # no metric extrapolation beyond old polygon
             result['cones'].append(entry)
             self.near_history[track['id']]={'captured_s':t,'entry':copy.deepcopy(entry),
                 'first_y':min(history['first_y'],entry['y_fraction']) if history else entry['y_fraction']}
         result['cones'].sort(key=lambda c:c['y_fraction'],reverse=True)
-        result.update(ready=not result['uncertain'],action='visual_trial_ready' if not result['uncertain'] else 'stop',
-                      reason='白线已确认；旧数据低速测试视图' if not result['uncertain'] else '通道中存在未确认蓝色物体，保持停车')
+        result.update(ready=True,action='visual_trial_ready',
+                      reason='白线已确认；旧数据低速测试视图' if not result['uncertain'] else '蓝色候选未确认，持续低速观察避让')
         self.latest=result;return result
 
     def image_guidance(self,row,w,h):
@@ -171,10 +186,12 @@ class LowSpeedNavigator:
             low,high=(.55,.97) if self.camera=='primary' else (.4,.78)
             if not low<=q<=high and not continuation:continue
             if not track.get('confirmed'):
-                uncertain.append(track['id']);continue
+                uncertain.append(track['id'])
+                if track.get('kind')!='cone_candidate':continue
             cones.append({'id':track['id'],'image_fraction':float(x/w),'half_image_width':float((x2-x1)/w/2),
                 'bbox_xyxy':track['bbox_xyxy'],'y_fraction':min(1.,q),'near':q>=(.90 if self.camera=='primary' else .60),
-                'near_field_continuation':continuation,'position_source':'current_image_only','reference_distance_m':None})
+                'near_field_continuation':continuation,'provisional':not track.get('confirmed'),
+                'position_source':'current_image_only','reference_distance_m':None})
         cones.sort(key=lambda c:c['y_fraction'],reverse=True)
         return {'cones':cones,'uncertain':uncertain}
 
@@ -216,7 +233,7 @@ class DualLowSpeedNavigator:
         self.views['primary']=LowSpeedNavigator(first,'primary')
 
     def update_views(self,images,rows,now):
-        current={};fresh=[];held=[]
+        current={};fresh=[];held=[];danger=[]
         for camera in ('secondary','primary'):
             row=rows.get(camera)
             if not row or camera not in images or not 0<=now-row['captured_s']<=.25:continue
@@ -227,8 +244,9 @@ class DualLowSpeedNavigator:
             if nav is None:continue
             nav=copy.deepcopy(nav);has_line=bool(nav.get('lane_bounds_px'))
             if nav.get('boundary_danger'):
-                self.latest={**nav,'source_camera':camera,'line_sources':[camera],'line_held':False}
-                return self.latest
+                danger.append(camera)
+                current[camera]={**nav,'source_camera':camera,'line_sources':[camera],'line_held':False}
+                continue
             if observed and has_line:
                 self.memory[camera]={'captured_s':row['captured_s'],'context':copy.deepcopy(row['road_context'])}
                 fresh.append(camera)
@@ -238,7 +256,10 @@ class DualLowSpeedNavigator:
                 line_age_s=0. if observed else now-memory['captured_s'] if memory else None)
             current[camera]=nav
         self.results=current
-        choices=fresh or held or list(current)
+        choices=fresh or held
+        if not choices and danger:
+            self.latest=current[danger[0]];return self.latest
+        choices=choices or list(current)
         if not choices:
             t=max((r['captured_s'] for r in rows.values()),default=-1e9)
             self.latest={'experimental':True,'ready':False,'action':'stop','captured_s':t,
@@ -249,10 +270,9 @@ class DualLowSpeedNavigator:
         self.selected=source;result=current[source]
         corrections={current[c].get('boundary_correction') for c in fresh}-{None}
         if len(corrections)>1:
-            self.latest={**result,'ready':False,'boundary_danger':True,
-                         'reason':'双摄白线纠偏方向冲突，停车核对'}
-            return self.latest
-        if corrections:result['boundary_correction']=next(iter(corrections))
+            result['boundary_disagreement']='双摄纠偏不一致，沿用当前有效视角'
+        elif corrections:result['boundary_correction']=next(iter(corrections))
+        if danger:result['boundary_disagreement']='另一视角边界异常，采用当前可靠白线'
         result['line_sources']=fresh
         result['reason']=('第一路' if source=='primary' else '第二路')+('白线未恢复，保持低速图像引导' if result.get('line_missing')
             else '白线短暂漏检，沿用最近边界持续前进' if result['line_held'] else '白线已确认，可进行低速试验')
@@ -363,13 +383,6 @@ class LowSpeedController:
             self.phase=self.phase_after_brake
         if self.phase=='review':return {**neutral,'phase':'review','reason':'已停车：确认车尾确实通过当前桶后，再继续'}
         if self.phase=='complete':return {**neutral,'phase':'complete','reason':'两桶视觉估计通过并回正，测试结束'}
-        if nav.get('uncertain'):
-            if self.phase=='driving':
-                self._brake(now,'蓝色障碍暂未确认，制动等待')
-                return {**neutral,'action':'brake','esc_us':1400,'phase':'braking','reason':self.wait_reason}
-            if self.await_since is None:self.await_since=now
-            if now-self.await_since>3:raise ValueError('蓝色障碍持续不明确，结束本轮')
-            return {**neutral,'phase':'observing','reason':'等待蓝色障碍连续确认'}
         self.await_since=None
         if missing:return self._without_lines(nav,now,neutral)
         self.line_search_id=self.line_search_side=None
@@ -454,7 +467,9 @@ class LowSpeedController:
                     # on the near-image band. This is not collision clearance.
                     self.escape_turn=self.side;self.possible_contact=True
                 else:self.escape_turn=None
-        elif not self.near_seen:raise ValueError('目标提前丢失，结束本轮；不会算作已通过')
+        elif not self.near_seen:
+            self.target_fraction=.5;self.escape_turn=None
+            return self._forward(nav,now,neutral,'目标暂时漏检，保持低速搜索，不增加通过计数')
         else:
             # Keep the passing-side offset while the rear clears. Automatic
             # handoff requires several distinct near-exit observations with
@@ -515,9 +530,8 @@ class LowSpeedController:
         if self.escape_turn:
             steer=left if self.escape_turn=='left' else right
             reason='同一锥桶已进入近处视野，保持低速向'+('左' if self.escape_turn=='left' else '右')+'避让驶离'
-        lo,hi=nav.get('ego_range',[ego,ego]);soft=half+self.options['boundary_soft_fraction']
-        hard=(self.s['geometry']['vehicle_width_m']/2+self.options['boundary_hard_margin_m'])/self.s['geometry']['lane_width_m']
-        if lo<=hard or hi>=1-hard:raise ValueError('车身白线净空不足，主动刹车')
+        near=nav.get('ego_near_fraction',ego)
+        lo=hi=near;soft=half+self.options['boundary_soft_fraction']
         requested=nav.get('boundary_correction')
         if requested:self.boundary_turn=requested
         elif lo<soft:self.boundary_turn='right'
@@ -527,11 +541,19 @@ class LowSpeedController:
         if self.boundary_turn:
             steer=self.options['right_us'] if self.boundary_turn=='right' else self.options['left_us']
             reason=('接近左白线，保持低速向右纠偏' if self.boundary_turn=='right' else '接近右白线，保持低速向左纠偏')
+        elif nav.get('uncertain'):
+            reason='蓝色候选未确认，保持低速观察'
+            for cone in nav.get('uncertain_cones',[]):
+                if cone.get('near') and abs(cone['fraction']-ego)<half+cone['half_width']:
+                    steer=left if cone['fraction']>=ego else right
+                    reason='蓝色候选进入前方，保持低速向'+('左' if steer>1610 else '右')+'避让'
+                    break
         # New endpoints have no measured radius. Use an extra image-space
         # boundary reserve rather than pretending the old 12m radius applies.
         shift=self.options['turn_margin_m']/self.s['geometry']['lane_width_m']
         predicted=ego+(shift if steer<1610 else -shift if steer>1610 else 0)
-        if not hard<predicted<1-hard:raise ValueError('纠偏后车身净空仍不足，主动刹车')
+        # Image-space reserve violations request inward steering; only the
+        # navigator's persistent nearest-row departure flag ends the run.
         # A white-line correction is not allowed to steer into a nearby cone.
         for cone in nav['cones']:
             if cone.get('near_field_continuation'):continue

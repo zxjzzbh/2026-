@@ -49,7 +49,7 @@ class ConeRun:
             'hardware_output':bool(self.actuator and getattr(self.actuator,'run',False)),
             'readiness':ready,'intent':self.intent,'field_verified':False,'log_directory':str(self.folder) if self.folder else None,
             'slalom_required':True,'slalom':nav.get('slalom'),
-            'start_blocked_reason':'' if can_start else ('需要任一路可靠白线及新鲜画面，保持 F/B 并确认静止；无需先看到锥桶' if self.profile==PROFILE
+            'start_blocked_reason':'' if can_start else ('需要新鲜相机画面，保持 F/B 并确认静止；不要求先看到白线或锥桶' if self.profile==PROFILE
                 else '需要完成标定、确认两桶与左右白线、得到交错路线与静止反馈')}
 
     def prepare(self,settings,base,payload,now):
@@ -65,7 +65,7 @@ class ConeRun:
         client=payload.get('client')
         if not isinstance(client,str) or not 1<=len(client)<=128:raise ValueError('页面身份无效')
         self.s=candidate;self.profile=profile;self.active=True;self.phase='preparing'
-        self.reason='等待任一路可靠白线；旧数据持续低速试验' if profile==PROFILE else '等待新鲜跑道画面与地面位移反馈'
+        self.reason='等待新鲜相机画面；持续低速试验' if profile==PROFILE else '等待新鲜跑道画面与地面位移反馈'
         self.owner,self.token=client,secrets.token_hex(16);self.sequence=-1;self.lease_until=now+.5;self.prepared_s=now
         self.controller=self.navigation=self.intent=self.execution=None
         if self.log_root:
@@ -148,5 +148,7 @@ class ConeRun:
             self.actuator=None;self.active=False;self.phase=phase;self.reason=reason
             if self.log and not self.log.closed:self.log.close()
             if self.folder:
-                try:(self.folder/'summary.json').write_text(json.dumps({'phase':phase,'reason':reason,'field_verified':False},ensure_ascii=False,indent=2),encoding='utf-8')
+                try:(self.folder/'summary.json').write_text(json.dumps({'phase':phase,'reason':reason,'field_verified':False,
+                    'failure_navigation':self.navigation if phase=='fault' else None,
+                    'last_requested_intent':self.intent},ensure_ascii=False,indent=2),encoding='utf-8')
                 except OSError:pass
