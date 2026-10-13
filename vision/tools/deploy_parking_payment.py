@@ -26,7 +26,7 @@ from carvision.departure_controls import extend_controls as departure
 from carvision.parking_bay_controls import extend_controls as parking_bay
 
 FILES=['vision/src/carvision/'+n+'.py' for n in ('parking_payment','payment_console','payment_controls','departure','departure_trial','departure_controls',
-    'parking_bay','parking_mission','parking_bay_console','parking_bay_controls')]+[
+    'parking_bay','parking_mission','parking_bay_console','parking_bay_controls','parking_entry','parking_entry_run','parking_guidance')]+[
     'vision/tools/serve_parking_payment.py','vision/tests/test_parking_payment.py','vision/tests/test_departure.py',
     'vision/configs/parking-bay.json','vision/tests/test_parking_bay.py','vision/tools/parking_bay.py']
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
@@ -41,6 +41,8 @@ def idle(s):
     return (base_idle(s) and not (((s.get('cone_trial') or {}).get('avoidance') or {}).get('active'))
             and not (((s.get('cone_trial') or {}).get('short_test') or {}).get('active'))
             and not (s.get('departure_trial') or {}).get('active')
+            and not (s.get('parking_trial') or {}).get('active')
+            and not (s.get('race_flow') or {}).get('active')
             and not (s.get('parking_payment') or {}).get('motion_locked'))
 
 

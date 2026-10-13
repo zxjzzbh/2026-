@@ -25,17 +25,23 @@
     ],
     "vision/src/carvision/parking_bay.py": [
       "60d437b23ed6dca80f0d23f296a7464e72948970b246ec30dd5f296bb800206c",
-      "4afc60906f799f26e0502dd23b43eab1160ddc142d286c7de9cf4fee58f5d966"
+      "4afc60906f799f26e0502dd23b43eab1160ddc142d286c7de9cf4fee58f5d966",
+      "f1df65874664f2514aaf22b64543306292ad7df1e79d2c717913239fa94a73df",
+      "440d6f23855b0157c14cb80ca83f0e1f9b0b26e41d3103d064c5e40cdd7a9803"
     ],
     "vision/src/carvision/parking_bay_console.py": [
       "6a5d3fb3b55849267a22943122d07a38e627b6d3a8410a69cf5236a92bcad8fb",
-      "9e8612b2da005deabcc44a63bb993d694872c6bedb3018e4cf3ab1b86a35bebd"
+      "9e8612b2da005deabcc44a63bb993d694872c6bedb3018e4cf3ab1b86a35bebd",
+      "9463c9dff1126661296351dfa46a60267b7bf7a3a5efebccdfad342c8e0035f9",
+      "6c1c62a2c813778c16790152a2afd8f71fcf31d8e5545dd69e26f17cff97672f"
     ],
     "vision/src/carvision/parking_bay_controls.py": [
       "c90af6cfc84cd03063c1ddb78b3e1270a18fb8d62cb4805ec5d6db388074538f",
       "53d59b14733257fac5b67e6b54d46a9be5f4e2ddce29c27e43bfce05e1144526",
       "62df6934174a0c6e3778b52cedb02a6e1448a601337a03d063a61a70fe4d00e8",
-      "74dfb8faee5d414ac8f60c268b18331f8896734764cd5dc2a797a1fdc5b71998"
+      "74dfb8faee5d414ac8f60c268b18331f8896734764cd5dc2a797a1fdc5b71998",
+      "c29b66b6f279a513a5dfeb57c0555c8254ed6c4000e112fc584341d7e250019a",
+      "775a6b8d304ee1d5f49b7be03160177bec9bee2128c36f3bb9ac1bd5e8a1d986"
     ],
     "vision/src/carvision/parking_mission.py": [
       "3343cf9f952951228a3e7accf7cf7dd42ae386f19b3bad5dbfdeaddfd1aaf2e0",

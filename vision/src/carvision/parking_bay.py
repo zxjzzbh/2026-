@@ -12,6 +12,7 @@ import cv2
 import numpy as np
 
 from .autonomy_profile import GroundProjection
+from .parking_guidance import visible_far_guides
 
 
 def number(x):return type(x) in (int,float) and math.isfinite(x)
@@ -140,6 +141,56 @@ def occluded_layout(yellow,white,blue):
         'blue_board_candidates':len(boards),'occluded_layout_candidates':len(candidates)}
 
 
+def board_direction_hint(hsv,s):
+    """Coarse direction cue independent of complete parking geometry.
+
+    A large blue rectangle away from the bonnet suggests an obstructed side;
+    the opposite side is only a recommendation, never a verified empty bay.
+    """
+    h,w=hsv.shape[:2];lower=list(s['blue_lower']);lower[0]=min(s['blue_upper'][0],max(100,lower[0]))
+    mask=cv2.inRange(hsv,tuple(lower),tuple(s['blue_upper']))
+    mask=cv2.morphologyEx(mask,cv2.MORPH_OPEN,np.ones((3,3),np.uint8))
+    contours,_=cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+    areas={'left':0.,'right':0.};boxes=[]
+    for contour in contours:
+        x,y,bw,bh=cv2.boundingRect(contour);area=float(cv2.contourArea(contour));cx=x+bw/2
+        if (area<.005*w*h or bw<.06*w or bh<.08*h or not .5<=bw/bh<=4
+                or area/(bw*bh)<.5 or not .30*h<=y+bh<=.90*h):continue
+        # A central board does not establish left/right; let the other cues
+        # or explicit fallback select a side without pretending it is empty.
+        side='left' if cx<w*.47 else 'right' if cx>w*.53 else None
+        boxes.append({'bbox_px':[x,y,x+bw,y+bh],'side':side,'area_fraction':area/(w*h)})
+        if side:areas[side]+=area/(w*h)
+    blocked=max(areas,key=areas.get);total=sum(areas.values())
+    if total<=0 or areas[blocked]/total<.68:return {'suggested_slot':None,'source':'ambiguous_blue_position','areas':areas,'boards':boxes}
+    chosen='right' if blocked=='left' else 'left'
+    return {'suggested_slot':chosen,'blocked_side':blocked,'source':'blue_board_position',
+            'basis':'蓝色挡板主要在'+('左' if blocked=='left' else '右')+'侧，暂选另一侧；边界未必完整',
+            'areas':areas,'boards':boxes}
+
+
+def visible_entry_candidates(yellow,white,ground,blue,visible,hint):
+    """Observed clear quadrilateral plus a coarse board-side hint, not a map."""
+    side=hint.get('suggested_slot');blocked=hint.get('blocked_side')
+    boards=[b for b in hint.get('boards',[]) if b.get('side')==blocked]
+    if side not in ('left','right') or not boards:return []
+    board=max(boards,key=lambda b:b['area_fraction'])['bbox_px'];board_x=(board[0]+board[2])/2
+    result=[];h,w=yellow.shape
+    for q in _pixel_quads(yellow,white,9):
+        center_x=float(q[:,0].mean())
+        if (side=='right' and center_x<=board_x) or (side=='left' and center_x>=board_x):continue
+        if abs(float(q[:2,1].mean())-board[3])>h*.12:continue
+        mask=np.zeros(yellow.shape,np.uint8);cv2.fillConvexPoly(mask,q.astype(np.int32),255)
+        inside=cv2.erode(mask,np.ones((7,7),np.uint8))>0
+        if inside.sum()<150:continue
+        floor=float(np.mean(ground[inside]>0));br=float(np.mean(blue[inside]>0))
+        if floor<.65 or br>=.01 or float(visible[inside].mean())<.65:continue
+        result.append({'id':side,'corners_px':q.tolist(),'availability':'clear','candidate_only':True,
+            'occupancy_verified':False,'polygon_m':None,'ground_fraction':floor,'blue_inside_fraction':br,
+            'geometry_source':'visible_candidate'})
+    return result if len(result)==1 else []
+
+
 def _clusters(values):
     groups=[]
     for value in values:
@@ -259,8 +310,15 @@ def detect_parking(image,s):
     # Always show observed yellow tape, even without a complete layout.
     contours,_=cv2.findContours(yellow,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(display,contours,-1,(0,255,255),1)
+    hint=board_direction_hint(hsv,s)
+    ground=red if s.get('surface')=='red_running_track' else green if s.get('surface')=='indoor_green' else cv2.bitwise_or(red,green)
+    lower=list(s['blue_lower']);lower[0]=min(s['blue_upper'][0],max(100,lower[0]))
+    strong_blue=cv2.inRange(hsv,tuple(lower),tuple(s['blue_upper']))
+    candidates=visible_entry_candidates(yellow,white,ground,strong_blue,visible,hint) if not slots else []
+    guides=visible_far_guides(yellow,white,ground,strong_blue)
     return {'layout_found':len(slots)==2,'layout_complete':len(slots)==2 and partial is None,
             'layout_source':source,'diagnostics':diagnostics,'metric_geometry':bool(metric),'slots':slots,
+            'direction_hint':hint,'entry_candidates':candidates,'entry_guides':guides,
             'reason':('可见半区边界与相邻入口蓝挡板已识别；遮挡侧边界未完整确认' if partial else
                       '两个停车半区边界已识别' if slots else '黄线未形成可确认车位；需看到空闲半区近/远边与分隔线'),
             'perception_verified':s['perception_verified'],'hardware_output':False},display

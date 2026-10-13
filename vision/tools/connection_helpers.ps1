@@ -11,8 +11,12 @@ function Test-CarControlActive($Status) {
     foreach ($name in @('hardware_output', 'worker_started', 'pending_hardware_start')) {
         if (Get-CarProperty $Status $name) { return $true }
     }
-    foreach ($name in @('traffic_trial', 'crosswalk_trial')) {
+    foreach ($name in @('traffic_trial', 'crosswalk_trial', 'parking_trial', 'race_flow', 'departure_trial')) {
         if (Get-CarProperty (Get-CarProperty $Status $name) 'active') { return $true }
+    }
+    $cone = Get-CarProperty $Status 'cone_trial'
+    foreach ($name in @('avoidance','short_test')) {
+        if (Get-CarProperty (Get-CarProperty $cone $name) 'active') { return $true }
     }
     return $false
 }

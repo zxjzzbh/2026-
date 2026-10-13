@@ -16,7 +16,7 @@ STOP_ACTIONS={'stop','emergency','finish_test','race_cancel','race_exit'}
 
 
 def other_task_active(s):
-    return (any((s.get(k) or {}).get('active') for k in ('crosswalk_trial','traffic_trial','departure_trial'))
+    return (any((s.get(k) or {}).get('active') for k in ('crosswalk_trial','traffic_trial','departure_trial','parking_trial'))
         or any(((s.get('cone_trial') or {}).get(k) or {}).get('active') for k in ('avoidance','short_test'))
         or (s.get('parking_payment') or {}).get('motion_locked'))
 
@@ -51,6 +51,7 @@ class RaceFlowDrive:
                     for key in ('avoidance','short_test'):
                         if key in base['cone_trial']:base['cone_trial'][key].update(can_prepare=False,can_start=False,can_request_start=False)
                 if 'parking_payment' in base:base['parking_payment']={**base['parking_payment'],'can_begin':False}
+                if 'parking_trial' in base:base['parking_trial']={**base['parking_trial'],'can_prepare':False,'can_start':False,'can_request_start':False}
                 base['hardware_output']=bool(self.actuator and self.actuator.run)
             report={**core,'stage':self.stage,'stage_label':LABELS.get(self.stage,self.stage),'reason':self.error or self.reason,
                 'active':self.active,'live_enabled':self.live,'hardware_output':bool(self.actuator and self.actuator.run),

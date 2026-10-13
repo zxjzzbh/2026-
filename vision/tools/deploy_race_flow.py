@@ -17,19 +17,21 @@ from deploy_brake_trial import command,put_atomic,read,ROOT,REMOTE,PYTHON,UNIT
 from deploy_cone_trial import idle,PROTECTED,verify_protected
 
 MODULES=('race_flow','race_flow_camera','race_flow_console','race_flow_controls',
-         'parking_bay','parking_bay_console','parking_bay_controls','parking_mission',
+         'parking_bay','parking_bay_console','parking_bay_controls','parking_mission','parking_entry','parking_entry_run','parking_guidance',
          'steering','manual_drive','manual_hardware','rasadapter5','pi5_pwm',
          'brake_parking','brake_output','cone_low_speed','cone_continuous','cone_trial_output','cone_navigation','cone_execution',
          'cone_planning','cone_observer','cone_controls','autonomy_profile','autonomy_motion','rasadapter5_executor')
 FILES=['vision/src/carvision/'+name+'.py' for name in MODULES]+[
     'vision/tools/serve_race_flow.py','vision/tools/serve_parking_payment.py','vision/tools/race_flow.py',
     'vision/configs/race-flow.json','vision/configs/parking-bay.json','vision/tests/test_race_flow.py',
-    'vision/tests/test_parking_bay.py','vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py',
+    'vision/tests/test_parking_bay.py','vision/tests/test_parking_entry.py','vision/tests/test_parking_entry_run.py','vision/tests/test_parking_guidance.py',
+    'vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py',
     'vision/tests/test_cone_continuous.py','vision/tests/test_cone_slalom.py',
     'vision/tests/fixtures/cone-track-short-secondary.jpg','vision/tests/fixtures/cone-track-glare-primary.jpg',
     'vision/tests/fixtures/cone-track-glare-secondary.jpg',
     'vision/tests/fixtures/cone-continuity-20261013.json',
     'vision/tests/fixtures/parking-pale-green-left-board-20261013.jpg',
+    'vision/tests/fixtures/parking-border-clipped-left-board-20261013.jpg',
     'vision/RACE_FLOW.md','vision/PARKING_BAY.md']
 PREREQUISITES=['vision/src/carvision/'+name+'.py' for name in (
     'cone_boundaries','cone_road')]
@@ -54,7 +56,7 @@ def flow_idle(status):
     released_software_fault=(status.get('mode')=='fault' and status.get('boot_test_phase')=='fault'
         and status.get('reason')=='已检查的软件发生变化，请先重新核验'
         and all(status.get(k) is False for k in ('hardware_output','worker_started','pending_hardware_start'))
-        and all(not (status.get(k) or {}).get('active') for k in ('crosswalk_trial','traffic_trial','departure_trial'))
+        and all(not (status.get(k) or {}).get('active') for k in ('crosswalk_trial','traffic_trial','departure_trial','parking_trial'))
         and all(not ((status.get('cone_trial') or {}).get(k) or {}).get('active') for k in ('avoidance','short_test'))
         and not (status.get('parking_payment') or {}).get('motion_locked')
         and not (status.get('parking_bay') or {}).get('motor_output_enabled'))
@@ -182,6 +184,8 @@ def main(argv=None):
             'CARVISION_SKIP_PC_DEPLOY_TESTS=1',
             'CARVISION_REPOSITORY_CONE_CONFIG='+test_root+'/vision/configs/cone-trial.json',
             PYTHON,'-m','pytest',REMOTE+'/vision/tests/test_race_flow.py',REMOTE+'/vision/tests/test_parking_bay.py',
+            REMOTE+'/vision/tests/test_parking_entry.py',REMOTE+'/vision/tests/test_parking_entry_run.py',
+            REMOTE+'/vision/tests/test_parking_guidance.py',
             REMOTE+'/vision/tests/test_cone_low_speed.py',REMOTE+'/vision/tests/test_cone_continuous.py',
             REMOTE+'/vision/tests/test_cone_trial_output.py','-q'],timeout=60)
         if manifest.get('preserved_runtime_hashes'):

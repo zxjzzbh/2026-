@@ -49,6 +49,7 @@ def idle(status):
             and not (status.get('departure_trial') or {}).get('active')
             and not (status.get('parking_payment') or {}).get('motion_locked')
             and not (status.get('parking_bay') or {}).get('motor_output_enabled')
+            and not (status.get('parking_trial') or {}).get('active')
             and not (status.get('parking_mission') or {}).get('active'))
 
 

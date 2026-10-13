@@ -59,10 +59,11 @@ def test_plain_qr_like_white_patch_or_blue_object_is_not_a_parking_layout():
     assert not detect_parking(im,settings())[0]['layout_found']
 
 
-def test_no_board_does_not_select_arbitrary_half():
+def test_no_board_still_gives_explicit_tentative_default_without_confirmation():
     obs,_=detect_parking(scene(None),settings());sel=BaySelection()
     for i in range(8):result=sel.update(obs,i,i*.1,i*.1)
-    assert not result['confirmed'] and result['selected_slot'] is None
+    assert not result['confirmed'] and result['selected_slot']=='right'
+    assert result['tentative'] and result['suggestion_source']=='default_right'
 
 
 def test_dark_interior_is_unknown_not_clear():
@@ -123,6 +124,76 @@ def test_surface_validation_and_layout_reason_reaches_selector():
     with pytest.raises(ValueError):validate({**settings(),'surface':'anything'})
     out=BaySelection().update({'layout_found':False,'slots':[],'reason':'yellow support insufficient'},1,1.,1.)
     assert out['reason']=='yellow support insufficient' and not out['confirmed']
+
+
+@pytest.mark.parametrize('flip',[False,True])
+def test_blue_board_cue_selects_opposite_side_when_layout_matching_drops(flip):
+    image=cv2.imdecode(np.frombuffer((ROOT/'vision/tests/fixtures/parking-pale-green-left-board-20261013.jpg').read_bytes(),np.uint8),1)
+    if flip:image=cv2.flip(image,1)
+    observation,_=detect_parking(image,settings())
+    observation.update(layout_found=False,slots=[])
+    selector=BaySelection();expected='left' if flip else 'right'
+    for i in range(8):
+        result=selector.update(observation,i,i*.1,i*.1)
+        assert result['selected_slot']==expected and result['tentative'] and not result['confirmed']
+        assert not result['autonomous_entry_allowed'] and not result['hardware_output']
+    assert result['suggestion_source']=='blue_board_position'
+
+
+def test_selection_never_disappears_through_layout_flicker_or_stale_data():
+    full,_=detect_parking(scene('right'),settings());selector=BaySelection()
+    missing={'layout_found':False,'slots':[],'reason':'missing lines'}
+    for i in range(8):selector.update(full,i,i*.1,i*.1)
+    assert selector.selected=='left'
+    result=selector.update(missing,8,.8,.8)
+    assert result['selected_slot']=='left' and result['tentative'] and not result['confirmed']
+    stale=selector.update(missing,9,.9,2.)
+    assert stale['selected_slot']=='left' and stale['stale'] and not stale['confirmed']
+    assert selector.snapshot()['selected_slot']=='left'
+
+
+def test_changed_board_side_can_be_recommended_without_restarting_observer():
+    selector=BaySelection();left,_=detect_parking(scene('left'),settings());right,_=detect_parking(scene('right'),settings())
+    for i in range(8):selector.update(left,i,i*.1,i*.1)
+    result=selector.update(right,8,.8,.8)
+    assert result['selected_slot']=='left' and not result['confirmed']
+    for i in range(9,16):result=selector.update(right,i,i*.1,i*.1)
+    assert result['selected_slot']=='left' and result['confirmed']
+
+
+def test_blank_and_both_blocked_return_tentative_choice_not_clear_space():
+    selector=BaySelection()
+    result=selector.update({'layout_found':False,'slots':[]},1,1.,1.)
+    assert result['selected_slot']=='right' and result['tentative'] and not result['confirmed']
+    both={'layout_found':True,'slots':[{'id':side,'availability':'blocked'} for side in ('left','right')]}
+    result=selector.update(both,2,1.1,1.1)
+    assert result['selected_slot'] in ('left','right') and not result['confirmed']
+
+
+def test_clipped_actual_scene_has_direction_and_observed_entry_candidate_without_fake_full_layout():
+    path=ROOT/'vision/tests/fixtures/parking-border-clipped-left-board-20261013.jpg'
+    image=cv2.imdecode(np.frombuffer(path.read_bytes(),np.uint8),1);obs,_=detect_parking(image,settings())
+    assert not obs['layout_found'] and not obs['metric_geometry']
+    assert obs['direction_hint']['suggested_slot']=='right'
+    assert len(obs['entry_candidates'])==1
+    candidate=obs['entry_candidates'][0]
+    assert candidate['id']=='right' and candidate['candidate_only'] and candidate['availability']=='clear'
+    assert candidate['polygon_m'] is None and not candidate['occupancy_verified']
+    result=BaySelection().update(obs,1,1.,1.)
+    assert result['selected_slot']=='right' and result['tentative']
+
+
+def test_observer_status_retains_advisory_when_current_frame_is_hidden_as_stale(tmp_path):
+    folder=tmp_path/'vision/configs';folder.mkdir(parents=True)
+    (folder/'parking-bay.json').write_text(json.dumps(settings()),encoding='utf-8')
+    now=[1.];drive=ParkingBayDrive(Base(),{},tmp_path,clock=lambda:now[0])
+    observation,_=detect_parking(scene('right'),settings())
+    drive.active=True;drive.updated=.1;drive.latest=observation
+    drive.recommendation=drive.selector.update(observation,1,.1,.1)
+    p=drive.status()['parking_bay']
+    assert p['observation'] is None and p['selection']['selected_slot']=='left'
+    assert p['selection']['stale'] and not p['selection']['confirmed']
+    assert not p['motor_output_enabled'] and not p['payment_ready']
 
 
 def test_selection_requires_fresh_sequence_and_never_switches_after_lock():
@@ -210,6 +281,52 @@ class Base:
     def __init__(self):self.calls=[]
     def status(self):return {'mode':'disabled','setup_token':'boot'}
     def request(self,*args):self.calls.append(args)
+
+
+def test_parking_entry_console_reserves_output_and_blocks_other_tasks(tmp_path,monkeypatch):
+    from carvision.race_flow_console import other_task_active
+    from test_parking_entry_run import Actuator,sample as entry_sample
+    configs=tmp_path/'vision/configs';configs.mkdir(parents=True)
+    for name in ('parking-bay','brake-parking','cone-trial','cone-legacy-ground-candidate'):
+        (configs/(name+'.json')).write_bytes((ROOT/'vision/configs'/(name+'.json')).read_bytes())
+    base=Base();base.status=lambda:{'mode':'disabled','boot_test_phase':'esc_off','setup_token':'boot',
+        'hardware_output':False,'worker_started':False,'pending_hardware_start':False}
+    now=[0.];opened=[]
+    def factory(s):
+        a=Actuator();opened.append(a);return a
+    w=ParkingBayDrive(base,{},tmp_path,clock=lambda:now[0],entry_factory=factory)
+    monkeypatch.setattr(w,'_start_observation',lambda:None)
+    result=w.request('parking_trial_prepare',{'client':'page','setup_token':'boot','esc_off':True,
+        'fb_mode_confirmed':True,'selected_slot':'right'})
+    assert result['parking_trial']['active'] and not opened
+    assert other_task_active(result)
+    for action in ('command','cone_prepare','traffic_prepare','parking_payment_begin'):
+        with pytest.raises(ValueError,match='占用'):w.request(action,{})
+    assert not base.calls
+    now[0]=.1;w.entry.tick(entry_sample(.1),.1)
+    assert opened and opened[0].commands[-1]['action']=='neutral'
+    w.request('emergency',{})
+    assert not w.entry.active and opened[0].closed and not base.calls
+    assert not other_task_active(w.status())
+
+
+def test_observation_loop_feeds_real_decoded_frame_and_motion_to_entry(tmp_path):
+    import threading
+    configs=tmp_path/'vision/configs';configs.mkdir(parents=True)
+    (configs/'parking-bay.json').write_text(json.dumps(settings()),encoding='utf-8')
+    ok,jpg=cv2.imencode('.jpg',scene('left'));assert ok
+    state=SimpleNamespace(condition=threading.RLock(),raw_jpeg=jpg.tobytes(),raw_frame_id=1,raw_received_ms=1000.,state='ok')
+    w=ParkingBayDrive(Base(),{'secondary':state},tmp_path,clock=lambda:1.05)
+    samples=[]
+    class Entry:
+        active=True
+        def tick(self,sample,now):samples.append(sample);w.stop.set()
+        def cancel(self,*a,**kw):self.active=False
+    w.entry=Entry();w.active=True;w.folder=tmp_path/'observation';w.folder.mkdir()
+    w._run()
+    assert len(samples)==1 and samples[0]['fresh'] and samples[0]['image_size']==[480,360]
+    assert samples[0]['parking']['layout_found'] and samples[0]['motion']['source']=='ground_optical_estimate'
+    assert not w.entry.active
 
 
 def test_web_observer_save_and_status_have_no_motor_or_payment_requests(tmp_path):
