@@ -150,16 +150,24 @@ def board_direction_hint(hsv,s):
     h,w=hsv.shape[:2];lower=list(s['blue_lower']);lower[0]=min(s['blue_upper'][0],max(100,lower[0]))
     mask=cv2.inRange(hsv,tuple(lower),tuple(s['blue_upper']))
     mask=cv2.morphologyEx(mask,cv2.MORPH_OPEN,np.ones((3,3),np.uint8))
+    red=cv2.bitwise_or(cv2.inRange(hsv,(0,55,35),(15,255,255)),cv2.inRange(hsv,(165,55,35),(179,255,255)))
+    green=cv2.inRange(hsv,(40,45,35),(99,255,255))
+    ground=red if s.get('surface')=='red_running_track' else green if s.get('surface')=='indoor_green' else cv2.bitwise_or(red,green)
     contours,_=cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
     areas={'left':0.,'right':0.};boxes=[]
     for contour in contours:
         x,y,bw,bh=cv2.boundingRect(contour);area=float(cv2.contourArea(contour));cx=x+bw/2
         if (area<.005*w*h or bw<.06*w or bh<.08*h or not .5<=bw/bh<=4
                 or area/(bw*bh)<.5 or not .30*h<=y+bh<=.90*h):continue
+        # A blue jacket/chair above cabinets is not a parking entrance board.
+        # Require visible track immediately below it, not a complete bay frame.
+        foot=ground[y+bh:min(h,y+bh+max(6,int(.05*h))),x+int(.1*bw):x+bw-int(.1*bw)]
+        floor_support=float(np.mean(foot>0)) if foot.size else 0.
+        if floor_support<.25:continue
         # A central board does not establish left/right; let the other cues
         # or explicit fallback select a side without pretending it is empty.
         side='left' if cx<w*.47 else 'right' if cx>w*.53 else None
-        boxes.append({'bbox_px':[x,y,x+bw,y+bh],'side':side,'area_fraction':area/(w*h)})
+        boxes.append({'bbox_px':[x,y,x+bw,y+bh],'side':side,'area_fraction':area/(w*h),'ground_below_fraction':floor_support})
         if side:areas[side]+=area/(w*h)
     blocked=max(areas,key=areas.get);total=sum(areas.values())
     if total<=0 or areas[blocked]/total<.68:return {'suggested_slot':None,'source':'ambiguous_blue_position','areas':areas,'boards':boxes}

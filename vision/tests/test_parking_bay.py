@@ -310,6 +310,33 @@ def test_parking_entry_console_reserves_output_and_blocks_other_tasks(tmp_path,m
     assert not other_task_active(w.status())
 
 
+def test_console_injects_own_fresh_start_selection_not_client_fields(tmp_path,monkeypatch):
+    from test_parking_entry_run import Actuator,configurations,sample as entry_sample
+    configs=tmp_path/'vision/configs';configs.mkdir(parents=True)
+    (configs/'parking-bay.json').write_text(json.dumps(settings()),encoding='utf-8')
+    base=Base();base.status=lambda:{'mode':'disabled','boot_test_phase':'esc_off','setup_token':'boot',
+        'hardware_output':False,'worker_started':False,'pending_hardware_start':False}
+    now=[0.];w=ParkingBayDrive(base,{},tmp_path,clock=lambda:now[0],entry_factory=lambda s:Actuator())
+    monkeypatch.setattr(w,'_entry_settings',configurations)
+    monkeypatch.setattr(w,'_start_observation',lambda:setattr(w,'active',True))
+    w.request('parking_trial_prepare',{'client':'page','setup_token':'boot','esc_off':True,
+        'fb_mode_confirmed':True,'selected_slot':'right','suggestion_source':'layout'})
+    assert w.entry.s['selection_source']=='default_right'
+    now[0]=.1;w.entry.tick(entry_sample(.1),.1)
+    w.updated=.15;w.latest={'frame_id':2};w.recommendation={
+        'selected_slot':'left','suggestion_source':'blue_board_position',
+        'suggestion_basis':'right board observed','confirmed':False}
+    now[0]=.2
+    status=w.request('parking_trial_start',{'client':'page','run_token':w.entry.token,'trial_sequence':0,
+        'esc_on_static':True,'field_ready':True,'fb_mode_confirmed':True,'selected_slot':'right',
+        'start_selection':{'selected_slot':'right','suggestion_source':'layout','captured_s':.2}})
+    assert status['parking_trial']['selected_slot']=='left' and w.entry.controller.side=='left'
+    now[0]=.21;w.recommendation['selected_slot']='right'
+    w.request('parking_trial_keepalive',{'client':'page','run_token':w.entry.token,'trial_sequence':1,'selected_slot':'right'})
+    assert w.entry.controller.side=='left'
+    w.entry.cancel('test complete')
+
+
 def test_observation_loop_feeds_real_decoded_frame_and_motion_to_entry(tmp_path):
     import threading
     configs=tmp_path/'vision/configs';configs.mkdir(parents=True)
@@ -326,7 +353,31 @@ def test_observation_loop_feeds_real_decoded_frame_and_motion_to_entry(tmp_path)
     w._run()
     assert len(samples)==1 and samples[0]['fresh'] and samples[0]['image_size']==[480,360]
     assert samples[0]['parking']['layout_found'] and samples[0]['motion']['source']=='ground_optical_estimate'
+    assert samples[0]['processing_ms']==0 and samples[0]['frame_age_ms']==pytest.approx(50.)
     assert not w.entry.active
+
+
+def test_slow_motion_processing_cannot_confirm_an_expired_selection(tmp_path):
+    import threading
+    configs=tmp_path/'vision/configs';configs.mkdir(parents=True)
+    (configs/'parking-bay.json').write_text(json.dumps(settings()),encoding='utf-8')
+    ok,jpg=cv2.imencode('.jpg',scene('left'));assert ok
+    state=SimpleNamespace(condition=threading.RLock(),raw_jpeg=jpg.tobytes(),raw_frame_id=1,raw_received_ms=1000.,state='ok')
+    now=[1.05];w=ParkingBayDrive(Base(),{'secondary':state},tmp_path,clock=lambda:now[0])
+    def slow_motion(*args):now[0]=1.4;return {'valid':True,'moving':False}
+    w.motion=SimpleNamespace(update=slow_motion);samples=[]
+    class Entry:
+        active=True
+        def tick(self,sample,t):samples.append((sample,t));w.stop.set()
+        def cancel(self,*a,**kw):self.active=False
+    w.entry=Entry();w.active=True;w.folder=tmp_path/'observation';w.folder.mkdir()
+    w._run()
+    assert w.recommendation['stale'] and not w.recommendation['confirmed']
+    sample,t=samples[0]
+    assert sample['fresh'] is False
+    assert t==1.4 and sample['processing_ms']==pytest.approx(350.) and sample['frame_age_ms']==pytest.approx(400.)
+    record=json.loads((w.folder/'observations.jsonl').read_text(encoding='utf-8'))
+    assert record['observation']['frame_age_ms']==pytest.approx(400.)
 
 
 def test_web_observer_save_and_status_have_no_motor_or_payment_requests(tmp_path):

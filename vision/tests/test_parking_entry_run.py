@@ -336,3 +336,60 @@ def test_blocked_bay_cannot_become_success_by_session_logic():
             break
     assert run.phase == 'fault' and actuator.closed
     assert not any(c['esc_us'] > 1500 for c in actuator.commands)
+
+
+@pytest.mark.parametrize('source', ['layout', 'blocked_side', 'visible_ground', 'blue_board_position'])
+def test_start_refreshes_default_side_from_fresh_observer_evidence_and_records_it(tmp_path, source):
+    run, actuator = prepared(tmp_path)
+    evidence = {'selected_slot': 'left', 'suggestion_source': source,
+                'suggestion_basis': 'right board observed', 'captured_s': .1, 'confirmed': False}
+    run.command('parking_trial_start', command(run, 0, fb_mode_confirmed=True,
+                esc_on_static=True, field_ready=True), .2, start_selection=evidence)
+    assert run.controller.side == 'left' and run.s['prepared_slot'] == 'right'
+    status = run.status(base(), .2)
+    assert status['selection_locked'] and status['selection_source'] == source
+    assert status['selection_basis'] == 'right board observed'
+    assert all(c['esc_us'] == 1500 for c in actuator.commands)
+    saved = json.loads((run.folder / 'settings.json').read_text(encoding='utf-8'))
+    event = json.loads((run.folder / 'start-selection.json').read_text(encoding='utf-8'))
+    assert saved['selected_slot'] == event['selected_slot'] == 'left'
+    assert event['prepared_slot'] == 'right' and not event['occupancy_verified']
+
+
+@pytest.mark.parametrize('change', [
+    {'suggestion_source': 'history'}, {'suggestion_source': 'default_right'},
+    {'stale': True}, {'captured_s': -.1}, {'captured_s': .3}, {'captured_s': float('nan')},
+])
+def test_history_or_stale_start_evidence_preserves_prepared_side(change):
+    run, _ = prepared()
+    evidence = {'selected_slot': 'left', 'suggestion_source': 'layout', 'captured_s': .1, **change}
+    run.command('parking_trial_start', command(run, 0, fb_mode_confirmed=True,
+                esc_on_static=True, field_ready=True), .2, start_selection=evidence)
+    assert run.controller.side == run.s['selected_slot'] == 'right'
+
+
+def test_client_fields_and_keepalive_cannot_change_side_and_running_target_is_frozen():
+    run, _ = prepared()
+    evidence = {'selected_slot': 'left', 'suggestion_source': 'layout', 'captured_s': .1}
+    # Page JSON may include arbitrary fields; only the server keyword is trusted.
+    run.command('parking_trial_keepalive', command(run, 0, selected_slot='left', start_selection=evidence),
+                .15, start_selection=evidence)
+    assert run.s['selected_slot'] == 'right'
+    run.command('parking_trial_start', command(run, 1, fb_mode_confirmed=True, esc_on_static=True,
+                field_ready=True, selected_slot='left', start_selection=evidence), .2)
+    assert run.controller.side == 'right'
+    run.command('parking_trial_keepalive', command(run, 2, selected_slot='left'), .25, start_selection=evidence)
+    assert run.controller.side == run.s['selected_slot'] == 'right'
+    with pytest.raises(ValueError, match='准备尚未完成'):
+        run.command('parking_trial_start', command(run, 3, fb_mode_confirmed=True,
+                    esc_on_static=True, field_ready=True), .3, start_selection=evidence)
+    assert run.controller.side == 'right'
+
+
+def test_invalid_authority_cannot_update_prepared_target_from_server_evidence():
+    run, _ = prepared()
+    evidence = {'selected_slot': 'left', 'suggestion_source': 'layout', 'captured_s': .1}
+    with pytest.raises(ValueError, match='控制权'):
+        run.command('parking_trial_start', command(run, 0, client='another-page', fb_mode_confirmed=True,
+                    esc_on_static=True, field_ready=True), .2, start_selection=evidence)
+    assert run.controller is None and run.s['selected_slot'] == 'right'

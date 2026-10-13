@@ -120,16 +120,20 @@ def test_board_direction_hint_overrides_recent_cached_polygon():
     assert result['phase']=='safety_brake'
 
 
-def test_geometry_absent_never_drives_on_default_selection():
+def test_geometry_absent_continues_low_seek_without_six_second_stop_or_infinite_turn():
     c=ParkingEntryController(settings())
-    for i in range(65):
+    for i in range(200):
         s=sample(i);s['parking']={'slots':[],'selected_slot':'right','tentative':True}
         result=c.step(s,round(i*.1,3))
-        assert result['esc_us']==1500
-    assert result['phase']=='fault'
+        assert result['esc_us']==(1500 if i<30 else 1575)
+        if i>=30:
+            assert result['geometry']['far_edge_y_normalized'] is None
+            assert not result['far_boundary_fresh'] and not result['parking_zone_verified']
+        if i>=46:assert result['steering_us']==1610
+    assert result['phase']=='seek' and result['active']
 
 
-def test_short_geometry_loss_uses_bounded_cache_then_brakes():
+def test_short_geometry_loss_holds_heading_then_continues_seek_instead_of_braking():
     c=ParkingEntryController(settings());armed(c)
     for i in (31,32,33):
         s=sample(i);s['parking']={'slots':[]}
@@ -138,7 +142,9 @@ def test_short_geometry_loss_uses_bounded_cache_then_brakes():
         assert result['geometry_age_s']<=.4
     s=sample(35);s['parking']={'slots':[]}
     result=c.step(s,3.5)
-    assert result['phase']=='safety_brake' and result['esc_us']==1400
+    assert result['phase']=='seek' and result['esc_us']==1575
+    assert not result['cached_geometry'] and not result['far_boundary_fresh']
+    assert result['geometry']['far_edge_y_normalized'] is None
 
 
 @pytest.mark.parametrize('mutation',['repeat_id','repeat_capture','stale','wrong_size'])
@@ -174,10 +180,11 @@ def test_far_edge_does_not_authorize_completion_when_vehicle_envelope_is_outside
     [[100,330],[380,330],[320,180],[160,100]],
     [[100,330],[380,330],[320,180],[float('nan'),180]],
 ])
-def test_ambiguous_geometry_does_not_start_forward(q):
+def test_ambiguous_geometry_does_not_get_treated_as_a_far_parking_line(q):
     c=ParkingEntryController(settings())
     result=armed(c,q=q)
-    assert result['esc_us']==1500 and result['phase']=='wait_geometry'
+    assert result['esc_us']==1575 and result['phase']=='seek'
+    assert result['geometry']['far_edge_y_normalized'] is None
 
 
 def test_historical_homography_is_only_an_image_centerline_not_pose_verification():
@@ -237,8 +244,9 @@ def test_roi_cut_guide_cannot_be_used_to_choose_side_for_the_first_time():
     c=ParkingEntryController(settings())
     for i in range(64):
         result=c.step(guide_sample(i,180),round(i*.1,3))
-        assert result['esc_us']==1500
-    assert result['phase']=='fault'
+        assert result['esc_us']==(1500 if i<30 else 1575)
+    assert result['phase']=='seek' and not result['far_boundary_fresh']
+    assert result['geometry']['far_edge_y_normalized'] is None
 
 
 @pytest.mark.parametrize('kind',['adjacent','entrance','ambiguous','missing_far_flag'])
@@ -249,11 +257,9 @@ def test_unmatched_or_ambiguous_guide_cannot_refresh_old_far_edge(kind):
                        duplicate=kind=='ambiguous')
         if kind=='missing_far_flag':s['parking']['entry_guides'][0].pop('far_boundary_observed')
         result=c.step(s,round(i*.1,3))
-        if result['phase']=='approach':
-            assert result['cached_geometry'] and not result['far_boundary_fresh']
-            assert result['geometry']['far_edge_y_normalized']==180/359
-        else:assert result['phase'] in ('safety_brake','fault')
-    assert result['phase'] in ('safety_brake','fault')
+        assert result['phase']=='seek' and result['esc_us']==1575
+        assert not result['far_boundary_fresh']
+        assert result['geometry']['far_edge_y_normalized'] is None
     assert not result['done']
 
 
@@ -263,7 +269,8 @@ def test_guide_chain_cannot_refresh_itself_after_camera_gap_or_move_far_edge_bac
     assert good['geometry_source']=='tracked_far_guide'
     for i in range(32,38):
         result=c.step(guide_sample(i,160),round(i*.1,3))
-    assert result['phase'] in ('safety_brake','fault')
+    assert result['phase']=='seek' and result['esc_us']==1575
+    assert result['geometry']['far_edge_y_normalized'] is None
 
 
 def candidate_sample(i,*,q=ALIGNED,hint='right',side='right',clear=True,only=True):
@@ -288,7 +295,8 @@ def test_visible_candidate_initializes_only_as_unverified_actual_geometry():
 def test_candidate_without_consistent_visible_evidence_cannot_initialize(kwargs):
     c=ParkingEntryController(settings())
     for i in range(31):result=c.step(candidate_sample(i,**kwargs),round(i*.1,3))
-    assert result['esc_us']==1500 and result['phase']=='wait_geometry'
+    assert result['esc_us']==1575 and result['phase']=='seek'
+    assert result['geometry']['far_edge_y_normalized'] is None
 
 
 def test_candidate_does_not_override_blue_board_or_multiple_candidate_ambiguity():
@@ -299,8 +307,89 @@ def test_candidate_does_not_override_blue_board_or_multiple_candidate_ambiguity(
             if blocked:s['parking']['direction_hint']['blocked_side']='right'
             else:s['parking']['entry_candidates']*=2
             result=c.step(s,round(i*.1,3))
-        assert result['esc_us']==1500
-        assert result['phase']=='fault' if blocked else result['phase']=='wait_geometry'
+        assert result['esc_us']==(1500 if blocked else 1575)
+        assert result['phase']==('fault' if blocked else 'seek')
+
+
+def test_seek_for_seven_seconds_then_geometry_and_far_line_recover_without_rearming():
+    c=ParkingEntryController(settings());writes=[]
+    guard=ConePulseGuard(c.s,lambda *p:writes.append(p),mode='F/B')
+    results=[]
+    for i in range(92):
+        s=sample(i,q=NEAR if i==70 else STOP,moving=i<73)
+        if i<70:s['parking']={'slots':[]}
+        result=c.step(s,round(i*.1,3));results.append(result)
+        guard.accept({**result,'sent_s':round(i*.1,3),'sequence':i},round(i*.1,3))
+    assert all(r['esc_us']==1575 for r in results[30:71])
+    assert results[70]['phase']=='approach' and results[70]['far_boundary_fresh']
+    assert results[71]['phase']=='brake_pulse' and results[71]['esc_us']==1400
+    assert results[-1]['done'] and not guard.fault
+    assert not results[-1]['whole_vehicle_inside_verified']
+
+
+def test_previously_visible_target_can_drop_for_over_a_second_then_resume_without_stop():
+    c=ParkingEntryController(settings());armed(c,q=LEFT)
+    for i in range(31,46):
+        s=sample(i);s['parking']={'slots':[]}
+        result=c.step(s,round(i*.1,3))
+        assert result['esc_us']==1575 and result['phase']=='seek'
+        assert result['geometry']['far_edge_y_normalized'] is None
+    result=tick(c,46,q=NEAR)
+    assert result['phase']=='approach' and result['esc_us']==1575
+    result=tick(c,47,q=STOP)
+    assert result['phase']=='brake_pulse' and result['esc_us']==1400
+
+
+def test_short_missing_target_then_real_far_fragment_recovers_with_continuous_pwm():
+    c=ParkingEntryController(settings());armed(c)
+    s=sample(31);s['parking']={'slots':[]}
+    assert c.step(s,3.1)['esc_us']==1575
+    result=c.step(guide_sample(32,190),3.2)
+    assert result['phase']=='approach' and result['esc_us']==1575
+    assert result['geometry_source']=='tracked_far_guide'
+    assert result['geometry']['far_edge_y_normalized']==190/359
+
+
+def test_missing_frame_does_not_forget_which_old_edge_was_the_entrance():
+    c=ParkingEntryController(settings())
+    armed(c,q=[[150,220],[330,220],[320,180],[160,180]])
+    for i in (31,32):
+        s=sample(i);s['parking']={'slots':[]}
+        assert c.step(s,round(i*.1,3))['esc_us']==1575
+    result=c.step(guide_sample(33,220),3.3)
+    assert result['phase']=='seek' and result['geometry']['far_edge_y_normalized'] is None
+
+
+@pytest.mark.parametrize('side,board_side,box',[('left','right',[310,130,400,220]),
+                                              ('right','left',[70,130,160,220])])
+def test_agreeing_blue_board_bbox_supplies_only_a_short_heading_hint(side,board_side,box):
+    c=ParkingEntryController(settings(),side)
+    for i in range(50):
+        s=sample(i,side=side)
+        s['parking']={'slots':[], 'direction_hint':{'suggested_slot':side,'blocked_side':board_side,
+                                                  'boards':[{'side':board_side,'bbox_px':box}]}}
+        result=c.step(s,round(i*.1,3))
+        if 30<=i<42:
+            assert result['geometry_source']=='blue_board_seek'
+            assert result['guidance_target_px'] is not None
+            assert result['geometry']['far_edge_y_normalized'] is None
+        if i>=46:
+            assert result['guidance_target_px'] is None and result['steering_us']==1610
+            assert result['esc_us']==1575
+
+
+def test_seek_still_stops_for_same_side_board_and_camera_fault():
+    for blocked in (True,False):
+        c=ParkingEntryController(settings())
+        for i in range(31):
+            s=sample(i);s['parking']={'slots':[]}
+            c.step(s,round(i*.1,3))
+        s=sample(31);s['parking']={'slots':[]}
+        if blocked:s['parking']['direction_hint']={'blocked_side':'right'}
+        else:s['fresh']=False
+        result=c.step(s,3.1)
+        assert result['phase']=='safety_brake' and result['esc_us']==1400
+        assert c.step(sample(33),3.3)['phase']=='fault'
 
 
 @pytest.mark.parametrize('kwargs',[{'forward_us':1650},{'selected_side':'unknown'},

@@ -18,6 +18,7 @@ HTML='''<section class="drive-panel" id="parking-bay-test">
 <h4>低速停车入位</h4>
 <label>入位前进油门（μs）<input id="parking-trial-forward" type="number" min="1501" max="1625" step="1" value="1575"></label>
 <p>油门在下次准备时生效。准备后打开电调、保持车辆静止，再点击开始；本项会实际行驶并自动刹停。</p>
+<p>开始前采用最新有效选侧；不等完整车位框，先低速接近，再按可见车位修正方向。远端黄线触发停车。</p>
 <div class="parking-bay-actions"><button id="parking-trial-prepare" type="button" disabled>准备停车（电调关闭、F/B）</button><button id="parking-trial-start" type="button" disabled>开始低速入位</button></div>
 <button id="parking-trial-cancel" type="button">停止入位／结束本轮</button>
 <p id="parking-trial-state" role="status">等待停车入位服务</p><p id="parking-trial-output"></p>
@@ -74,7 +75,7 @@ function renderParkingTrial(s){
  el('parking-trial-forward').disabled=locked||parkingTrialActive;
  el('parking-trial-state').textContent=parkingTrialError||t.reason||'等待停车入位服务';
  const side=t.selected_slot==='left'?'左半区':t.selected_slot==='right'?'右半区':'待选择';
- el('parking-trial-output').textContent=t.intent?'本轮目标：'+side+' · 油门 '+t.intent.esc_us+' μs · 转向 '+t.intent.steering_us+' μs'+(t.hardware_output?' · 实车输出':' · 无实车输出'):'准备时采用上方当前选区；本项独立于绕桶测试。';
+ el('parking-trial-output').textContent=t.intent?'本轮目标：'+side+' · 油门 '+t.intent.esc_us+' μs · 转向 '+t.intent.steering_us+' μs'+(t.hardware_output?' · 实车输出':' · 无实车输出'):'开始前采用最新有效选区；本项独立于绕桶测试。';
  if(!parkingTrialActive)return;
  lastStatus=s;held.clear();heartbeatDue=false;needsRelease=true;allowed=false;turnAvailable=false;motorAvailable=false;reverseAvailable=false;gamepadControl?.requireNeutral();
  for(const id of ['drive-enable','drive-reset','drive-next','drive-speed','test-mode','gamepad-arm','drive-focus','crosswalk-prepare','crosswalk-start','traffic-prepare','traffic-start','cone-test-prepare','cone-test-start','departure-start','race-enter','parking-bay-observe','parking-bay-stop']){

@@ -134,6 +134,14 @@ class ParkingBayDrive:
             if type(geometry.get(source)) in (int,float) and geometry[source]>0:parking[target]=geometry[source]
         return parking,load_brake(configs/'brake-parking.json'),cones
 
+    def _selection_for_start(self,now):
+        """Use only this observer's current frame, not a selection in page JSON."""
+        if (not self.active or self.updated is None or not 0<=now-self.updated<=self.settings['max_frame_age_s']
+                or not self.recommendation or self.recommendation.get('stale') is True):
+            return None
+        return {**self.recommendation,'captured_s':self.updated,
+                'frame_id':self.latest.get('frame_id')}
+
     def request(self,action,payload):
         if not isinstance(payload,dict):raise ValueError('JSON object required')
         with self.lock:
@@ -144,13 +152,20 @@ class ParkingBayDrive:
             if action=='parking_trial_prepare':
                 if self.settings_error:raise ValueError(self.settings_error)
                 selected=payload.get('selected_slot') or self.selector.snapshot()['selected_slot']
-                self.entry.prepare(*self._entry_settings(),self.drive.status(),{**payload,'selected_slot':selected},self.clock())
+                recommendation=self.recommendation or self.selector.snapshot()
+                self.entry.prepare(*self._entry_settings(),self.drive.status(),{**payload,'selected_slot':selected},self.clock(),
+                                   selection=recommendation)
                 try:self._start_observation()
                 except Exception:
                     self.entry.cancel('停车观察未能启动',phase='fault');raise
                 return self.status()
             if action in ('parking_trial_start','parking_trial_keepalive'):
-                self.entry.command(action,payload,self.clock());return self.status()
+                now=self.clock()
+                # Only start can consume refreshed server evidence. Keepalive
+                # and any client-supplied side/evidence cannot redirect a run.
+                self.entry.command(action,payload,now,
+                    start_selection=self._selection_for_start(now) if action=='parking_trial_start' else None)
+                return self.status()
             if self.entry.active and not action.startswith('parking_bay_'):
                 if action=='status':return self.status()
                 if action in ('stop','emergency','finish_test','traffic_cancel','crosswalk_cancel','cone_cancel'):
@@ -190,12 +205,15 @@ class ParkingBayDrive:
                         self.entry.tick(self.entry_sample,self.clock())
                         if self.stop.wait(.04):break
                         continue
+                    processing_started=self.clock()
                     image=cv2.imdecode(np.frombuffer(jpg,np.uint8),cv2.IMREAD_COLOR)
                     if image is None:raise ValueError('相机图像无法解码')
-                    observation,overlay=detect_parking(image,self.settings);now=self.clock()
-                    entry_sample={'fresh':True,'frame_id':fid,'captured_s':t,'camera_id':'secondary',
+                    observation,overlay=detect_parking(image,self.settings)
+                    motion=self.motion.update(image,fid,t);now=self.clock()
+                    timings={'processing_ms':max(0.,(now-processing_started)*1000.),'frame_age_ms':max(0.,(now-t)*1000.)}
+                    entry_sample={'fresh':0<=now-t<=self.settings['max_frame_age_s'],'frame_id':fid,'captured_s':t,'camera_id':'secondary',
                                   'image_size':[image.shape[1],image.shape[0]],'parking':observation,
-                                  'motion':self.motion.update(image,fid,t)}
+                                  'motion':motion,**timings}
                     self.entry_sample=entry_sample
                     recommendation=self.selector.update(observation,fid,t,now)
                     label='SUGGEST '+recommendation['selected_slot'].upper()+(' / VISUAL' if recommendation['confirmed'] else ' / TENTATIVE')
@@ -203,7 +221,7 @@ class ParkingBayDrive:
                     ok,encoded=cv2.imencode('.jpg',overlay)
                     with self.lock:
                         if not self.active:break
-                        self.last=(fid,t);self.latest={**observation,'frame_id':fid,'captured_s':t,'camera_id':'secondary'}
+                        self.last=(fid,t);self.latest={**observation,'frame_id':fid,'captured_s':t,'camera_id':'secondary',**timings}
                         self.recommendation=recommendation;self.updated=t;self.preview=encoded.tobytes() if ok else None
                         self.reason=(observation.get('reason') or recommendation['reason']) if not observation.get('layout_found') else recommendation['reason']
                         with (self.folder/'observations.jsonl').open('a',encoding='utf-8') as f:

@@ -21,8 +21,9 @@ class ParkingEntryController:
 
     ``sample`` contains fresh/frame_id/captured_s/image_size, ``parking`` from
     detect_parking, and ``motion`` from GroundMotionEstimate. Recommended or
-    default sides may be selected, but an observed unblocked quadrilateral is
-    required before advancing. No new metric calibration is manufactured.
+    default sides may be selected. The trial may approach before its full
+    boundary appears, but only an observed associated far line can trigger
+    geometric parking. No metric calibration or free-space claim is invented.
     """
     def __init__(self, brake_settings, selected_side='right', *, forward_us=1575,
                  steering_gain=1., vehicle_width_m=.295, front_extent_m=.335,
@@ -77,6 +78,7 @@ class ParkingEntryController:
         self.reason='保持中位初始化 3 秒'
         self.started=self.last_now=self.last_capture=self.last_frame=None
         self.last_poly=self.last_poly_at=None
+        self.last_poly_near_observed=False
         self.has_full_quad=False
         self.geometry_source=None
         self.near_boundary_observed=False
@@ -88,6 +90,8 @@ class ParkingEntryController:
         self.cached_geometry=False
         self.geometry_age=None
         self.last_core_output={}
+        self.seek_no_progress_since=None
+        self.guidance_target_px=None
 
     def _result(self, esc_us=1500, events=None):
         out={**self.last_core_output, 'schema_version':1, 'phase':self.phase,
@@ -102,6 +106,7 @@ class ParkingEntryController:
              'whole_vehicle_inside_verified':False, 'metric_pose':None,
              'cached_geometry':self.cached_geometry, 'geometry_age_s':self.geometry_age,
              'geometry_source':self.geometry_source,
+             'guidance_target_px':self.guidance_target_px,
              'near_boundary_observed':self.near_boundary_observed,
              'far_boundary_fresh':not self.cached_geometry and self.last_poly_at == self.last_now,
              'geometry':copy.deepcopy(self.geometry),
@@ -150,6 +155,10 @@ class ParkingEntryController:
         if self.last_poly is None:
             return not guide
         dt=now-self.last_poly_at
+        if dt > .4 and not guide:
+            # A freshly observed full half-bay re-establishes geometry after
+            # seeking; partial guides still need recent target association.
+            return True
         if not 0 < dt <= .4:
             return False
         before=self.last_poly[2:]; after=q[2:]
@@ -166,7 +175,7 @@ class ParkingEntryController:
                 or np.max(np.linalg.norm(after-before,axis=1)) > endpoint_limit
                 or not .72 <= new_width/old_width <= 1.38):
             return False
-        if guide and self.near_boundary_observed:
+        if guide and self.last_poly_near_observed:
             old_near=float(self.last_poly[:2,1].mean())
             old_depth=old_near-float(old_center[1])
             if old_depth > 35 and abs(float(new_center[1])-old_near) < max(12.,.15*old_depth):
@@ -240,6 +249,64 @@ class ParkingEntryController:
                 'envelope_checks':checks, 'steering_error':error,
                 'actual_pose_not_verified':True}
 
+    def _seek(self, sample, parking, now, dt):
+        """Keep a low forward command without inventing a missing far edge.
+
+        A chosen side gives one short mild heading bias, then straight travel.
+        It does not repeatedly accumulate steering or keep circling. Once real
+        geometry has been seen, short dropouts retain the previous direction,
+        after which the car straightens while continuing to look for the bay.
+        """
+        self.phase='seek'
+        self.core=None  # No stale crosswalk seen_at/last_t timer during seeking.
+        self.last_core_output={}
+        self.geometry_age=None if self.last_poly_at is None else now-self.last_poly_at
+        self.cached_geometry=self.last_poly is not None and self.geometry_age <= .4
+        hint=parking.get('direction_hint') or {}
+        self.guidance_target_px=None
+        if self.cached_geometry:
+            desired=self.steering
+            source='cached_heading'
+        else:
+            bias=(.25 if self.side == 'right' else -.25) if not self.has_full_quad and now-self.started < 4.2 else 0.
+            if bias and hint.get('suggested_slot') == self.side:
+                boards=[]
+                for board in hint.get('boards',[]):
+                    box=board.get('bbox_px') if isinstance(board,dict) else None
+                    if (isinstance(board,dict) and board.get('side') == ('left' if self.side == 'right' else 'right')
+                            and isinstance(box,list) and len(box)==4 and all(numeric(v) for v in box)
+                            and 0<=box[0]<box[2]<480 and 0<=box[1]<box[3]<360):
+                        boards.append(box)
+                if boards:
+                    x1,y1,x2,y2=max(boards,key=lambda b:(b[2]-b[0])*(b[3]-b[1]))
+                    target=min(479.,x2+(x2-x1)/2) if self.side == 'right' else max(0.,x1-(x2-x1)/2)
+                    center=self._center_x(y2)
+                    if center is not None:
+                        bias=max(-.25,min(.25,(target-center)/240.))
+                        self.guidance_target_px=[target,y2]
+            desired=from_offset(bias)
+            source='blue_board_seek' if hint.get('suggested_slot') == self.side else 'selected_side_seek'
+        delta=260.*dt
+        self.steering=max(float(RIGHT_US),min(float(LEFT_US),self.steering+max(-delta,min(delta,desired-self.steering))))
+        self.geometry_source=source
+        self.near_boundary_observed=False
+        self.geometry={'far_edge_y_normalized':None,'near_edge_y_normalized':None,
+                       'lateral_envelope_estimate_inside':None,'envelope_checks':[],
+                       'actual_pose_not_verified':True,'near_boundary_observed':False,
+                       'far_boundary_fresh':False,'geometry_source':source}
+        motion=sample.get('motion') or {}
+        if motion.get('valid') is True and motion.get('moving') is False:
+            if self.seek_no_progress_since is None:self.seek_no_progress_since=now
+            if now-self.seek_no_progress_since >= self.s['no_progress_s']:
+                return self._abort('持续前进输出但未观察到移动；检查电调与起步输出',now)
+        else:
+            self.seek_no_progress_since=None
+        self.reason='向已选'+('左' if self.side == 'left' else '右')+'侧低速接近；边界未完整，继续寻找实际远端黄线'
+        if source=='cached_heading':self.reason+='；短时保持上一帧方向'
+        elif now-self.started >= 4.2:self.reason+='；保持直行，避免持续定向转圈'
+        self.was_driving=True
+        return self._result(self.s['pwm']['search_us'])
+
     def step(self, sample, now):
         if self.phase in ('done','fault'):
             return self._result()
@@ -269,32 +336,25 @@ class ParkingEntryController:
         if now-self.started < 3.:
             return self._result()
         if self.phase == 'arming':
-            self.phase='wait_geometry'
+            self.phase='seek'
         parking=sample.get('parking') or {}
         q, blocked, source, near_observed=self._polygon(parking,now)
-        if blocked and self.phase in ('wait_geometry','approach'):
+        if blocked and self.phase in ('seek','wait_geometry','approach'):
             return self._abort('所选停车侧有蓝色挡板，停止进入', now)
         braking=self.phase in ('brake_pulse','settle','hold')
         if not braking:
             self.cached_geometry=False
             if q is not None:
+                self.guidance_target_px=None
                 self.last_poly,self.last_poly_at=q.copy(),now
+                self.last_poly_near_observed=near_observed
                 self.has_full_quad=self.has_full_quad or near_observed
                 self.geometry_source=source
                 self.near_boundary_observed=near_observed
                 self.geometry_age=0.
-            elif self.last_poly is not None and now-self.last_poly_at <= .4:
-                q=self.last_poly
-                self.cached_geometry=True
-                self.geometry_age=now-self.last_poly_at
             else:
-                self.geometry_age=None if self.last_poly_at is None else now-self.last_poly_at
-                if self.was_driving:
-                    return self._abort('所选半区边界持续缺失，停止进入',now)
-                if now-self.started >= 6.:
-                    return self._abort('尚无所选半区可见边界，未启动前进',now)
-                self.reason='已选'+('左' if self.side == 'left' else '右')+'侧；等待该半区可见边界再进入'
-                return self._result()
+                return self._seek(sample,parking,now,dt)
+            self.seek_no_progress_since=None
             self.geometry=self._geometry(q)
             self.geometry.update(geometry_source=self.geometry_source,
                                  near_boundary_observed=self.near_boundary_observed,

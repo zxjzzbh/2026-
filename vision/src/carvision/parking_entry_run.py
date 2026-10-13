@@ -16,6 +16,9 @@ from .parking_entry import ParkingEntryController
 from .steering import LEFT_US, RIGHT_US
 
 
+EVIDENCE_SELECTION_SOURCES = frozenset(('layout', 'blocked_side', 'visible_ground', 'blue_board_position'))
+
+
 def parking_base_idle(base):
     """Observer-only sessions are allowed; every motor owner must be released."""
     return (isinstance(base, dict) and base.get('mode') == 'disabled'
@@ -82,6 +85,10 @@ class ParkingEntryRun:
             'start_blocked_reason': '' if ready and self._fresh(self.sample, now)
                 else '需要本页完成准备并取得第二路新鲜画面；不要求选区已连续确认',
             'selected_slot': (self.s or {}).get('selected_slot'),
+            'prepared_slot': (self.s or {}).get('prepared_slot'),
+            'selection_source': (self.s or {}).get('selection_source'),
+            'selection_basis': (self.s or {}).get('selection_basis'),
+            'selection_locked': self.controller is not None,
             'forward_us': (self.s or {}).get('forward_us', 1575),
             'steering_limits_us': [RIGHT_US, LEFT_US],
             'hardware_output': bool(self.actuator and getattr(self.actuator, 'run', False)),
@@ -92,7 +99,7 @@ class ParkingEntryRun:
             'log_directory': str(self.folder) if self.folder else None,
         }
 
-    def prepare(self, parking_settings, brake_settings, cone_settings, base, payload, now):
+    def prepare(self, parking_settings, brake_settings, cone_settings, base, payload, now, *, selection=None):
         if self.active or not parking_base_idle(base):
             raise ValueError('先结束遥控、斑马线、红绿灯、锥桶或完整流程，再准备停车入位')
         if not isinstance(payload, dict) or not base.get('setup_token') or payload.get('setup_token') != base['setup_token']:
@@ -118,7 +125,15 @@ class ParkingEntryRun:
         brake['pwm'] = {'neutral_us': 1500, 'steering_center_us': 1610,
                         'search_us': forward, 'creep_us': forward, 'brake_us': 1400}
         candidate = {'parking': parking, 'brake': brake, 'cone': cone,
-                     'selected_slot': side, 'forward_us': forward, 'steering_gain': gain}
+                     'selected_slot': side, 'prepared_slot': side, 'forward_us': forward, 'steering_gain': gain,
+                     'selection_source': 'prepared_side', 'selection_basis': '准备时选定方向'}
+        # Metadata is supplied by the observer, never accepted from page JSON.
+        if isinstance(selection, dict) and selection.get('selected_slot') == side:
+            source = selection.get('suggestion_source')
+            if source in EVIDENCE_SELECTION_SOURCES | {'history', 'default_right'}:
+                candidate['selection_source'] = source
+                candidate['selection_basis'] = selection.get('suggestion_basis') or '准备时选定方向'
+        candidate['prepared_selection_source'] = candidate['selection_source']
         # Validate controller inputs before reserving a session; its constructor
         # is pure and does not start arming until the first step after start.
         self._controller(candidate)
@@ -152,7 +167,19 @@ class ParkingEntryRun:
             rear_extent_m=p['rear_extent_m'], zone_length_m=p['zone_length_m'],
             half_width_m=p['lane_width_m'] / 2, ground=ground)
 
-    def command(self, action, payload, now):
+    @staticmethod
+    def _fresh_selection(selection, now):
+        """Only server observer evidence may revise a not-yet-started target."""
+        if not isinstance(selection, dict) or selection.get('stale') is True:
+            return None
+        t = selection.get('captured_s')
+        if (selection.get('selected_slot') not in ('left', 'right')
+                or selection.get('suggestion_source') not in EVIDENCE_SELECTION_SOURCES
+                or type(t) not in (int, float) or not math.isfinite(t) or not 0 <= now-t <= .25):
+            return None
+        return selection
+
+    def command(self, action, payload, now, *, start_selection=None):
         if not isinstance(payload, dict) or not self.active or payload.get('client') != self.owner or payload.get('run_token') != self.token:
             raise ValueError('本页未持有当前停车入位控制权')
         if now > self.lease_until:
@@ -166,7 +193,25 @@ class ParkingEntryRun:
                 raise ValueError('准备尚未完成或第二路画面已过期')
             if any(payload.get(k) is not True for k in ('fb_mode_confirmed', 'esc_on_static', 'field_ready')):
                 raise ValueError('开始前需 F/B、电调打开且静止、场地就绪')
-            self.controller = self._controller(self.s)
+            candidate = copy.deepcopy(self.s)
+            selection = self._fresh_selection(start_selection, now)
+            if selection is not None:
+                candidate.update(selected_slot=selection['selected_slot'],
+                    selection_source=selection['suggestion_source'],
+                    selection_basis=selection.get('suggestion_basis') or '开始前最新视觉方向证据',
+                    selection_captured_s=selection['captured_s'])
+            controller = self._controller(candidate)
+            if self.folder:
+                (self.folder / 'settings.json').write_text(
+                    json.dumps(_clean(candidate), ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
+                (self.folder / 'start-selection.json').write_text(json.dumps(_clean({
+                    'now_s': now, 'prepared_slot': candidate['prepared_slot'],
+                    'selected_slot': candidate['selected_slot'], 'selection_source': candidate['selection_source'],
+                    'selection_basis': candidate['selection_basis'],
+                    'selection_captured_s': candidate.get('selection_captured_s'),
+                    'selection_locked': True, 'occupancy_verified': False}),
+                    ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
+            self.s, self.controller = candidate, controller
             self.last_control_frame = None
             self.phase, self.reason = 'arming', '3 秒中位后低速驶向选定停车半区'
         elif action == 'parking_trial_cancel':
