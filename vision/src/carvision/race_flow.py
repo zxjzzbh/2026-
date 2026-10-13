@@ -18,8 +18,9 @@ from .cone_continuous import ContinuousConeController
 from .cone_planning import load_settings as load_cones
 from .cone_navigation import reuse_legacy_ground
 from .departure import DepartureSequence
-from .parking_bay import load_settings as load_parking, readiness as parking_readiness
+from .parking_bay import load_settings as load_parking
 from .parking_mission import ParkingMission
+from .parking_control import parking_blockers, parking_intent
 
 STAGES=('arming','wait_board','crosswalk','traffic','cones','parking_search','parking_entry','payment','complete')
 LABELS={'idle':'手动遥控／待切换','arming':'自动模式初始化','wait_board':'等待发车挡板移开',
@@ -89,19 +90,6 @@ def prepare_bundle(bundle):
         b['parking'][target]=geometry[source]
     return b
 
-
-def parking_blockers(b):
-    missing=list(parking_readiness(b['parking'])['missing']);d=b['cones'].get('driving',{})
-    names={'steering_verified':'转向档位与曲率对应关系','odometry_verified':'连续位姿反馈有效性',
-           'steering_radius_right_cm':'1350 右转半径','steering_radius_left_cm':'1870 左转半径',
-           'visual_error_bound_m':'光流位姿误差上限','visual_verified_distance_m':'光流有效行程'}
-    for k in ('steering_verified','odometry_verified'):
-        if d.get(k) is not True:missing.append(names[k])
-    for k in ('steering_radius_right_cm','steering_radius_left_cm','visual_error_bound_m','visual_verified_distance_m'):
-        if not numeric(d.get(k)) or abs(d[k])<=0:missing.append(names[k])
-    return list(dict.fromkeys(missing))
-
-
 class FlowTrafficController(TrafficDrivingController):
     """Reuse the light/stop vote machine after the shared ESC initialization.
 
@@ -139,7 +127,7 @@ class RaceFlowController:
         if reason:self.reason=reason
         result={**raw,'phase':self.stage,'stage_label':LABELS[self.stage],'reason':self.reason,
                 'events':events or [],'hardware_output':False,'field_verified':False}
-        if result['esc_us']>1500:
+        if result['esc_us']>1500 and not result['action'].startswith('parking_'):
             result['action']='creep' if result['esc_us']==self.b['brake']['pwm']['creep_us'] else 'search'
         self.last_drive=result['esc_us']>1500
         return result
@@ -269,17 +257,7 @@ class RaceFlowController:
             if decision['phase']=='parked':
                 self.payment_started=now;self._go('payment',now,'正确半区内已取得停稳反馈，30 秒内由队员扫码支付 0.01 元')
                 return self._out(events=[{'event':'payment_window_opened','amount_cents':1}])
-            if decision['action']=='follow_path':
-                d=self.b['cones']['driving'];curvature=decision['target_curvature_1pm']
-                endpoint=RIGHT_US if curvature>0 else LEFT_US
-                radius=abs(d['steering_radius_right_cm' if curvature>0 else 'steering_radius_left_cm'])/100
-                ratio=abs(curvature)*radius
-                if ratio>1:raise ValueError('入位转向需求超过既有实测档位')
-                steer=round(1610+ratio*(endpoint-1610))
-                return self._out(decision['reason'],{'action':'creep','esc_us':self.b['brake']['pwm']['creep_us'],'steering_us':steer})
-            # A repeated brake request is bounded by the shared actuator.
-            return self._out(decision['reason'],{'action':'brake' if decision['action']=='brake' else 'neutral',
-                'esc_us':1400 if decision['action']=='brake' else 1500,'steering_us':1610})
+            return self._out(decision['reason'],parking_intent(decision,self.b['parking']))
         raise ValueError('未知比赛阶段')
 
     def status(self,now):

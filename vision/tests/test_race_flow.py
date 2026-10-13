@@ -87,12 +87,15 @@ def test_only_actual_red_then_green_advances_traffic_and_single_trial_stays_neut
 
 
 def measured_bundle(bundle):
+    from test_parking_path import measured_settings
     b=copy.deepcopy(bundle)
     b['parking'].update(perception_verified=True,minimum_turn_radius_m=.4,braking_distance_m=.05,maximum_pose_error_m=.01)
     b['parking']['ground']={'verified':True,'image_size':[480,360],
         'homography':[[.005,0,-1.2],[0,-1/140,2.5],[0,0,1]],'valid_polygon_px':[[3,3],[476,3],[476,356],[3,356]]}
     b['cones']['driving'].update(steering_verified=True,odometry_verified=True,steering_radius_right_cm=40,
         steering_radius_left_cm=-40,visual_error_bound_m=.01,visual_verified_distance_m=6.)
+    b['cones']['driving']['fixed_camera_confirmed']=True
+    b['parking']['motion_calibration']=measured_settings()['motion_calibration']
     return b
 
 
@@ -133,6 +136,7 @@ def test_complete_task_chain_and_every_pwm_through_real_guard(bundle):
     assert [t['to'] for t in c.transitions]==['wait_board','crosswalk','traffic','cones','parking_search','parking_entry','payment','complete']
     writes=[];act={'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':1600,'creep_us':1575,'brake_us':1400},
                    'brake_pulse_s':.12,'brake_release_s':.1,'actuator_lease_s':.2}
+    act['parking_forward_us']=[r['pwm_us'] for r in b['parking']['motion_calibration']['speed_pwm']]
     guard=ConePulseGuard(act,lambda ch,v:writes.append((ch,v)),mode='F/B',right_us=1350,left_us=1870)
     for sequence,(t,intent) in enumerate(r.outputs):guard.accept({**intent,'sequence':sequence,'sent_s':t},t)
     assert not guard.fault and all(ch in (3,4) for ch,_ in writes)

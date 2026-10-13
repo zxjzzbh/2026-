@@ -14,6 +14,8 @@ from .brake_parking import GroundMotionEstimate,load_settings as load_brake
 from .cone_planning import load_settings as load_cones
 from .cone_navigation import reuse_legacy_ground
 from .parking_entry_run import ParkingEntryRun
+from .parking_feedback import ParkingFrameFeedback
+from .parking_control import parking_blockers
 
 
 class BaySelection:
@@ -86,6 +88,8 @@ class ParkingBayDrive:
         self.reason='停车模块待观察；当前只显示实际识别与选区，不启动车辆'
         self.entry=ParkingEntryRun(factory=entry_factory,log_root=self.root/'run')
         self.motion=GroundMotionEstimate();self.entry_sample=None
+        self.metric_feedback=None
+        self.metric_missing=None
 
     def status(self):
         with self.lock:
@@ -99,6 +103,13 @@ class ParkingBayDrive:
                 'observation':self.latest if fresh else None,'selection':selection,
                 'frame_age_s':age,'readiness':readiness(self.settings),'motor_output_enabled':entry['hardware_output'],
                 'execution_adapter_connected':True,'payment_ready':False,'record_directory':str(self.folder) if self.folder else None}
+            if self.metric_missing is None:
+                try:
+                    parking,_,cones=self._entry_settings()
+                    self.metric_missing=parking_blockers({'parking':parking,'cones':cones})
+                except (OSError,ValueError,KeyError,TypeError) as exc:
+                    self.metric_missing=[str(exc)]
+            entry['metric_missing']=list(self.metric_missing)
             s['parking_trial']=entry;s['parking_trial_status_s']=self.clock()
             if entry['active']:
                 s['hardware_output']=entry['hardware_output']
@@ -131,7 +142,10 @@ class ParkingBayDrive:
         geometry=cones['geometry']
         for target,source in [('lane_width_m','lane_width_m'),('vehicle_width_m','vehicle_width_m'),
                               ('front_extent_m','rear_axle_to_front_m'),('rear_extent_m','rear_overhang_m')]:
-            if type(geometry.get(source)) in (int,float) and geometry[source]>0:parking[target]=geometry[source]
+            if type(geometry.get(source)) in (int,float) and geometry[source]>0:
+                if parking['perception_verified'] and abs(parking[target]-geometry[source])>.005:
+                    raise ValueError('停车与车辆尺寸配置不一致：'+target)
+                parking[target]=geometry[source]
         return parking,load_brake(configs/'brake-parking.json'),cones
 
     def _selection_for_start(self,now):
@@ -151,11 +165,16 @@ class ParkingBayDrive:
                 return self.status()
             if action=='parking_trial_prepare':
                 if self.settings_error:raise ValueError(self.settings_error)
+                self.metric_missing=None
                 selected=payload.get('selected_slot') or self.selector.snapshot()['selected_slot']
                 recommendation=self.recommendation or self.selector.snapshot()
                 self.entry.prepare(*self._entry_settings(),self.drive.status(),{**payload,'selected_slot':selected},self.clock(),
                                    selection=recommendation)
-                try:self._start_observation()
+                try:
+                    self.metric_feedback=(ParkingFrameFeedback(self.entry.s['parking'],self.entry.s['cone'])
+                        if self.entry.s.get('controller_mode')=='metric_path' else None)
+                    self.last=None
+                    self._start_observation()
                 except Exception:
                     self.entry.cancel('停车观察未能启动',phase='fault');raise
                 return self.status()
@@ -189,7 +208,7 @@ class ParkingBayDrive:
                     if key in payload:candidate[key]=payload[key]
                 candidate=validate(candidate);self.path.parent.mkdir(parents=True,exist_ok=True)
                 tmp=self.path.with_suffix('.json.tmp');tmp.write_text(json.dumps(candidate,ensure_ascii=False,indent=2),encoding='utf-8');tmp.replace(self.path)
-                self.settings=candidate;self.revision=secrets.token_hex(8)
+                self.settings=candidate;self.revision=secrets.token_hex(8);self.metric_missing=None
             else:raise ValueError('未知停车观察动作；本接口不提供电机输出')
             return self.status()
 
@@ -214,6 +233,8 @@ class ParkingBayDrive:
                     entry_sample={'fresh':0<=now-t<=self.settings['max_frame_age_s'],'frame_id':fid,'captured_s':t,'camera_id':'secondary',
                                   'image_size':[image.shape[1],image.shape[0]],'parking':observation,
                                   'motion':motion,**timings}
+                    if self.entry.active and self.metric_feedback is not None:
+                        entry_sample['parking_world']=self.metric_feedback.update(image,fid,t,observation,self.clock())
                     self.entry_sample=entry_sample
                     recommendation=self.selector.update(observation,fid,t,now)
                     label='SUGGEST '+recommendation['selected_slot'].upper()+(' / VISUAL' if recommendation['confirmed'] else ' / TENTATIVE')

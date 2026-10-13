@@ -1,17 +1,36 @@
 {
   "schema_version": 1,
   "camera": "secondary",
-  "image_size": [480, 360],
+  "image_size": [
+    480,
+    360
+  ],
   "zone_length_m": 1.0,
   "lane_width_m": 1.23,
   "vehicle_width_m": 0.295,
   "front_extent_m": 0.335,
   "rear_extent_m": 0.085,
   "clearance_m": 0.02,
-  "yellow_lower": [15, 80, 80],
-  "yellow_upper": [40, 255, 255],
-  "blue_lower": [90, 90, 50],
-  "blue_upper": [135, 255, 255],
+  "yellow_lower": [
+    15,
+    80,
+    80
+  ],
+  "yellow_upper": [
+    40,
+    255,
+    255
+  ],
+  "blue_lower": [
+    90,
+    90,
+    50
+  ],
+  "blue_upper": [
+    135,
+    255,
+    255
+  ],
   "blocked_blue_fraction": 0.03,
   "clear_ground_fraction": 0.65,
   "selection_confirm_s": 0.5,
@@ -24,5 +43,16 @@
   "minimum_turn_radius_m": null,
   "braking_distance_m": null,
   "maximum_pose_error_m": null,
-  "notes": "1 m bay length from 2026 draft; lane 1.23 m and vehicle 29.5 cm width, 33.5 cm front extent, 8.5 cm rear extent from team measurements on 2026-10-11. Clearance 2 cm and speed cap are software limits, not measured performance. No automatic motor output in the observation console."
+  "notes": "1 m bay length from 2026 draft; lane 1.23 m and vehicle 29.5 cm width, 33.5 cm front extent, 8.5 cm rear extent from team measurements on 2026-10-11. Clearance 2 cm and speed cap are software limits, not measured performance. No automatic motor output in the observation console.",
+  "lookahead_m": 0.25,
+  "final_speed_mps": 0.05,
+  "slowdown_distance_m": 0.6,
+  "maximum_tracking_error_m": 0.06,
+  "stopped_speed_mps": 0.01,
+  "motion_calibration": {
+    "verified": false,
+    "source": null,
+    "speed_pwm": [],
+    "curvature_pwm": []
+  }
 }

@@ -26,9 +26,9 @@ from carvision.departure_controls import extend_controls as departure
 from carvision.parking_bay_controls import extend_controls as parking_bay
 
 FILES=['vision/src/carvision/'+n+'.py' for n in ('parking_payment','payment_console','payment_controls','departure','departure_trial','departure_controls',
-    'parking_bay','parking_mission','parking_bay_console','parking_bay_controls','parking_entry','parking_entry_run','parking_guidance')]+[
+    'parking_bay','parking_mission','parking_bay_console','parking_bay_controls','parking_entry','parking_entry_run','parking_guidance','parking_path','parking_control','parking_feedback')]+[
     'vision/tools/serve_parking_payment.py','vision/tests/test_parking_payment.py','vision/tests/test_departure.py',
-    'vision/configs/parking-bay.json','vision/tests/test_parking_bay.py','vision/tools/parking_bay.py']
+    'vision/configs/parking-bay.json','vision/tests/test_parking_bay.py','vision/tests/test_parking_path.py','vision/tests/test_parking_entry_run.py','vision/tools/parking_bay.py']
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
     'vision/src/carvision/'+n+'.py' for n in ('traffic_driving','traffic_trial','traffic_controls','traffic_signal',
         'traffic_voting','brake_output','cone_vision','cone_road','cone_planning','cone_navigation',
@@ -116,6 +116,9 @@ def main():
         c.connect(cfg['host'],port=cfg.get('port',22),username=cfg['username'],password=cfg['password'],look_for_keys=False,allow_agent=False,timeout=6)
         sftp=c.open_sftp()
         require_idle()
+        for rel,marker in [('vision/src/carvision/cone_trial_output.py',b'parking_forward_us')]:
+            if marker not in read(sftp,REMOTE+'/'+rel):
+                raise RuntimeError('路径停车需要同步输出白名单依赖；请使用 update-race-flow.cmd 完整更新，未写入文件')
         protected={}
         for rel in PROTECTED:
             try:protected[rel]=read(sftp,REMOTE+'/'+rel)

@@ -16,13 +16,16 @@ HTML='''<section class="drive-panel" id="parking-bay-test">
 <p>识别过程中持续给出左／右建议；依据不足时标为暂定。选区建议不代表已确认可安全入位。</p>
 <div id="parking-trial-test">
 <h4>低速停车入位</h4>
+<label>入库方式<select id="parking-trial-controller"><option value="metric_path">路径跟踪入库</option><option value="visual_trial">原视觉入位试验（对照）</option></select></label>
+<p id="parking-trial-mode-help"></p>
+<p id="parking-trial-missing" role="status"></p>
 <label>入位前进油门（μs）<input id="parking-trial-forward" type="number" min="1501" max="1625" step="1" value="1575"></label>
 <p>油门在下次准备时生效。准备后打开电调、保持车辆静止，再点击开始；本项会实际行驶并自动刹停。</p>
-<p>开始前采用最新有效选侧；不等完整车位框，先低速接近，再按可见车位修正方向。远端黄线触发停车。</p>
+<p>路径入库：确认空位 → 规划入口前转弯 → 跟随路径 → 末段减速 → 停稳确认。原视觉试验保留原有寻位行为，仅供对照。</p>
 <div class="parking-bay-actions"><button id="parking-trial-prepare" type="button" disabled>准备停车（电调关闭、F/B）</button><button id="parking-trial-start" type="button" disabled>开始低速入位</button></div>
 <button id="parking-trial-cancel" type="button">停止入位／结束本轮</button>
 <p id="parking-trial-state" role="status">等待停车入位服务</p><p id="parking-trial-output"></p>
-<p>低速入位试验，50 cm 远端黄线参考触发刹车；停稳估计不等于四轮物理验证。空格／Esc 可急停。</p>
+<p>路径入库需要当前有效的车位、位姿和运动标定。原视觉试验沿用50 cm图像停车参考，不代表四轮物理入位验证。空格／Esc可急停。</p>
 </div>
 <a href="#parking-payment">入位停稳后，前往下方停车缴费</a>
 <p>这里不自动开始30秒付款计时，不把选区成功当作四轮已经入位。</p>
@@ -60,7 +63,7 @@ function renderParkingBay(s){
  }
  el('parking-bay-geometry').textContent=!obs?'等待第二路新鲜画面':!obs.layout_found?'停车结构尚未确认':obs.layout_complete===false?'已见部分停车结构；缺失边界不当作实测车位':'已见两个停车半区；'+(obs.metric_geometry?'已关联米制几何':'当前为图像位置，尚无米制几何');
  el('parking-bay-slots').textContent=(obs?.slots||[]).map(r=>names[r.id]+'：'+labels[r.availability]+(r.geometry_visible===false?' · 挡板已见，边界被遮挡':' · 入口蓝色'+pct(r.blue_entrance_fraction)+' · '+(surfaces[r.ground_surface]||'地面')+pct(r.ground_fraction??r.red_ground_fraction))).join(' / ');
- el('parking-bay-readiness').textContent=p.readiness?.ready?'停车反馈配置已载入，仍需场地验证。':'完整米制入位反馈尚未齐备；下方低速试验使用视觉参考，不验证四轮物理位置。';
+ el('parking-bay-readiness').textContent=p.readiness?.ready?'停车几何配置已载入，仍需检查运动反馈和场地验证。':'米制入位反馈尚未齐备；下方会显示具体缺项，选区建议仍可观察。';
  parkingBayFrame=p.observation?.frame_id??null;
  renderParkingTrial(s);
 }
@@ -70,12 +73,20 @@ function renderParkingTrial(s){
  parkingTrialActive=!!t.active;parkingTrialOwned=t.owner_client===client;parkingTrialToken=nextToken;
  if(!parkingTrialActive)parkingTrialStopping=false;
  const locked=stale||parkingTrialBusy||parkingTrialStopping;
- el('parking-trial-prepare').disabled=locked||parkingTrialActive||!t.can_prepare;
+ const selector=el('parking-trial-controller');
+ if(parkingTrialActive)selector.value=t.controller_mode||'visual_trial';
+ selector.disabled=locked||parkingTrialActive;
+ const metric=selector.value==='metric_path',missing=t.metric_missing||[];
+ el('parking-trial-mode-help').textContent=metric?'速度采用实测档位表，按剩余路径减速；下方手动油门不参与路径模式。':'原视觉试验：未见完整车位框也可能前进；图像停点与四轮入位尚未验证。';
+ el('parking-trial-missing').textContent=metric?(missing.length?'待补齐：'+missing.join('；'):'参数已齐备；开始后还须有新鲜米制车位和位姿反馈。'):'当前为原视觉对照试验。';
+ el('parking-trial-prepare').disabled=locked||parkingTrialActive||!t.can_prepare||(metric&&missing.length>0);
  el('parking-trial-start').disabled=locked||!parkingTrialActive||!parkingTrialOwned||!t.can_request_start;
- el('parking-trial-forward').disabled=locked||parkingTrialActive;
+ el('parking-trial-forward').disabled=locked||parkingTrialActive||metric;
  el('parking-trial-state').textContent=parkingTrialError||t.reason||'等待停车入位服务';
  const side=t.selected_slot==='left'?'左半区':t.selected_slot==='right'?'右半区':'待选择';
  el('parking-trial-output').textContent=t.intent?'本轮目标：'+side+' · 油门 '+t.intent.esc_us+' μs · 转向 '+t.intent.steering_us+' μs'+(t.hardware_output?' · 实车输出':' · 无实车输出'):'开始前采用最新有效选区；本项独立于绕桶测试。';
+ const tracking=t.intent?.parking_decision?.tracking;
+ if(tracking&&typeof tracking.remaining_m==='number')el('parking-trial-output').textContent+=' · 剩余路径 '+tracking.remaining_m.toFixed(2)+' m · 路径偏差 '+(tracking.tracking_error_m*100).toFixed(1)+' cm';
  if(!parkingTrialActive)return;
  lastStatus=s;held.clear();heartbeatDue=false;needsRelease=true;allowed=false;turnAvailable=false;motorAvailable=false;reverseAvailable=false;gamepadControl?.requireNeutral();
  for(const id of ['drive-enable','drive-reset','drive-next','drive-speed','test-mode','gamepad-arm','drive-focus','crosswalk-prepare','crosswalk-start','traffic-prepare','traffic-start','cone-test-prepare','cone-test-start','departure-start','race-enter','parking-bay-observe','parking-bay-stop']){
@@ -98,7 +109,8 @@ async function parkingTrialPrepare(){
  const input=el('parking-trial-forward');if(!input.checkValidity()){input.reportValidity();return;}
  parkingTrialBusy=true;parkingTrialError='';if(lastStatus)render(lastStatus);
  try{render(await send('parking_trial_prepare',{setup_token:lastStatus?.setup_token,esc_off:true,fb_mode_confirmed:true,
-  selected_slot:lastStatus?.parking_bay?.selection?.selected_slot||'right',forward_us:Number(input.value)}));}
+  selected_slot:lastStatus?.parking_bay?.selection?.selected_slot||'right',forward_us:Number(input.value),
+  controller_mode:el('parking-trial-controller').value}));}
  catch(e){parkingTrialError=e.message;}
  finally{parkingTrialBusy=false;if(lastStatus)render(lastStatus);}
 }
@@ -131,6 +143,7 @@ el('parking-bay-save').addEventListener('click',()=>parkingBayAction('parking_ba
 el('parking-trial-prepare').addEventListener('click',()=>parkingTrialPrepare());
 el('parking-trial-start').addEventListener('click',()=>parkingTrialStart());
 el('parking-trial-cancel').addEventListener('click',()=>parkingTrialCancel());
+el('parking-trial-controller').addEventListener('change',()=>{if(lastStatus)renderParkingTrial(lastStatus);});
 for(const id of ['parking-bay-surface','parking-bay-width','parking-bay-blue','parking-bay-floor'])el(id).addEventListener('input',()=>parkingBayDirty=true);
 setInterval(async()=>{
  if(!parkingTrialActive||!parkingTrialOwned||stale||document.hidden||parkingTrialPulseBusy||parkingTrialStopping)return;
