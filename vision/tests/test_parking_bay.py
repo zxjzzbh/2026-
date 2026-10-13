@@ -347,6 +347,7 @@ def test_observation_loop_feeds_real_decoded_frame_and_motion_to_entry(tmp_path)
     samples=[]
     class Entry:
         active=True
+        actuator=object()
         def tick(self,sample,now):
             if sample is not None:samples.append(sample);w.stop.set()
         def cancel(self,*a,**kw):self.active=False
@@ -369,6 +370,7 @@ def test_slow_motion_processing_cannot_confirm_an_expired_selection(tmp_path):
     w.motion=SimpleNamespace(update=slow_motion);samples=[]
     class Entry:
         active=True
+        actuator=object()
         def tick(self,sample,t):
             if sample is not None:samples.append((sample,t));w.stop.set()
         def cancel(self,*a,**kw):self.active=False

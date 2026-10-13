@@ -90,6 +90,7 @@ class ParkingBayDrive:
         self.reason='停车模块待观察；当前只显示实际识别与选区，不启动车辆'
         self.entry=ParkingEntryRun(factory=entry_factory,log_root=self.root/'run',async_log=True)
         self.control_thread=None
+        self.output_initializing=False
         self.motion=GroundMotionEstimate();self.far_tracker=ParkingFarTracker();self.entry_sample=None
         self.road=None
         self.metric_feedback=None
@@ -221,7 +222,37 @@ class ParkingBayDrive:
         # processing or observation file I/O. tick checks BOTH the page lease
         # and the original capture timestamp before every output renewal.
         with self.lock:
-            self.entry.tick(self.entry_sample,self.clock())
+            if self.output_initializing:return
+            now=self.clock()
+            initialize=(self.entry.active and self.entry.actuator is None
+                and self.entry._fresh(self.entry_sample,now) and now<=self.entry.lease_until)
+            if not initialize:
+                self.entry.tick(self.entry_sample,now)
+                return
+            self.output_initializing=True
+            token=self.entry.token
+            settings=copy.deepcopy(self.entry.s['brake'])
+        # Opening the child, UART and neutral readback can take hundreds of
+        # milliseconds. Publish new camera frames and accept page heartbeats
+        # during that wait; only this thread may initialize an output handle.
+        handle=None
+        try:
+            handle=self.entry.factory(settings)
+            with self.lock:
+                if (self.entry.active and self.entry.token==token
+                        and not self.closed and not self.stop.is_set()):
+                    self.entry.actuator=handle
+                    handle=None
+                    # Re-evaluate the LATEST sample and actual time after
+                    # initialization, never the frame captured before opening.
+                    self.entry.tick(self.entry_sample,self.clock())
+        except Exception as exc:
+            with self.lock:
+                if self.entry.active and self.entry.token==token:
+                    self.entry.cancel(str(exc),phase='fault')
+        finally:
+            if handle is not None:handle.close()
+            with self.lock:self.output_initializing=False
 
     def _control_run(self):
         try:

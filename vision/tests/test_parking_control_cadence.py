@@ -117,3 +117,46 @@ def test_log_failure_and_queue_overflow_fail_closed(tmp_path,monkeypatch):
     w._control_tick()
     assert not w.entry.active and a.closed and 'queue full' in w.entry.reason
     w.close()
+
+
+def test_slow_output_open_does_not_block_frame_publish_or_page_lease(tmp_path):
+    w,a,now=wrapper(tmp_path)
+    w.entry.actuator=None;a.commands.clear()
+    opened=threading.Event();release=threading.Event()
+    def slow_factory(settings):
+        opened.set();assert release.wait(3);return a
+    w.entry.factory=slow_factory
+    thread=threading.Thread(target=w._control_tick);thread.start()
+    try:
+        assert opened.wait(2)
+        # Both operations need the same publication/request lock. They must
+        # proceed while the fake UART initialization is still blocked.
+        assert w.lock.acquire(timeout=.2)
+        try:
+            now[0]=.4
+            w.request('parking_trial_keepalive',command(w.entry,0))
+            now[0]=.6;w.entry_sample=sample(.6)
+            w.request('parking_trial_keepalive',command(w.entry,1))
+        finally:w.lock.release()
+        release.set();thread.join(2)
+        assert not thread.is_alive()
+        assert w.entry.active and w.entry.phase=='ready' and not a.closed
+        assert w.entry.sample['captured_s']==.6
+        assert len(a.commands)==1 and a.commands[0]['esc_us']==1500
+    finally:release.set();thread.join(3);w.close()
+
+
+def test_cancel_during_output_open_closes_returned_handle_without_reviving(tmp_path):
+    w,a,now=wrapper(tmp_path)
+    w.entry.actuator=None;a.commands.clear()
+    opened=threading.Event();release=threading.Event()
+    def slow_factory(settings):opened.set();assert release.wait(3);return a
+    w.entry.factory=slow_factory
+    thread=threading.Thread(target=w._control_tick);thread.start()
+    try:
+        assert opened.wait(2)
+        w.request('parking_trial_cancel',{})
+        release.set();thread.join(2)
+        assert a.closed and not a.commands and not w.entry.active
+        assert w.entry.actuator is None and not w.output_initializing
+    finally:release.set();thread.join(3);w.close()
