@@ -145,7 +145,7 @@ class ParkingEntryController:
             return None
         # Detector ordering: near-left, near-right, far-right, far-left.
         if (q[1,0]-q[0,0] < 20 or q[2,0]-q[3,0] < 15
-                or q[0,1]-q[3,1] < 15 or q[1,1]-q[2,1] < 15
+                or q[0,1]-q[3,1] < 8 or q[1,1]-q[2,1] < 8
                 or abs(q[2,1]-q[3,1]) > 54):
             return None
         return q
@@ -252,10 +252,10 @@ class ParkingEntryController:
     def _seek(self, sample, parking, now, dt):
         """Keep a low forward command without inventing a missing far edge.
 
-        A chosen side gives one short mild heading bias, then straight travel.
-        It does not repeatedly accumulate steering or keep circling. Once real
-        geometry has been seen, short dropouts retain the previous direction,
-        after which the car straightens while continuing to look for the bay.
+        A current board supplies a continuously updated target in its opposite
+        half. Only a bare chosen side uses a short mild heading bias followed
+        by straight travel. Fresh image feedback, not a turn timer, determines
+        when board-guided steering comes back to centre.
         """
         self.phase='seek'
         self.core=None  # No stale crosswalk seen_at/last_t timer during seeking.
@@ -269,23 +269,23 @@ class ParkingEntryController:
             source='cached_heading'
         else:
             bias=(.25 if self.side == 'right' else -.25) if not self.has_full_quad and now-self.started < 4.2 else 0.
-            if bias and hint.get('suggested_slot') == self.side:
+            if hint.get('suggested_slot') == self.side:
                 boards=[]
                 for board in hint.get('boards',[]):
                     box=board.get('bbox_px') if isinstance(board,dict) else None
                     if (isinstance(board,dict) and board.get('side') == ('left' if self.side == 'right' else 'right')
                             and isinstance(box,list) and len(box)==4 and all(numeric(v) for v in box)
-                            and 0<=box[0]<box[2]<480 and 0<=box[1]<box[3]<360):
+                            and 0<=box[0]<box[2]<=480 and 0<=box[1]<box[3]<=360):
                         boards.append(box)
                 if boards:
                     x1,y1,x2,y2=max(boards,key=lambda b:(b[2]-b[0])*(b[3]-b[1]))
                     target=min(479.,x2+(x2-x1)/2) if self.side == 'right' else max(0.,x1-(x2-x1)/2)
                     center=self._center_x(y2)
                     if center is not None:
-                        bias=max(-.25,min(.25,(target-center)/240.))
+                        bias=max(-1.,min(1.,(target-center)/max(20.,(x2-x1)/2)*self.gain))
                         self.guidance_target_px=[target,y2]
             desired=from_offset(bias)
-            source='blue_board_seek' if hint.get('suggested_slot') == self.side else 'selected_side_seek'
+            source='blue_board_seek' if self.guidance_target_px is not None else 'selected_side_seek'
         delta=260.*dt
         self.steering=max(float(RIGHT_US),min(float(LEFT_US),self.steering+max(-delta,min(delta,desired-self.steering))))
         self.geometry_source=source
@@ -303,7 +303,8 @@ class ParkingEntryController:
             self.seek_no_progress_since=None
         self.reason='向已选'+('左' if self.side == 'left' else '右')+'侧低速接近；边界未完整，继续寻找实际远端黄线'
         if source=='cached_heading':self.reason+='；短时保持上一帧方向'
-        elif now-self.started >= 4.2:self.reason+='；保持直行，避免持续定向转圈'
+        elif source=='blue_board_seek':self.reason+='；持续跟随挡板旁的空位目标修正转向'
+        elif now-self.started >= 4.2:self.reason+='；暂无当前方向证据，回中继续寻找'
         self.was_driving=True
         return self._result(self.s['pwm']['search_us'])
 

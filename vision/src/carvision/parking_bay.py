@@ -199,6 +199,54 @@ def visible_entry_candidates(yellow,white,ground,blue,visible,hint):
     return result if len(result)==1 else []
 
 
+def contrast_markings(hsv,grey,s):
+    """Recover bright washed-out tape without turning pale ground into edges."""
+    contrast=cv2.morphologyEx(grey,cv2.MORPH_TOPHAT,np.ones((15,15),np.uint8))
+    edges=cv2.inRange(hsv,(0,0,140),(100,130,255));edges[contrast<13]=0
+    edges=cv2.morphologyEx(edges,cv2.MORPH_CLOSE,np.ones((3,3),np.uint8))
+    red=cv2.bitwise_or(cv2.inRange(hsv,(0,55,35),(15,255,245)),cv2.inRange(hsv,(165,55,35),(179,255,245)))
+    green=cv2.inRange(hsv,(40,15,35),(99,255,245))
+    ground=red if s.get('surface')=='red_running_track' else green if s.get('surface')=='indoor_green' else cv2.bitwise_or(red,green)
+    return edges,ground
+
+
+def board_adjacent_entry(edges,ground,blue,hint):
+    """A small real floor enclosure next to the board; no synthetic corners.
+
+    Far bays can occupy much less than the legacy 2% image-area cutoff. Crop
+    only the search, then require observed marking support on all four edges;
+    a crop border cannot become a parking boundary.
+    """
+    side=hint.get('suggested_slot');blocked=hint.get('blocked_side');h,w=edges.shape
+    boards=[b for b in hint.get('boards',[]) if b.get('side')==blocked]
+    if side not in ('left','right') or not boards:return []
+    x1,y1,x2,y2=max(boards,key=lambda b:b['area_fraction'])['bbox_px'];bw=x2-x1;bh=y2-y1
+    lo=max(1,x1-int(bw*1.8)) if side=='left' else max(1,x2-4)
+    hi=min(w-1,x1+4) if side=='left' else min(w-1,x2+int(bw*1.8))
+    top=max(int(h*.28),y2-int(bh*.6));bottom=min(h-2,y2+6)
+    if lo>=hi or top>=bottom:return []
+    free=ground.copy();free[cv2.dilate(cv2.bitwise_or(edges,blue),np.ones((3,3),np.uint8))>0]=0
+    region=np.zeros_like(edges);region[top:bottom,lo:hi]=255;free[region==0]=0
+    contours,_=cv2.findContours(free,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE);result=[]
+    for contour in contours:
+        if not .003*w*h<cv2.contourArea(contour)<.25*w*h:continue
+        q=cv2.approxPolyDP(contour,.03*cv2.arcLength(contour,True),True)
+        if len(q)!=4 or not cv2.isContourConvex(q):continue
+        q=_order(q[:,0,:])
+        if (q[:,0].min()<=lo+2 or q[:,0].max()>=hi-2 or q[:,1].min()<=top+2 or q[:,1].max()>=bottom-2):continue
+        if min(q[1,0]-q[0,0],q[2,0]-q[3,0])<w*.08 or min(q[0,1]-q[3,1],q[1,1]-q[2,1])<8:continue
+        supports=[_edge_support(edges,q[i],q[(i+1)%4],radius=4) for i in range(4)]
+        if min(supports)<.7 or abs(float(q[:2,1].mean())-y2)>max(10,h*.07):continue
+        mask=np.zeros_like(edges);cv2.fillConvexPoly(mask,q.astype(np.int32),255);inside=cv2.erode(mask,np.ones((3,3),np.uint8))>0
+        if inside.sum()<180:continue
+        floor=float(np.mean(ground[inside]>0));br=float(np.mean(blue[inside]>0))
+        if floor<.9 or br>.005:continue
+        result.append({'id':side,'corners_px':q.tolist(),'availability':'clear','candidate_only':True,
+            'occupancy_verified':False,'polygon_m':None,'ground_fraction':floor,'blue_inside_fraction':br,
+            'edge_support':supports,'geometry_source':'board_adjacent_contrast'})
+    return result if len(result)==1 else []
+
+
 def _clusters(values):
     groups=[]
     for value in values:
@@ -324,6 +372,13 @@ def detect_parking(image,s):
     strong_blue=cv2.inRange(hsv,tuple(lower),tuple(s['blue_upper']))
     candidates=visible_entry_candidates(yellow,white,ground,strong_blue,visible,hint) if not slots else []
     guides=visible_far_guides(yellow,white,ground,strong_blue)
+    if (not slots and not candidates) or not guides:
+        contrast_edges,light_ground=contrast_markings(hsv,grey,s)
+        if not slots and not candidates:candidates=board_adjacent_entry(contrast_edges,light_ground,strong_blue,hint)
+        if not guides:guides=visible_far_guides(contrast_edges,contrast_edges,light_ground,strong_blue)
+    for c in candidates:
+        q=np.asarray(c['corners_px'],np.int32);cv2.polylines(display,[q],True,(0,200,0),2)
+        cv2.putText(display,c['id']+' entry target',tuple(q.mean(axis=0).astype(int)),cv2.FONT_HERSHEY_SIMPLEX,.4,(0,200,0),1)
     return {'layout_found':len(slots)==2,'layout_complete':len(slots)==2 and partial is None,
             'layout_source':source,'diagnostics':diagnostics,'metric_geometry':bool(metric),'slots':slots,
             'direction_hint':hint,'entry_candidates':candidates,'entry_guides':guides,

@@ -360,22 +360,38 @@ def test_missing_frame_does_not_forget_which_old_edge_was_the_entrance():
     assert result['phase']=='seek' and result['geometry']['far_edge_y_normalized'] is None
 
 
-@pytest.mark.parametrize('side,board_side,box',[('left','right',[310,130,400,220]),
-                                              ('right','left',[70,130,160,220])])
-def test_agreeing_blue_board_bbox_supplies_only_a_short_heading_hint(side,board_side,box):
+@pytest.mark.parametrize('side,board_side,box',[('left','right',[259,78,364,176]),
+                                              ('right','left',[116,78,221,176])])
+def test_visible_board_keeps_feedback_steering_past_the_old_short_turn_timer(side,board_side,box):
     c=ParkingEntryController(settings(),side)
     for i in range(50):
         s=sample(i,side=side)
         s['parking']={'slots':[], 'direction_hint':{'suggested_slot':side,'blocked_side':board_side,
                                                   'boards':[{'side':board_side,'bbox_px':box}]}}
         result=c.step(s,round(i*.1,3))
-        if 30<=i<42:
+        if i>=30:
             assert result['geometry_source']=='blue_board_seek'
             assert result['guidance_target_px'] is not None
             assert result['geometry']['far_edge_y_normalized'] is None
         if i>=46:
-            assert result['guidance_target_px'] is None and result['steering_us']==1610
+            assert result['guidance_target_px'] is not None
+            assert result['steering_us']>1675 if side=='left' else result['steering_us']<1545
             assert result['esc_us']==1575
+
+
+def test_board_guided_seek_recentres_when_visible_target_is_aligned_and_never_fakes_stop_line():
+    c=ParkingEntryController(settings(),'left')
+    for i in range(50):
+        s=sample(i);s['parking']={'slots':[], 'direction_hint':{'suggested_slot':'left','blocked_side':'right',
+            'boards':[{'side':'right','bbox_px':[259,78,364,176]}]}}
+        result=c.step(s,round(i*.1,3))
+    assert result['steering_us']>1675
+    for i in range(50,62):
+        s['frame_id']=i;s['captured_s']=round(i*.1,3)
+        s['parking']['direction_hint']['boards'][0]['bbox_px']=[290,78,390,176]
+        result=c.step(s,round(i*.1,3))
+    assert result['steering_us']==1610 and result['esc_us']==1575
+    assert result['geometry']['far_edge_y_normalized'] is None and not result['done']
 
 
 def test_seek_still_stops_for_same_side_board_and_camera_fault():
