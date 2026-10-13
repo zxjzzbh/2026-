@@ -116,9 +116,11 @@ def main():
         c.connect(cfg['host'],port=cfg.get('port',22),username=cfg['username'],password=cfg['password'],look_for_keys=False,allow_agent=False,timeout=6)
         sftp=c.open_sftp()
         require_idle()
-        for rel,marker in [('vision/src/carvision/cone_trial_output.py',b'parking_forward_us')]:
+        for rel,marker in [('vision/src/carvision/cone_trial_output.py',b'parking_forward_us'),
+                           ('vision/src/carvision/cone_road.py',b'thorough_boundary_search'),
+                           ('vision/src/carvision/cone_boundaries.py',b'complete_small_sets')]:
             if marker not in read(sftp,REMOTE+'/'+rel):
-                raise RuntimeError('路径停车需要同步输出白名单依赖；请使用 update-race-flow.cmd 完整更新，未写入文件')
+                raise RuntimeError('路径停车需要同步输出与白线识别依赖；请使用 update-race-flow.cmd 完整更新，未写入文件')
         protected={}
         for rel in PROTECTED:
             try:protected[rel]=read(sftp,REMOTE+'/'+rel)

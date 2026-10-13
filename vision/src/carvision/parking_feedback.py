@@ -61,7 +61,7 @@ class ParkingFrameFeedback:
     def __init__(self, parking, cones):
         self.detector=BlueConeDetector(cones)
         self.tracker=ImageConeTracker('secondary',cones)
-        self.road=ConeRoadContext(cones)
+        self.road=ConeRoadContext(cones,thorough_boundary_search=True)
         self.world=ParkingWorldFeed({'parking':parking,'cones':cones})
 
     def update(self,image,frame_id,captured_s,view,now):

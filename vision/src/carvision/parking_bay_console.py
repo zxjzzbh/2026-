@@ -235,7 +235,7 @@ class ParkingBayDrive:
                         cone_path=self.root/'vision/configs/cone-trial.local.json'
                         if not cone_path.exists():cone_path=self.root/'vision/configs/cone-trial.json'
                         road_settings=json.loads(cone_path.read_text(encoding='utf-8-sig')) if cone_path.exists() else {}
-                        self.road=ConeRoadContext(road_settings,'secondary')
+                        self.road=ConeRoadContext(road_settings,'secondary',thorough_boundary_search=True)
                     hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
                     blue=cv2.inRange(hsv,tuple(self.settings['blue_lower']),tuple(self.settings['blue_upper']))
                     observation['road_context']=self.road.inspect(image,blue)

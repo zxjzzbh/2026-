@@ -50,7 +50,9 @@
       "3a404819e4a3b191f41bd6a6b5aa178c5d5b1ccd9eb98ac2976f245146f54e9b",
       "1a664a1a29de746e4c7522e62741f817b66c5f44226d6b6c1f97ff4c8e1568cc",
       "fbfaf3c87c23e62a1f6b2e04095db07e4b8e80e0266b0fa4f01b29a23e110b09",
-      "8cdfc27c2fb86331488fccb2b6ed8bdcf316cc27673b2f3a2ae792f08e4f8d8a"
+      "8cdfc27c2fb86331488fccb2b6ed8bdcf316cc27673b2f3a2ae792f08e4f8d8a",
+      "6da84bacc87cef99344dbe0314b4199b088c90d024425918e822e13d4e40be67",
+      "5887d9b6739cff16ad16292f9c74172eac6b628c2339ea302d64b33286ab41a5"
     ],
     "vision/src/carvision/parking_bay_controls.py": [
       "c90af6cfc84cd03063c1ddb78b3e1270a18fb8d62cb4805ec5d6db388074538f",
@@ -232,10 +234,12 @@
       "3f76786f5e46b18758d0c025942fcf282b961b2a086db63440f58bd93c8ce823"
     ],
     "vision/src/carvision/cone_boundaries.py": [
-      "16c380a83cd0b86fb2204f87c557045ca64dee2a16731c2b9974a6ef46902a94"
+      "16c380a83cd0b86fb2204f87c557045ca64dee2a16731c2b9974a6ef46902a94",
+      "3ea1823f0984ddce522bfa4368b2f4356b9a7c620a4af3485cecad363fefdc24"
     ],
     "vision/src/carvision/cone_road.py": [
-      "17db565ecc5491f1bb6f69114f0d6be81ca57e82072c3bfb463772b12732fa01"
+      "17db565ecc5491f1bb6f69114f0d6be81ca57e82072c3bfb463772b12732fa01",
+      "d2ebdbdf9dac9b381745b9f7c66715f88f2072e4dd0c4a825ab6696ac5d63b37"
     ],
     "vision/src/carvision/parking_far_tracker.py": [
       "948530d3b0e72cf6792cfc3698d2de40a7cb45b15cc413f1e82196ed052f55ca"
@@ -245,6 +249,10 @@
     ],
     "vision/src/carvision/steering.py": [
       "ee0006754d573947628b07835d0e2118a91a40889177f055e62573ef550558c9"
+    ],
+    "vision/src/carvision/parking_feedback.py": [
+      "8847720bd7e02a6830502b5151fea5ef5db038d66c1f48d2ad2f5fe976a05f2c",
+      "29ae8df12015ec81225c4ae2b63e36fefc948091567ff858297229c7be980837"
     ]
   },
   "source_commits": [

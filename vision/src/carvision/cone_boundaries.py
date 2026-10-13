@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 
 
-def adaptive_inner_edges(image,blue_mask,config):
+def adaptive_inner_edges(image,blue_mask,config,*,complete_small_sets=False):
     h,w=image.shape[:2]
     hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
     mask=cv2.inRange(hsv,(0,0,config.white_v_min),(179,config.white_s_max,255))
@@ -36,7 +36,14 @@ def adaptive_inner_edges(image,blue_mask,config):
     rng=np.random.default_rng(20261012)
     # Deterministic bounded hypotheses keep performance and frame-to-frame
     # behavior repeatable. Both sides share the very same inlier rows.
-    for i,j in rng.integers(0,len(data),size=(192,2)):
+    # A short visible corridor can have only a handful of long-baseline
+    # endpoint pairs among many distractor rows. Parking may enumerate these
+    # small sets (at most 2016 hypotheses), retaining every acceptance check.
+    # The default cone detector keeps its existing sampling and timing.
+    exhaustive=complete_small_sets and len(data)<=64
+    hypotheses=((i,j) for i in range(len(data)) for j in range(i+1,len(data))) if exhaustive else rng.integers(0,len(data),size=(192,2))
+    diag['hypothesis_policy']='complete_small_set' if exhaustive else 'sampled'
+    for i,j in hypotheses:
         dy=ys[j]-ys[i]
         if abs(dy)<required_span:continue
         slopes=(data[j,1:]-data[i,1:])/dy
