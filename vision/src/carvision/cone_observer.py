@@ -216,7 +216,7 @@ class ConeObserverDrive:
                     if set(values)-allowed:raise ValueError('不允许的避障控制参数')
                     candidate['driving']={**driving_settings(candidate),**values}
                     d=validate_driving(candidate);m=candidate['motion']
-                    radii=[d['steering_radius_1570_cm'],d['steering_radius_1650_cm']]
+                    radii=[d['steering_radius_right_cm'],d['steering_radius_left_cm']]
                     m['minimum_turn_radius_m']=max(abs(r) for r in radii)/100 if all(r is not None for r in radii) else None
                     m['pose_feedback_verified']=d['odometry_verified']
                     m['verified']=d['steering_verified'] and numeric(m.get('braking_distance_m'))

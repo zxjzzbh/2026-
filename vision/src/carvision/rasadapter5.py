@@ -4,6 +4,8 @@ Source: the board_demo SDK linked from the manufacturer's expansion-board
 control lesson. Importing/opening this transport sends no actuator commands.
 PWM position readback is the controller's stored command, not servo feedback.
 """
+
+from .steering import LEFT_US, RIGHT_US
 import math
 import os
 import select
@@ -106,7 +108,7 @@ class RasAdapter:
 
     def set_position(self, channel, pulse, seconds=.02):
         if (type(channel) is not int or not 1 <= channel <= 6
-                or type(pulse) is not int or not 1550 <= pulse <= 1750
+                or type(pulse) is not int or not ((RIGHT_US <= pulse <= LEFT_US) if channel == 3 else 1550 <= pulse <= 1750)
                 or type(seconds) not in (int, float) or not math.isfinite(seconds)
                 or not .02 <= seconds <= .5):
             raise ValueError('only conservative, observed steering points are allowed')

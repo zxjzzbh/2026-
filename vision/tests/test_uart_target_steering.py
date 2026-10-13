@@ -39,10 +39,10 @@ def test_held_right_emits_one_target_then_center_and_waits_for_board_interpolati
     drive,backend,clock=ready()
     for seq in range(1,22):
         clock.now=(seq-1)*.05;command(drive,seq);drive.tick()
-    assert [c for c in backend.calls if c[0]=='turn']==[('turn',1550)]
+    assert [c for c in backend.calls if c[0]=='turn']==[('turn',1350)]
     assert not [c for c in backend.calls if c[0]=='motor']
     drive.request('stop',{});clock.now+=.05;drive.tick()
-    assert [c for c in backend.calls if c[0]=='turn']==[('turn',1550),('turn',1715)]
+    assert [c for c in backend.calls if c[0]=='turn']==[('turn',1350),('turn',1715)]
     clock.now+=.21;drive.tick();assert not [c for c in backend.calls if c[0]=='idle']
     clock.now+=.1;drive.tick();assert [c for c in backend.calls if c[0]=='idle']
 
@@ -50,11 +50,11 @@ def test_forward_right_and_axis_release_do_not_replay_or_cancel_each_other():
     drive,backend,clock=ready()
     for seq in range(1,26):
         clock.now=(seq-1)*.05;command(drive,seq,'forward');drive.tick()
-    assert drive.pulse==1575 and drive.steering_us==1550
+    assert drive.pulse==1575 and drive.steering_us==1350
     clock.now+=.05;command(drive,26,'forward','center');drive.tick()
     assert drive.pulse==1575 and drive.steering_us==1715
     clock.now+=.05;command(drive,27,'stop','left');drive.tick()
-    assert drive.pulse==1500 and drive.steering_us==1750
+    assert drive.pulse==1500 and drive.steering_us==1870
 
 @pytest.mark.parametrize('lost_input',[False,True])
 def test_target_steering_preserves_zero_throttle_and_recenter_on_stop_or_lost_input(lost_input):

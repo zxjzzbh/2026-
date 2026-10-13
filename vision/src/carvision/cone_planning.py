@@ -134,7 +134,7 @@ def path_clear(path,cones,settings,lane_bounds,lane_heading_rad=0.):
     left,right=lane_bounds
     road_co,road_si=math.cos(lane_heading_rad),math.sin(lane_heading_rad)
     driving=settings.get('driving',{})
-    radii=[driving.get(k) for k in ('steering_radius_1570_cm','steering_radius_1650_cm')]
+    radii=[driving.get(k) for k in ('steering_radius_right_cm','steering_radius_left_cm')]
     limits=sorted(100/r for r in radii) if all(numeric(r) and r!=0 for r in radii) else None
     for p in path:
         if abs(p['curvature'])>1/m['minimum_turn_radius_m']:return False

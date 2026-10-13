@@ -48,8 +48,8 @@ def test_profile_uses_reported_limits_without_changing_verified_flags(settings):
 
 @pytest.mark.parametrize('values',[{'test_forward_us':1601},{'test_forward_us':True},
     {'test_run_s':121},{'test_run_s':float('nan')},{'test_run_s':True},{'test_burst_s':.25},
-    {'test_left_us':1755},{'test_left_us':1645},{'test_left_us':True},
-    {'test_right_us':1545},{'test_right_us':1575}])
+    {'test_left_us':1875},{'test_left_us':1645},{'test_left_us':True},
+    {'test_right_us':1345},{'test_right_us':1575}])
 def test_trial_cannot_expand_actuator_envelope(settings,values):
     with pytest.raises(ValueError):trial_settings(settings,values)
 
@@ -57,6 +57,37 @@ def test_trial_cannot_expand_actuator_envelope(settings,values):
 def test_no_history_does_not_silently_use_pixel_defaults(settings):
     settings['ground']['historical_verified']=False
     with pytest.raises(ValueError):trial_settings(settings)
+
+
+def test_old_radius_data_is_preserved_but_does_not_authorize_new_endpoints(settings):
+    from carvision.cone_navigation import steering_for_path
+    settings['driving']={'steering_radius_1570_cm':1203.,'steering_radius_1650_cm':-1203.,'steering_verified':True}
+    report=execution_readiness(settings)
+    assert 'driving.steering_radius_right_cm' in report['missing']
+    assert settings['driving']['steering_radius_1570_cm']==1203.
+    with pytest.raises(ValueError,match='旧档位'):
+        steering_for_path([{'x_m':.1,'y_m':.5}],settings)
+
+
+def test_simplified_panel_has_no_dangling_calibration_or_short_test_nodes():
+    import re,shutil,subprocess
+    from carvision.cone_controls import HTML,STATE,SCRIPT
+    for removed in ('cone-short-section','cone-short-1570','cone-prepare','cone-drive-start','cone-calibration-json','cone-save-calibration','data-cone-geometry'):
+        assert removed not in HTML
+    ids=re.findall(r'id="([^"]+)"',HTML)
+    assert len(ids)==len(set(ids))
+    node=os.environ.get('SMARTCAR_NODE') or shutil.which('node')
+    if not node:pytest.skip('Node required to check real panel initialization')
+    source=r'''
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const input=JSON.parse(fs.readFileSync(0,'utf8')),nodes=new Map(input.ids.map(id=>[id,{disabled:false,dataset:{},value:'',textContent:'',addEventListener(){}}]));
+const env={stale:false,client:'page',lastStatus:null,held:new Set(),gamepadControl:null,setInterval(){},
+ document:{hidden:false,querySelectorAll(){return []}},el(id){if(!nodes.has(id))throw new Error('Missing DOM node: '+id);return nodes.get(id)}};
+vm.createContext(env);vm.runInContext(input.source,env);env.renderCone({cone_trial:{observing:false,avoidance:{active:false},short_test:{active:false}}});
+assert(nodes.has('cone-test-start')&&nodes.has('cone-white-save'));console.log('Concise task UI has no removed-element callbacks');
+'''
+    result=subprocess.run([node,'-e',source],input=json.dumps({'source':STATE+SCRIPT,'ids':ids}),text=True,encoding='utf-8',capture_output=True,timeout=10)
+    assert result.returncode==0,result.stderr
 
 
 def test_real_image_pipeline_uses_observed_white_lines_without_metric_extrapolation(settings):
@@ -97,7 +128,7 @@ def test_live_glare_pair_reaches_continuous_forward_without_false_primary_veto(s
     controller=LowSpeedController(s,0.)
     intent=controller.step(nav,3.3)
     assert intent['action']=='search' and intent['esc_us']==1600
-    assert intent['steering_us']==1690
+    assert intent['steering_us']==1870
 
 
 def test_live_short_visible_pair_reaches_driving_pipeline(settings):
@@ -140,7 +171,7 @@ def test_continuous_forward_has_no_periodic_braking_or_four_second_cutoff(settin
     for t in np.arange(3.01,12.,.05):
         intent=ctl.step(observation(float(t),cones=None if with_cone else []),float(t))
         assert intent['action']=='search' and intent['esc_us']==1600
-        assert intent['steering_us']==(1690 if with_cone else 1610)
+        assert intent['steering_us']==(1870 if with_cone else 1610)
     assert ctl.powered_s>8.
 
 
@@ -148,12 +179,12 @@ def test_cruising_updates_steering_when_cone_appears_without_braking(settings):
     ctl=LowSpeedController(trial_settings(settings),0.)
     assert ctl.step(observation(3.1,cones=[]),3.1)['steering_us']==1610
     result=ctl.step(observation(3.2),3.2)
-    assert result['action']=='search' and result['steering_us']==1690
+    assert result['action']=='search' and result['steering_us']==1870
 
 
-def test_cone_turning_is_tunable_but_empty_lane_uses_old_small_corrections(settings):
+def test_cone_turning_and_empty_lane_use_the_same_selected_endpoints(settings):
     ctl=LowSpeedController(trial_settings(settings,{'test_left_us':1730,'test_right_us':1560}),0.)
-    assert ctl.step(observation(3.1,cones=[],ego_fraction=.55),3.1)['steering_us']==1650
+    assert ctl.step(observation(3.1,cones=[],ego_fraction=.55),3.1)['steering_us']==1730
     assert ctl.step(observation(3.2),3.2)['steering_us']==1730
     ctl=LowSpeedController(trial_settings(settings,{'test_left_us':1730,'test_right_us':1560}),0.)
     data=observation(3.1);data['cones'][0]['fraction']=.34
@@ -165,17 +196,72 @@ def test_near_cone_inside_turn_buffer_can_move_away_when_body_clear(settings):
     data=observation(3.1,ego_fraction=.438,half_envelope=.203)
     data['cones'][0].update(fraction=.663,half_width=.034,y_fraction=.714,image_close=True)
     intent=ctl.step(data,3.1)
-    assert intent['action']=='search' and intent['steering_us']==1690
+    assert intent['action']=='search' and intent['steering_us']==1870
 
 
 def test_near_cone_inside_body_clearance_still_stops(settings):
     ctl=LowSpeedController(trial_settings(settings),0.)
     data=observation(3.1,ego_fraction=.438,half_envelope=.203)
     data['cones'][0].update(fraction=.61,half_width=.034,y_fraction=.714,image_close=True)
-    with pytest.raises(ValueError,match='车身净空'):ctl.step(data,3.1)
+    with pytest.raises(ValueError,match='净空'):ctl.step(data,3.1)
 
 
-@pytest.mark.parametrize('ego,pulse,direction',[(.22,1550,'right'),(.78,1690,'left')])
+def test_tracked_approaching_cone_uses_forward_escape_instead_of_near_stop(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    for i,y in enumerate((.55,.63,.71,.74)):
+        t=3.1+i*.1;data=observation(t)
+        data['cones'][0].update(y_fraction=y,near=y>=.60,image_close=y>=.70,exit_band=y>=.70)
+        intent=ctl.step(data,t)
+        assert intent['action']=='search' and intent['esc_us']==1600 and intent['steering_us']==1870
+    assert ctl.possible_contact and ctl.escape_turn=='left'
+    assert not ctl.progress()['field_verified']
+
+
+def test_same_cone_clipped_below_ground_roi_keeps_moving_until_estimated_pass(settings):
+    s=trial_settings(settings);navigator=LowSpeedNavigator(s);controller=LowSpeedController(s,0.)
+    image=np.zeros((360,480,3),np.uint8)
+    for i,y in enumerate((210,244,266,279)):
+        t=3.1+i*.1;data=row(t,i);data['tracks'][0].update(foot_pixel=[290,y],bbox_xyxy=[280,y-30,300,y+5])
+        nav=navigator.update(image,data,t)
+        assert controller.step(nav,t)['action']=='search'
+    for i in range(4,17):
+        t=3.1+i*.1;data=row(t,i)
+        data['tracks'][0].update(foot_pixel=[298,344],bbox_xyxy=[280,300,320,360],clipped=True,ground_contact_usable=False)
+        nav=navigator.update(image,data,t)
+        assert nav['ready'] and not nav['uncertain']
+        assert nav['cones'][0]['near_field_continuation'] and nav['cones'][0]['reference_distance_m'] is None
+        assert controller.step(nav,t)['action']=='search'
+    assert controller.count==1 and controller.auto_count==1
+
+
+def test_static_bonnet_blob_does_not_gain_near_field_continuation(settings):
+    nav=LowSpeedNavigator(trial_settings(settings));image=np.zeros((360,480,3),np.uint8)
+    for i in range(4):
+        data=row(1.+i*.1,i);data['tracks'][0].update(foot_pixel=[290,270],bbox_xyxy=[280,240,300,275])
+        nav.update(image,data,1.+i*.1)
+    data=row(1.4,4);data['tracks'][0].update(foot_pixel=[290,344],bbox_xyxy=[280,300,320,360],clipped=True,ground_contact_usable=False)
+    result=nav.update(image,data,1.4)
+    assert not any(c.get('near_field_continuation') for c in result['cones'])
+
+
+def test_escape_does_not_override_white_boundary_hard_stop(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    for i,y in enumerate((.55,.63,.71)):
+        t=3.1+i*.1;data=observation(t);data['cones'][0].update(y_fraction=y,image_close=y>=.7,exit_band=y>=.7)
+        ctl.step(data,t)
+    data=observation(3.5,boundary_danger=True,reason='车身白线净空不足')
+    with pytest.raises(ValueError,match='白线'):ctl.step(data,3.5)
+
+
+def test_second_cone_can_use_same_side_when_alternation_has_no_lane_space(settings):
+    ctl=LowSpeedController(trial_settings(settings),0.);ctl.count=1;ctl.first_side='left'
+    data=observation(3.1);data['cones'][0].update(id='second',fraction=.90,near=False,y_fraction=.55)
+    intent=ctl.step(data,3.1)
+    assert intent['action']=='search' and ctl.side=='left'
+    assert .23<=ctl.target_fraction<=.77
+
+
+@pytest.mark.parametrize('ego,pulse,direction',[(.22,1350,'right'),(.78,1870,'left')])
 def test_soft_white_boundary_steers_inward_without_braking(settings,ego,pulse,direction):
     ctl=LowSpeedController(trial_settings(settings),0.)
     for t in (3.1,3.2,3.3):
@@ -187,7 +273,7 @@ def test_soft_white_boundary_steers_inward_without_braking(settings,ego,pulse,di
 def test_white_boundary_correction_hysteresis_avoids_alternating_at_threshold(settings):
     ctl=LowSpeedController(trial_settings(settings),0.)
     for t,ego in ((3.1,.25),(3.2,.27),(3.3,.28)):
-        assert ctl.step(observation(t,cones=[],ego_fraction=ego),t)['steering_us']==1550
+        assert ctl.step(observation(t,cones=[],ego_fraction=ego),t)['steering_us']==1350
     assert ctl.step(observation(3.4,cones=[],ego_fraction=.5),3.4)['steering_us']==1610
     assert ctl.boundary_turn is None
 
@@ -457,7 +543,7 @@ vm.createContext(env);vm.runInContext(JSON.parse(fs.readFileSync(0,'utf8')).sour
 function render(owner,canStart,review){env.renderCone({cone_trial:{low_speed_trial_available:true,avoidance:{
  active:true,can_prepare:false,profile:'legacy_low_speed',owner_client:owner,can_request_start:canStart,
  low_speed_test:{can_confirm_pass:review,operator_confirmed_count:0}},readiness:{ready:false,missing:['ground.verified_mapping']}}});}
-render('page',true,false);assert(!env.el('cone-test-start').disabled);assert(env.el('cone-drive-start').disabled);
+render('page',true,false);assert(!env.el('cone-test-start').disabled);
 assert(env.el('cone-test-confirm').disabled);render('page',false,true);assert(!env.el('cone-test-confirm').disabled);
 render('other',true,true);assert(env.el('cone-test-start').disabled);assert(env.el('cone-test-confirm').disabled);
 assert(env.el('cone-white-save').disabled);

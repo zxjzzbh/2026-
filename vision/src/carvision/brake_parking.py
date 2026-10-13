@@ -4,6 +4,8 @@ The 65/50/25 cm camera markers are preserved. They are NOT a verified full-field
 metric camera model. New PWM values are provisional tuning values, not measured
 speed/braking calibration. No hardware is opened by this module.
 """
+
+from .steering import from_offset
 import json
 import math
 from collections import deque
@@ -189,7 +191,7 @@ class BrakeParkingController:
                 self.reason='低输出前进搜索斑马线'
                 result=self.output('search')
             if self.path_mode=='lane':
-                result['steering_us']=round(1610-max(-1,min(1,sample['lane_offset']))*40)
+                result['steering_us']=from_offset(sample['lane_offset'])
             return result
         if now-self.brake_started>self.s['brake_timeout_s'] and self.phase!='hold':
             return self.fault('制动后未取得连续停稳反馈')

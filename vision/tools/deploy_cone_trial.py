@@ -109,6 +109,12 @@ def main():
         sftp=client.open_sftp()
         before_status=status()
         if not idle(before_status):raise RuntimeError('Control active; no files or service changed')
+        for name in ('steering','rasadapter5','brake_output'):
+            rel='vision/src/carvision/'+name+'.py'
+            try:installed=read(sftp,REMOTE+'/'+rel)
+            except FileNotFoundError:installed=None
+            if installed!=(ROOT/rel).read_bytes():
+                raise RuntimeError('转向已统一为 1350／1870，请使用完整流程更新入口一起更新共享控制模块')
         if args.slalom_only and (before_status.get('cone_trial') or {}).get('program')!='blue-cone-avoidance-v2':
             raise RuntimeError('Slalom-only update requires the existing cone v2 console')
         protected={}

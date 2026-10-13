@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "forward_us": 1600,
-  "left_us": 1690,
-  "right_us": 1550,
+  "left_us": 1870,
+  "right_us": 1350,
   "max_run_s": 600,
   "max_stage_s": 120,
   "parking_search_s": 45,

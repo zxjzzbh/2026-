@@ -24,8 +24,8 @@ def measured():
         valid_polygon_px=[[0,0],[479,0],[479,359],[0,359]], max_error_m=.01)
     s['motion'].update(verified=True, minimum_turn_radius_m=.4,
         maximum_tracking_error_m=.02, braking_distance_m=.15, pose_feedback_verified=True)
-    s['driving'] = {**driving_settings(s), 'steering_radius_1570_cm':40.,
-        'steering_radius_1650_cm':-40., 'visual_error_bound_m':.01,
+    s['driving'] = {**driving_settings(s), 'steering_radius_right_cm':40.,
+        'steering_radius_left_cm':-40., 'visual_error_bound_m':.01,
         'visual_verified_distance_m':15., 'fixed_camera_confirmed':True,
         'steering_verified':True, 'odometry_verified':True, 'max_run_s':60.}
     return s
@@ -214,7 +214,7 @@ def test_pass_evidence_uses_fixed_road_frame_not_camera_yaw(measured,heading):
 
 
 def test_asymmetric_measured_curvature_is_checked(measured):
-    measured['driving']['steering_radius_1570_cm']=1000.
+    measured['driving']['steering_radius_right_cm']=1000.
     assert not path_clear([{'x_m':0.,'y_m':0.,'yaw_rad':0.,'curvature':.2}],[],measured,[-1,1])
 
 
@@ -229,9 +229,9 @@ def test_closed_loop_two_cones_with_calibrated_pwm_model_then_lane_recovery(meas
         if result['phase']=='complete':break
         assert result['action']=='follow_candidate_path', (i,x,y,yaw,result['reason'])
         pulse=steering_for_path(result['path'],measured)
-        assert 1570<=pulse<=1650
+        assert 1350<=pulse<=1870
         # Fixture-only kinematics for the signed calibrated radius/PWM map.
-        curvature=(1610-pulse)/40 * 2.5
+        curvature=(1610-pulse)/260 * 2.5
         yaw+=speed*curvature*dt
         x+=speed*math.sin(yaw)*dt;y+=speed*math.cos(yaw)*dt
         crossings.append((x,y))
@@ -275,24 +275,14 @@ const env={stale:false,client:'page',held:new Set(),gamepadControl:null,
   return nodes.get(id);
  }};
 vm.createContext(env);vm.runInContext(source,env);
-function render(can,owner,nav){env.renderCone({cone_trial:{
- avoidance:{active:true,owner_client:owner,can_request_start:can},
- latest:{navigation:nav},readiness:{missing:[]}}});}
-render(true,'page',{phase:'waiting_for_two_cones',reason:'need_two_confirmed_cones_ahead'});
-assert(env.el('cone-slalom').textContent.includes('确认前方两只'));
-assert(!env.el('cone-drive-start').disabled); // Existing stable prepared-button mechanism.
-render(true,'page',{phase:'pass_first_cone',slalom:{order:[{id:'one',side:'left'},
- {id:'two',side:'right'}],passed_ids:[]}});
-assert(env.el('cone-slalom').textContent.includes('1号桶（one）从左侧通过 → 2号桶（two）从右侧通过'));
-render(true,'other',{phase:'pass_second_cone',slalom:{order:[{id:'one',side:'right'},
- {id:'two',side:'left'}],passed_ids:['one']}});
-assert(env.el('cone-drive-start').disabled);
-assert(env.el('cone-slalom').textContent.includes('已核验 1/2'));
-assert(env.el('cone-navigation').textContent.includes('换边绕第二桶'));
-render(false,'page',{phase:'fault',reason:'slalom_wrong_side_or_clearance',
- slalom:{order:[{id:'one',side:'left'},{id:'two',side:'right'}],passed_ids:[]}});
-assert(env.el('cone-drive-start').disabled);
-assert(env.el('cone-slalom').textContent.includes('侧别或净空'));
+function render(can,owner,count,reason){env.renderCone({cone_trial:{
+ avoidance:{active:true,profile:'legacy_low_speed',owner_client:owner,can_request_start:can,reason,
+ low_speed_test:{passed_count:count}},latest:{navigation:{}},readiness:{missing:[]}}});}
+render(true,'page',0,'等待开始');assert(!env.el('cone-test-start').disabled);
+render(true,'page',1,'第二桶避让');assert(env.el('cone-test-progress').textContent.includes('已过 1/2'));
+render(true,'other',1,'第二桶避让');assert(env.el('cone-test-start').disabled);
+render(false,'page',1,'白线无可通行空间');assert(env.el('cone-test-start').disabled);
+assert(env.el('cone-test-progress').textContent.includes('白线无可通行空间'));
 console.log('slalom DOM replay passed; no network or hardware calls');
 '''
     result=subprocess.run([node,'-e',script],input=json.dumps({'source':source}),

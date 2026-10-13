@@ -10,9 +10,8 @@ HTML='''<section id="race-flow-panel" class="drive-panel">
 <div class="race-preview"><img id="race-preview" alt="当前比赛任务的真实相机画面" hidden></div>
 <p id="race-payment"></p><button id="race-paid" type="button" disabled>我已实际支付 0.01 元 · 记录付款结果</button>
 <p>扫码支付由队员完成，二维码沿用下方缴费面板。程序不自动付款，也不把按钮声明当作支付平台到账证明。</p>
-<details><summary>当前能力与停车反馈</summary><p id="race-readiness"></p>
-<p>独立测试参数保留；全流程使用进入时的参数快照。停车必须取得同一坐标系的车位、位姿、速度和整车入位反馈。缺少反馈时停车提示，不自动跳过。</p>
-<p>只有你手动进入时才接管车辆。急停、失联与画面中断会结束本轮；恢复网络不会自动续跑。下方所有单项测试入口继续保留。</p></details>
+<p id="race-readiness"></p>
+<p>右转 1350 · 中位 1610 · 左转 1870。急停退出后可继续使用下方各任务单测。</p>
 </section>'''
 STATE='''
 let raceActive=false,raceOwned=false,raceToken=null,raceSequence=0,raceBusy=false,raceHeartbeatBusy=false,raceImageBusy=false;
@@ -28,7 +27,7 @@ function renderRaceFlow(s){
  el('race-reason').textContent=r.reason||'请使用完整流程启动入口加载程序';
  el('race-progress').textContent=(r.transitions||[]).map(x=>({wait_board:'等挡板',crosswalk:'斑马线',traffic:'红绿灯',cones:'绕桶',parking_search:'找车位',parking_entry:'入位',payment:'缴费',complete:'结束'}[x.to]||x.to)).join(' → ');
  el('race-outputs').textContent=r.intent?('本轮指令：'+r.intent.action+' · 油门 '+r.intent.esc_us+' μs · 转向 '+r.intent.steering_us+' μs'):'等待手动进入自动模式';
- el('race-readiness').textContent=r.parking_missing?.length?'停车执行尚缺：'+r.parking_missing.join('、'):'停车反馈配置齐备，仍需现场验证；软件测试不代表已完赛。';
+ el('race-readiness').textContent=r.parking_missing?.length?'停车入位反馈尚未齐备，届时会停车提示；其余任务可联调。':'停车反馈配置已载入，仍需场地验证。';
  el('race-payment').textContent=r.payment_remaining_s==null?'入位停稳后开始 30 秒缴费窗口':('缴费剩余 '+r.payment_remaining_s.toFixed(1)+' 秒'+(r.operator_reported_paid?' · 已记录付款声明，未核验平台到账':''));
  if(raceActive){
   held.clear();heartbeatDue=false;allowed=false;needsRelease=true;motorAvailable=false;turnAvailable=false;gamepadControl?.requireNeutral();

@@ -12,7 +12,7 @@ HTML='''<section class="drive-panel" id="parking-bay-test">
 <label>空闲半区可见红色地面（%）<input id="parking-bay-floor" type="number" min="50" max="95" step="1" value="65"></label>
 <button id="parking-bay-save" type="button">保存识别参数</button><p>按现有记录预填赛道宽123 cm，现场变化时修改。未见蓝色不直接等于空闲；黄线、边界和车位内部还需明确。</p></details>
 <p id="parking-bay-readiness"></p><p id="parking-bay-error" role="alert"></p>
-<p>当前网页入口只观察和推荐选区，不输出入位油门。自动入位决策需要已验证的近场地面标定、连续位姿及制动距离；缺失项不会用像素距离代替。</p>
+<p>本单项只识别停车区和推荐选区；自动入位在完整流程中执行。</p>
 <a href="#parking-payment">入位停稳后，前往下方停车缴费</a>
 <p>这里不自动开始30秒付款计时，不把选区成功当作四轮已经入位。</p>
 </section>'''
@@ -31,7 +31,7 @@ function renderParkingBay(s){
  const selected=p.selection||{},names={left:'左半区',right:'右半区'},labels={clear:'可见空闲候选',blocked:'入口遮挡',unknown:'未知'};
  el('parking-bay-selection').textContent=selected.confirmed?'推荐'+names[selected.selected_slot]+'（候选，尚未实际入位）':selected.reason||'等待新鲜画面和完整停车结构';
  el('parking-bay-slots').textContent=(p.observation?.slots||[]).map(r=>names[r.id]+'：'+labels[r.availability]+' · 入口蓝色'+(r.blue_entrance_fraction*100).toFixed(1)+'%').join(' / ');
- el('parking-bay-readiness').textContent='实车入位待补：'+(p.readiness?.missing||[]).join('、')+'。本入口电机输出关闭。';
+ el('parking-bay-readiness').textContent=p.readiness?.ready?'停车反馈配置已载入，仍需场地验证。':'自动入位反馈尚未齐备；本单项可以继续识别。';
  parkingBayFrame=p.observation?.frame_id??null;
 }
 async function parkingBayAction(action){

@@ -5,6 +5,8 @@ the command lease in software; it is not the Pi 4 finite DMA waveform driver.
 No pins are changed by importing this module or by inspecting hardware.
 """
 
+from .steering import LEFT_US, RIGHT_US
+
 import argparse
 import json
 import math
@@ -159,7 +161,7 @@ class ScopedPWM:
         self.write(1, 'duty_cycle', pulse * 1000)
 
     def turn(self, pulse):
-        if not self.steering or type(pulse) is not int or not 1550 <= pulse <= 1750:
+        if not self.steering or type(pulse) is not int or not RIGHT_US <= pulse <= LEFT_US:
             raise ValueError('invalid conservative steering point')
         self.write(0, 'duty_cycle', pulse * 1000)
         self.write(0, 'enable', 1)

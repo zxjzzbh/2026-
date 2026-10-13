@@ -4,6 +4,8 @@ Explicit handoff starts at the blue board. Independent trials are unchanged.
 Visual cone passage remains estimated; parking needs measured world feedback.
 Payment is reported by the operator, never performed by the vehicle software.
 """
+
+from .steering import LEFT_US, RIGHT_US
 import copy
 import json
 import math
@@ -28,7 +30,7 @@ LABELS={'idle':'手动遥控／待切换','arming':'自动模式初始化','wait
 def validate_flow(s):
     s=copy.deepcopy(s)
     if s.get('schema_version')!=1:raise ValueError('总流程配置版本无效')
-    for k,lo,hi in [('forward_us',1501,1600),('left_us',1650,1750),('right_us',1550,1570)]:
+    for k,lo,hi in [('forward_us',1501,1600),('left_us',1650,LEFT_US),('right_us',RIGHT_US,1570)]:
         if type(s.get(k)) is not int or not lo<=s[k]<=hi:raise ValueError('总流程参数越界：'+k)
     for k,lo,hi in [('max_run_s',60,600),('max_stage_s',20,180),('parking_search_s',5,60)]:
         if not numeric(s.get(k)) or not lo<=s[k]<=hi:raise ValueError('总流程参数越界：'+k)
@@ -90,11 +92,11 @@ def prepare_bundle(bundle):
 def parking_blockers(b):
     missing=list(parking_readiness(b['parking'])['missing']);d=b['cones'].get('driving',{})
     names={'steering_verified':'转向档位与曲率对应关系','odometry_verified':'连续位姿反馈有效性',
-           'steering_radius_1570_cm':'1570 右转半径','steering_radius_1650_cm':'1650 左转半径',
+           'steering_radius_right_cm':'1350 右转半径','steering_radius_left_cm':'1870 左转半径',
            'visual_error_bound_m':'光流位姿误差上限','visual_verified_distance_m':'光流有效行程'}
     for k in ('steering_verified','odometry_verified'):
         if d.get(k) is not True:missing.append(names[k])
-    for k in ('steering_radius_1570_cm','steering_radius_1650_cm','visual_error_bound_m','visual_verified_distance_m'):
+    for k in ('steering_radius_right_cm','steering_radius_left_cm','visual_error_bound_m','visual_verified_distance_m'):
         if not numeric(d.get(k)) or abs(d[k])<=0:missing.append(names[k])
     return list(dict.fromkeys(missing))
 
@@ -245,8 +247,8 @@ class RaceFlowController:
                     return self._out(events=[{'event':'payment_window_opened','amount_cents':1}])
                 if decision['action']=='follow_path':
                     d=self.b['cones']['driving'];curvature=decision['target_curvature_1pm']
-                    endpoint=1570 if curvature>0 else 1650
-                    radius=abs(d['steering_radius_1570_cm' if curvature>0 else 'steering_radius_1650_cm'])/100
+                    endpoint=RIGHT_US if curvature>0 else LEFT_US
+                    radius=abs(d['steering_radius_right_cm' if curvature>0 else 'steering_radius_left_cm'])/100
                     ratio=abs(curvature)*radius
                     if ratio>1:raise ValueError('入位转向需求超过既有实测档位')
                     steer=round(1610+ratio*(endpoint-1610))

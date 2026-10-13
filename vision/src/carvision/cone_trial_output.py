@@ -1,10 +1,12 @@
-"""Cone-only steering envelope; original parking/traffic guard stays unchanged.
+"""Cone selection inside the shared, user-supplied S3 steering envelope.
 
 Validate actual S3 commands separately within the selected subset of the live
-manual 1550..1750 range. Reuse PulseGuard for ESC, lease and finite F/B timing;
+team-supplied 1350..1870 range. Reuse PulseGuard for ESC, lease and finite F/B timing;
 its neutral steering placeholder is translated only after this S3 validation.
 All logged/input commands retain the actual pulse, not the placeholder.
 """
+
+from .steering import LEFT_US, RIGHT_US
 import multiprocessing as mp
 import sys
 import time
@@ -14,12 +16,12 @@ from .brake_output import BrakeActuator,PulseGuard,write_parking_pulse,verify_ne
 
 def validate_limits(right,left):
     if (type(right) is not int or type(left) is not int
-            or not 1550<=right<=1570 or not 1650<=left<=1750):
-        raise ValueError('锥桶转向仅允许右 1550–1570、左 1650–1750 μs')
+            or not RIGHT_US<=right<=1570 or not 1650<=left<=LEFT_US):
+        raise ValueError('锥桶转向仅允许右 1350–1570、左 1650–1870 μs')
 
 
 class ConePulseGuard(PulseGuard):
-    def __init__(self,settings,write,*,mode,right_us=1550,left_us=1690):
+    def __init__(self,settings,write,*,mode,right_us=RIGHT_US,left_us=LEFT_US):
         validate_limits(right_us,left_us)
         if not 1500<settings.get('pwm',{}).get('search_us',0)<=1600:
             raise ValueError('锥桶测试油门上限为 1600 μs')
@@ -92,7 +94,7 @@ def _worker(connection,settings,port,mode,right_us,left_us):
 
 
 class ConeTrialActuator(BrakeActuator):
-    def __init__(self,settings,*,right_us=1550,left_us=1690,run=False,esc_mode=None,port='/dev/ttyAMA0'):
+    def __init__(self,settings,*,right_us=RIGHT_US,left_us=LEFT_US,run=False,esc_mode=None,port='/dev/ttyAMA0'):
         validate_limits(right_us,left_us)
         super().__init__(settings,run=False,forward_limit_us=1625)
         self.run=run;self.steering_limits_us=[right_us,left_us]

@@ -5,6 +5,8 @@ caller must explicitly declare F/B; the board cannot read that physical switch.
 The default 1575-us parking envelope is unchanged. Only the traffic caller
 explicitly selects the separate 1625-us tuning ceiling.
 """
+
+from .steering import LEFT_US, RIGHT_US
 import multiprocessing as mp
 import struct
 import sys
@@ -100,7 +102,7 @@ class PulseGuard:
                       'creep':self.s['pwm']['creep_us'],'brake':self.s['pwm']['brake_us']}
             if action not in expected or type(pulse) is not int or pulse!=expected[action]:
                 raise ValueError('action and pulse do not match the F/B profile')
-            if type(steer) is not int or not 1570<=steer<=1650:raise ValueError('steering exceeds parking envelope')
+            if type(steer) is not int or not RIGHT_US<=steer<=LEFT_US:raise ValueError('steering exceeds parking envelope')
             self.sequence=seq;self.deadline=now+self.s['actuator_lease_s']
             if action=='brake':
                 if self.previous_action!='brake':

@@ -28,7 +28,7 @@ def measured():
         valid_polygon_px=[[0,0],[479,0],[479,359],[0,359]],max_error_m=.01)
     s['motion'].update(verified=True,pose_feedback_verified=True,minimum_turn_radius_m=.5,
         maximum_tracking_error_m=.03,braking_distance_m=.1)
-    s['driving']={**driving_settings(s),'steering_radius_1570_cm':-50.,'steering_radius_1650_cm':50.,
+    s['driving']={**driving_settings(s),'steering_radius_right_cm':50.,'steering_radius_left_cm':-50.,
         'visual_error_bound_m':.01,'visual_verified_distance_m':10.,'fixed_camera_confirmed':True,
         'steering_verified':True,'odometry_verified':True,'max_speed_mps':.5}
     assert execution_readiness(s)['ready']

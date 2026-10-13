@@ -4,6 +4,8 @@ Ground coordinates are metres relative to the rear axle: x right, y forward.
 Camera mappings apply only to the recorded resolution and fixed servo pose.
 No sample/default configuration grants permission to move hardware.
 """
+
+from .steering import LEFT_US, RIGHT_US
 import json
 import math
 from pathlib import Path
@@ -60,7 +62,7 @@ class AutonomyProfile:
             raise ValueError("S4 neutral must remain the reviewed 1500 us")
         for name in ("steering_left_us", "steering_center_us", "steering_right_us"):
             pulse = motion.get(name)
-            if pulse is not None and (type(pulse) is not int or not 1550 <= pulse <= 1750):
+            if pulse is not None and (type(pulse) is not int or not RIGHT_US <= pulse <= LEFT_US):
                 raise ValueError(f"motion.{name} outside observed S3 range")
         pulses = [motion.get(n) for n in ("steering_left_us", "steering_center_us", "steering_right_us")]
         if all(p is not None for p in pulses) and not min(pulses[0], pulses[2]) < pulses[1] < max(pulses[0], pulses[2]):

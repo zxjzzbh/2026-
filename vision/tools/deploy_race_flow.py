@@ -17,14 +17,25 @@ from deploy_brake_trial import command,put_atomic,read,ROOT,REMOTE,PYTHON,UNIT
 from deploy_cone_trial import idle,PROTECTED,verify_protected
 
 MODULES=('race_flow','race_flow_camera','race_flow_console','race_flow_controls',
-         'parking_bay','parking_bay_console','parking_bay_controls','parking_mission')
+         'parking_bay','parking_bay_console','parking_bay_controls','parking_mission',
+         'steering','manual_drive','manual_hardware','rasadapter5','pi5_pwm',
+         'brake_parking','brake_output','cone_low_speed','cone_trial_output','cone_navigation',
+         'cone_planning','cone_observer','cone_controls','autonomy_profile','autonomy_motion','rasadapter5_executor')
 FILES=['vision/src/carvision/'+name+'.py' for name in MODULES]+[
     'vision/tools/serve_race_flow.py','vision/tools/serve_parking_payment.py','vision/tools/race_flow.py',
     'vision/configs/race-flow.json','vision/configs/parking-bay.json','vision/tests/test_race_flow.py',
-    'vision/tests/test_parking_bay.py','vision/tests/fixtures/cone-track-short-secondary.jpg',
+    'vision/tests/test_parking_bay.py','vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py',
+    'vision/tests/fixtures/cone-track-short-secondary.jpg','vision/tests/fixtures/cone-track-glare-primary.jpg',
+    'vision/tests/fixtures/cone-track-glare-secondary.jpg',
     'vision/RACE_FLOW.md','vision/PARKING_BAY.md']
 PREREQUISITES=['vision/src/carvision/'+name+'.py' for name in (
-    'cone_low_speed','cone_observer','cone_trial_output','cone_boundaries','cone_road','cone_navigation','cone_planning')]
+    'cone_boundaries','cone_road')]
+
+
+def compatible_source(rel,data):
+    if data is None or data==(ROOT/rel).read_bytes():return True
+    manifest=json.loads((ROOT/'vision/configs/race-upgrade-source.json').read_text(encoding='utf-8'))
+    return hashlib.sha256(data).hexdigest() in manifest['predecessor_hashes'].get(rel,[])
 
 
 def flow_idle(status):
@@ -67,6 +78,12 @@ def main(argv=None):
         for rel in PREREQUISITES:
             if read(sftp,REMOTE+'/'+rel)!=(ROOT/rel).read_bytes():
                 raise RuntimeError('车端锥桶基线不同，停止部署以免覆盖队友更新：'+rel)
+        for rel in FILES:
+            if not rel.startswith('vision/src/'):continue
+            try:data=read(sftp,REMOTE+'/'+rel)
+            except FileNotFoundError:data=None
+            if not compatible_source(rel,data):
+                raise RuntimeError('车端控制源码有未对齐更新，不覆盖：'+rel)
         protected={}
         for rel in PROTECTED:
             if rel in FILES:continue
@@ -96,7 +113,9 @@ def main(argv=None):
             put_atomic(sftp,test_root+'/vision/configs/'+path.name,path.read_bytes())
         audit['tests']=command(client,['env','PYTHONPATH='+REMOTE+'/vision/src','CARVISION_FLOW_TEST_ROOT='+test_root,
             'CARVISION_SKIP_PC_DEPLOY_TESTS=1',
-            PYTHON,'-m','pytest',REMOTE+'/vision/tests/test_race_flow.py',REMOTE+'/vision/tests/test_parking_bay.py','-q'],timeout=60)
+            'CARVISION_REPOSITORY_CONE_CONFIG='+test_root+'/vision/configs/cone-trial.json',
+            PYTHON,'-m','pytest',REMOTE+'/vision/tests/test_race_flow.py',REMOTE+'/vision/tests/test_parking_bay.py',
+            REMOTE+'/vision/tests/test_cone_low_speed.py',REMOTE+'/vision/tests/test_cone_trial_output.py','-q'],timeout=60)
         if not flow_idle(status()):raise RuntimeError('控制已启用，禁止重启')
         verify_protected(sftp,protected)
         if read(sftp,UNIT)!=unit_before:raise RuntimeError('启动配置被其他任务修改，停止部署')

@@ -4,6 +4,8 @@ The manual bench executor and its 0.8 s window are unchanged. This separate
 driver is unavailable until measured feedback and continuous-motion acceptance
 are recorded. It has an independent 250 ms lease and a finite total run limit.
 """
+
+from .steering import LEFT_US, RIGHT_US
 import math
 import struct
 import threading
@@ -145,7 +147,7 @@ class AutonomousS3S4Driver:
                 raise
 
     def _write(self, channel, pulse):
-        if type(pulse) is not int or (channel == 3 and not 1550 <= pulse <= 1750) or (channel == 4 and not 1500 <= pulse <= 1575) or channel not in (3, 4):
+        if type(pulse) is not int or (channel == 3 and not RIGHT_US <= pulse <= LEFT_US) or (channel == 4 and not 1500 <= pulse <= 1575) or channel not in (3, 4):
             raise ValueError("pulse outside reviewed S3/S4 envelope")
         if not self.run:
             return
@@ -201,7 +203,7 @@ class AutonomousS3S4Driver:
                     raise ValueError("motion plan must have an explicit boolean")
                 if plan["motion_planned"]:
                     esc, steering = plan.get("esc_us"), plan.get("steering_us")
-                    if type(esc) is not int or type(steering) is not int or not 1500 < esc <= 1575 or not 1550 <= steering <= 1750:
+                    if type(esc) is not int or type(steering) is not int or not 1500 < esc <= 1575 or not RIGHT_US <= steering <= LEFT_US:
                         raise ValueError("motion plan pulse outside reviewed envelope")
                     if self.profile.missing():
                         raise ValueError("cannot apply a motion plan with missing calibration")

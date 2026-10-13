@@ -4,6 +4,8 @@ No motor I/O here. The local world origin is the vehicle rear axle when reset;
 it need not be a surveyed GPS position. Optical-flow validity is never inferred
 from throttle, and an invalid pose cannot quietly reset while driving.
 """
+
+from .steering import LEFT_US, RIGHT_US
 import copy
 import math
 
@@ -18,7 +20,7 @@ from .cone_planning import ConeMission,readiness,distance_to_path
 DEFAULT_DRIVING={
     'forward_us':1575,'max_run_s':30.,'max_speed_mps':.2,'lookahead_m':.4,
     'brake_pulse_s':.12,'brake_release_s':.1,'actuator_lease_s':.2,
-    'steering_radius_1570_cm':None,'steering_radius_1650_cm':None,
+    'steering_radius_right_cm':None,'steering_radius_left_cm':None,
     'visual_error_bound_m':None,'visual_verified_distance_m':None,
     'fixed_camera_confirmed':False,'steering_verified':False,'odometry_verified':False,
 }
@@ -35,11 +37,15 @@ def validate_driving(settings):
     if type(d['forward_us']) is not int:raise ValueError('油门应为整数微秒')
     for key in ('fixed_camera_confirmed','steering_verified','odometry_verified'):
         if type(d[key]) is not bool:raise ValueError(key+' must be boolean')
-    for key in ('steering_radius_1570_cm','steering_radius_1650_cm'):
+    for key in ('steering_radius_right_cm','steering_radius_left_cm'):
         if d[key] is not None and (not numeric(d[key]) or not 20<=abs(d[key])<=5000):
             raise ValueError('转弯半径用 cm：左负右正，绝对值 20–5000')
-    if all(d[k] is not None for k in ('steering_radius_1570_cm','steering_radius_1650_cm')):
-        if d['steering_radius_1570_cm']*d['steering_radius_1650_cm']>=0:raise ValueError('两侧转向半径应一左一右')
+    if d['steering_radius_right_cm'] is not None and d['steering_radius_right_cm']<=0:
+        raise ValueError('1350 右转半径应为正值，不能沿用旧档位标定')
+    if d['steering_radius_left_cm'] is not None and d['steering_radius_left_cm']>=0:
+        raise ValueError('1870 左转半径应为负值，不能沿用旧档位标定')
+    if all(d[k] is not None for k in ('steering_radius_right_cm','steering_radius_left_cm')):
+        if d['steering_radius_right_cm']*d['steering_radius_left_cm']>=0:raise ValueError('两侧转向半径应一左一右')
     for key,lo,hi in [('visual_error_bound_m',.001,.1),('visual_verified_distance_m',.2,20)]:
         if d[key] is not None and (not numeric(d[key]) or not lo<=d[key]<=hi):raise ValueError(key)
     # Keep the already-used finite F/B pulse and watchdog envelope.
@@ -52,7 +58,7 @@ def execution_readiness(settings):
     report=readiness(settings);missing=list(report['missing']);d=validate_driving(settings)
     for key in ('fixed_camera_confirmed','steering_verified','odometry_verified'):
         if d[key] is not True:missing.append('driving.'+key)
-    for key in ('steering_radius_1570_cm','steering_radius_1650_cm','visual_error_bound_m','visual_verified_distance_m'):
+    for key in ('steering_radius_right_cm','steering_radius_left_cm','visual_error_bound_m','visual_verified_distance_m'):
         if d[key] is None:missing.append('driving.'+key)
     if d['visual_error_bound_m'] is not None and numeric(settings['motion'].get('maximum_tracking_error_m')):
         if d['visual_error_bound_m']>settings['motion']['maximum_tracking_error_m']:missing.append('driving.visual_error_exceeds_budget')
@@ -257,11 +263,13 @@ class ConeNavigator:
 
 def steering_for_path(path,settings):
     d=driving_settings(settings)
+    if d['steering_radius_right_cm'] is None or d['steering_radius_left_cm'] is None:
+        raise ValueError('1350／1870 新档位尚无有效曲率映射，旧档位半径不能代用')
     choices=[p for p in path if p['y_m']>0]
     if not choices:raise ValueError('没有前方可跟随路径')
     p=min(choices,key=lambda p:abs(math.hypot(p['x_m'],p['y_m'])-d['lookahead_m']))
     curvature=2*p['x_m']/(p['x_m']**2+p['y_m']**2)
-    mapping=sorted([(100/d['steering_radius_1570_cm'],1570),(0.,1610),(100/d['steering_radius_1650_cm'],1650)])
+    mapping=sorted([(100/d['steering_radius_right_cm'],RIGHT_US),(0.,1610),(100/d['steering_radius_left_cm'],LEFT_US)])
     if not mapping[0][0]<=curvature<=mapping[-1][0]:raise ValueError('所需转向超过实测转向范围')
     return int(round(np.interp(curvature,[p[0] for p in mapping],[p[1] for p in mapping])))
 

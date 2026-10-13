@@ -5,6 +5,8 @@ BCM17/27 are not commanded here. Ordinary output remains locked after faults;
 reviewed bench trials and a separately prepared finite ground trial have their own scope.
 """
 
+from .steering import LEFT_US, RIGHT_US
+
 import argparse
 import hashlib
 import json
@@ -277,7 +279,7 @@ class PiBenchBackend:
                  '-n', '127.0.0.1', '-t', '1', '-x', pin_mask, '-p', '8890'],
                 stdout=self.log, stderr=subprocess.STDOUT, start_new_session=True)
             if not self.motor_only:
-                self.client = CalibrationDriver(8890, [(p, .02) for p in range(1550, 1751, 10)])
+                self.client = CalibrationDriver(8890, [(p, .02) for p in range(RIGHT_US, LEFT_US + 1, 10)])
             if not self.steering_only:
                 self.motor = (LoadProbeEsc if self.load_probe else DmaEsc)(8890)
             connection = self.client or self.motor

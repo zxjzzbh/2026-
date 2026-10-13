@@ -4,6 +4,8 @@ The lease is checked by the hardware worker, independently of HTTP/video work.
 Every motor stage is finite and followed by queued neutral by the backend.
 """
 
+from .steering import LEFT_US, RIGHT_US
+
 import hashlib
 import json
 import os
@@ -382,7 +384,7 @@ class ManualDrive:
                                 self.backend.motion(pulse, duration)
                             self.pulse, self.stage = pulse, stage
                             self.event('motor_stage', pulse_us=pulse, duration_s=duration, stage=stage)
-                target = {'center': self.steering_center_us, 'left': 1750, 'right': 1550}[
+                target = {'center': self.steering_center_us, 'left': LEFT_US, 'right': RIGHT_US}[
                     self.turn if self.mode == 'enabled' and not self.blocked else 'center']
                 if target != self.steering_us and now - self.last_steering_change >= .02:
                     single_target = getattr(self.backend, 'steering_single_target', False)
