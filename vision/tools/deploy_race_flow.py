@@ -17,7 +17,7 @@ from deploy_brake_trial import command,put_atomic,read,ROOT,REMOTE,PYTHON,UNIT
 from deploy_cone_trial import idle,PROTECTED,verify_protected
 
 MODULES=('race_flow','race_flow_camera','race_flow_console','race_flow_controls',
-         'parking_bay','parking_bay_console','parking_bay_controls','parking_mission','parking_entry','parking_entry_run','parking_guidance','parking_path','parking_control','parking_feedback',
+         'parking_bay','parking_bay_console','parking_bay_controls','parking_mission','parking_entry','parking_entry_run','parking_guidance','parking_path','parking_control','parking_feedback','parking_far_tracker',
          'steering','manual_drive','manual_hardware','rasadapter5','pi5_pwm',
          'brake_parking','brake_output','cone_low_speed','cone_continuous','cone_trial_output','cone_navigation','cone_execution',
          'cone_planning','cone_observer','cone_controls','autonomy_profile','autonomy_motion','rasadapter5_executor')
@@ -25,6 +25,8 @@ FILES=['vision/src/carvision/'+name+'.py' for name in MODULES]+[
     'vision/tools/serve_race_flow.py','vision/tools/serve_parking_payment.py','vision/tools/race_flow.py',
     'vision/configs/race-flow.json','vision/configs/parking-bay.json','vision/tests/test_race_flow.py',
     'vision/tests/test_parking_bay.py','vision/tests/test_parking_path.py','vision/tests/test_parking_entry.py','vision/tests/test_parking_entry_run.py','vision/tests/test_parking_guidance.py','vision/tests/test_parking_direction_hint.py','vision/tests/test_parking_washed_board.py',
+    'vision/tests/test_parking_far_tracker.py','vision/tests/test_parking_boundary_guard.py',
+    'vision/tests/fixtures/parking-overshoot-loss-20261013.json','vision/tests/fixtures/parking-boundary-loss-20261013.json',
     'vision/tests/test_cone_low_speed.py','vision/tests/test_cone_trial_output.py',
     'vision/tests/test_cone_continuous.py','vision/tests/test_cone_slalom.py',
     'vision/tests/fixtures/cone-track-short-secondary.jpg','vision/tests/fixtures/cone-track-glare-primary.jpg',
@@ -186,6 +188,7 @@ def main(argv=None):
             'CARVISION_REPOSITORY_CONE_CONFIG='+test_root+'/vision/configs/cone-trial.json',
             PYTHON,'-m','pytest',REMOTE+'/vision/tests/test_race_flow.py',REMOTE+'/vision/tests/test_parking_bay.py',
             REMOTE+'/vision/tests/test_parking_path.py',REMOTE+'/vision/tests/test_parking_entry.py',REMOTE+'/vision/tests/test_parking_entry_run.py',
+            REMOTE+'/vision/tests/test_parking_far_tracker.py',REMOTE+'/vision/tests/test_parking_boundary_guard.py',
             REMOTE+'/vision/tests/test_parking_guidance.py',
             REMOTE+'/vision/tests/test_parking_direction_hint.py',
             REMOTE+'/vision/tests/test_parking_washed_board.py',

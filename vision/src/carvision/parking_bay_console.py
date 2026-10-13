@@ -16,6 +16,8 @@ from .cone_navigation import reuse_legacy_ground
 from .parking_entry_run import ParkingEntryRun
 from .parking_feedback import ParkingFrameFeedback
 from .parking_control import parking_blockers
+from .parking_far_tracker import ParkingFarTracker
+from .cone_road import ConeRoadContext
 
 
 class BaySelection:
@@ -87,7 +89,8 @@ class ParkingBayDrive:
         self.latest={};self.recommendation={};self.preview=None;self.updated=None;self.folder=None;self.last=None
         self.reason='停车模块待观察；当前只显示实际识别与选区，不启动车辆'
         self.entry=ParkingEntryRun(factory=entry_factory,log_root=self.root/'run')
-        self.motion=GroundMotionEstimate();self.entry_sample=None
+        self.motion=GroundMotionEstimate();self.far_tracker=ParkingFarTracker();self.entry_sample=None
+        self.road=None
         self.metric_feedback=None
         self.metric_missing=None
 
@@ -127,7 +130,7 @@ class ParkingBayDrive:
         if self.thread and self.thread.is_alive():raise ValueError('停车观察正在结束，请稍后重试')
         self.selector=BaySelection(self.settings['selection_confirm_s']);self.latest={}
         self.recommendation=self.selector.snapshot('等待画面，先给出暂定方向');self.last=None
-        self.preview=None;self.updated=None;self.entry_sample=None;self.motion=GroundMotionEstimate()
+        self.preview=None;self.updated=None;self.entry_sample=None;self.motion=GroundMotionEstimate();self.far_tracker=ParkingFarTracker();self.road=None
         self.folder=self.root/'run'/('parking-bay-'+str(time.time_ns()));self.folder.mkdir(parents=True,exist_ok=False)
         self.active=True;self.stop.clear();self.reason='正在读取第二路实际停车区画面'
         self.thread=threading.Thread(target=self._run,name='parking-bay-observation',daemon=True);self.thread.start()
@@ -228,6 +231,21 @@ class ParkingBayDrive:
                     image=cv2.imdecode(np.frombuffer(jpg,np.uint8),cv2.IMREAD_COLOR)
                     if image is None:raise ValueError('相机图像无法解码')
                     observation,overlay=detect_parking(image,self.settings)
+                    if self.road is None:
+                        cone_path=self.root/'vision/configs/cone-trial.local.json'
+                        if not cone_path.exists():cone_path=self.root/'vision/configs/cone-trial.json'
+                        road_settings=json.loads(cone_path.read_text(encoding='utf-8-sig')) if cone_path.exists() else {}
+                        self.road=ConeRoadContext(road_settings,'secondary')
+                    hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
+                    blue=cv2.inRange(hsv,tuple(self.settings['blue_lower']),tuple(self.settings['blue_upper']))
+                    observation['road_context']=self.road.inspect(image,blue)
+                    for key in ('left_inner','right_inner'):
+                        points=observation['road_context'].get(key,[])
+                        if points:cv2.polylines(overlay,[np.rint(points).astype(np.int32)],False,(255,255,0),2)
+                    observation['tracked_far_lines']=self.far_tracker.update(image,observation,fid,t,self.settings)
+                    for line in observation['tracked_far_lines']:
+                        a,b=np.rint(np.asarray(line['edge_px'])).astype(int)
+                        cv2.line(overlay,tuple(a),tuple(b),(255,0,255),2)
                     motion=self.motion.update(image,fid,t);now=self.clock()
                     timings={'processing_ms':max(0.,(now-processing_started)*1000.),'frame_age_ms':max(0.,(now-t)*1000.)}
                     entry_sample={'fresh':0<=now-t<=self.settings['max_frame_age_s'],'frame_id':fid,'captured_s':t,'camera_id':'secondary',

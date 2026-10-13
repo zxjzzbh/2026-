@@ -20,8 +20,10 @@ HTML='''<section class="drive-panel" id="parking-bay-test">
 <p id="parking-trial-mode-help"></p>
 <p id="parking-trial-missing" role="status"></p>
 <label>入位前进油门（μs）<input id="parking-trial-forward" type="number" min="1501" max="1625" step="1" value="1575"></label>
+<label>入位转向增益<input id="parking-trial-gain" type="number" min="1" max="3" step="0.05" value="1.25"></label>
 <p>油门在下次准备时生效。准备后打开电调、保持车辆静止，再点击开始；本项会实际行驶并自动刹停。</p>
 <p>路径入库：确认空位 → 规划入口前转弯 → 跟随路径 → 末段减速 → 停稳确认。原视觉试验保留原有寻位行为，仅供对照。</p>
+<p>视觉对照模式保留远线跟踪、挡板改选和平缓回正；有效白线边界丢失时停车，不再继续盲目前进。</p>
 <div class="parking-bay-actions"><button id="parking-trial-prepare" type="button" disabled>准备停车（电调关闭、F/B）</button><button id="parking-trial-start" type="button" disabled>开始低速入位</button></div>
 <button id="parking-trial-cancel" type="button">停止入位／结束本轮</button>
 <p id="parking-trial-state" role="status">等待停车入位服务</p><p id="parking-trial-output"></p>
@@ -77,14 +79,16 @@ function renderParkingTrial(s){
  if(parkingTrialActive)selector.value=t.controller_mode||'visual_trial';
  selector.disabled=locked||parkingTrialActive;
  const metric=selector.value==='metric_path',missing=t.metric_missing||[];
- el('parking-trial-mode-help').textContent=metric?'速度采用实测档位表，按剩余路径减速；下方手动油门不参与路径模式。':'原视觉试验：未见完整车位框也可能前进；图像停点与四轮入位尚未验证。';
+ el('parking-trial-mode-help').textContent=metric?'速度采用实测档位表，按剩余路径减速；下方手动油门不参与路径模式。':'视觉对照短测：需要有效双侧白线，边界丢失即停车并结束本轮；图像停点与四轮入位尚未验证。';
  el('parking-trial-missing').textContent=metric?(missing.length?'待补齐：'+missing.join('；'):'参数已齐备；开始后还须有新鲜米制车位和位姿反馈。'):'当前为原视觉对照试验。';
  el('parking-trial-prepare').disabled=locked||parkingTrialActive||!t.can_prepare||(metric&&missing.length>0);
  el('parking-trial-start').disabled=locked||!parkingTrialActive||!parkingTrialOwned||!t.can_request_start;
  el('parking-trial-forward').disabled=locked||parkingTrialActive||metric;
+ el('parking-trial-gain').disabled=locked||parkingTrialActive||metric;
  el('parking-trial-state').textContent=parkingTrialError||t.reason||'等待停车入位服务';
  const side=t.selected_slot==='left'?'左半区':t.selected_slot==='right'?'右半区':'待选择';
- el('parking-trial-output').textContent=t.intent?'本轮目标：'+side+' · 油门 '+t.intent.esc_us+' μs · 转向 '+t.intent.steering_us+' μs'+(t.hardware_output?' · 实车输出':' · 无实车输出'):'开始前采用最新有效选区；本项独立于绕桶测试。';
+ const wb=t.intent?.white_boundary,whiteText=wb?.observed?(wb.correction==='right'?'向右纠偏':wb.correction==='left'?'向左纠偏':'边界可用于纠偏'):(wb?.reason||'未确认，不能前进');
+ el('parking-trial-output').textContent=t.intent?'当前目标：'+side+(t.retarget_count?' · 已改选 '+t.retarget_count+' 次':'')+' · 油门 '+t.intent.esc_us+' μs · 转向 '+t.intent.steering_us+' μs · 白线：'+whiteText+(t.hardware_output?' · 实车输出':' · 无实车输出'):'开始前采用最新有效选区；本项独立于绕桶测试。';
  const tracking=t.intent?.parking_decision?.tracking;
  if(tracking&&typeof tracking.remaining_m==='number')el('parking-trial-output').textContent+=' · 剩余路径 '+tracking.remaining_m.toFixed(2)+' m · 路径偏差 '+(tracking.tracking_error_m*100).toFixed(1)+' cm';
  if(!parkingTrialActive)return;
@@ -107,10 +111,11 @@ function parkingTrialRunSend(action,body={}){
 async function parkingTrialPrepare(){
  if(parkingTrialBusy||parkingTrialActive||parkingTrialStopping||stale)return;
  const input=el('parking-trial-forward');if(!input.checkValidity()){input.reportValidity();return;}
+ const gain=el('parking-trial-gain');if(!gain.checkValidity()){gain.reportValidity();return;}
  parkingTrialBusy=true;parkingTrialError='';if(lastStatus)render(lastStatus);
  try{render(await send('parking_trial_prepare',{setup_token:lastStatus?.setup_token,esc_off:true,fb_mode_confirmed:true,
   selected_slot:lastStatus?.parking_bay?.selection?.selected_slot||'right',forward_us:Number(input.value),
-  controller_mode:el('parking-trial-controller').value}));}
+  steering_gain:Number(gain.value),controller_mode:el('parking-trial-controller').value}));}
  catch(e){parkingTrialError=e.message;}
  finally{parkingTrialBusy=false;if(lastStatus)render(lastStatus);}
 }

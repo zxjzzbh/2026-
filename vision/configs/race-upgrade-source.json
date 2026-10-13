@@ -49,7 +49,8 @@
       "3de33f3f1c5004b5bd1ad8ce3092896aeb256331960d63da8a57d164975abe99",
       "3a404819e4a3b191f41bd6a6b5aa178c5d5b1ccd9eb98ac2976f245146f54e9b",
       "1a664a1a29de746e4c7522e62741f817b66c5f44226d6b6c1f97ff4c8e1568cc",
-      "fbfaf3c87c23e62a1f6b2e04095db07e4b8e80e0266b0fa4f01b29a23e110b09"
+      "fbfaf3c87c23e62a1f6b2e04095db07e4b8e80e0266b0fa4f01b29a23e110b09",
+      "8cdfc27c2fb86331488fccb2b6ed8bdcf316cc27673b2f3a2ae792f08e4f8d8a"
     ],
     "vision/src/carvision/parking_bay_controls.py": [
       "c90af6cfc84cd03063c1ddb78b3e1270a18fb8d62cb4805ec5d6db388074538f",
@@ -61,7 +62,8 @@
       "ad1ef0ec5491a65feb1734567c31a9fe601d0535bbdb246a231771abe9470840",
       "ea4265dff78a14967833c747f4f7da6e726bd8f8cc5058ef15911521698a9ff1",
       "033ed3acb3ac7003648f48f9d9ad1a75155cd8bac4c5c4f900fca19284ebb0c3",
-      "b077b864f6e4a95ad23bfc1a67a40e6760ac8a91939b8eb75bc8a8dc91fa4ef9"
+      "b077b864f6e4a95ad23bfc1a67a40e6760ac8a91939b8eb75bc8a8dc91fa4ef9",
+      "30c73b4153d5522e89fa418a4e572c55be1e21e851d03bc17fd9ee49325df05b"
     ],
     "vision/src/carvision/parking_mission.py": [
       "3343cf9f952951228a3e7accf7cf7dd42ae386f19b3bad5dbfdeaddfd1aaf2e0",
@@ -71,37 +73,43 @@
       "38199efde6e6e6678ce99504158b8567741f83bccf6bfe2a08f98391cb6bc929",
       "8436b4690aba1446cb99515bc757bb9cdb4e5de965a12ec976425ebc79a7d035",
       "86481765f63f02d42e4a45aac491c0b5f5a40c74b81900ace73db46b5f8a81a3",
-      "31fb666fbd39f4faf95ad7557859965d61cb192dc05dcacd3a723b3a8f9c3fd9"
+      "31fb666fbd39f4faf95ad7557859965d61cb192dc05dcacd3a723b3a8f9c3fd9",
+      "d5f87b8cef9b1da6dd7fa184a9d5f37d3acd7e1029653f3ea1288983cb629987"
     ],
     "vision/src/carvision/manual_hardware.py": [
       "05fd30ca799c0933808668ef6f8a740594f482e67c40affe03d3694374218efe",
       "cc96247cea1a7a9050ae2a39ac53c039325fe6a55294503c836a1636c05e48ca",
       "5a2ed0ba1db2e3787e3b5f21d3e26445b3ea8d3242a0177f51d1e65ed646ce03",
-      "c97984a69f366fc03d9c8133978b1db3ad5930f6271da7dc8638382d11e94230"
+      "c97984a69f366fc03d9c8133978b1db3ad5930f6271da7dc8638382d11e94230",
+      "6129503792078da085319e431f1dbe8d60dafc55259eb2d0fc57f98c58c4b61f"
     ],
     "vision/src/carvision/rasadapter5.py": [
       "15a5fdf56f5649ae98b2007e19edf304a6ae48d21cd75c4a6530c70298557c57",
       "52b4e9fdb9f9d4ffa40ec4faefeecf265185739766bbfa1daf248009c15feaf1",
       "dac614183fcb1892cfce57ddfdd827cfb00b6987ea25b4258548c74bee58a693",
-      "d86d8ad7092c552c68c3503f6bf6a3a48da7fb628af3457993a84159a10731ab"
+      "d86d8ad7092c552c68c3503f6bf6a3a48da7fb628af3457993a84159a10731ab",
+      "96b7e31987cc7299c81aec2c2c6cb72bffa8ab04b1cdc39bd898c26515dc3b8c"
     ],
     "vision/src/carvision/pi5_pwm.py": [
       "015b2e910875882aab10466844535e7b5c2c8230b9ebf76a5498cf4b0eeae6e4",
       "d2579a9f403ff37cba3c3c78a4857c158deeebe2c609fb41a59fbb808de048dc",
       "cd5545d313d8d6c8890cda024f39013b70aac277e79e0f3e20c6348d1e367891",
-      "44fd1dbe6077d78e2dc187b019f50ab8f95260953b4cb316629247479ce355c3"
+      "44fd1dbe6077d78e2dc187b019f50ab8f95260953b4cb316629247479ce355c3",
+      "7ee9cce99459f4fc5061b0e96322c0535dc1c6142a1276e815df9840435bd9cf"
     ],
     "vision/src/carvision/brake_parking.py": [
       "d6f4147f1172d7e10248fc8d6e05f58292e8b9b7cb4c8a7e127b1765b6740afd",
       "f0738f8793723e9b01caff70a6fc324dd0d0e5be40a737a1b2f15a0073c8b986",
       "4cfeb03880119214640cad013f375a49b7d2152206ebb12c5ad825bc4c4f9f21",
-      "1e618c49b9296a7398c9dd55f8cc5b2c9b4f416d21f5755d5ccbeb0d9fd55dd6"
+      "1e618c49b9296a7398c9dd55f8cc5b2c9b4f416d21f5755d5ccbeb0d9fd55dd6",
+      "87300f572f93612c6acac98a47abcf0391807e435a77cb13d99ce3f59c0217d5"
     ],
     "vision/src/carvision/brake_output.py": [
       "fedf2c0bd672a06fce87b4ce060b2d328e4d8b40281e5f0393c277159d54e66a",
       "2a5a7f8b62d6e30defe158ce9d62dbd5ab1beec32eb1f18a3c89dbc9d2241e8b",
       "13c201e9392bacdba52fd10bdf1e7136c4b65fa0a37491c2a0b6ce55599be17c",
-      "d41e1ba7c061ae3f62790228155189139857111cde119d953305aa407445986a"
+      "d41e1ba7c061ae3f62790228155189139857111cde119d953305aa407445986a",
+      "7a620d855020475c020ca2c62b131232ef9446a94bd2464274aa3afd6a9353ca"
     ],
     "vision/src/carvision/cone_low_speed.py": [
       "39f6c9c594720c67fb04458f20eaabfda53918f8629654c173a7518fdd3e57e4",
@@ -115,7 +123,8 @@
       "5168d061ac9cd461b5fcc789c0c45379d41f0e4824f07d5d810d382fcbd4d2ab",
       "da6551f192d26ac1b5510d16fa68801f9bf657b2bb5de62e69202e74af48a1dc",
       "0e7b229de80b170e42ae4887428752312815a3a2f76060eef4cd1e1427ffc507",
-      "911000839fda9f017e334a7ba7a3f39b815f98ffa2e1e736c1cddcc92bc52501"
+      "911000839fda9f017e334a7ba7a3f39b815f98ffa2e1e736c1cddcc92bc52501",
+      "df1db56c8b7a3b6c0f3ff135543267fc855e1505de33c32d92ba195434ae1703"
     ],
     "vision/src/carvision/cone_trial_output.py": [
       "7b74424b7898befa82a7dcbfe9875631cae5f1fe827dcb25327f259524cfa640",
@@ -131,14 +140,16 @@
       "794aae162321e9eba081c833b73de17423f5d925d2e10757fb5acc3e25eeef18",
       "084be07d695be0770451fec8056f9c5e3f1f1bdc052ff28b161d552078bbf667",
       "808101a274b3c2ab2dac89b8a2e90833c98d07ee0c2f8d979ebfded3c7f7c1dc",
-      "25d5c653515fd5a491a85142ae18f5f65f1d44786fcc4ae4d2df5d748da0fd7a"
+      "25d5c653515fd5a491a85142ae18f5f65f1d44786fcc4ae4d2df5d748da0fd7a",
+      "7dcbe75210da13e6e67235077b6dd91e3c743e5f7f114ff4b421d53ae1dc9701"
     ],
     "vision/src/carvision/cone_planning.py": [
       "be1fe7badc4e77bbb301f5c2b41f58ebdde9a586b8ddece525ccffe369b29e06",
       "1c6231d387a00fa318b5744e167a8a0975756c078384ca10be5d5b4d1d518834",
       "f1c89cd746178637c83ffc9f28b8abc5e791335fbf3d40f3b586e65f863c380b",
       "d472ff02871ce5b5c71a3b9e25c9f1defec7bb1cbbfa1a1b70bd710453eb9695",
-      "3c35c57f57285d85f1c4f00b33d3e8599a4c927fc9397b74c9708824ed3a80fa"
+      "3c35c57f57285d85f1c4f00b33d3e8599a4c927fc9397b74c9708824ed3a80fa",
+      "a8e0e31d8787b88e269586d2c56d134a2ff1a664395fb192d64173165b68f684"
     ],
     "vision/src/carvision/cone_observer.py": [
       "c9c29ee3c7d3c63fd527cfaff5ed755d447b5f792cc877f3f465bfab7b6326fe",
@@ -148,7 +159,8 @@
       "75f1dba6287d09cf68cc9573797d47c7e6f0084664ca0783c0c63431fc191b19",
       "d0769e31c2b7ae23567aea76bf2fd8a4e2727b67f9ac524dbcfb27841df0b376",
       "5a5897669bb2b63b874eb5c014cafa31137fe781e8fb186fd871013ec9fd8df6",
-      "7405f8d85f24efa643486da6237c9619e47574c6728b7666d4afc67e8272ae89"
+      "7405f8d85f24efa643486da6237c9619e47574c6728b7666d4afc67e8272ae89",
+      "2884fde9f465724688ec033b78be6c2055f9db09e7b4ca043f93fdde0b79c9a0"
     ],
     "vision/src/carvision/cone_controls.py": [
       "c4a8199f6c88670ae52ab2ba5ebf9de74dad968c7bd16d2e3727150b55880eb2",
@@ -162,32 +174,37 @@
       "80a1c8eb0f3c54dc9d71ff1e2bfc197937848a5cb1ec7a5e90a22ccac0878b92",
       "9974918802d44935656d32cab8cb27af778c310bbe7beada9082cc88c1d765bb",
       "f773abaa1ac595dd7e2a2a864ee23dae9c91372cc520f85058a47fa36c20d305",
-      "ce2fd36a98f9da10d0a7c610af5abd2469112e9e90834eb8ab4c4ad7f6b7dcc1"
+      "ce2fd36a98f9da10d0a7c610af5abd2469112e9e90834eb8ab4c4ad7f6b7dcc1",
+      "a9d79578bdf458f940decb6f315a73ccdfa0f5154e3794c2620c3892c5fe00ed"
     ],
     "vision/src/carvision/autonomy_profile.py": [
       "1d00022f6c513976e49b15a10d6275268418894068ad20311d56dcda09531155",
       "5e7d3e3a2c719775572d9b24bb44214c96852e096cc91394981c9f2b9124ed4b",
       "5722cfd9d1c572d89346a42bd91ae5330d9c5951a6328d29aad659515abc6120",
-      "9da3d33cc947f41cd902d3eecfde0567bcb1895edf81574fc1f351abfdfa0339"
+      "9da3d33cc947f41cd902d3eecfde0567bcb1895edf81574fc1f351abfdfa0339",
+      "315371299d31ab9b7bd3b9b67409788373fa3ba309499b1d8990511de5bc5089"
     ],
     "vision/src/carvision/autonomy_motion.py": [
       "84869f8e8d94ad97339d720653592b156d8c43050e6a87ad1c1f22de76e86d08",
       "d44c23ea73fc05f908e4b31c4840570c9424a6d61e75b63e14e6d6897e74d7c6",
       "e65c2d0ee653a654ffaaad171041a507ed368665cfdab61717243da3ea2d2b6a",
-      "3c2a956e1bbf22fa4209055e9d975ecb1733f2973698d89ed5fe6e307f5d663f"
+      "3c2a956e1bbf22fa4209055e9d975ecb1733f2973698d89ed5fe6e307f5d663f",
+      "3b77d574305813cbc4af081547b143cf1a8f788ad77ad906e1ec037a10c4cba7"
     ],
     "vision/src/carvision/rasadapter5_executor.py": [
       "1db8787601b1dc12f961a5fb96b4eadace02da07e02e326475710eef9894682d",
       "2bd7e2256e5ef9334f26a30ccff1b45515deb3dfb6a540cd83b7262d5f41bd2a",
       "cea874ad88a6a2f0e299b23084f589389f9191a55b5fa8f426c7d81d948b16fd",
-      "9367020fb7ca6e5acb208759221fdc39db7b9e631e8cf89c2b46c8b1176902c2"
+      "9367020fb7ca6e5acb208759221fdc39db7b9e631e8cf89c2b46c8b1176902c2",
+      "faab04fb77d71bb58cdfabcb2db1f5bf6aacf6ff50796b8557674edddbe7d055"
     ],
     "vision/src/carvision/cone_execution.py": [
       "7ea456fea97685e91cc19431d953eb9dec1c3c64d4aea06afc5eec7bc57a4706",
       "9a29a544b4d88c16b1dc6dfdaead89c1e5bcc61df279265a837d918d396cabb8",
       "a4baeabbb59eb3659aa69f13783db3901d7b4120bf66c111dc8d71951c58f782",
       "48989f4a6768008a6d2121f551661e61b5d408d183cd40358f44d2069bab3c16",
-      "ae523ede7052bdd0a5edb8471ee8daea4f8471deb297a558cd8c8e7cd08b3c28"
+      "ae523ede7052bdd0a5edb8471ee8daea4f8471deb297a558cd8c8e7cd08b3c28",
+      "cd0119270e4ffd600c042f291a3a1594f7e45abdad49ff53cf2331394e6b5829"
     ],
     "vision/src/carvision/departure_trial.py": [
       "ba527ba4ad52cdeb97444fe02f906f547864d8514888af7dc32129ed39ea9b4e"
@@ -197,19 +214,37 @@
     ],
     "vision/src/carvision/cone_continuous.py": [
       "93bf091e09fd1aa84673fa3434af706d3eea5a8c10d1469dbf22c61e8fb7881b",
-      "e26ab862b393e6dc379fe8cb6b370cb7aac9b040ed7bf6f4ad69982df59fe4f3"
+      "e26ab862b393e6dc379fe8cb6b370cb7aac9b040ed7bf6f4ad69982df59fe4f3",
+      "6e696b5354ab55ad199c94aa1a8ce3af9c2d1833883c69c55738a6d1bad18efc"
     ],
     "vision/src/carvision/parking_entry.py": [
       "a386edb7bf7dd8d2652d563546f7f0e518a955a093608244bfab1f7b44306119",
       "173857808ac3e54e16f15ad5ef3a70ae25551a973a6eb7c7094230bbeff087b8",
       "9c074bbfda3e2856abb2c9c8a7b0e0e65244aa17fa436ec75ee6cfb23df99dc9",
-      "4081b4c1f721ff318f2f6aabe14d2bcf9422ced845bbd4ef26e85f11fc1d6696"
+      "4081b4c1f721ff318f2f6aabe14d2bcf9422ced845bbd4ef26e85f11fc1d6696",
+      "ac0b824b3dab741c4f7e04dca99e1dac4013ea513191c0ec57428fcc470eb7f2"
     ],
     "vision/src/carvision/parking_entry_run.py": [
       "5cfe11d43bfe5892592c3ce0be40107325f169ccc049a9b8343bd70bd4452eef",
       "322097248f6f3a3fc9a3dcf8d112b76b4c138906f5f030686bb7da12575315a8",
       "bf88eda6c62c231609a77363bc0164460525d7346eae349e22b67bd0bceadf82",
-      "410dc35d3423ebd234d37d67c286a4e488c9ae93803664d04a25dc5c6ec1c49f"
+      "410dc35d3423ebd234d37d67c286a4e488c9ae93803664d04a25dc5c6ec1c49f",
+      "3f76786f5e46b18758d0c025942fcf282b961b2a086db63440f58bd93c8ce823"
+    ],
+    "vision/src/carvision/cone_boundaries.py": [
+      "16c380a83cd0b86fb2204f87c557045ca64dee2a16731c2b9974a6ef46902a94"
+    ],
+    "vision/src/carvision/cone_road.py": [
+      "17db565ecc5491f1bb6f69114f0d6be81ca57e82072c3bfb463772b12732fa01"
+    ],
+    "vision/src/carvision/parking_far_tracker.py": [
+      "948530d3b0e72cf6792cfc3698d2de40a7cb45b15cc413f1e82196ed052f55ca"
+    ],
+    "vision/src/carvision/parking_guidance.py": [
+      "1faa663cc46b5dacb0cc47472180e75c8ae43624313165494a7a30983bbf3b5c"
+    ],
+    "vision/src/carvision/steering.py": [
+      "ee0006754d573947628b07835d0e2118a91a40889177f055e62573ef550558c9"
     ]
   },
   "source_commits": [
@@ -252,5 +287,10 @@
     ]
   },
   "preserved_runtime_note": "Live car source inspected 2026-10-13: preserve its newer continuous manual/reverse/PWM implementation and confirmed 1350/1610/1870 shared bounds byte-for-byte.",
-  "parking_path_reviewed_base_commit": "cdf8d3172089c9d8bb39c1ddea9188a2f85b86a1"
+  "parking_path_reviewed_base_commit": "cdf8d3172089c9d8bb39c1ddea9188a2f85b86a1",
+  "parking_live_integration": {
+    "source": "read-only car snapshot 2026-10-13",
+    "motion_commands_sent": false,
+    "scope": "Preserve live far-line tracking and visual retargeting; add fail-closed white-boundary guard and metric-path mode."
+  }
 }

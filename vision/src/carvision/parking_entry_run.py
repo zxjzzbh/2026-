@@ -87,13 +87,17 @@ class ParkingEntryRun:
             'can_start': ready and self._fresh(self.sample, now),
             'start_blocked_reason': '' if ready and self._fresh(self.sample, now)
                 else '需要本页完成准备并取得第二路新鲜画面；不要求选区已连续确认',
-            'selected_slot': (self.intent or {}).get('selected_side') if metric else (self.s or {}).get('selected_slot'),
+            'selected_slot': ((self.intent or {}).get('selected_side') if metric else getattr(self.controller,'side',(self.s or {}).get('selected_slot'))),
+            'initial_slot': (self.s or {}).get('selected_slot'),
+            'retarget_count': getattr(self.controller,'retarget_count',0),
+            'retarget_reason': getattr(self.controller,'retarget_reason',None),
             'prepared_slot': (self.s or {}).get('prepared_slot'),
-            'selection_source': (self.s or {}).get('selection_source'),
-            'selection_basis': (self.s or {}).get('selection_basis'),
-            'selection_locked': (bool(self.controller and self.controller.mission.selected)
-                                 if metric else self.controller is not None),
+            'selection_source': 'obstruction_replan' if getattr(self.controller,'retarget_count',0) else (self.s or {}).get('selection_source'),
+            'selection_basis': getattr(self.controller,'retarget_reason',None) or (self.s or {}).get('selection_basis'),
+            'selection_locked': (bool(self.controller and self.controller.mission.selected) if metric else self.controller is not None),
+            'visual_retarget_enabled': not metric and self.controller is not None,
             'forward_us': (self.s or {}).get('forward_us', 1575),
+            'steering_gain': (self.s or {}).get('steering_gain', 1.25),
             'steering_limits_us': [RIGHT_US, LEFT_US],
             'hardware_output': bool(self.actuator and getattr(self.actuator, 'run', False)),
             'intent': copy.deepcopy(self.intent),
@@ -120,7 +124,7 @@ class ParkingEntryRun:
         forward = payload.get('forward_us', 1575)
         if type(forward) is not int or not 1501 <= forward <= 1625:
             raise ValueError('停车前进油门仅允许 1501–1625 μs 整数')
-        gain = payload.get('steering_gain', 1.)
+        gain = payload.get('steering_gain', 1.25)
         if type(gain) not in (int, float) or not math.isfinite(gain) or not 1 <= gain <= 3:
             raise ValueError('停车转向增益仅允许 1.0–3.0')
         parking, brake, cone = map(copy.deepcopy, (parking_settings, brake_settings, cone_settings))
@@ -183,7 +187,8 @@ class ParkingEntryRun:
             forward_us=settings['forward_us'], steering_gain=settings['steering_gain'],
             vehicle_width_m=p['vehicle_width_m'], front_extent_m=p['front_extent_m'],
             rear_extent_m=p['rear_extent_m'], zone_length_m=p['zone_length_m'],
-            half_width_m=p['lane_width_m'] / 2, ground=ground)
+            half_width_m=p['lane_width_m'] / 2, ground=ground,
+            require_white_boundary=True)
 
     @staticmethod
     def _fresh_selection(selection, now):
@@ -312,6 +317,8 @@ class ParkingEntryRun:
             if self.folder:
                 try:
                     summary = {'phase': phase, 'reason': reason, 'field_verified': False,
+                               'final_selected_side':getattr(self.controller,'side',(self.s or {}).get('selected_slot')),
+                               'retarget_count':getattr(self.controller,'retarget_count',0),
                                'actual_pose_not_verified': True, 'parking_zone_verified': False,
                                'failure_sample': self.sample if phase == 'fault' else None,
                                'last_requested_intent': self.intent}
