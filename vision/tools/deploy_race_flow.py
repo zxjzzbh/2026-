@@ -10,7 +10,7 @@ import shlex
 import subprocess
 import sys
 import time
-from pathlib import Path
+from pathlib import Path,PurePosixPath
 
 import paramiko
 from deploy_brake_trial import command,put_atomic,read,ROOT,REMOTE,PYTHON,UNIT
@@ -29,6 +29,7 @@ FILES=['vision/src/carvision/'+name+'.py' for name in MODULES]+[
     'vision/tests/fixtures/cone-track-short-secondary.jpg','vision/tests/fixtures/cone-track-glare-primary.jpg',
     'vision/tests/fixtures/cone-track-glare-secondary.jpg',
     'vision/tests/fixtures/cone-continuity-20261013.json',
+    'vision/tests/fixtures/parking-pale-green-left-board-20261013.jpg',
     'vision/RACE_FLOW.md','vision/PARKING_BAY.md']
 PREREQUISITES=['vision/src/carvision/'+name+'.py' for name in (
     'cone_boundaries','cone_road')]
@@ -48,7 +49,43 @@ def compatible_source(rel,data):
 
 
 def flow_idle(status):
-    return idle(status) and not (status.get('race_flow') or {}).get('active')
+    # A failed software-manifest check occurs before the boot helper opens an
+    # actuator. It may be serviced without inventing an ESC-off confirmation.
+    released_software_fault=(status.get('mode')=='fault' and status.get('boot_test_phase')=='fault'
+        and status.get('reason')=='已检查的软件发生变化，请先重新核验'
+        and all(status.get(k) is False for k in ('hardware_output','worker_started','pending_hardware_start'))
+        and all(not (status.get(k) or {}).get('active') for k in ('crosswalk_trial','traffic_trial','departure_trial'))
+        and all(not ((status.get('cone_trial') or {}).get(k) or {}).get('active') for k in ('avoidance','short_test'))
+        and not (status.get('parking_payment') or {}).get('motion_locked')
+        and not (status.get('parking_bay') or {}).get('motor_output_enabled'))
+    return (idle(status) or released_software_fault) and not (status.get('race_flow') or {}).get('active')
+
+
+def updated_checks(before,hashes,test_output):
+    """Refresh only this deployment's reviewed files after real checks pass."""
+    updated=json.loads(json.dumps(before));allowed=set(FILES)|{'vision/configs/cone-trial.local.json'}
+    for item in updated['files']:
+        rel=item['path'];actual=hashes[rel]
+        if actual!=item['sha256'] and rel not in allowed:
+            raise RuntimeError('软件核验发现范围外文件变化，不自动认可：'+rel)
+        item['sha256']=actual
+    updated['previous_pi_checks']=before['pi_checks']
+    updated['pi_checks']={'rc':0,'stdout':test_output,'scope':'deployed task regressions and preserved manual runtime regressions'}
+    updated['race_deployment_recheck']={'motion_commands_sent':False,'physical_driving_retested':False,'checked_at_epoch_s':time.time()}
+    return updated
+
+
+def remote_hashes(client,paths):
+    script="""import sys,json,hashlib
+from pathlib import Path
+root=Path(sys.argv[1]).resolve();result={}
+for rel in sys.argv[2:]:
+ p=(root/rel).resolve()
+ if not p.is_relative_to(root):raise ValueError('check path outside workspace')
+ result[rel]=hashlib.sha256(p.read_bytes()).hexdigest()
+print(json.dumps(result))
+"""
+    return json.loads(command(client,[PYTHON,'-c',script,REMOTE,*paths]))
 
 
 def extend_unit(data):
@@ -77,7 +114,8 @@ def main(argv=None):
     record=ROOT/'run'/('race-flow-deploy-'+str(time.time_ns()));record.mkdir(parents=True)
     client=paramiko.SSHClient();client.load_host_keys(str(args.handoff/'attachments/known_hosts.smartcar'))
     client.set_missing_host_key_policy(paramiko.RejectPolicy())
-    changed=[];backup={};desired={};restarted=False;unit_changed=False;audit={'deployed':False,'motion_commands_sent':False}
+    changed=[];backup={};desired={};restarted=False;unit_changed=False;checks_changed=False
+    checks_before=checks_path=None;audit={'deployed':False,'motion_commands_sent':False}
     def status():return json.loads(command(client,['curl','--fail','--silent','--max-time','3','http://127.0.0.1:8080/api/drive/status']))
     try:
         client.connect(cfg['host'],port=cfg.get('port',22),username=cfg['username'],password=cfg['password'],
@@ -110,6 +148,11 @@ def main(argv=None):
             try:protected[rel]=read(sftp,REMOTE+'/'+rel)
             except FileNotFoundError:protected[rel]=None
         unit_before=read(sftp,UNIT);unit_after=extend_unit(unit_before)
+        template=json.loads(read(sftp,REMOTE+'/vision/deployment/boot-test-template.json'))
+        checks_rel=template['software_checks_record'];check_path=PurePosixPath(checks_rel)
+        if check_path.is_absolute() or '..' in check_path.parts:raise ValueError('软件核验路径必须位于当前仓库')
+        checks_path=REMOTE+'/'+checks_rel;checks_before=read(sftp,checks_path)
+        (record/'boot-checks.before.json').write_bytes(checks_before)
         (record/'service.before.conf').write_bytes(unit_before)
         remote_backup=REMOTE+'/run/'+record.name
         # One directory command avoids dozens of SSH session round trips on 5G.
@@ -148,6 +191,17 @@ def main(argv=None):
                     'test_current_steering_profile','test_manual_heartbeat')],'-q'],timeout=60)
         if not flow_idle(status()):raise RuntimeError('控制已启用，禁止重启')
         verify_protected(sftp,protected)
+        # UI-written cone parameters are schema-checked, not falsely promoted
+        # to field calibration. Keep all physical confirmation fields intact.
+        config_check="from carvision.cone_planning import load_settings; from carvision.cone_navigation import validate_driving; from pathlib import Path; import sys; p=Path(sys.argv[1]); validate_driving(load_settings(p)) if p.exists() else None; print('configuration schema checked')"
+        command(client,['env','PYTHONPATH='+REMOTE+'/vision/src',PYTHON,'-c',config_check,REMOTE+'/vision/configs/cone-trial.local.json'])
+        previous_checks=json.loads(checks_before)
+        hashes=remote_hashes(client,[item['path'] for item in previous_checks['files']])
+        checked=updated_checks(previous_checks,hashes,audit['tests']+'\n'+audit.get('manual_regression_tests',''))
+        put_atomic(sftp,remote_backup+'/boot-checks.before.json',checks_before)
+        checks_changed=True;put_atomic(sftp,checks_path,json.dumps(checked,ensure_ascii=False,indent=2).encode('utf-8'))
+        verify_script="import json,sys; from pathlib import Path; from carvision.boot_test import reviewed_manifest; root=Path(sys.argv[1]); reviewed_manifest(root,json.loads((root/'vision/deployment/boot-test-template.json').read_text())); print('manual software manifest verified')"
+        audit['software_manifest_rechecked']=command(client,['env','PYTHONPATH='+REMOTE+'/vision/src',PYTHON,'-c',verify_script,REMOTE]).strip()
         if read(sftp,UNIT)!=unit_before:raise RuntimeError('启动配置被其他任务修改，停止部署')
         put_atomic(sftp,remote_backup+'/service.new.conf',unit_after)
         unit_changed=True;command(client,['install','-m','644',remote_backup+'/service.new.conf',UNIT],password=cfg['password'])
@@ -174,12 +228,13 @@ def main(argv=None):
                      controller_stage=state['race_flow']['stage'],parking_missing=state['race_flow']['parking_missing'])
     except Exception as exc:
         audit['error']=str(exc)
-        if changed:
+        if changed or checks_changed:
             for rel in reversed(changed):
                 if backup[rel] is None:
                     try:sftp.remove(REMOTE+'/'+rel)
                     except FileNotFoundError:pass
                 else:put_atomic(sftp,REMOTE+'/'+rel,backup[rel])
+            if checks_changed:put_atomic(sftp,checks_path,checks_before)
             if unit_changed:
                 command(client,['install','-m','644',remote_backup+'/service.before.conf',UNIT],password=cfg['password'])
                 command(client,['systemctl','daemon-reload'],password=cfg['password'])

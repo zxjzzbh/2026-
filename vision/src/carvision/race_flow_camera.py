@@ -50,6 +50,11 @@ class ParkingWorldFeed:
                 slot['polygon_m']=[[pose['x_m']+co*x+si*y,pose['y_m']-si*x+co*y] for x,y in slot['polygon_m']]
             # Keep the fresh values: ParkingMission rejects jumps/changed bays.
             self.map=copy.deepcopy(slots);self.map_at=t
+        elif view.get('layout_found'):
+            # A partial image-only candidate is not a fresh measured layout.
+            # Do not turn its hidden polygon into a cached metric clearance.
+            self.map=None;self.map_at=None
+            return None
         elif self.map is not None and 0<=t-self.map_at<=2.:
             # Only a short near-field occlusion with valid odometry is allowed.
             # New ambiguous blue in the near driving corridor prevents reuse.

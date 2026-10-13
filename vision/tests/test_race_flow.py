@@ -301,6 +301,18 @@ def test_deployment_check_never_opens_ssh_and_preserves_launcher_arguments(monke
     assert '--port 8080 --camera /dev/video0 --race-live' in after
     assert 'serve_race_flow.py' in after and after.count('--race-live')==1
     assert module.extend_unit(after.encode()).decode()==after
+    review={'files':[{'path':'vision/src/carvision/cone_controls.py','sha256':'old'}],
+            'pi_checks':{'rc':0,'stdout':'earlier'},'physical_driving_retested':False}
+    after_review=module.updated_checks(review,{'vision/src/carvision/cone_controls.py':'new'},'actual passing output')
+    assert after_review['files'][0]['sha256']=='new' and after_review['pi_checks']['stdout']=='actual passing output'
+    assert not after_review['physical_driving_retested'] and review['files'][0]['sha256']=='old'
+    with pytest.raises(RuntimeError):
+        module.updated_checks({'files':[{'path':'unreviewed.py','sha256':'old'}],'pi_checks':{'rc':0}}, {'unreviewed.py':'changed'},'passed')
+    fault={'mode':'fault','boot_test_phase':'fault','reason':'已检查的软件发生变化，请先重新核验',
+           'hardware_output':False,'worker_started':False,'pending_hardware_start':False}
+    assert module.flow_idle(fault)
+    assert not module.flow_idle({**fault,'hardware_output':True})
+    assert not module.flow_idle({**fault,'cone_trial':{'avoidance':{'active':True}}})
 
 
 def test_cached_reader_rejects_duplicate_and_stale_frames_without_opening_camera(bundle):
@@ -315,6 +327,19 @@ def test_cached_reader_rejects_duplicate_and_stale_frames_without_opening_camera
     assert reader.read('arming',1.) is None
     now[0]=1.3
     with pytest.raises(ValueError):reader.read('arming',1.3)
+
+
+def test_partial_layout_invalidates_old_metric_map_before_next_missing_frame():
+    from carvision.race_flow_camera import ParkingWorldFeed
+    feed=ParkingWorldFeed.__new__(ParkingWorldFeed)
+    feed.last_id=None;feed.map_at=0.
+    feed.map=[{'id':'left','availability':'clear'},{'id':'right','availability':'blocked'}]
+    feed.odo=SimpleNamespace(update=lambda *args:{'valid':True,'pose':{'x_m':0.,'y_m':0.,'yaw_rad':0.},'speed_mps':0.})
+    row={'frame_id':1,'captured_s':.1,'tracks':[],'road_context':{'valid':True}}
+    partial={'layout_found':True,'metric_geometry':False,'slots':[{'id':'left','availability':'blocked'},{'id':'right','availability':'clear'}]}
+    assert feed.update(None,row,partial,.1) is None
+    assert feed.map is None and feed.map_at is None
+    assert feed.update(None,{**row,'frame_id':2,'captured_s':.2},{'layout_found':False},.2) is None
 
 
 def test_console_js_and_all_independent_panels_are_composed():

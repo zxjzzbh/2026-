@@ -71,6 +71,60 @@ def test_dark_interior_is_unknown_not_clear():
     assert obs['layout_found'] and obs['slots'][1]['availability']=='unknown'
 
 
+@pytest.mark.parametrize('flip',[False,True])
+def test_actual_pale_tape_green_floor_and_occluded_half(flip):
+    path=ROOT/'vision/tests/fixtures/parking-pale-green-left-board-20261013.jpg'
+    image=cv2.imdecode(np.frombuffer(path.read_bytes(),np.uint8),1)
+    if flip:image=cv2.flip(image,1)
+    obs,_=detect_parking(image,settings())
+    assert obs['layout_found'] and not obs['layout_complete']
+    assert obs['diagnostics']['original_yellow_pixels']<100
+    assert obs['diagnostics']['yellow_pixels']>5000
+    assert obs['layout_source']=='one_visible_half_with_adjacent_blue_board'
+    states={r['id']:r for r in obs['slots']};blocked='right' if flip else 'left';clear='left' if flip else 'right'
+    assert states[blocked]['availability']=='blocked' and states[blocked]['corners_px'] is None
+    assert states[blocked]['blue_entrance_fraction'] is None
+    assert states[clear]['availability']=='clear' and states[clear]['ground_surface']=='indoor_green'
+    assert not obs['metric_geometry'] and all(not r['occupancy_verified'] for r in obs['slots'])
+    selector=BaySelection()
+    for i in range(8):selection=selector.update(obs,i,i*.1,i*.1)
+    assert selection['confirmed'] and selection['selected_slot']==clear
+
+
+def test_actual_green_frame_in_explicit_red_mode_stays_unknown():
+    image=cv2.imdecode(np.frombuffer((ROOT/'vision/tests/fixtures/parking-pale-green-left-board-20261013.jpg').read_bytes(),np.uint8),1)
+    s=settings();s['surface']='red_running_track';obs,_=detect_parking(image,s)
+    assert obs['layout_found'] and obs['slots'][1]['availability']=='unknown'
+
+
+def test_green_ground_is_supported_without_weakening_dark_obstacle_check():
+    im=scene('left');red=(im[:,:,2]>im[:,:,1]*1.5)&(im[:,:,2]>im[:,:,0]*1.5)
+    im[red]=(45,170,45)
+    obs,_=detect_parking(im,settings())
+    assert [s['availability'] for s in obs['slots']]==['blocked','clear']
+    cv2.rectangle(im,(247,80),(355,203),(0,0,0),-1)
+    obs,_=detect_parking(im,settings())
+    assert obs['slots'][1]['availability']=='unknown'
+
+
+def test_single_yellow_box_without_adjacent_entrance_board_is_not_two_bays():
+    im=np.full((360,480,3),(45,170,45),np.uint8)
+    cv2.rectangle(im,(180,100),(370,250),(0,240,240),7)
+    assert not detect_parking(im,settings())[0]['layout_found']
+    # Blue object is behind the far edge, not aligned with the entrance.
+    cv2.rectangle(im,(60,20),(150,85),(230,40,20),-1)
+    assert not detect_parking(im,settings())[0]['layout_found']
+
+
+def test_surface_validation_and_layout_reason_reaches_selector():
+    assert validate(settings())['surface']=='auto'
+    for value in ['auto','red_running_track','indoor_green']:
+        assert validate({**settings(),'surface':value})['surface']==value
+    with pytest.raises(ValueError):validate({**settings(),'surface':'anything'})
+    out=BaySelection().update({'layout_found':False,'slots':[],'reason':'yellow support insufficient'},1,1.,1.)
+    assert out['reason']=='yellow support insufficient' and not out['confirmed']
+
+
 def test_selection_requires_fresh_sequence_and_never_switches_after_lock():
     left,_=detect_parking(scene('left'),settings());right,_=detect_parking(scene('right'),settings());sel=BaySelection()
     for i in range(7):result=sel.update(left,i,i*.1,i*.1)

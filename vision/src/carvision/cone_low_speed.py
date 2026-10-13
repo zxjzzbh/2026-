@@ -19,6 +19,13 @@ from .brake_parking import numeric
 from .cone_trial_output import validate_limits
 
 PROFILE='legacy_low_speed'
+DEFAULT_STEERING_GAIN=1.0
+
+
+def steering_gain(value):
+    if not numeric(value) or not 1.<=value<=3.:
+        raise ValueError('绕桶转向增益仅允许 1.0–3.0')
+    return float(value)
 
 
 def trial_settings(settings,payload=None):
@@ -32,12 +39,13 @@ def trial_settings(settings,payload=None):
     if 'test_burst_s' in payload:raise ValueError('旧分段测试页面已过期，请刷新后使用持续前进入口')
     forward=payload.get('test_forward_us',1600);duration=payload.get('test_run_s',60.)
     left=payload.get('test_left_us',LEFT_US);right=payload.get('test_right_us',RIGHT_US)
+    gain=steering_gain(payload.get('test_steering_gain',DEFAULT_STEERING_GAIN))
     validate_limits(right,left)
     if type(forward) is not int or not 1501<=forward<=1625:raise ValueError('测试油门仅允许 1501–1625 μs')
     if not numeric(duration) or not 5<=duration<=120:raise ValueError('本轮运行时限仅允许 5–120 秒')
     s['driving']=radius_settings(s.get('driving',{}));s['driving']['forward_us']=forward
     s['low_speed_test']={'drive_mode':'continuous','settle_s':.55,'max_run_s':duration,'reaction_horizon_s':.25,
-        'left_us':left,'right_us':right,'turn_margin_m':.03,
+        'left_us':left,'right_us':right,'steering_gain':gain,'turn_margin_m':.03,
         'reported_braking_m':.17,'stopping_budget_m':.27,'reported_turn_radius_m':12.03,
         'reported_displacement_m':.63,'reported_drive_s':1.5,'estimate_verified':False,
         'tail_powered_limit_s':1.0,'clearance_m':.05,'boundary_soft_fraction':.06,

@@ -64,6 +64,67 @@ def test_steering_is_proportional_and_rate_limited_instead_of_bang_bang(settings
     assert any(1350<v<1610 for v in values) and ctl.progress()['manual_stop_only']
 
 
+@pytest.mark.parametrize('cone_fraction',[.27,.73])
+def test_selected_gain_amplifies_partial_avoidance_without_changing_direction(settings,cone_fraction):
+    pulses=[]
+    for gain in (1.,1.6):
+        s=trial_settings(settings,{'test_steering_gain':gain})
+        ctl=ContinuousConeController(s,0.)
+        for t in np.arange(3.1,5.,.1):
+            data=observation(float(t));data['cones'][0].update(fraction=cone_fraction,near=False,y_fraction=.55)
+            intent=ctl.step(data,float(t))
+            assert intent['action']=='search' and intent['esc_us']==1600
+        pulses.append(intent['steering_us']-1610)
+        assert ctl.progress()['steering_gain']==gain
+    assert pulses[0]*pulses[1]>0
+    assert abs(pulses[1])==pytest.approx(abs(pulses[0])*1.6,abs=1.)
+
+
+def test_maximum_gain_preserves_selected_endpoints_slew_limit_and_frame_guard(settings):
+    s=trial_settings(settings,{'test_steering_gain':3.,'test_left_us':1810,'test_right_us':1410})
+    ctl=ContinuousConeController(s,0.);last=1610;endpoints=set()
+    for i in range(30):
+        t=3.1+i*.05;near=.1 if i<15 else .9
+        intent=ctl.step(observation(t,cones=[],ego_fraction=near,ego_near_fraction=near),t)
+        pulse=intent['steering_us'];endpoints.add(pulse)
+        assert 1410<=pulse<=1810 and abs(pulse-last)<=(121 if i==0 else 61)
+        assert intent['action']=='search'
+        last=pulse
+    assert {1410,1810}<=endpoints
+    with pytest.raises(ValueError,match='相机'):ctl.step(observation(4.55),4.9)
+
+
+def test_older_settings_keep_original_gain_without_rewriting_input(settings):
+    s=continuous(settings);s['low_speed_test'].pop('steering_gain')
+    ctl=ContinuousConeController(s,0.,handoff_after_two=True)
+    assert ctl.progress()['steering_gain']==1.0
+    assert 'steering_gain' not in s['low_speed_test']
+
+
+@pytest.mark.parametrize('cone_fraction,expected',[
+    (.27,[1610,1569,1559,1553,1550,1548]),
+    (.73,[1610,1651,1661,1667,1670,1672]),
+])
+@pytest.mark.parametrize('historical_settings',[False,True])
+def test_default_matches_original_controller_steering_trace(settings,cone_fraction,expected,historical_settings):
+    # Captured from the pre-gain controller, covering both partial turns and
+    # its initial deadband. Adding a knob alone must not alter these outputs.
+    s=continuous(settings)
+    if historical_settings:s['low_speed_test'].pop('steering_gain')
+    ctl=ContinuousConeController(s,0.);pulses=[]
+    for t in (3.1,3.2,3.3,3.4,3.5,3.6):
+        data=observation(t);data['cones'][0].update(fraction=cone_fraction,near=False,y_fraction=.55)
+        intent=ctl.step(data,t);pulses.append(intent['steering_us'])
+        assert intent['action']=='search' and intent['esc_us']==1600
+    assert pulses==expected
+
+
+@pytest.mark.parametrize('value',[True,0.,3.1,float('nan'),float('inf'),'2'])
+def test_direct_controller_settings_cannot_bypass_gain_validation(settings,value):
+    s=continuous(settings);s['low_speed_test']['steering_gain']=value
+    with pytest.raises(ValueError,match='转向增益'):ContinuousConeController(s,0.)
+
+
 def test_second_cone_position_changes_the_first_avoidance_choice(settings):
     chosen=[]
     for second_x in (.15,.85):

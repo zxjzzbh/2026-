@@ -43,6 +43,7 @@ def test_profile_uses_reported_limits_without_changing_verified_flags(settings):
     before=copy.deepcopy(settings);s=trial_settings(settings)
     assert settings==before and not execution_readiness(s)['ready']
     assert s['driving']['forward_us']==1600 and s['low_speed_test']['stopping_budget_m']==.27
+    assert s['low_speed_test']['steering_gain']==1.0
     assert not s['motion']['verified'] and not s['ground']['verified']
 
 
@@ -98,7 +99,9 @@ def test_boundary_margin_warning_steers_inward_without_braking(settings):
 @pytest.mark.parametrize('values',[{'test_forward_us':1626},{'test_forward_us':True},
     {'test_run_s':121},{'test_run_s':float('nan')},{'test_run_s':True},{'test_burst_s':.25},
     {'test_left_us':1875},{'test_left_us':1645},{'test_left_us':True},
-    {'test_right_us':1345},{'test_right_us':1575}])
+    {'test_right_us':1345},{'test_right_us':1575},
+    {'test_steering_gain':.9},{'test_steering_gain':3.1},{'test_steering_gain':True},
+    {'test_steering_gain':float('nan')},{'test_steering_gain':float('inf')},{'test_steering_gain':'2'}])
 def test_trial_cannot_expand_actuator_envelope(settings,values):
     with pytest.raises(ValueError):trial_settings(settings,values)
 
@@ -702,16 +705,44 @@ function render(owner,canStart,review){env.renderCone({cone_trial:{low_speed_tri
  active:true,can_prepare:false,profile:'legacy_low_speed',owner_client:owner,can_request_start:canStart,
  low_speed_test:{can_confirm_pass:review,operator_confirmed_count:0}},readiness:{ready:false,missing:['ground.verified_mapping']}}});}
 render('page',true,false);assert(!env.el('cone-test-start').disabled);
+assert(env.el('cone-test-steering-gain').disabled);
 assert(!nodes.has('cone-test-confirm')&&!nodes.has('cone-test-duration'));
 render('other',true,true);assert(env.el('cone-test-start').disabled);
 assert(env.el('cone-white-save').disabled);
 const thresholdSettings={scene:{white_v_min:210},driving:{},blue_hsv_lower:[100,110,50],blue_hsv_upper:[135,255,255],confirm_frames:3};
 env.renderCone({cone_trial:{observing:true,settings:thresholdSettings,avoidance:{active:false},short_test:{active:false},readiness:{missing:[]}}});
 assert(!env.el('cone-white-save').disabled);assert.equal(env.el('cone-white-v').value,210);
+assert(!env.el('cone-test-steering-gain').disabled);
 vm.runInContext('coneWhiteDirty=true',env);env.el('cone-white-v').value=195;
 env.renderCone({cone_trial:{observing:true,settings:thresholdSettings,avoidance:{active:false},readiness:{missing:[]}}});
 assert.equal(env.el('cone-white-v').value,195);
 console.log('Experimental controls preserve ownership; no motion sent');
 '''
     result=subprocess.run([node,'-e',js],input=json.dumps({'source':source}),text=True,encoding='utf-8',capture_output=True,timeout=10)
+    assert result.returncode==0,result.stdout+result.stderr
+
+
+def test_prepare_page_transmits_selected_gain_to_backend():
+    import re,shutil,subprocess
+    from carvision.cone_controls import HTML,STATE,SCRIPT
+    node=os.environ.get('SMARTCAR_NODE') or shutil.which('node')
+    if not node:pytest.skip('Node required for actual prepare callback')
+    assert 'id="cone-test-steering-gain" type="number" min="1" max="3" step="0.1" value="1.0"' in HTML
+    js=r'''
+const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
+const input=JSON.parse(fs.readFileSync(0,'utf8')),nodes=new Map(input.ids.map(id=>[id,{value:'',disabled:false,valid:true,
+ listeners:{},checkValidity(){return this.valid},reportValidity(){},addEventListener(name,callback){this.listeners[name]=callback}}]));
+const sent=[],env={stale:false,client:'page',lastStatus:null,setInterval(){},render(){},feedback(){},
+ el(id){if(!nodes.has(id))throw Error(id);return nodes.get(id)},async send(action,body){sent.push({action,body});return {}}};
+vm.createContext(env);vm.runInContext(input.source,env);
+env.el('cone-test-forward').value='1600';env.el('cone-test-left').value='1870';env.el('cone-test-right').value='1350';
+env.el('cone-test-steering-gain').value='2.2';env.el('cone-test-steering-gain').valid=false;
+env.el('cone-test-prepare').listeners.click();assert.equal(sent.length,0);
+env.el('cone-test-steering-gain').valid=true;env.el('cone-test-prepare').listeners.click();
+assert.equal(sent.length,1);assert.equal(sent[0].action,'cone_prepare');
+assert.equal(sent[0].body.test_steering_gain,2.2);assert.equal(sent[0].body.test_left_us,1870);assert.equal(sent[0].body.test_right_us,1350);
+console.log('Selected gain reaches preparation; invalid input is rejected');
+'''
+    result=subprocess.run([node,'-e',js],input=json.dumps({'source':STATE+SCRIPT,'ids':re.findall(r'id="([^"]+)"',HTML)}),
+        text=True,encoding='utf-8',capture_output=True,timeout=10)
     assert result.returncode==0,result.stdout+result.stderr

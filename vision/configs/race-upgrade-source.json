@@ -87,7 +87,9 @@
       "665da900094ff8b99444e67fcac6b804149bb8164f5e63b0a4f7ce53a0110596",
       "9be9b7389f2c20809831efd740f31725b2725d19ee9732f8e229f334e293cba9",
       "5168d061ac9cd461b5fcc789c0c45379d41f0e4824f07d5d810d382fcbd4d2ab",
-      "da6551f192d26ac1b5510d16fa68801f9bf657b2bb5de62e69202e74af48a1dc"
+      "da6551f192d26ac1b5510d16fa68801f9bf657b2bb5de62e69202e74af48a1dc",
+      "0e7b229de80b170e42ae4887428752312815a3a2f76060eef4cd1e1427ffc507",
+      "911000839fda9f017e334a7ba7a3f39b815f98ffa2e1e736c1cddcc92bc52501"
     ],
     "vision/src/carvision/cone_trial_output.py": [
       "7b74424b7898befa82a7dcbfe9875631cae5f1fe827dcb25327f259524cfa640",
@@ -130,7 +132,9 @@
       "1dc8a9fd76e10e39db1069001aa683aab9caf8bc556ccb3a034216f0f143c9a5",
       "77bae42d4627080e0b9ea58e56a9b87cbbf950824183b60f5eff942395b4c7f2",
       "80a1c8eb0f3c54dc9d71ff1e2bfc197937848a5cb1ec7a5e90a22ccac0878b92",
-      "9974918802d44935656d32cab8cb27af778c310bbe7beada9082cc88c1d765bb"
+      "9974918802d44935656d32cab8cb27af778c310bbe7beada9082cc88c1d765bb",
+      "f773abaa1ac595dd7e2a2a864ee23dae9c91372cc520f85058a47fa36c20d305",
+      "ce2fd36a98f9da10d0a7c610af5abd2469112e9e90834eb8ab4c4ad7f6b7dcc1"
     ],
     "vision/src/carvision/autonomy_profile.py": [
       "1d00022f6c513976e49b15a10d6275268418894068ad20311d56dcda09531155",
@@ -162,13 +166,18 @@
     ],
     "vision/src/carvision/payment_console.py": [
       "6200d54bdf36e7fa67e08c98dea2493bf61763b666f4b942291cdf08d4dd4b84"
+    ],
+    "vision/src/carvision/cone_continuous.py": [
+      "93bf091e09fd1aa84673fa3434af706d3eea5a8c10d1469dbf22c61e8fb7881b",
+      "e26ab862b393e6dc379fe8cb6b370cb7aac9b040ed7bf6f4ad69982df59fe4f3"
     ]
   },
   "source_commits": [
     "a68fd29a708d2cedb10d69a4cb50628a3f1ade74",
     "20e9ab6e23aa31f09a7ef9ef89c12718d6da09ca",
     "af9eafb7e11b91a1a7fa7033762526bd976bd2a3",
-    "2be46cb2766d6cbd73ecd745295e4c729e21f291"
+    "2be46cb2766d6cbd73ecd745295e4c729e21f291",
+    "9d5767ec9d7e07f77e94f81af50f3f840b401246"
   ],
   "preserved_runtime_hashes": {
     "vision/src/carvision/autonomy_motion.py": [

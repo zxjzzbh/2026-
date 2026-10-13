@@ -7,12 +7,13 @@ the owning session. This controller has no hardware I/O.
 import math
 
 from .brake_parking import numeric
-from .cone_low_speed import LowSpeedController
+from .cone_low_speed import LowSpeedController,DEFAULT_STEERING_GAIN,steering_gain
 
 
 class ContinuousConeController(LowSpeedController):
     def __init__(self,settings,now,*,initialized=False,handoff_after_two=False):
         super().__init__(settings,now,stop_on_complete=False,initialized=initialized)
+        self.steering_gain=steering_gain(self.options.get('steering_gain',DEFAULT_STEERING_GAIN))
         self.handoff_after_two=handoff_after_two
         self.actual_steering=1610.;self.requested_steering=1610
         self.filtered_target=.5;self.guidance_source=None;self.guidance_at=None
@@ -22,7 +23,8 @@ class ContinuousConeController(LowSpeedController):
         return {**super().progress(),'manual_stop_only':not self.handoff_after_two,'can_confirm_pass':False,
                 'max_run_s':None,'unverified_passes':self.unverified_passes,
                 'target_fraction':self.filtered_target,'requested_steering_us':self.requested_steering,
-                'output_steering_us':round(self.actual_steering),'best_effort_route':self.best_effort}
+                'output_steering_us':round(self.actual_steering),'steering_gain':self.steering_gain,
+                'best_effort_route':self.best_effort}
 
     def _forget_target(self):
         self.target=None;self.side=None;self.target_aliases=set();self.last_target_fraction=None
@@ -141,7 +143,7 @@ class ContinuousConeController(LowSpeedController):
             elif near>1-soft or nav.get('boundary_correction')=='left':
                 error=min(error,-.08-(near-(1-soft)));self.boundary_turn='left'
             if self.boundary_turn:reason='白线预警，持续低速向'+('右' if self.boundary_turn=='right' else '左')+'纠偏'
-        ratio=0. if abs(error)<.018 else min(1.,abs(error)/.12)
+        ratio=0. if abs(error)<.018 else min(1.,self.steering_gain*abs(error)/.12)
         endpoint=self.options['right_us'] if error>0 else self.options['left_us']
         requested=1610+ratio*(endpoint-1610);self.requested_steering=round(requested)
         change=1200*max(0.,min(.1,dt))

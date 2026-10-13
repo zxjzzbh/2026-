@@ -9,6 +9,7 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <div class="cone-settings"><label>白线亮度（0–255）<input id="cone-white-v" type="number" min="0" max="255" step="1" value="200"></label><button id="cone-white-save" type="button">应用亮度</button></div><p id="cone-white-status"></p>
 <div class="cone-settings"><label>前进油门（μs）<input id="cone-test-forward" type="number" min="1501" max="1625" step="1" value="1600"></label><span>持续运行，不按时间或通过数量自动结束</span></div>
 <div class="cone-settings"><label>左转端点（μs）<input id="cone-test-left" type="number" min="1650" max="1870" step="5" value="1870"></label><label>右转端点（μs）<input id="cone-test-right" type="number" min="1350" max="1570" step="5" value="1350"></label></div>
+<div class="cone-settings"><label>转向增益<input id="cone-test-steering-gain" type="number" min="1" max="3" step="0.1" value="1.0"></label><span>1.0 保持当前转向效果；越大，同样偏差下转向越明显。下次准备生效。</span></div>
 <p id="cone-test-steering-state">右 1350 · 中位 1610 · 左 1870</p>
 <p>持续低速绕桶，由你手动停止。白线预警、目标漏检、通过两桶都不自动刹停；转向随偏差逐步调整。断流、失联和硬件故障保护保留。</p>
 <p id="cone-test-line-state"></p>
@@ -39,9 +40,9 @@ function renderCone(s){
  const trial=a.low_speed_test||{},oldTrial=a.profile==='legacy_low_speed';
  el('cone-test-prepare').disabled=stale||coneBusy||!a.can_prepare||!c.low_speed_trial_available;
  el('cone-test-start').disabled=stale||coneBusy||!coneDriveOwned||!a.can_request_start||!oldTrial;
- for(const id of ['cone-test-forward','cone-test-left','cone-test-right'])el(id).disabled=locked;
+ for(const id of ['cone-test-forward','cone-test-left','cone-test-right','cone-test-steering-gain'])el(id).disabled=locked;
  el('cone-test-steering-state').textContent=a.steering_limits_us?('本轮：右 '+a.steering_limits_us[0]+' · 中位 1610 · 左 '+a.steering_limits_us[1]):'右 1350 · 中位 1610 · 左 1870；参数在下次准备生效';
- if(oldTrial)el('cone-test-progress').textContent=(a.reason||'')+' · 已过 '+(trial.passed_count??trial.operator_confirmed_count??0)+' 个（视觉估计） · 持续运行，由你停止'+(trial.best_effort_route?' · 当前间隙未明确，正在尝试避让':'');
+ if(oldTrial)el('cone-test-progress').textContent=(a.reason||'')+' · 已过 '+(trial.passed_count??trial.operator_confirmed_count??0)+' 个（视觉估计） · 持续运行，由你停止'+(trial.steering_gain!=null?' · 本轮转向增益 '+trial.steering_gain:'')+(trial.best_effort_route?' · 当前间隙未明确，正在尝试避让':'');
  const nav=c.latest?.navigation;
  el('cone-test-line-state').textContent=nav?.experimental?('白线：'+(nav.line_sources?.length?nav.line_sources.map(x=>x==='primary'?'第一路':'第二路').join('、'):(nav.line_missing?'未确认，低速前进搜索':nav.line_held?'沿用最近边界，持续前进':'相机未就绪'))+(nav.reason?' · '+nav.reason:'')):'';
  const fresh=coneActive&&c.frame_age_s!=null&&c.frame_age_s>=0&&c.frame_age_s<=.25;
@@ -76,9 +77,9 @@ function coneRunSend(action,body={}){
  const p=coneRunQueue.then(run,run);coneRunQueue=p.catch(()=>{});return p;
 }
 el('cone-test-prepare').addEventListener('click',()=>{
- for(const id of ['cone-test-forward','cone-test-left','cone-test-right'])if(!el(id).checkValidity()){el(id).reportValidity();return;}
+ for(const id of ['cone-test-forward','cone-test-left','cone-test-right','cone-test-steering-gain'])if(!el(id).checkValidity()){el(id).reportValidity();return;}
  coneSequence=0;coneAction('cone_prepare',{profile:'legacy_low_speed',esc_off:true,fb_mode_confirmed:true,
-  test_forward_us:Number(el('cone-test-forward').value),
+  test_forward_us:Number(el('cone-test-forward').value),test_steering_gain:Number(el('cone-test-steering-gain').value),
   test_left_us:Number(el('cone-test-left').value),test_right_us:Number(el('cone-test-right').value)});
 });
 async function sendConeTest(action,body){
