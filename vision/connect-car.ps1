@@ -82,16 +82,24 @@ try {
     $carLocal = Get-CarHttpStatus ($carLocalUrl+'api/drive/status')
     if (-not $carLocal.Ok) { $carReport.local_status_error = $carLocal.Error }
     if ($carListeners.Count -gt 0) {
-        if ($carListeners.Count -ne 1) { throw "端口 $Port 有其他监听，未结束任何进程。" }
-        $carListener = $carListeners[0]
+        # A wildcard listener from another app may coexist with the explicit
+        # loopback relay. Verify the actual endpoint before treating it as busy.
+        $carLoopbackListeners = @($carListeners | Where-Object { $_.LocalAddress -eq '127.0.0.1' })
+        if ($carLoopbackListeners.Count -ne 1) { throw "端口 $Port 未找到唯一的小车本地转发，未结束任何进程。" }
+        $carListener = $carLoopbackListeners[0]
         $carOwner = Get-CimInstance Win32_Process -Filter "ProcessId=$($carListener.OwningProcess)"
         if (-not (Test-OwnedCarForward $carListener $carOwner $carForwardEntry)) {
             throw "端口 $Port 由其他程序占用，未修改或结束该程序。"
         }
         if ($carLocal.Ok) {
+            if (-not (Test-CarSameConsole $carLocal $carRemote)) {
+                throw '本机入口与目标小车的会话不一致，未修改任何进程。请稍后重试或使用车端直连地址。'
+            }
             $carReport.forwarder = 'reused'
+            $carReport.other_listeners_preserved = $carListeners.Count - 1
             Write-Host '已有转发正常，直接复用。'
         } else {
+            if ($carListeners.Count -ne 1) { throw "端口 $Port 有多个监听且转发响应异常，未结束任何进程。" }
             if ($CheckOnly) { throw '本机转发响应异常；只读检查不会重建。' }
             # Refresh remote state immediately before interrupting a local relay.
             $carRecheck = Get-CarHttpStatus $carDirectUrl

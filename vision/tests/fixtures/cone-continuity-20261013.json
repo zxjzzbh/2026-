@@ -1,0 +1,3297 @@
+{
+  "capture_note": "Actual recorded pre-fault observations; terminal fault frame was not saved by the old logger.",
+  "settings": {
+    "schema_version": 1,
+    "camera": "secondary",
+    "aux_camera": "primary",
+    "image_size": [
+      480,
+      360
+    ],
+    "target_count": 2,
+    "blue_hsv_lower": [
+      100,
+      110,
+      50
+    ],
+    "blue_hsv_upper": [
+      135,
+      255,
+      255
+    ],
+    "confirm_frames": 3,
+    "confirm_s": 0.15,
+    "track_timeout_s": 0.6,
+    "max_frame_age_s": 0.25,
+    "scene": {
+      "surface": "indoor_white_line_track",
+      "boundary_policy": "whole_vehicle_inside_white_inner_edges",
+      "red_ground_min_fraction": 0.15,
+      "blue_only_obstacles_reported": true,
+      "white_v_min": 200
+    },
+    "geometry": {
+      "measured": false,
+      "lane_width_m": 1.25,
+      "vehicle_width_m": 0.295,
+      "vehicle_length_m": 0.42,
+      "rear_axle_to_front_m": 0.335,
+      "rear_overhang_m": 0.085,
+      "cone_height_m": 0.08,
+      "cone_base_width_m": 0.075,
+      "clearance_m": null
+    },
+    "ground": {
+      "verified": false,
+      "detector_verified": false,
+      "image_size": [
+        480,
+        360
+      ],
+      "pose_us": [
+        1600,
+        1150
+      ],
+      "homography": [
+        [
+          -0.001719914438483979,
+          0.00016533935234815564,
+          0.3639539214583493
+        ],
+        [
+          -9.487806934345525e-05,
+          -0.0007147609050347506,
+          -0.37016768184374077
+        ],
+        [
+          -0.00019889022326163343,
+          -0.0050630492532325235,
+          1.0
+        ]
+      ],
+      "valid_polygon_px": [
+        [
+          156.83043015302692,
+          339.8921501998256
+        ],
+        [
+          333.37466201283524,
+          336.3141605394761
+        ],
+        [
+          326.8497023809524,
+          246.8407738095238
+        ],
+        [
+          146.44681818181817,
+          252.5222727272727
+        ]
+      ],
+      "independent_check_rms_m": 0.014248798066974693,
+      "independent_check_max_error_m": 0.02114873755797878,
+      "coordinate_frame": "rear_axle_x_right_y_forward",
+      "max_error_m": 0.03,
+      "historical_verified": true,
+      "current_pose_verified": false,
+      "reuse_source": {
+        "commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+        "path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+        "pose_us": [
+          1600,
+          1150
+        ],
+        "source_repeat_error_m": 0.02157725555847742
+      },
+      "calibration_evidence": {
+        "image_size": [
+          480,
+          360
+        ],
+        "pose_us": [
+          1600,
+          1150
+        ],
+        "points": [
+          {
+            "pixel": [
+              156.83043015302692,
+              339.8921501998256
+            ],
+            "ground_m": [
+              -0.2,
+              0.835
+            ]
+          },
+          {
+            "pixel": [
+              333.37466201283524,
+              336.3141605394761
+            ],
+            "ground_m": [
+              0.2,
+              0.835
+            ]
+          },
+          {
+            "pixel": [
+              326.8497023809524,
+              246.8407738095238
+            ],
+            "ground_m": [
+              0.5,
+              1.835
+            ]
+          },
+          {
+            "pixel": [
+              146.44681818181817,
+              252.5222727272727
+            ],
+            "ground_m": [
+              -0.5,
+              1.835
+            ]
+          }
+        ],
+        "check_points": [
+          {
+            "pixel": [
+              242.78308317302827,
+              297.3570108163748
+            ],
+            "ground_m": [
+              0,
+              1.085
+            ]
+          },
+          {
+            "pixel": [
+              239.1779891304348,
+              259.4071557971015
+            ],
+            "ground_m": [
+              0,
+              1.585
+            ]
+          },
+          {
+            "pixel": [
+              262.6210166177908,
+              274.5902737047898
+            ],
+            "ground_m": [
+              0.1,
+              1.335
+            ]
+          }
+        ],
+        "valid_polygon_px": [
+          [
+            156.83043015302692,
+            339.8921501998256
+          ],
+          [
+            333.37466201283524,
+            336.3141605394761
+          ],
+          [
+            326.8497023809524,
+            246.8407738095238
+          ],
+          [
+            146.44681818181817,
+            252.5222727272727
+          ]
+        ],
+        "camera": "secondary",
+        "measured_fixed_camera": false,
+        "accepted_error_m": 0.03,
+        "candidate_only": true,
+        "source_commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+        "source_path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+        "source_pose_us": [
+          1600,
+          1150
+        ],
+        "source_repeat_error_m": 0.02157725555847742,
+        "rear_axle_origin_adjustment_m": -0.0050000000000000044,
+        "notes": "Historical data only: assumes unchanged fixed camera and pure uncropped resize. Current pose and lane-edge coverage must be checked. This polygon does not cover both edges of the 1.23m lane. Not enabled for driving."
+      }
+    },
+    "motion": {
+      "verified": false,
+      "minimum_turn_radius_m": null,
+      "maximum_tracking_error_m": null,
+      "braking_distance_m": null,
+      "pose_feedback_verified": false
+    },
+    "notes": "2026-10-11 user supplied: straight red running track, width between white boundaries 1.23m; overall tyre width .295m, car length .41m; blue cone diameter .075m, height .08m. Entire vehicle must stay inside white inner edges. Axle offsets, clearance and ground/motion calibration remain unknown. Color supports identification, not distance calibration.",
+    "driving": {
+      "forward_us": 1600,
+      "max_run_s": 30,
+      "max_speed_mps": 0.2,
+      "lookahead_m": 0.4,
+      "brake_pulse_s": 0.12,
+      "brake_release_s": 0.1,
+      "actuator_lease_s": 0.2,
+      "steering_radius_right_cm": null,
+      "steering_radius_left_cm": null,
+      "visual_error_bound_m": null,
+      "visual_verified_distance_m": null,
+      "fixed_camera_confirmed": false,
+      "steering_verified": false,
+      "odometry_verified": false,
+      "steering_radius_1350_cm": null,
+      "steering_radius_1870_cm": null,
+      "steering_radius_1570_cm": null,
+      "steering_radius_1650_cm": null
+    },
+    "low_speed_test": {
+      "drive_mode": "continuous",
+      "settle_s": 0.55,
+      "max_run_s": 60,
+      "reaction_horizon_s": 0.25,
+      "left_us": 1870,
+      "right_us": 1350,
+      "turn_margin_m": 0.03,
+      "reported_braking_m": 0.17,
+      "stopping_budget_m": 0.27,
+      "reported_turn_radius_m": 12.03,
+      "reported_displacement_m": 0.63,
+      "reported_drive_s": 1.5,
+      "estimate_verified": false,
+      "tail_powered_limit_s": 1.0,
+      "clearance_m": 0.05,
+      "boundary_soft_fraction": 0.06,
+      "boundary_release_fraction": 0.04,
+      "boundary_hard_margin_m": 0.03
+    }
+  },
+  "started_s": 313.166752511,
+  "steps": [
+    {
+      "now_s": 313.166752511,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 313.13532648,
+        "frame_id": 2947,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6129212477143401,
+            "half_width": 0.03241927670772775,
+            "image_fraction": 0.6083333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              304,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43173116900250147,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39932617319134023,
+          0.4583554876743449
+        ],
+        "lane_bounds_px": [
+          [
+            135.04285714285697,
+            370.0
+          ],
+          [
+            36.357142857142605,
+            466.8000000000001
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 313.13532648,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 313.234436511,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 313.203327987,
+        "frame_id": 2948,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6111068356211795,
+            "half_width": 0.031002137356628136,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              191,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43104817240522114,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39775640674481266,
+          0.45839279503468755
+        ],
+        "lane_bounds_px": [
+          [
+            135.45714285714268,
+            370.2999999999999
+          ],
+          [
+            36.24285714285685,
+            466.90000000000003
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 313.203327987,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 313.372717706,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 313.335318371,
+        "frame_id": 2949,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6114492337335534,
+            "half_width": 0.03102780003124717,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              191,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43151309028270485,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3989484375100682,
+          0.45826694999554
+        ],
+        "lane_bounds_px": [
+          [
+            135.19999999999987,
+            369.98571428571427
+          ],
+          [
+            36.499999999999716,
+            466.71428571428584
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 313.335318371,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 313.427040935,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 313.403309898,
+        "frame_id": 2950,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6124422441918641,
+            "half_width": 0.03137333571066864,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5805555555555556,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4314004732574122,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39908185124964857,
+          0.45794606111993136
+        ],
+        "lane_bounds_px": [
+          [
+            135.2142857142855,
+            369.8857142857142
+          ],
+          [
+            36.58571428571395,
+            466.91428571428577
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 313.403309898,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 313.56952405,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 313.53532089,
+        "frame_id": 2951,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6114962331782647,
+            "half_width": 0.031016797779807002,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4317393898345758,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39952035843239486,
+          0.4582047527087849
+        ],
+        "lane_bounds_px": [
+          [
+            135.07142857142838,
+            369.842857142857
+          ],
+          [
+            36.42857142857116,
+            466.8571428571429
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 313.53532089,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 313.637185739,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 313.60358965,
+        "frame_id": 2952,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6116367705883561,
+            "half_width": 0.03100410657052413,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              216
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43173984125983716,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3989248188299873,
+          0.45869833767263973
+        ],
+        "lane_bounds_px": [
+          [
+            135.142857142857,
+            370.0857142857143
+          ],
+          [
+            36.15714285714256,
+            466.71428571428584
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 313.60358965,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 313.776440146,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 313.735298689,
+        "frame_id": 2953,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6113814056296744,
+            "half_width": 0.031021593785064132,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4314094203754826,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39865613257533905,
+          0.4583139983108943
+        ],
+        "lane_bounds_px": [
+          [
+            135.28571428571416,
+            370.0285714285714
+          ],
+          [
+            36.41428571428543,
+            466.7714285714286
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 313.735298689,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 313.8319625,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 313.803295086,
+        "frame_id": 2954,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6126267346567646,
+            "half_width": 0.03242871289556054,
+            "image_fraction": 0.6083333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              304,
+              216
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43143541469303254,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39916778605182013,
+          0.45794606111993125
+        ],
+        "lane_bounds_px": [
+          [
+            135.11428571428553,
+            369.9857142857142
+          ],
+          [
+            36.58571428571406,
+            466.9142857142857
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 313.803295086,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 313.97629716,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 313.936551254,
+        "frame_id": 2955,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6114393477383229,
+            "half_width": 0.03101115018387968,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              191,
+              303,
+              216
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43151495480283214,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39871854914162236,
+          0.4584647546675857
+        ],
+        "lane_bounds_px": [
+          [
+            135.15714285714267,
+            370.18571428571437
+          ],
+          [
+            36.34285714285687,
+            466.7142857142859
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 313.936551254,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 314.045816393,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 314.003303438,
+        "frame_id": 2956,
+        "ready": false,
+        "action": "stop",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6128179240435537,
+            "half_width": 0.03241574634416509,
+            "image_fraction": 0.6083333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              191,
+              304,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [
+          "secondary-262"
+        ],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43150167731184225,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3987050544860344,
+          0.45843841685020364
+        ],
+        "lane_bounds_px": [
+          [
+            135.2571428571427,
+            370.04285714285703
+          ],
+          [
+            36.242857142856906,
+            466.8571428571429
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 314.003303438,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 314.18913191,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 314.135275674,
+        "frame_id": 2957,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6130333912240489,
+            "half_width": 0.03242280784035026,
+            "image_fraction": 0.6083333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              304,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4316490684476871,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39873124554820927,
+          0.45870411365303265
+        ],
+        "lane_bounds_px": [
+          [
+            135.11428571428542,
+            370.2428571428572
+          ],
+          [
+            36.28571428571394,
+            466.557142857143
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 314.135275674,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 314.22289028,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 314.203275071,
+        "frame_id": 2958,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6112038889959975,
+            "half_width": 0.030998762143290816,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              191,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4312209247200274,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3981078450403589,
+          0.45840935072337985
+        ],
+        "lane_bounds_px": [
+          [
+            135.44285714285695,
+            370.11428571428564
+          ],
+          [
+            36.15714285714262,
+            466.9857142857143
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 314.203275071,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 314.365188909,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 314.335277971,
+        "frame_id": 2959,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6114118035217626,
+            "half_width": 0.031040219976404337,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.431290195514326,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39837707989039456,
+          0.4583389001201426
+        ],
+        "lane_bounds_px": [
+          [
+            135.29999999999978,
+            370.17142857142846
+          ],
+          [
+            36.59999999999968,
+            466.52857142857147
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 314.335277971,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 314.430526204,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 314.403267486,
+        "frame_id": 2960,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6112283982286694,
+            "half_width": 0.031020740183973865,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4314418618231302,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3991802997615501,
+          0.45795288880049445
+        ],
+        "lane_bounds_px": [
+          [
+            135.07142857142838,
+            370.04285714285703
+          ],
+          [
+            36.62857142857115,
+            466.8571428571429
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 314.403267486,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 314.566148418,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 314.535255984,
+        "frame_id": 2961,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6101795877094361,
+            "half_width": 0.0306717371634945,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5861111111111111,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              216
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43143155623336393,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39870505448603405,
+          0.4583126227474013
+        ],
+        "lane_bounds_px": [
+          [
+            135.25714285714275,
+            370.04285714285714
+          ],
+          [
+            36.34285714285693,
+            466.85714285714295
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 314.535255984,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 314.636882292,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 314.603259591,
+        "frame_id": 2962,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6114461070111575,
+            "half_width": 0.03101425524053319,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43165169330779013,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39927740029664144,
+          0.4582503800284026
+        ],
+        "lane_bounds_px": [
+          [
+            135.07142857142838,
+            369.9857142857143
+          ],
+          [
+            36.42857142857116,
+            466.81428571428586
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 314.603259591,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 314.762104662,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 314.735265809,
+        "frame_id": 2963,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6113020560259924,
+            "half_width": 0.031023556800599067,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43139335487177083,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3988162334717448,
+          0.45817143423622175
+        ],
+        "lane_bounds_px": [
+          [
+            135.0999999999998,
+            370.21428571428567
+          ],
+          [
+            36.59999999999968,
+            466.6857142857143
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 314.735265809,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 314.827884858,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 314.803253362,
+        "frame_id": 2964,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6125701429985408,
+            "half_width": 0.032418991538198,
+            "image_fraction": 0.6083333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              304,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4312912914869387,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39865572353308454,
+          0.4580914675927446
+        ],
+        "lane_bounds_px": [
+          [
+            135.31428571428546,
+            369.98571428571415
+          ],
+          [
+            36.38571428571396,
+            467.01428571428573
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 314.803253362,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 314.958081367,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 314.935238805,
+        "frame_id": 2965,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6112254589922743,
+            "half_width": 0.031027518269508548,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              191,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4314345806597002,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39927696059863516,
+          0.45785327397780884
+        ],
+        "lane_bounds_px": [
+          [
+            135.12857142857132,
+            369.9
+          ],
+          [
+            36.671428571428294,
+            466.90000000000003
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 314.935238805,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 315.026901726,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 315.003239967,
+        "frame_id": 2966,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6112521682247225,
+            "half_width": 0.031010877388267584,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4315144195787914,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39926470122188273,
+          0.45800156604783476
+        ],
+        "lane_bounds_px": [
+          [
+            135.14285714285688,
+            369.88571428571424
+          ],
+          [
+            36.457142857142514,
+            467.0142857142858
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 315.003239967,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 315.169066109,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 315.135516363,
+        "frame_id": 2967,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6103031389674477,
+            "half_width": 0.030671737163494504,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5861111111111111,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4316051904733802,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.399009283266077,
+          0.45837898855573694
+        ],
+        "lane_bounds_px": [
+          [
+            135.18571428571414,
+            369.9714285714284
+          ],
+          [
+            36.31428571428546,
+            466.8285714285715
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 315.135516363,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 315.233616056,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 315.203226684,
+        "frame_id": 2968,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6116120457570245,
+            "half_width": 0.032051084255081054,
+            "image_fraction": 0.6083333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5861111111111111,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              304,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.431415457878372,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3983301476776019,
+          0.4586015460374801
+        ],
+        "lane_bounds_px": [
+          [
+            135.21428571428555,
+            370.3285714285714
+          ],
+          [
+            36.18571428571403,
+            466.77142857142866
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 315.203226684,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 315.365169416,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 315.33521091,
+        "frame_id": 2969,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6112413249096647,
+            "half_width": 0.031016789112682245,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43127746250384996,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39845119859466216,
+          0.4582545055819009
+        ],
+        "lane_bounds_px": [
+          [
+            135.21428571428544,
+            370.25714285714287
+          ],
+          [
+            36.485714285713925,
+            466.74285714285725
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 315.33521091,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 315.434456719,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 315.40321651,
+        "frame_id": 2970,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.611563510100878,
+            "half_width": 0.031007781669991477,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43147201165593385,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3981924103573457,
+          0.4587963250121291
+        ],
+        "lane_bounds_px": [
+          [
+            135.45714285714268,
+            370.0428571428571
+          ],
+          [
+            36.04285714285686,
+            466.75714285714287
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 315.40321651,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 315.582521625,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 315.535592263,
+        "frame_id": 2971,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6126870855294982,
+            "half_width": 0.03242518047666471,
+            "image_fraction": 0.6083333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              191,
+              304,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4313426230284347,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39860719279797785,
+          0.45822827937997984
+        ],
+        "lane_bounds_px": [
+          [
+            135.31428571428546,
+            370.0142857142856
+          ],
+          [
+            36.38571428571396,
+            466.8857142857143
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 315.535592263,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 315.629751179,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 315.603207217,
+        "frame_id": 2972,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6110484472488631,
+            "half_width": 0.031021312136030883,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4311388518345307,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39855867387730354,
+          0.45790045804672674
+        ],
+        "lane_bounds_px": [
+          [
+            135.31428571428557,
+            370.04285714285703
+          ],
+          [
+            36.585714285714005,
+            466.9571428571429
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 315.603207217,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 315.76195667,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 315.735196564,
+        "frame_id": 2973,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6113690452607915,
+            "half_width": 0.03099284863426759,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4314891711967359,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39858250048572164,
+          0.45850463085874277
+        ],
+        "lane_bounds_px": [
+          [
+            135.34285714285693,
+            369.98571428571415
+          ],
+          [
+            36.05714285714254,
+            467.01428571428573
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 315.735196564,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 315.830306569,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 315.803211959,
+        "frame_id": 2974,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6110659464436776,
+            "half_width": 0.03099958856269039,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              191,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4311397189742188,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3981489901917644,
+          0.458255922442524
+        ],
+        "lane_bounds_px": [
+          [
+            135.19999999999982,
+            370.45714285714274
+          ],
+          [
+            36.39999999999969,
+            466.8428571428572
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 315.803211959,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 315.973781587,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 315.935252504,
+        "frame_id": 2975,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6126689307391883,
+            "half_width": 0.032425180476664726,
+            "image_fraction": 0.6083333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              304,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43136107900979953,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3987289287526917,
+          0.45816191136936096
+        ],
+        "lane_bounds_px": [
+          [
+            135.28571428571416,
+            369.9857142857142
+          ],
+          [
+            36.41428571428543,
+            466.9142857142857
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 315.935252504,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 316.043493551,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 316.003301748,
+        "frame_id": 2976,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6116612402080663,
+            "half_width": 0.031015944442629836,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              216
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4317519473415206,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3990709769287517,
+          0.45860725736581404
+        ],
+        "lane_bounds_px": [
+          [
+            135.08571428571423,
+            370.08571428571435
+          ],
+          [
+            36.31428571428552,
+            466.6142857142858
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 316.003301748,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 316.186868098,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 316.135174347,
+        "frame_id": 2977,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6113884622018434,
+            "half_width": 0.031021030492111825,
+            "image_fraction": 0.6072916666666667,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              303,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4313970068603156,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39858293186110627,
+          0.458349958479626
+        ],
+        "lane_bounds_px": [
+          [
+            135.31428571428546,
+            370.0285714285714
+          ],
+          [
+            36.38571428571396,
+            466.7714285714286
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 316.135174347,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 316.241767005,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 316.203167041,
+        "frame_id": 2978,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6126934779018488,
+            "half_width": 0.03242310213612454,
+            "image_fraction": 0.6083333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5833333333333334,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              304,
+              216
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43139093397712225,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39870702129270813,
+          0.45825450558190084
+        ],
+        "lane_bounds_px": [
+          [
+            135.11428571428553,
+            370.25714285714275
+          ],
+          [
+            36.48571428571404,
+            466.7428571428572
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 316.203167041,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 316.367525988,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 316.335176045,
+        "frame_id": 2979,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6124407027932032,
+            "half_width": 0.03226251652375599,
+            "image_fraction": 0.6083333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5861111111111111,
+            "near": false,
+            "bbox_xyxy": [
+              281,
+              192,
+              304,
+              217
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.43135167311511974,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3987300882071255,
+          0.45821905045721467
+        ],
+        "lane_bounds_px": [
+          [
+            135.19999999999982,
+            370.11428571428576
+          ],
+          [
+            37.999999999999716,
+            464.9857142857144
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 316.335176045,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 316.43245622,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 316.403159571,
+        "frame_id": 2980,
+        "ready": false,
+        "action": "stop",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6134148521173447,
+            "half_width": 0.03085666869851758,
+            "image_fraction": 0.609375,
+            "half_image_width": 0.022916666666666665,
+            "y_fraction": 0.5972222222222222,
+            "near": false,
+            "bbox_xyxy": [
+              282,
+              194,
+              304,
+              221
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [
+          "secondary-266"
+        ],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.42666158596334963,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.39072294594716883,
+          0.4558219161660735
+        ],
+        "lane_bounds_px": [
+          [
+            144.34285714285693,
+            360.67142857142846
+          ],
+          [
+            45.45714285714257,
+            458.3285714285715
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 316.403159571,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 316.576387392,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 316.535153018,
+        "frame_id": 2981,
+        "ready": false,
+        "action": "stop",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6148164560550391,
+            "half_width": 0.03178033744355248,
+            "image_fraction": 0.6229166666666667,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5972222222222222,
+            "near": false,
+            "bbox_xyxy": [
+              288,
+              196,
+              311,
+              223
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [
+          "secondary-266"
+        ],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.4114715698630398,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.37315063466687826,
+          0.44275825120127577
+        ],
+        "lane_bounds_px": [
+          [
+            145.54285714285697,
+            368.8428571428571
+          ],
+          [
+            48.757142857142526,
+            466.3571428571429
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 316.535153018,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 316.638049111,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 316.603136526,
+        "frame_id": 2982,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6109738997985722,
+            "half_width": 0.03376406613664352,
+            "image_fraction": 0.63125,
+            "half_image_width": 0.026041666666666668,
+            "y_fraction": 0.5916666666666667,
+            "near": false,
+            "bbox_xyxy": [
+              291,
+              192,
+              316,
+              220
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.38019745290084866,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.31153584387761907,
+          0.4322094536617409
+        ],
+        "lane_bounds_px": [
+          [
+            172.41897233201604,
+            348.83003952569146
+          ],
+          [
+            49.49011857707529,
+            475.07905138339913
+          ]
+        ],
+        "lane_rows": [
+          164.0,
+          227.0
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 316.603136526,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 316.765062685,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 316.735182523,
+        "frame_id": 2983,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6126634736933342,
+            "half_width": 0.03225515650313479,
+            "image_fraction": 0.6364583333333333,
+            "half_image_width": 0.025,
+            "y_fraction": 0.5944444444444444,
+            "near": false,
+            "bbox_xyxy": [
+              294,
+              192,
+              318,
+              221
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.37319408701117424,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3009041096806478,
+          0.42795990595762834
+        ],
+        "lane_bounds_px": [
+          [
+            174.58147309392876,
+            350.038930227542
+          ],
+          [
+            52.3453035695029,
+            475.4886228836404
+          ]
+        ],
+        "lane_rows": [
+          164.0,
+          227.0
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 316.735182523,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 316.838659185,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 316.803137238,
+        "frame_id": 2984,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6085092958494831,
+            "half_width": 0.03150602723999375,
+            "image_fraction": 0.6333333333333333,
+            "half_image_width": 0.023958333333333335,
+            "y_fraction": 0.5916666666666667,
+            "near": false,
+            "bbox_xyxy": [
+              293,
+              192,
+              316,
+              222
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.3749078516489052,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3097206388296082,
+          0.42495809515040844
+        ],
+        "lane_bounds_px": [
+          [
+            171.060606060606,
+            353.8225108225106
+          ],
+          [
+            54.748917748917734,
+            475.22510822510804
+          ]
+        ],
+        "lane_rows": [
+          167.0,
+          227.0
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 316.803137238,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 316.988917887,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 316.935182661,
+        "frame_id": 2985,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6088284788719659,
+            "half_width": 0.032989867397870666,
+            "image_fraction": 0.634375,
+            "half_image_width": 0.025,
+            "y_fraction": 0.5916666666666667,
+            "near": false,
+            "bbox_xyxy": [
+              293,
+              193,
+              317,
+              221
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.37258942301793474,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3063678647407858,
+          0.4234200690249386
+        ],
+        "lane_bounds_px": [
+          [
+            171.91341991341977,
+            353.8917748917747
+          ],
+          [
+            55.991341991341926,
+            475.06060606060583
+          ]
+        ],
+        "lane_rows": [
+          167.0,
+          227.0
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 316.935182661,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 317.030521703,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 317.003121248,
+        "frame_id": 2986,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6093139469882773,
+            "half_width": 0.03388920639839546,
+            "image_fraction": 0.6354166666666666,
+            "half_image_width": 0.026041666666666668,
+            "y_fraction": 0.5944444444444444,
+            "near": false,
+            "bbox_xyxy": [
+              293,
+              192,
+              318,
+              221
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.37368040929306673,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3075594273208866,
+          0.4244206961223462
+        ],
+        "lane_bounds_px": [
+          [
+            171.56698876991362,
+            353.9667014886393
+          ],
+          [
+            54.998694176025026,
+            475.41877774875934
+          ]
+        ],
+        "lane_rows": [
+          167.0,
+          227.0
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 317.003121248,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 317.14185981,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 317.003121248,
+        "frame_id": 2986,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6093139469882773,
+            "half_width": 0.03388920639839546,
+            "image_fraction": 0.6354166666666666,
+            "half_image_width": 0.026041666666666668,
+            "y_fraction": 0.5944444444444444,
+            "near": false,
+            "bbox_xyxy": [
+              293,
+              192,
+              318,
+              221
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.37368040929306673,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3075594273208866,
+          0.4244206961223462
+        ],
+        "lane_bounds_px": [
+          [
+            171.56698876991362,
+            353.9667014886393
+          ],
+          [
+            54.998694176025026,
+            475.41877774875934
+          ]
+        ],
+        "lane_rows": [
+          167.0,
+          227.0
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 317.003121248,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 317.185215241,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 317.135199704,
+        "frame_id": 2987,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6078344935897892,
+            "half_width": 0.0325859259833967,
+            "image_fraction": 0.634375,
+            "half_image_width": 0.025,
+            "y_fraction": 0.5944444444444444,
+            "near": false,
+            "bbox_xyxy": [
+              293,
+              192,
+              317,
+              222
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.37345480136737264,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3077018507623335,
+          0.4239073870155127
+        ],
+        "lane_bounds_px": [
+          [
+            171.64935064935054,
+            353.69696969696946
+          ],
+          [
+            55.493506493506345,
+            475.25541125541105
+          ]
+        ],
+        "lane_rows": [
+          167.0,
+          227.0
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 317.135199704,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 317.235855788,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 317.20311733,
+        "frame_id": 2988,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6077994540311643,
+            "half_width": 0.03258883750020575,
+            "image_fraction": 0.634375,
+            "half_image_width": 0.025,
+            "y_fraction": 0.5944444444444444,
+            "near": false,
+            "bbox_xyxy": [
+              293,
+              192,
+              317,
+              221
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.37331932461570466,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.3074218748241602,
+          0.423877679269381
+        ],
+        "lane_bounds_px": [
+          [
+            171.72294372294368,
+            353.69696969696946
+          ],
+          [
+            55.515151515151445,
+            475.25541125541105
+          ]
+        ],
+        "lane_rows": [
+          167.0,
+          227.0
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 317.20311733,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 317.366400622,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 317.335103719,
+        "frame_id": 2989,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6093757014517539,
+            "half_width": 0.03265778177981043,
+            "image_fraction": 0.634375,
+            "half_image_width": 0.025,
+            "y_fraction": 0.6083333333333333,
+            "near": true,
+            "bbox_xyxy": [
+              293,
+              198,
+              317,
+              227
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.38594014229303575,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.33892256752746197,
+          0.4241705564211525
+        ],
+        "lane_bounds_px": [
+          [
+            156.0571428571427,
+            370.88571428571424
+          ],
+          [
+            60.942857142856894,
+            468.1142857142858
+          ]
+        ],
+        "lane_rows": [
+          179.5,
+          229.28133333333332
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 317.335103719,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 317.443214846,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 317.403107489,
+        "frame_id": 2990,
+        "ready": true,
+        "action": "visual_trial_ready",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [
+          {
+            "id": "secondary-194",
+            "fraction": 0.6110952746548737,
+            "half_width": 0.03200368532420887,
+            "image_fraction": 0.640625,
+            "half_image_width": 0.025,
+            "y_fraction": 0.6027777777777777,
+            "near": true,
+            "bbox_xyxy": [
+              296,
+              196,
+              320,
+              224
+            ],
+            "image_close": false,
+            "other_close": false,
+            "exit_band": false,
+            "reference_distance_m": null
+          }
+        ],
+        "uncertain": [],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.37137783355539367,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.30753405140416173,
+          0.42093890278511265
+        ],
+        "lane_bounds_px": [
+          [
+            170.34106433677476,
+            357.6799046862591
+          ],
+          [
+            58.79642573470977,
+            473.6719618745035
+          ]
+        ],
+        "lane_rows": [
+          170.0,
+          227.0
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": null,
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 317.403107489,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    },
+    {
+      "now_s": 317.571189107,
+      "navigation": {
+        "experimental": true,
+        "captured_s": 317.535107119,
+        "frame_id": 2991,
+        "ready": false,
+        "action": "stop",
+        "phase": "test_observation",
+        "hardware_output": false,
+        "field_verified": false,
+        "cones": [],
+        "uncertain": [
+          "secondary-268"
+        ],
+        "reason": "第二路白线已确认，可进行低速试验",
+        "ego_fraction": 0.3105250182020593,
+        "half_envelope": 0.20290456654847588,
+        "ego_range": [
+          0.23955117739969153,
+          0.36746965312466584
+        ],
+        "lane_bounds_px": [
+          [
+            181.4893257564118,
+            376.6593457226237
+          ],
+          [
+            90.80218092458887,
+            477.3775149746586
+          ]
+        ],
+        "lane_rows": [
+          173.0,
+          221.0
+        ],
+        "guard": "fresh_white_lines_and_image_envelope",
+        "metric_boundary_verified": false,
+        "boundary_correction": "right",
+        "source_camera": "secondary",
+        "line_held": false,
+        "line_observed_s": 317.535107119,
+        "line_age_s": 0.0,
+        "line_sources": [
+          "secondary"
+        ]
+      }
+    }
+  ]
+}

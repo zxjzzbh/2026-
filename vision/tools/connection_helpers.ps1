@@ -11,8 +11,12 @@ function Test-CarControlActive($Status) {
     foreach ($name in @('hardware_output', 'worker_started', 'pending_hardware_start')) {
         if (Get-CarProperty $Status $name) { return $true }
     }
-    foreach ($name in @('traffic_trial', 'crosswalk_trial')) {
+    foreach ($name in @('traffic_trial', 'crosswalk_trial', 'parking_trial', 'race_flow', 'departure_trial')) {
         if (Get-CarProperty (Get-CarProperty $Status $name) 'active') { return $true }
+    }
+    $cone = Get-CarProperty $Status 'cone_trial'
+    foreach ($name in @('avoidance','short_test')) {
+        if (Get-CarProperty (Get-CarProperty $cone $name) 'active') { return $true }
     }
     return $false
 }
@@ -23,6 +27,16 @@ function Test-OwnedCarForward($Listener, $Process, [string]$Entry) {
     if ($Process.ProcessId -ne $Listener.OwningProcess -or -not $Process.CommandLine) { return $false }
     # Match one complete quoted script argument, not a similarly named file.
     return $Process.CommandLine.IndexOf(('"' + $Entry + '"'), [StringComparison]::OrdinalIgnoreCase) -ge 0
+}
+
+function Test-CarSameConsole($LocalResult, $RemoteResult) {
+    if (-not $LocalResult.Ok -or -not $RemoteResult.Ok) { return $false }
+    $localIdentity = Get-CarProperty $LocalResult.Data 'setup_token'
+    $remoteIdentity = Get-CarProperty $RemoteResult.Data 'setup_token'
+    # Compare only in memory; never log console session tokens.
+    return ($localIdentity -is [string] -and $remoteIdentity -is [string] -and
+        -not [string]::IsNullOrWhiteSpace($localIdentity) -and
+        $localIdentity -ceq $remoteIdentity)
 }
 
 function Get-CarHttpStatus([string]$Url, [int]$TimeoutMs = 3000) {

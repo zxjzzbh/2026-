@@ -1,0 +1,88 @@
+{
+  "full_pytest": {
+    "passed": 771,
+    "failed": 0,
+    "skipped": 3,
+    "elapsed_s": 17.75,
+    "skips": [
+      "Pi worker Unix socket",
+      "termios unavailable",
+      "Linux Unix-socket transport"
+    ]
+  },
+  "runtime": {
+    "python": "3.12.14",
+    "opencv-python": "4.11.0.86",
+    "numpy": "2.2.6",
+    "PyYAML": "6.0.2",
+    "pytest": "8.3.5",
+    "node": "24.19.0"
+  },
+  "autonomy_readiness_missing": [
+    "motion.max_speed_mps",
+    "motion.max_steering_rad",
+    "motion.speed_kp_us_per_mps",
+    "motion.speed_ki_us_per_m",
+    "motion.braking_deceleration_mps2",
+    "telemetry.maximum_speed_mps",
+    "telemetry.distance_per_count_m",
+    "motion.calibrated",
+    "motion.continuous_motion_verified",
+    "telemetry.verified",
+    "telemetry.pose_verified",
+    "audio.verified",
+    "motion.speed_table_at_least_two_measured_points",
+    "cameras.primary.detector_verified_on_track",
+    "cameras.primary.detector_model_sha256",
+    "cameras.primary.measured_road_visibility",
+    "course.traffic_stop_line_survey",
+    "audio.measured_busy_idle_status"
+  ],
+  "demo": {
+    "phase": "complete",
+    "hardware_output": false,
+    "race_elapsed_s": 20.0,
+    "verified_traffic_wait_s": 2.200000000000001,
+    "effective_time_before_penalties_s": 17.799999999999997,
+    "passed_cone_ids": [
+      "cone-1",
+      "cone-2"
+    ],
+    "parking_slot_id": "right",
+    "payment_success_reported": true,
+    "payment_bonus_points": 5,
+    "reason": "payment_success_reported",
+    "simulated": true,
+    "observations": 221,
+    "planned_motion_updates": 0,
+    "hardware_motion_updates": 0,
+    "decision_flow_completed": true,
+    "actuation_mapping_ready": false,
+    "physical_race_completed": false,
+    "runtime_fault_or_end_reason": "input_ended",
+    "cleanup_errors": []
+  },
+  "known_issue_audit": "Existing near-field, crosswalk-distance-loss and optical-flow boundary findings reproduced; not repaired by this sync",
+  "secret_scan": {
+    "matches": [],
+    "checks": [
+      "private_key",
+      "github_token",
+      "tailscale_key",
+      "private_address",
+      "personal_email",
+      "invitation",
+      "user_profile"
+    ],
+    "excluded_private_handoff": true,
+    "allowlisted_example": "drivers/pigpio/pigpio.h:6023 upstream address encoding example; kept unchanged"
+  },
+  "motion_and_verification_configs_unchanged": true,
+  "vehicle_actions_performed": false,
+  "waiting_page_parser_check": {
+    "initial_windows_default_encoding": "failed: Chinese manifest path decoded using legacy encoding",
+    "utf8_retry": "passed: 39 files; python -X utf8; no hardware opened",
+    "pi_runtime_changed": false
+  },
+  "ci_run": "Not claimed; must run after a successful push"
+}

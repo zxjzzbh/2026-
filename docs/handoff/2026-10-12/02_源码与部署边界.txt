@@ -1,0 +1,36 @@
+源码、部署与参数边界
+
+本包刻意保留不同来源的完整源码树，避免把不同年代的代码无声混合。真正部署时要做三方比对，不允许任选目录整树覆盖Pi。
+
+A. GitHub与室内锥桶
+仓库 https://github.com/zxjzzbh/2026-
+PR4 https://github.com/zxjzzbh/2026-/pull/4
+main：604fe330528ff5cefeacfde737edd214a3ed8db6
+PR4 head：68c314f14d4e141406005a7c9458ce0780b4a63c
+车端此次运行增量：8d7947c46ab959b2adb23da0e5f7023884375608
+远端状态以evidence/github-pr4.json和remote-refs.txt的核验时间为准。打包时PR4尚未合入main。没有在这次打包中提交、合并或push。
+sources/cones保留全部Git跟踪文件，包含其他队友已提交内容。但main/PR4里的旧手动模块不等于车端现用手动模块，应使用选择性更新工具及受保护文件核对。
+
+B. 手动对称候选
+基线提交6f93ea8858bfe83676bc4bdbfd790de7979de7ec，叠加17:36实际保护快照中的manual_drive、manual_controls、steering_pwm_controls、serve_boot_test、console_layout五份文件。
+原始基线和修改后候选都完整保留。11文件前后哈希见pending/steering_symmetric180/provenance.json。pi5_pwm.py与rasadapter5.py基于6f93，关机后未和完整当前Pi版本重比；部署前特别核对它们，不能覆盖队友后续修复。
+boot-test-template.json只增加manual_steering_span_us、manual_endpoints_field_verified、manual_endpoints_source三个字段，应合并到车端原模板，不替换其余值。
+boot-test-checks软件清单未伪造更新，直接复制候选会被原启动核验拒绝；需要完成真正Linux检查后再生成对应软件文件哈希，纳入新模块manual_steering.py。软件哈希通过与机械verified是两件事。
+
+C. 实车部分快照
+vehicle_snapshot_173601/protected为此次部署保护下来的实际文件，before为部署前锥桶文件。deployed_files与deployment.json记录的Pi SHA256逐项一致，但这些文件是从哈希一致的本机源码复制，并不是此次打包又登录Pi读取。
+protected里的cone-trial.json及.local.json是保存时快照，室内scene值后来更新，应结合evidence/today/observation-result等观察记录；不要把旧快照直接恢复成当前有效配置。
+smartcar-preview.service当时使用外层serve_parking_payment.py并保留50-crosswalk-trial.conf，详见service.before.conf；不要为锥桶另起冲突的摄像头/UART服务。
+17:36车端备份：/home/pi/smartcar-race-20261002/run/cone-console-deploy-20261012-173601。
+
+D. 参数与标定
+手动当前中位1610 μs；新离线端点1790/1430。手动连续输入期限500ms、内部保护250ms；锥桶自身输出期限等为不同层次，不要混为一个参数。自主锥桶1570–1650、前进1575、名义最高0.2m/s等仅以当前配置为准，PWM/速度上限不是实测车速。
+10月7日静态标定见evidence/historical。用户曾直接量车头到后轴34cm；今日锥桶有效参数记录0.335m、宽0.295m、长0.42m，历史其他记录还有宽0.30/长0.41等不同值，保留来源差异，不静默统一。当前室内白线宽度未重新尺量，1.23m来自此前场地，不能当作今日新测值。
+后续测量需先确定采用的车体参考原点，核对坐标转换和相机固定姿态，再更新对应模块；不要把旧1715/1650中位或合成测试半径当最新实测值。
+
+E. 未完成无白线草稿
+drafts/open_field_unfinished以082f0c4为基线，6个跟踪文件修改和1个新文件，未部署、未整体验证。保留以防工作丢失，当前室内白线版本不要混入；其部署脚本引用尚缺测试文件，不能直接运行。
+
+F. 第三方与排除
+原依赖声明和源文件版权头完整保留。drivers/pigpio含原公有领域声明，属于历史驱动源码，不代表当前Pi5使用pigpio。项目未给出新的整体授权，交接包没有另行赋予开源许可。
+模型权重未包含；通用YOLOv8n初始化来源与哈希见vision/configs/model-source.json。models/catalog.csv未填入已验收赛道模型，不能把通用COCO模型当作比赛模型。这里未复制私人付款码、录像、虚拟环境或完整原始训练集。

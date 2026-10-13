@@ -1,5 +1,6 @@
 """Measured synthetic coordinate worlds exercise integration; no vehicle I/O."""
 import copy
+import json
 import threading
 from pathlib import Path
 from types import SimpleNamespace
@@ -10,7 +11,7 @@ import pytest
 
 from carvision.cone_planning import load_settings,path_clear,ConeRoutePlanner
 from carvision.cone_navigation import (driving_settings,execution_readiness,ConeNavigator,ConeOdometry,
-    ConeDrivingController,steering_for_path,metric_corridor,import_ground_calibration)
+    ConeDrivingController,steering_for_path,metric_corridor,import_ground_calibration,reuse_legacy_ground)
 from carvision.cone_execution import ConeRun
 from carvision.cone_observer import ConeCamera,ConeObserverDrive
 from carvision.cone_road import ConeRoadContext
@@ -27,7 +28,7 @@ def measured():
         valid_polygon_px=[[0,0],[479,0],[479,359],[0,359]],max_error_m=.01)
     s['motion'].update(verified=True,pose_feedback_verified=True,minimum_turn_radius_m=.5,
         maximum_tracking_error_m=.03,braking_distance_m=.1)
-    s['driving']={**driving_settings(s),'steering_radius_1570_cm':-50.,'steering_radius_1650_cm':50.,
+    s['driving']={**driving_settings(s),'steering_radius_right_cm':50.,'steering_radius_left_cm':-50.,
         'visual_error_bound_m':.01,'visual_verified_distance_m':10.,'fixed_camera_confirmed':True,
         'steering_verified':True,'odometry_verified':True,'max_speed_mps':.5}
     assert execution_readiness(s)['ready']
@@ -54,6 +55,35 @@ def test_defaults_cannot_drive_even_with_recognized_cone():
     result=nav.update(None,{},1.)
     assert result['phase']=='needs_calibration' and result['action']=='stop'
     assert not execution_readiness(s)['ready']
+
+
+def test_reuse_repository_mapping_keeps_historical_scope_and_motion_unverified():
+    s=load_settings(CONFIG)
+    reference=json.loads((ROOT/'configs/cone-legacy-ground-candidate.json').read_text(encoding='utf-8'))
+    loaded=reuse_legacy_ground(s,reference)
+    ground=loaded['ground']
+    assert ground['homography'] is not None
+    assert ground['independent_check_max_error_m']==pytest.approx(.02114870596857,abs=1e-7)
+    assert ground['valid_polygon_px']==reference['valid_polygon_px']
+    assert ground['historical_verified'] and not ground['verified'] and not ground['current_pose_verified']
+    assert not loaded['driving']['fixed_camera_confirmed']
+    assert loaded['motion']==s['motion'] and loaded['geometry']==s['geometry']
+    assert s['ground']['homography'] is None  # no mutation on failure / inspection
+    assert not execution_readiness(loaded)['ready']
+
+
+def test_legacy_import_does_not_replace_current_verified_mapping(measured):
+    reference=json.loads((ROOT/'configs/cone-legacy-ground-candidate.json').read_text(encoding='utf-8'))
+    with pytest.raises(ValueError,match='已有当前确认'):
+        reuse_legacy_ground(measured,reference)
+
+
+@pytest.mark.parametrize('key,value',[('camera','primary'),('image_size',[640,480]),
+                                    ('source_commit','unknown'),('accepted_error_m',.001)])
+def test_legacy_import_rejects_wrong_source_or_error(key,value):
+    reference=json.loads((ROOT/'configs/cone-legacy-ground-candidate.json').read_text(encoding='utf-8'))
+    reference[key]=value
+    with pytest.raises(ValueError):reuse_legacy_ground(load_settings(CONFIG),reference)
 
 
 def test_metric_white_inner_edges_agree_with_lane_width(measured):
@@ -85,19 +115,36 @@ def test_flow_calibration_preview_does_not_enable_driving(measured,monkeypatch):
     assert result['motion']['pose']['y_m']==.1 and not execution_readiness(measured)['ready']
 
 
-def test_actual_camera_detection_flows_into_plan_and_steering(measured,monkeypatch):
+def test_motion_between_previous_route_samples_is_not_deviation(measured,monkeypatch):
+    measured['motion']['maximum_tracking_error_m']=.015
+    nav=ConeNavigator(measured);im=image()
+    nav.previous_route=(good_motion()['pose'],[
+        {'x_m':0.,'y_m':0.}, {'x_m':0.,'y_m':.04}])
+    monkeypatch.setattr(nav.odometry,'update',lambda *args:good_motion(.02,.2))
+    result=nav.update(im,{'frame_id':1,'captured_s':1.,'road_context':context(measured,im),'tracks':[]},1.)
+    assert result['phase']=='waiting_for_two_cones'
+
+
+@pytest.mark.parametrize('two_cones',[False,True])
+def test_actual_camera_detection_flows_into_plan_and_steering(measured,monkeypatch,two_cones):
     monkeypatch.setattr(ConeOdometry,'update',lambda *args:good_motion())
+    if two_cones:measured['ground']['homography'][1]=[0,-.08,28.8]  # Synthetic longer visible corridor.
     im=image();cv2.fillPoly(im,[np.array([[235,229],[245,229],[255,270],[225,270]])],(255,0,0))
+    if two_cones:cv2.fillPoly(im,[np.array([[235,183],[245,183],[255,211],[225,211]])],(255,0,0))
     _,jpg=cv2.imencode('.jpg',im)
     state=SimpleNamespace(condition=threading.RLock(),raw_jpeg=jpg.tobytes(),raw_frame_id=0,raw_received_ms=1000.,state='ok')
     timer=[1.];reader=ConeCamera({'secondary':state},measured,lambda:timer[0])
     for i in range(3):
         timer[0]=1+i*.1;state.raw_frame_id=i;state.raw_received_ms=timer[0]*1000;result=reader.read()
     decision=reader.navigation
-    assert decision['action']=='follow_candidate_path' and decision['phase']=='avoid_cones'
     assert any(t['confirmed'] for t in result['cameras']['secondary']['tracks'])
+    if not two_cones:
+        assert decision['action']=='stop' and decision['phase']=='waiting_for_two_cones'
+        return
+    assert decision['action']=='follow_candidate_path' and decision['phase']=='pass_first_cone'
+    assert len({c['side'] for c in decision['slalom']['order']})==2
     assert 1570<=steering_for_path(decision['path'],measured)<=1650
-    assert steering_for_path(decision['path'],measured)!=1610
+    assert min(p['x_m'] for p in decision['path'])<0<max(p['x_m'] for p in decision['path'])
     assert not decision['hardware_output']
 
 

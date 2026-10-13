@@ -1,6 +1,7 @@
 """Observation and geometry regression tests; numeric worlds are test fixtures only."""
 import copy
 import json
+import os
 import threading
 from pathlib import Path
 from types import SimpleNamespace
@@ -158,7 +159,7 @@ def test_mission_stale_camera_fault_and_missing_pose_do_not_advance(measured):
     mission=ConeMission(measured)
     sample={'frame_id':1,'captured_s':1,'lane_bounds_m':[-1,1],'lane_valid':True,'coverage_forward_m':6,
         'observed_world':[],'pose':pose()}
-    assert mission.step(sample,1)['phase']=='follow_lane'
+    assert mission.step(sample,1)['phase']=='waiting_for_two_cones'
     assert mission.step(sample,1.01)['phase']=='fault'
     sample.update(frame_id=2,captured_s=1.1)
     assert mission.step(sample,1.1)['action']=='stop'  # fault latches
@@ -217,6 +218,39 @@ def test_observer_initialization_failure_exits_cleanly(tmp_path,monkeypatch):
     assert not drive.observing and drive.reason=='reader unavailable'
 
 
+def test_white_brightness_saves_during_observation_without_actuator(tmp_path):
+    config=tmp_path/'cone.json';config.write_bytes(CONFIG.read_bytes())
+    base=Driver();drive=ConeObserverDrive(base,{},config,tmp_path)
+    drive.observing=True
+    before=json.loads(json.dumps(drive.settings))
+    result=drive.request('cone_white_threshold',{'white_v_min':215})['cone_trial']
+    assert result['settings']['scene']['white_v_min']==215
+    assert drive.reset_reader and drive.latest is None and not base.calls
+    assert drive.settings['ground']==before['ground'] and drive.settings['driving']==before['driving']
+    assert ConeObserverDrive(base,{},config,tmp_path).settings['scene']['white_v_min']==215
+    for active in (drive.run,drive.short):
+        active.active=True
+        with pytest.raises(ValueError,match='结束本轮'):drive.request('cone_white_threshold',{'white_v_min':180})
+        active.active=False
+    assert drive.settings['scene']['white_v_min']==215
+
+
+@pytest.mark.parametrize('threshold',[-1,256,True,200.5,'200',None])
+def test_white_brightness_invalid_values_do_not_write(tmp_path,threshold):
+    config=tmp_path/'cone.json';config.write_bytes(CONFIG.read_bytes())
+    drive=ConeObserverDrive(Driver(),{},config,tmp_path)
+    with pytest.raises(ValueError,match='亮度阈值'):
+        drive.request('cone_white_threshold',{'white_v_min':threshold})
+    assert not drive.local_config.exists() and not drive.reset_reader
+
+
+@pytest.mark.parametrize('threshold',[0,180,200,255])
+def test_white_brightness_is_used_by_both_camera_readers(settings,threshold):
+    settings.setdefault('scene',{})['white_v_min']=threshold
+    reader=ConeCamera({},settings)
+    for road in reader.roads.values():assert road.lane.config.white_v_min==threshold
+
+
 def test_field_dimensions_save_in_centimeters_without_enabling_drive(tmp_path):
     config=tmp_path/'cone.json';config.write_bytes(CONFIG.read_bytes())
     drive=ConeObserverDrive(Driver(),{},config,tmp_path)
@@ -232,6 +266,22 @@ def test_field_dimensions_save_in_centimeters_without_enabling_drive(tmp_path):
     restored.request('cone_settings',{'geometry_cm':{'cone_height':None}})
     assert restored.settings['geometry']['cone_height_m'] is None
     assert not restored.settings['geometry']['measured']
+
+
+def test_legacy_reference_and_lane_width_persist_without_actuator(tmp_path):
+    config=tmp_path/'cone.json';config.write_bytes(CONFIG.read_bytes())
+    (tmp_path/'cone-legacy-ground-candidate.json').write_bytes((CONFIG.parent/'cone-legacy-ground-candidate.json').read_bytes())
+    base=Driver();drive=ConeObserverDrive(base,{},config,tmp_path)
+    drive.request('cone_settings',{'geometry_cm':{'lane_width':125}})
+    result=drive.request('cone_reuse_legacy',{})['cone_trial']
+    assert result['settings']['geometry']['lane_width_m']==1.25
+    assert result['settings']['ground']['homography'] is not None
+    assert not result['can_drive'] and not result['hardware_output'] and not base.calls
+    restored=ConeObserverDrive(base,{},config,tmp_path)
+    assert restored.settings['ground']==drive.settings['ground']
+    drive.observing=True
+    with pytest.raises(ValueError):drive.request('cone_reuse_legacy',{})
+    drive.observing=False;drive.close();restored.close()
 
 
 @pytest.mark.parametrize('geometry',[{'vehicle_width':-5},{'vehicle_width':float('nan')},
@@ -331,9 +381,54 @@ def test_missing_white_edge_or_wrong_surface_does_not_claim_valid_track(settings
 
 
 def test_actual_known_dimensions_are_preloaded_and_boundary_width_is_enforced(settings,measured):
-    g=settings['geometry']
+    # Deployment preserves the car's base/local configs. Validate repository
+    # defaults against the supplied source sample, not an older live base file.
+    source=os.environ.get('CARVISION_REPOSITORY_CONE_CONFIG')
+    g=(load_settings(source) if source else settings)['geometry']
     assert (g['lane_width_m'],g['vehicle_width_m'],g['vehicle_length_m'],g['cone_height_m'],g['cone_base_width_m'])==(1.23,.295,.42,.08,.075)
     assert g['rear_axle_to_front_m']==.335 and g['rear_overhang_m']==.085 and not g['measured']
     measured['geometry']['lane_width_m']=1.23
     result=ConeRoutePlanner(measured).plan([],lane_bounds=(-1,1),coverage_forward_m=5)
     assert result['action']=='stop' and result['reason']=='observed_corridor_exceeds_measured_lane_width'
+
+
+@pytest.mark.parametrize('surface',['red_running_track','indoor_white_line_track'])
+@pytest.mark.parametrize('right',[False,True])
+def test_indoor_surface_is_explicit_and_still_needs_both_white_edges(settings,surface,right):
+    from carvision.cone_road import ConeRoadContext
+    settings['scene']['surface']=surface
+    im=red_track_image(color=(25,140,30),right=right)
+    context=ConeRoadContext(settings).inspect(im,np.zeros(im.shape[:2],np.uint8))
+    assert context['valid'] is (surface=='indoor_white_line_track' and right)
+    assert not context['red_ground_supported']
+    if context['valid']:
+        rows=[{**detection(),'foot_pixel':[240,240]}]
+        ConeRoadContext.enrich(rows,im,context)
+        assert rows[0]['scene_supported'] and rows[0]['boundary_relation']=='inside'
+
+
+def test_indoor_fit_uses_visible_ground_above_bonnet(settings):
+    from carvision.cone_road import ConeRoadContext
+    settings['scene']['surface']='indoor_white_line_track'
+    im=np.full((360,480,3),(45,105,45),np.uint8)
+    cv2.line(im,(190,160),(-40,290),(255,255,255),8)
+    cv2.line(im,(290,160),(520,290),(255,255,255),8)
+    context=ConeRoadContext(settings).inspect(im,np.zeros(im.shape[:2],np.uint8))
+    assert context['valid'] and len(context['left_inner'])>=6
+    assert max(p[1] for p in context['left_inner'])<290
+
+
+def test_surface_setting_does_not_verify_calibration_or_open_actuator(tmp_path):
+    config=tmp_path/'cone-trial.json';config.write_bytes(CONFIG.read_bytes())
+    base=Driver();drive=ConeObserverDrive(base,{},config,tmp_path)
+    before=copy.deepcopy(drive.settings)
+    drive.request('cone_settings',{'scene_surface':'indoor_white_line_track'})
+    for key in ('geometry','ground','motion','driving'):
+        assert drive.settings[key]==before[key]
+    assert not base.calls and not drive.status()['cone_trial']['can_drive']
+    assert ConeObserverDrive(base,{},config,tmp_path).settings['scene']['surface']=='indoor_white_line_track'
+    with pytest.raises(ValueError):
+        drive.request('cone_settings',{'scene_surface':'ignore_boundaries'})
+    drive.observing=True
+    with pytest.raises(ValueError):
+        drive.request('cone_settings',{'scene_surface':'red_running_track'})

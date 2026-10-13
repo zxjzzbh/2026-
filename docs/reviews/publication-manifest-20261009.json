@@ -1,0 +1,1597 @@
+{
+  "version": 1,
+  "base_main": "9b5d51c3611556a5fc220d9abbc4b3e8e68560fe",
+  "scope": "Public source snapshot; excludes this manifest itself to avoid self-reference. Text hashes normalize CRLF to LF; binary hashes use raw bytes.",
+  "files": [
+    {
+      "path": ".editorconfig",
+      "sha256": "ac1da094d7a68b4af01732e782c1eb91ccfa7e3cfdda2d31baf483ddba54c347",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "9784342d97086e5f35b7c0a59975c3b7e8405839a33d14e13a1a76be8178a2d2",
+      "hash_format": "utf8-lf",
+      "origin": "updated-remote-file"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/problem.md",
+      "sha256": "9b12713528e43afe0625b299862db1ad81f9ea9db795355d649fcb72da9940cc",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/task.md",
+      "sha256": "27fd5e953d72dc88ac1e626efd00f650bf5c4680688c865d80e1784ce04a419c",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "sha256": "52058e735b62c42b6b044e226f08697e64cf84b0e16605fafd810b60a789bdef",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": ".github/workflows/offline-tests.yml",
+      "sha256": "ac75b80bbd8a92dc4b2f53387b77b77d3d343280d3d225fce66d92ba10419893",
+      "hash_format": "utf8-lf",
+      "origin": "updated-remote-file"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "0888ff8beb63ad4ec522e0ddfa361ab6bb3be25b26716db057435da1cf8d2fe6",
+      "hash_format": "utf8-lf",
+      "origin": "updated-remote-file"
+    },
+    {
+      "path": "CAMERA_GIMBAL_VERIFICATION.md",
+      "sha256": "f9b31aa226325ed6d4cd255fc7efba4057102c8a9ceb4dae56dc1087e5f4fb7a",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "sha256": "e78faa704bd93b7cf16b85f07993bd70dba30edc5614c8666cafc6c17b74945d",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "DEPLOYMENT_REPORT.md",
+      "sha256": "5cfd9a8efa314a3f4fb1bde835b9a3766bd9867a98c79e81fc19dc8e5102b1ec",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "README.md",
+      "sha256": "ac114b82cd451ea86a06f633de06e176201df3529ebdb46760607fccf4579770",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "5b9111ce77b7ff925ae9a11d9fc7f8bae2a3ae164af082a3c045d2fbe64973b5",
+      "byte_identical_to_deployment": false
+    },
+    {
+      "path": "SOURCE-MANIFEST.json",
+      "sha256": "659ac0cddf5be4edb5aeff2dd249a93774ab7f1f3e3502fe67d9764094f03ea7",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "SOURCE_HISTORY_20261008.md",
+      "sha256": "2d08b830157723ad7a0fb8b84e9e7589d2dc07cb73b5b61f2b90b3e976315d31",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "communication/README.md",
+      "sha256": "095645372ce1124a38203da712f4cef9db08b1b2da9f71bb1ed4b8716582aeee",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "configs/README.md",
+      "sha256": "0fe43ddb11b2209c39b239d172523d867015bdd79074fb0a8c0e7163f9de8a24",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "data/README.md",
+      "sha256": "7a81579656117827b97182cc12313a7236b6a936b936f8264b3c4de67873e450",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "data/catalog.csv",
+      "sha256": "bb93feb43c829a0fb68d835fb57dac9b5b060990b07417d985da5ba26734cd58",
+      "hash_format": "utf8-lf",
+      "origin": "updated-remote-file"
+    },
+    {
+      "path": "data/samples/README.md",
+      "sha256": "6969248f7a7d706d9b803a0f76aab8bb4865bbb071d65346496570becbf29bf1",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "e8efa7292118ce6d1091aa5db24012f48b05fb43a4608b5f9f229b6fd6dc823d",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/architecture.md",
+      "sha256": "4a08e64855af96389670d650bf01df9b259a14c48e8d9233a2c24b01bd83af6e",
+      "hash_format": "utf8-lf",
+      "origin": "updated-remote-file"
+    },
+    {
+      "path": "docs/calibration-status.md",
+      "sha256": "c635e56f2f1127e9cd309a2f5a904d46c1b9ee4c6596c52a114f373bf6830664",
+      "hash_format": "utf8-lf",
+      "origin": "publication-addition"
+    },
+    {
+      "path": "docs/current-status.md",
+      "sha256": "f66fc50da497e900a9bf7b68110dd0d7ef463309924828fe32f8aa9b8645e17a",
+      "hash_format": "utf8-lf",
+      "origin": "updated-remote-file"
+    },
+    {
+      "path": "docs/references/README.md",
+      "sha256": "3c2e151336b7a7f3656bf90e064e1c37ab0d410b99994c5ed00e876ca8d89351",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/reports/README.md",
+      "sha256": "2d7e09f9c0067edd2c40e1fc5e4306ef7ba6fc27baca1d985155206e770cb520",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/reproduce.md",
+      "sha256": "ac2f039743295f4d293d6e53c841ac3c525c2c8d0582051a94660c3da8940191",
+      "hash_format": "utf8-lf",
+      "origin": "publication-addition"
+    },
+    {
+      "path": "docs/reviews/2026-10-08-source-review.md",
+      "sha256": "7caa3fa44ea685c020e88f5a131244b1bd0ac2b49270394ac0aa6b2852b391b1",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/reviews/2026-10-09-sync.md",
+      "sha256": "1ac389c605453097e25b67a4cff72a8fcd8c2426ffb199e7c9046d1bc41b5203",
+      "hash_format": "utf8-lf",
+      "origin": "publication-addition"
+    },
+    {
+      "path": "docs/reviews/deployment-baseline-20261009.json",
+      "sha256": "664b8749a28c02372e238e6efaf916d61ec08459e8d99ade09b9fcc4a7925c26",
+      "hash_format": "utf8-lf",
+      "origin": "publication-addition"
+    },
+    {
+      "path": "docs/reviews/publication-manifest-20261008.json",
+      "sha256": "5bc92ebe8663e359eec321e3ee085356a7baf95114bd75a7c39cac307ca0e324",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/reviews/publication-redactions-20261008.json",
+      "sha256": "160d0cb72b0e63d7a0dec1a8c54fae0ed20bf511be9f8964eb13d8ba7cf33e1e",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/reviews/validation-20261009.json",
+      "sha256": "264f644b4e0b6fd26f62aad8a4b43a9f53989f13a3f1e4c8c63f37c70a358760",
+      "hash_format": "utf8-lf",
+      "origin": "publication-addition"
+    },
+    {
+      "path": "docs/reviews/verification-20261008.json",
+      "sha256": "f20ef901dc9d6d6e82bdda55177d5cbb7290529eb501c45f1d69fadfd5f6b23d",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/rules/README.md",
+      "sha256": "aa73cdfa51778ee726c1f1301753316424baa3569c7ee52566262c01db07e6bf",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/team.md",
+      "sha256": "01d1e61f4b157a605c619d0cf958e056a146cf01a91af2829678e1e761a938b0",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/templates/experiment.md",
+      "sha256": "de54f1eda6d8c28890154778aa5af63156c3cb9ddcfe60f8010ca13f499374aa",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/templates/module.md",
+      "sha256": "dace0fa67ab1460e166eff31a5965261092819b891feb6e872240d730f777915",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/testing/README.md",
+      "sha256": "8879b076031f108011981a10789c032f541c7be09b463f41db706fe7c7210201",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "docs/vision-roadmap.md",
+      "sha256": "f49d70c987fc2019b017aef09301ca48c95f9b703480c3cf0e997407726c06e4",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "drivers/pigpio/Makefile",
+      "sha256": "b34c9b3f41f403f1590a09916b9a683189180ad90016c0590b1e2c4db27ccebe",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "drivers/pigpio/README",
+      "sha256": "148d4375cc67bae98b712e3954580bddf180af38b758dd5c70c889d88be712e0",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "drivers/pigpio/UNLICENCE",
+      "sha256": "6a90b88421a0d9b090e121daa11b3c6d55eed5eeb3281a2fcc454d6a28b5547c",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "drivers/pigpio/command.c",
+      "sha256": "20086424f6dcf4e3777dbb3e0625ae3bbe91b3f9d2e183aac1fd71be86b5e956",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "drivers/pigpio/command.h",
+      "sha256": "47c1f41b24788b6214321507b35dbeeba7f7490e8b2fbc183d9009f7ad3b5382",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "drivers/pigpio/custom.cext",
+      "sha256": "8addd3446e2f0b0fd5ba010292bf0c89d8a07c4975db37e926e0075fff29128f",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "drivers/pigpio/pigpio.c",
+      "sha256": "91e254814aa772f5a115c7846d624a852bbda9982cd8e8acb70b929927f3d611",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "drivers/pigpio/pigpio.h",
+      "sha256": "b20dc8efb79560dd11f58ccb787c0faefd8ed5fff20079827170856794a1b248",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "drivers/pigpio/pigpiod.c",
+      "sha256": "ced3d02d609a35ab623cb161df81745291ba042c8c7213bfd1844af6d8870344",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "drivers/pigpio/upstream.json",
+      "sha256": "c18ef1ed25ee5db1b2ea37666dbfb527336c3dbbe67626e91dcc3df4a0ed2fd4",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "experiments/README.md",
+      "sha256": "21f0a3a888ec37e82ba5213df4c8501b298341e3ad40c1989b0908232f05548a",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "firmware/README.md",
+      "sha256": "239d013a6e624c69b0fbd3fbe4a6b68282b2e043792895308b8668621bd3fa0e",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "firmware/stm32/README.md",
+      "sha256": "44a611a5f838450f28650c7476ea8c87e1ec2251fd10b14ef4f943b9ef5763da",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "hardware/README.md",
+      "sha256": "8f2f6fc79d0d8b7490a35f99c8f3fb3c813196dcb41f45cbc6326252fee70417",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "interfaces/README.md",
+      "sha256": "80aaf5ad9c506d0bba260d2e6570f65116c80e7a35d659da931b643e3eca8e4a",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "interfaces/race-observation-0.2.md",
+      "sha256": "2c6b0bb20cd558c906b754be31c4265465cdec0fe7ffa84981215e5148786faf",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "interfaces/vision-result-v0.1.md",
+      "sha256": "53cfe04b74e0ae63a01ade30928363d8f4c0ef72566c6369cd982503748de98d",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "models/README.md",
+      "sha256": "2a662aebdc0504f0abad971f114b63f9448a6db0ddf00669d85a7caadedfce00",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "models/catalog.csv",
+      "sha256": "98f623288f6c6629178858fecf9c8f17091fd3cf3587f31c3ab53a1bb8bdb7ea",
+      "hash_format": "utf8-lf",
+      "origin": "updated-remote-file"
+    },
+    {
+      "path": "pc-launcher/oneclick.pyw",
+      "sha256": "8523a22292726c930974b21ec41e6862d38dc43d5f4e6fb948e36e81630b041a",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "81afcfe935602002d660f7af613d64dc7c874fa499213bfd07371fd01367c4f5",
+      "byte_identical_to_deployment": false
+    },
+    {
+      "path": "pc-launcher/start.cmd",
+      "sha256": "5a9cc5412ebe43fee3b4d153035dc5f961aebec8ab8c11e5b53840297d398ac1",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "1152627272e9aabaff4deec97fad56e3a60878aabffd61d931860ea09d0ddbf4",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "pc-launcher/使用说明.txt",
+      "sha256": "78d62e2808cc0fb14db35d5937c555c204ed0ea8332371507e9542c97e184bda",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "44715ab15d3ade805ae6a4ee5a451d98d9c2b2224295dc623d7f2c4c50ebd356",
+      "byte_identical_to_deployment": false
+    },
+    {
+      "path": "run/pi5-calibration-20261007-01/145544-765763-native-ground-reference/primary-ground-acceptance.json",
+      "sha256": "414b75d6b75c0c6ac1969cf8aeef3e3b929f13073a82dc6850f9c3f0a93fbb10",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+      "sha256": "ba464aeef94685b8dfd2bfe409956a259e9d3d58b62949644cc49abe539cfa1c",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "run/pi5-repeatable-keyboard-20261007-01/1791388293750402700/neutral-observation.json",
+      "sha256": "f1fcf05dcfc8b3adc8408f3db57a7106110dbb0cbc18b385169c512be3e0b64d",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "run/pi5-repeatable-keyboard-20261007-01/1791388556342971300/baseline.json",
+      "sha256": "6e4caabb281fc82b48a61c970817db029b69d027b44b7fe5683cc0c57e19b2b4",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "run/pi5-repeatable-keyboard-20261007-01/1791388556342971300/deployment.json",
+      "sha256": "83a52fe3fcc3f81f30e5e46df245d6912b5cae04661a91c84b8971cb293c1dfd",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "run/pi5-repeatable-keyboard-20261007-01/1791388556342971300/review.json",
+      "sha256": "b5b43c34fc0dcc8f635ab88f88dc40d3c5efb8e1f1e352abb554d66ce97ec5b0",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "run/pi5-repeatable-keyboard-20261007-01/1791388556342971300/software-checks.json",
+      "sha256": "b37c1e18a628650357eda5c284c52a061ab2eba83ea6864cb00ecec107fe49be",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "source-snapshot.json",
+      "sha256": "6b70347fc6471bf9f584624198e0f1d580e87eb1c44b812d9e77b90928fdf7e2",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "tests/README.md",
+      "sha256": "a02993f2a6f3a523f763d3cf5ff9e3f4a9331633007ddd47524cf3c0f32d16b7",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "tools/README.md",
+      "sha256": "16db9b5dd294f0f188d0c06f310d041f53c2fec16e5fa01b0e92335ee73bb1c8",
+      "hash_format": "utf8-lf",
+      "origin": "updated-remote-file"
+    },
+    {
+      "path": "tools/audit_snapshot_20261008.py",
+      "sha256": "04258bc81c1106066b94a287540879ac242a2a340680782c78e3648fd49248bd",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "tools/serve_pwm_demo.py",
+      "sha256": "6d3bd1d4b1e7505e11443cf173c8776d05a8ddc01b75de6cfe71bff1ebec33fe",
+      "hash_format": "utf8-lf",
+      "origin": "publication-addition"
+    },
+    {
+      "path": "tools/verify_publication.py",
+      "sha256": "b1c638d17c11ce15795a20977e3d70eac2c3ba49c98093b034516a498fde1a97",
+      "hash_format": "utf8-lf",
+      "origin": "publication-addition"
+    },
+    {
+      "path": "vehicle/README.md",
+      "sha256": "1b7fefd0ce83ea3b5e9a753b04788c044b3adc202fed1ffc370add3388b927c7",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/ANNOTATION.md",
+      "sha256": "cd62682d25bc484bbf17e04ceefa7c4f37f70069be11b880d110e037f312d14e",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/AUTONOMY_PI5.md",
+      "sha256": "5555d79b5f0c624895443fda02089f21827feee8d7a96e3f0376b40ce1ca61fa",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/BEGINNER_GUIDE.md",
+      "sha256": "8739a128acfb62ab09b1f64177217664dd2712d40c224654b1033cb75470ebfc",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/BENCH_CALIBRATION.md",
+      "sha256": "19f9c56b55f75a2d8c9b5a9fce75b7b819c11528fbf9ddd88a07635a71f064c9",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/BOOT_TEST.md",
+      "sha256": "bb99436ab4fe6f439c23c6de82a5eb57bfa2cc50ebc4a062587ff6462eb50f48",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "e049f1503eb2f14916fbf6d4c9bb4adc1745df2e6da83aebb3d9976e14e7f478",
+      "byte_identical_to_deployment": false
+    },
+    {
+      "path": "vision/CAMERAS_GIMBAL.md",
+      "sha256": "da5ee5861d7baafb4d3c68e4e9f8cbc40c3b577be5ff15edae4695fce5eb3a22",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/CAMERA_TEST_2026-09-23.md",
+      "sha256": "7414ed22cdc919ea940784ec1e968422252c60180b32addadc2c4f79973ae07f",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/DATA_COLLECTION.md",
+      "sha256": "5324dcf31b2e8deec591b2731a9d07b7a6b31ca3779c8588ca431dfc0925929e",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/ESC_BENCH.md",
+      "sha256": "0ac96f018428f9817d8b5ecc593865ae388f48eea693ad0182320616165f10cd",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/LIVE_PREVIEW.md",
+      "sha256": "cc6d356f879bf1059611f5bafbc437345cd492ae9f2ce8d64702413cc650722f",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/MANUAL_BENCH.md",
+      "sha256": "e97f84e350b5e28e2c864f312b4676ea9f822edd7be39e690868ecebcb6b4052",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "a09a4baee259498fe56ad4eb54ec9c6b8d1f2027a193891411f1de4cac01e53b",
+      "byte_identical_to_deployment": false
+    },
+    {
+      "path": "vision/RACE_2026.md",
+      "sha256": "0b942ed371e9d0b3a3a8925149dbd7303bb408887f18f71c33588f9623acb45b",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/README.md",
+      "sha256": "c6bc604d3b7af02b4850c8ed579257acf591fa13bc8214b3e82b48108bc9492c",
+      "hash_format": "utf8-lf",
+      "origin": "updated-remote-file"
+    },
+    {
+      "path": "vision/REFERENCE_AUDIT.md",
+      "sha256": "23735c0f6de411ad744f70a47194317fd2070e8be9c80e90b8fa52fa65bc92d0",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/STEERING_BENCH.md",
+      "sha256": "cb266ab2b648bae0e29f35f144c8054624a35eb9f01d85b3901ac88a5561d6e5",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/STEERING_PWM.md",
+      "sha256": "4a7a9e60cd8c7007ecd12e7f963f0c589c3085ff3ff3a4165b560afa27b34695",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "06ea657d7b2ee6cfe67c5662072464df958dbfb0f00f4a94b08ce7939daaf2dd",
+      "byte_identical_to_deployment": false
+    },
+    {
+      "path": "vision/VALIDATION.md",
+      "sha256": "c06f4da67868c226828c90269a72632654294172a555f9dd99b469d567b81b0b",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/VISION_LEGACY.md",
+      "sha256": "1894fc2c8e8f767b2ccaf81e5afd3060ded98188f2e35190169e2b6c53410980",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/autonomy-pi5.json",
+      "sha256": "27ef1d28880723962ffc56e6dd0ad8dce7656d44f6b92e9b263a57bdf110fc43",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/bench-calibration.json",
+      "sha256": "33b6cf4db33eab3f98a23a43f9af035cd329a92bbde6bb84d72a623778ea8ccc",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/cameras.json",
+      "sha256": "0111449c17d9567db7d10b0a25c60f2aa510b7c4923e8854b80d4f091fca95c9",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/dataset.example.yaml",
+      "sha256": "773570f5125d3baae82ef0b8aaff5c2888180b3b3b72bdf5175112c70e697c8f",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/default.json",
+      "sha256": "08d303973ce99e493f188be07f2b09198fe2d00e16e71e05c5fa44e5a2831fcf",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/gimbal-observation-pi5.json",
+      "sha256": "a5cf5cb4448399cbb33f3726a5f47f5689c375785c93943f7b6e36bc8145dd69",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/gimbal.json",
+      "sha256": "bbab1aac3349e8808274b23a33dfc38c550a495a7a84b138eaffd22f5e068aef",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/model-source.json",
+      "sha256": "e17eb5a7aa7f41c4f8ac9261d82c51ab96fdbd516e7cbe4dc86411ba81fa5cfc",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/pi-control.json",
+      "sha256": "6143e96797642283b5d502732f87dbceef0144f70542fc628a605aed27fe8b6e",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/pwm-overlay.example.txt",
+      "sha256": "f8fede1a0674dea1f2ba334bfa1b585f05b61223d56fb544ad0405636d432063",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/configs/race-2026.json",
+      "sha256": "c91f42d467cff8750acef02f3808f86bd119b4af8d4b9d367a2401e234873729",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/deployment/boot-test-checks.json",
+      "sha256": "507ddcfcaf9033b5164bef0cb3f58e3390b7d57e4851f1f454d8496e2723ff03",
+      "hash_format": "utf8-lf",
+      "origin": "publication-addition"
+    },
+    {
+      "path": "vision/deployment/boot-test-template.json",
+      "sha256": "c04afd42bf2b5db90e4a33b061fc2f5327a6ad7a61a7818e0b57d098ca4c7896",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "c04afd42bf2b5db90e4a33b061fc2f5327a6ad7a61a7818e0b57d098ca4c7896",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/deployment/smartcar-boot-test.service",
+      "sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/deployment/smartcar-diagnostics.conf",
+      "sha256": "2b12f4396caf73e1913f2505b31aa4902d4e98490a3bb846707e6b1be0cea482",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/deployment/smartcar-preview.service",
+      "sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/pyproject.toml",
+      "sha256": "2498c94f80b8ff048018f99082ac93b90a53fb0b1d7d8a18968368b4f8af63c8",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/requirements-camera.txt",
+      "sha256": "74c527cde6bcd269223efc9fd1c661e926cd69495b42dc39082c4260fc3a7839",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/requirements-export.txt",
+      "sha256": "c759042cbb778460f6450c0c1a6dff9cfed103b35e24035b1278e82f9364dcfe",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/requirements-lock-windows-py312.txt",
+      "sha256": "c602517ef3e5873e371a923e798d09d65a8cf25967e7a4bac17b9feb308c87b2",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/requirements-yolo.txt",
+      "sha256": "54c498a94e731e8acfc1a34af9a892aa2742d54f5ea0acce4bf74d855a34a81f",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/requirements.txt",
+      "sha256": "5383214086fe9d74c9613ae7e4e9b7efb8b1ecc7126b20c4ccd78685a9bfeec6",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/run-demo.ps1",
+      "sha256": "442e048795cb91c8d2a627076b61f18b11059e99a186d4aca9e869e2e371d3c5",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/__init__.py",
+      "sha256": "d5fbce997ed9bcd239447a63a0ad121e5810b5a8dfcfffca5c56fb73e6e27177",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/__main__.py",
+      "sha256": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/announcement_backend.py",
+      "sha256": "01edeb05c92b227487054505d26315d2de1b2af8e44706012688f90f4f353b22",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_audio.py",
+      "sha256": "a88cefadd6a08d21808b32dd07ff3f25373918cfdd5ad541ec17dbb50dd396ca",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_feed.py",
+      "sha256": "7394dd1087a5df9a9009e4fb7cc82035fa5ae8fe2f4287be7b410b54414bcc98",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_geometry.py",
+      "sha256": "7fffff2197480be2b1a27c58fb9a6cfca8be012591e2bb51911aa60c1c7ccd2e",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_motion.py",
+      "sha256": "84869f8e8d94ad97339d720653592b156d8c43050e6a87ad1c1f22de76e86d08",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_observation.py",
+      "sha256": "c26e63931f964b0253f353c87a7924f5682a2157b11eb3f9eb1fbddfd3063cc6",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_profile.py",
+      "sha256": "1d00022f6c513976e49b15a10d6275268418894068ad20311d56dcda09531155",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_runtime.py",
+      "sha256": "b62653380bec8263a6af0a618086bc7c97284188461f721857d3cd664f9d49ed",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/boot_test.py",
+      "sha256": "90a72491a35b2838e23e2ff6fac7346103e3bc8d612d34df1020f90f6976d6e4",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "90a72491a35b2838e23e2ff6fac7346103e3bc8d612d34df1020f90f6976d6e4",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/src/carvision/camera_assistance.py",
+      "sha256": "4ce18dabe1a8e06f8623cce9f95e34d013bf240ad8cb0777acf4a00bc17dae47",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/cameras.py",
+      "sha256": "c9f3a90727c81bfec8b2a17ac8d79beeb4f559f8ec13080862c3ae8b6b997997",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/classic_detection.py",
+      "sha256": "73d75b20f513cb386b1ad805ce33c632871aa16988025e4e69da3446d079470d",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/cli.py",
+      "sha256": "e21420e706540392522438dc0b60bd9730eb0585827ff29176544f8bbb2363e9",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/cone_shapes.py",
+      "sha256": "d1e69ebeca028171fc9de4ce268ca5a97336623f1e1f183af8c315f78e76fdfe",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/config.py",
+      "sha256": "d632cfd8603bb788180970d5577acb972c35b937c62d293939102067a9521b35",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/dataset.py",
+      "sha256": "c8e683206cd9deef9a5f7384faef471e7a6bbde38ef9668646d2130ca0308fdc",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/demo.py",
+      "sha256": "df942365f15deedee65c38dfd36ea093c6c52f7842457b89650b26b6687a842c",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/detection.py",
+      "sha256": "c4d1d8ebb793854bf914e6bdab3302cfcd27b32e074cd6b8edfb2858263ee3da",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/display.py",
+      "sha256": "a64ca80b42b4f0180864bb09b73c45661348aa181f0dd18583a050cbcac5a4cc",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/esc_load_probe.py",
+      "sha256": "da328515e74cdf504f3135e89ae7ccf0760d62284f879f24cf182e7e999e5b69",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/esc_wave.py",
+      "sha256": "76fc13c37f2dca1126cd5283e5c0172b73e82e3b9a56a4490a0e0f689dd4fdf9",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/gamepad_controls.py",
+      "sha256": "424cb52817de994653dd199036a2cd1e603cccf21716c36cebe709e68434074b",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/gimbal.py",
+      "sha256": "b0192dbc8446e2e42b22c732ab39f82d2d4942d9665fa5616ea9ab07922b6fc5",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/gimbal_bench.py",
+      "sha256": "31f2dff8029c4bffeca1ae0873df88101b970139468e38fa3192097a46da8dbb",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/ground_odometry.py",
+      "sha256": "8ddc4a4ba8b8c911d779dae73140353a536467d3a1636a5fbf4b9f073eb26cd2",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/lane.py",
+      "sha256": "d4c84e55a290a061ef2a3854d2d8174a7684b830815cebd00e00f09bd5036a25",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/manual_controls.py",
+      "sha256": "db322dd2b7dde16fb19e2b933fe5c44082056ef00d6242170a1a093e88094d33",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "2b9e5106e69b554d201f6dc4ef887fe8671b48b8c3fed3cb2df28c9ad910e6de",
+      "byte_identical_to_deployment": false
+    },
+    {
+      "path": "vision/src/carvision/manual_drive.py",
+      "sha256": "0aea86f4fda6445df1e8831efae5856a80868be51d6196f4ca8d12c3c9af05bb",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "ae155c3ecf4ff61c60da51ac4a39f5054cc95e538003882057dcf32310757fb8",
+      "byte_identical_to_deployment": false
+    },
+    {
+      "path": "vision/src/carvision/manual_hardware.py",
+      "sha256": "1753e5efa848c5333ccafe15e02d236eb6125a68fefe11a932c2599208ae69f3",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "1753e5efa848c5333ccafe15e02d236eb6125a68fefe11a932c2599208ae69f3",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/src/carvision/network_guard.py",
+      "sha256": "5dcfa6e6086bf96563f5d05138040e34917c0b2e466a742b4f9b1c0e6dbaebfc",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "5dcfa6e6086bf96563f5d05138040e34917c0b2e466a742b4f9b1c0e6dbaebfc",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/src/carvision/pi5_pwm.py",
+      "sha256": "b4454f4cbd04aff163e6a56bc4d8889f7a56710a4a18ad8a0235f967524e151c",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "55fbecaa41b4ad27c6ca5b149c4cc493e49227a8661eb94eb099932a0e29a782",
+      "byte_identical_to_deployment": false
+    },
+    {
+      "path": "vision/src/carvision/pi_control.py",
+      "sha256": "6953374f8d394496c601c376a75337da661693fdbeb5992fb755370ba3e7c34a",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/pi_runtime.py",
+      "sha256": "b62f9cb66d47e9c6b5e7fc6c74dc835961a55ad24f269e25b109f3069a7151c9",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/pi_runtime_bridge.py",
+      "sha256": "8f4865b019168df4fd7302548c1ecd6c1511649cb3aa8902d3e33a2487a1d15a",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/pipeline.py",
+      "sha256": "c1dd1a2e73cfa049453921ecbc54579d321554e8bf1b21ed743e0b31a032e4e8",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/race.py",
+      "sha256": "54cabea91af75bdb39912f43900b0001aea379d76db3f2423d503ead93bf7fa6",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/race_executor_bridge.py",
+      "sha256": "db1782846d41c3d73825c83586d7dce37712fffe2aa66f8b20351cf047c4f050",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/race_monitor.py",
+      "sha256": "0d6749a65aaf027608b3835268fae4f11c89844e98e7fc257e8a770333bd6630",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/race_workflows.py",
+      "sha256": "dccc6e225247255977eeb4be8560b37cecefbabb6a50d242c12976999612944c",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/rasadapter5.py",
+      "sha256": "15a5fdf56f5649ae98b2007e19edf304a6ae48d21cd75c4a6530c70298557c57",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/rasadapter5_executor.py",
+      "sha256": "1db8787601b1dc12f961a5fb96b4eadace02da07e02e326475710eef9894682d",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/results.py",
+      "sha256": "e4974ec91555443e9279baf0741a1b3d831b761a89fe7a4a546e0ab5c509215f",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/sources.py",
+      "sha256": "8eae1f91dac83d8744de2546a31d962bb0826a07b39ba586b53231cf6a30ba33",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/steering_bench.py",
+      "sha256": "180bdbf3e1f190a1cb5a7bea6b388135d3634a186657d2f59b0a4f07e59b0e58",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/steering_calibrate.py",
+      "sha256": "98c3d61f7456fc6980dadf218fc163db6f94ccd832acdc96855f0c2b86d7e637",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/steering_pwm_controls.py",
+      "sha256": "a91bf4140e1b8df54991f310b4dc7ed6551d8810145312b9536d54f4a260e64a",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "a91bf4140e1b8df54991f310b4dc7ed6551d8810145312b9536d54f4a260e64a",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/src/carvision/temporal.py",
+      "sha256": "19d9335b9726c980dd5fb17e661725d2d55ad4dd9e3b76a9cabbe8877894c879",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/traffic_lamps.py",
+      "sha256": "9f1d315e9ba6401944d0abadc17b16a7f1436cf5695e6ebf7d311d7ee31f2f1e",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/src/carvision/web_preview.py",
+      "sha256": "ecb9121a30b8e68f7c40d0a22b59cb045c4cc7bd504a92e81c61ebe220656334",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "ecb9121a30b8e68f7c40d0a22b59cb045c4cc7bd504a92e81c61ebe220656334",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/src/carvision/workflows.py",
+      "sha256": "ff4f899f9c982c19c4842884d6427824631d0f4ca4b0892e58c616a379766f9f",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/blue-board-close.jpg",
+      "sha256": "864b0fc527aeec0e9a6532014b093a9ff5235362073b8bfc7be0f3d4c865737d",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-left-with-small-background-patch.jpg",
+      "sha256": "4da176e81f3f8c12a935629aa6f00683e01d47b3df44f1f4bc0e6de17026c32b",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-primary-a.jpg",
+      "sha256": "426f874ad2568c7a8ea641a8608e95ec4e7734ee7b72f268bae1d35b5f650302",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-primary-b.jpg",
+      "sha256": "e7ff7cb3113699686e82a9db453bb43d38b0bfb7b6484ab6abdbb5c97c05ff20",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-primary-a.jpg",
+      "sha256": "282c2dcdad3ec42fc649fc7b721c0c56f398f25c738e6a7cec7c2af2c55efb95",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-primary-b.jpg",
+      "sha256": "34f967040553d869781d43895f03fb48b9e074af0b9d8ff8add6ba1a9236f1de",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-secondary-a.jpg",
+      "sha256": "ef97fc4be9ca6169dff6eefed279f2f9165f4a3ab000e2be250dd03d01308ccf",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-secondary-b.jpg",
+      "sha256": "4c0d62528e236646e8890ab60ba1f7fe37e09412be403511cba7f4b5c3cc0ee1",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-reflection-a.jpg",
+      "sha256": "2dabe222500d2bc7372cb5d0d73795777ed55fcaca4a59ba0cf6616f751229a5",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-reflection-b.jpg",
+      "sha256": "07511d863e221e247e1b15da0ad0c88a7a738a8e738973536afcc1f913d290be",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-rounded-tip.jpg",
+      "sha256": "44c4e57efb2ead4f7178a51e7dcd7563b54fe518e3e39e975634802ea6714230",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-secondary-a.jpg",
+      "sha256": "f9bac6065b01693142539c3823b3ff82050a98cf359c2a76984d0510979215f0",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-secondary-b.jpg",
+      "sha256": "a0b045b34f79ab52b17b771079158ec3fb18f2dbfb044daa8deb821bf02b8d36",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-background-primary.jpg",
+      "sha256": "dcfe1cbc721acfb23d850d69c654865d3502e94f4de703f2e8c588c4bf0c16dc",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-papers-secondary.jpg",
+      "sha256": "e1a4b41a6c88d9538e0fbdac412e18a5128fbcc46d24c6dd6ebd6272af3f1ad2",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-all-off.jpg",
+      "sha256": "d590d0d143a5c2dfbb84c4f9713f17e519dcffda80cd9c3c511c84f42ef48118",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-background-primary.jpg",
+      "sha256": "705da6bbca5cad67b1d6d2898a1612548af74a4fe70bfaad8af947247a19e937",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-green-overexposed.jpg",
+      "sha256": "9ec8fa7f533500d8221ca0e7d4692e7e5ee3b15a59c923f1a1f176be975e3174",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-red-overexposed.jpg",
+      "sha256": "8d104f0438e1ec91c7d6d6c7626384741a77459eaf75b69229b163c289d21936",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-yellow-overexposed.jpg",
+      "sha256": "b6c656fac276744a4c0d261abe89b1669406fa3f117eebc8a88b984e0acb2bc4",
+      "hash_format": "bytes",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/js/gamepad_controls.cjs",
+      "sha256": "9213c6b4303e8d03f3f030babc1ff9a767620a7963633f0118886c635ac24e21",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/js/manual_heartbeat.cjs",
+      "sha256": "d1b30cf9b37129accee45e911ea5fb3ba2e4c575e996e5155f430a39faa077d2",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "d1b30cf9b37129accee45e911ea5fb3ba2e4c575e996e5155f430a39faa077d2",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/js/steering_pwm.cjs",
+      "sha256": "cff3c26742a4edcc1251ed8cb429428e2f8de6120ba5e635640185ddae852758",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "cff3c26742a4edcc1251ed8cb429428e2f8de6120ba5e635640185ddae852758",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/smoke_yolo.py",
+      "sha256": "4eb21407a19aff3e373bb74f408993173652a10ac0874beaa590038276d65d08",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_autonomy_stack.py",
+      "sha256": "9d0ffa37cff2420a598fda5552c89a4e819a3ca41376d9464d48778920950495",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_boot_preparation.py",
+      "sha256": "dab16e897f5a00f5571afc2a5e800f6e6c86cf9947e375e0e1b606f99cc111d6",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "dab16e897f5a00f5571afc2a5e800f6e6c86cf9947e375e0e1b606f99cc111d6",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_boot_test.py",
+      "sha256": "e9eb875e64f421b8eb08b2f7d78884c6558e209e77b91a9df28494aeb8c73926",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "e9eb875e64f421b8eb08b2f7d78884c6558e209e77b91a9df28494aeb8c73926",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_boundary_steering_center.py",
+      "sha256": "a5077e2a535e8a967cb9e2ba84f33180c73942132b865949e4e6dc78e4b0df05",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "a5077e2a535e8a967cb9e2ba84f33180c73942132b865949e4e6dc78e4b0df05",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_camera_assistance.py",
+      "sha256": "e9660e7f9ec307e3b2eb978f65b5b71267f215bf02acd3d6d274eea47b66df39",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_cameras.py",
+      "sha256": "3d22be07bbff1b89dca62a6bc974c37a06524ecec9c83245d005981a679ff476",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_classic_detection.py",
+      "sha256": "96e30d9c895656a23b59f3ab6edabb1470f964976d74c11d39e6d6f9748e34d9",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_cone_shapes.py",
+      "sha256": "4aafb338194ff10caeebca1dcdd2544dfc970143d4e3da51f180aa296686bb18",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_deferred_drive.py",
+      "sha256": "2835445c44e2f421fe754cd7374a27aacc5edd6e0b06cd8fe80d0124331c2671",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "2835445c44e2f421fe754cd7374a27aacc5edd6e0b06cd8fe80d0124331c2671",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_esc_bench_wrapper.py",
+      "sha256": "ddc6f4b0c2ba364411db377f86099bd6da58811665a425be7778c5a8200f17cf",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_esc_continuity_review.py",
+      "sha256": "6de008514890c0b056bc4829701e4a25e34f10769695712e7bbed7b727d9ce78",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_esc_wave.py",
+      "sha256": "274eef6c5c9bb70bb48efff1cf919c33324d587e4043767ed9704db9fa63ca6b",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_gamepad_controls.py",
+      "sha256": "6c1d2113da4f0925b480f5bba84d907bc6663351491f541e38594365440549e2",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_gimbal.py",
+      "sha256": "ca12321dfa3ec33b2837324d6991fd628742ef9c2ae0a54c62d486c2ce83d878",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_gimbal_bench.py",
+      "sha256": "55cc1dac2c481ec9b6b6aa92c8524e95afa82ed526fc913d116f5b3d48ead33d",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_ground_continuous_drive.py",
+      "sha256": "b42fb10fd42f3ee6a50da0854baa30a05fc258bb7e04da888a357fd0f8114ef2",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "b42fb10fd42f3ee6a50da0854baa30a05fc258bb7e04da888a357fd0f8114ef2",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_ground_held_drive.py",
+      "sha256": "f43106c3e1c74556899a51306f10911c5590a1defebc4d180b146160d1a61670",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "f43106c3e1c74556899a51306f10911c5590a1defebc4d180b146160d1a61670",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_manual_drive.py",
+      "sha256": "aaea4f56d581373817fc2760e63d7e882b38ca9c02f2bb75480024fea0adffee",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "aaea4f56d581373817fc2760e63d7e882b38ca9c02f2bb75480024fea0adffee",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_manual_heartbeat.py",
+      "sha256": "1183b343292a29e3b4ca4787fc2a139f4dafb81008f2a53a785c34eed9f51d6d",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "1183b343292a29e3b4ca4787fc2a139f4dafb81008f2a53a785c34eed9f51d6d",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_network_guard.py",
+      "sha256": "6a82cf2a5d5282d877bf97b97ee08595481b0d090f3427158d1d481e804db039",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "6a82cf2a5d5282d877bf97b97ee08595481b0d090f3427158d1d481e804db039",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_pc_launcher.py",
+      "sha256": "7822c4fbea320534bf62d547ae6612c01b587ae123c6670237ab1672a0017cd8",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "e8fee3117bf9ceb9d461ae79c0ef2a7641629a5c4f5669bd4c7a85ae129dd2a7",
+      "byte_identical_to_deployment": false
+    },
+    {
+      "path": "vision/tests/test_perception.py",
+      "sha256": "865c85c6481622dc200f2f2f9339371f99be651111f3d732198350e1421857f4",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_pi5_gimbal_reference_guard.py",
+      "sha256": "9f33b62b7864711940b4ecc74fb029266c40001f1d920a0308e7fe49f3db217f",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_pi5_pwm.py",
+      "sha256": "a902c0d2c592909130b01cb2628b5abacf993e5ae1ef2f0522f94d172ff18659",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_pi_control.py",
+      "sha256": "e89c09302fbbd1a0efb45ce4857455ac88408fd8bd3881704b6a7c3e3e054aff",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_pi_runtime_bridge.py",
+      "sha256": "94fda72abd1ddfb781353bc2e591167ab9236e24e6b123d23f98109ce1984989",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_pi_runtime_bridge_entrypoint.py",
+      "sha256": "116270e264e4498b8df2248b2369bf15ef5fc9c4c9552ed091976edcb3dc0f12",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_race.py",
+      "sha256": "a3952f832683f814264ab82ec59a4aa587cbff3ffc2f33f124d7b4dfb020d856",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_race_executor_bridge.py",
+      "sha256": "a9e75238fb2537aede5162b1dac90348442087476b14607d35fd55cd3026e4e8",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_raised_held_drive.py",
+      "sha256": "f2a94a8723572899f5eb88a284ff65e434c48f7c3b02b0757350f6d4654353fb",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "f2a94a8723572899f5eb88a284ff65e434c48f7c3b02b0757350f6d4654353fb",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_rasadapter5.py",
+      "sha256": "9bd4ee77e0ab1f85e480a1392572a9f3391317189819a5f1fb7ef3e75e234e99",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_rasadapter5_executor.py",
+      "sha256": "7c39ba83761cc4754b6a0b1c38152f2754a15f885946d46c3a79b0e9ac006d92",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_repeatable_drive.py",
+      "sha256": "4ab03b0fbac3eff2408ef43e53e6c98c2ddc3c06fa65762bbdec1ded55b26e64",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "4ab03b0fbac3eff2408ef43e53e6c98c2ddc3c06fa65762bbdec1ded55b26e64",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_steering_bench.py",
+      "sha256": "f4fd18f1b3aa7bbbc997dc338e8219dd0b470f4c75a101946de63e8b2e84c326",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_steering_calibrate.py",
+      "sha256": "2b0da9532a96aa94af1fba093d5af59ee910d94056c98dcda334f8497fc63fa8",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_steering_pwm.py",
+      "sha256": "405123f14b164a517b5c3351b00d1342df5b1896222ede0d29bee97ecb1f83db",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "405123f14b164a517b5c3351b00d1342df5b1896222ede0d29bee97ecb1f83db",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_straight_steering_hold.py",
+      "sha256": "d7dd7fdddb33e7f0d585716a5f23f12a718322e819b7d8cc9ab05b90e1448569",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "d7dd7fdddb33e7f0d585716a5f23f12a718322e819b7d8cc9ab05b90e1448569",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_traffic_lamps.py",
+      "sha256": "2d2f6c2d7fe8d3cef7980308f170be1c2bb94c91a0564abd561edea254b0352c",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tests/test_uart_target_steering.py",
+      "sha256": "8870e96ac766dfdaae74c93cdc07b8b221a834782df9ebc21e39e7dc7523f73c",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "8870e96ac766dfdaae74c93cdc07b8b221a834782df9ebc21e39e7dc7523f73c",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_web_preview.py",
+      "sha256": "dd608e49729dd68401ccc59c41e0d448bde71381345e46a4e334a81948aced09",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "dd608e49729dd68401ccc59c41e0d448bde71381345e46a4e334a81948aced09",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_worker_endpoint.py",
+      "sha256": "25e2bcb6a0eba2be5244600558ed0eec1724e9c35ada1d7117aee73a531406d8",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "25e2bcb6a0eba2be5244600558ed0eec1724e9c35ada1d7117aee73a531406d8",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tests/test_workflows.py",
+      "sha256": "8a17e98d8322904e50908f76c8600b8c989433a5d633e5ed6fb90ce2b4dbb560",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/bench_original_esc.py",
+      "sha256": "9e876f88fe4eec3d98a260ac393609b0daaff4a3fe394aa917f32cc33f9e075c",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/bench_pi5_gimbal.py",
+      "sha256": "0532d35e107d50a42b753cbceaee6169c7120ce87ce1bdb1e5fb0b50732f0896",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/bench_pi5_neutral.py",
+      "sha256": "67ba50dcff77e5e80e1914a39202a693e14518eb11957daf8393dac23c063fc0",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/build_autonomy_delivery.py",
+      "sha256": "5f58ac16e3c4ddc54f8f73cc8d04302c9924ec7a9320353fcc116b1145ec6558",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/build_delivery.py",
+      "sha256": "4ab117c0f2dd6f33300fa5de81f25e33c5e74dc105f140f58a60b4d2c5f4de1f",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/build_gimbal_driver.sh",
+      "sha256": "3844779b3b3027a53d1078b58cee6a7dadf923679ad981d73bae4ba5f9edcd52",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/deploy_autonomy_pi5.py",
+      "sha256": "1c77f3cc476ba2153117510c612eba67a6c0387168af3031beb00838e90b5a39",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/esc_continuity_review.py",
+      "sha256": "f98f9dc1fffb002c03069a60552f41b073dd2a05d79955cf1352248b6a3565e0",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/install_pi.sh",
+      "sha256": "ef2338a91e3384e1863c8fa2102e047598bd02beb6ba6640590f98bb1a3016b4",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/manage_pi_preview.py",
+      "sha256": "d1b44e4ee8be69a6b5737a428f29d4a9a49b57e919dbdc098b26d3fe7d92104d",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/probe_5g_module.py",
+      "sha256": "6007a031773a41fab225b5751166529b406c55b0a8b3a1e23b5b4737dec0a56a",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/probe_camera.py",
+      "sha256": "c918704389a21a96dbb373b59f470f707e4efc22738f092be7c8588355170b58",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/probe_gimbal_driver.py",
+      "sha256": "a0939808bada702b5f33bc32a384c6ca455d187439f7102e831766914e222ad4",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/probe_rasadapter5.py",
+      "sha256": "004d8215717233f015e9740a5270b71b6eb07664b2fe4df9f2836efe6d6360f1",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/probe_tts_module.py",
+      "sha256": "20ad268ac58688e318172d9964945ec2a821f031a4a1df951ed414df26640538",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/probe_voice_module.py",
+      "sha256": "1ab86e9c393be6c133f920e5c3f2c33cc7ecb62b7142ae178c925eb7b9b3d525",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    },
+    {
+      "path": "vision/tools/serve_bench_drive.py",
+      "sha256": "048b29b993374ed403b4cf979552bd38556333fb6170107af677bc39da091f4b",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "048b29b993374ed403b4cf979552bd38556333fb6170107af677bc39da091f4b",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "vision/tools/serve_boot_test.py",
+      "sha256": "a5bee236249b0f4f4507691ebf88882e1088e1d803522607e6893cf545400917",
+      "hash_format": "utf8-lf",
+      "origin": "latest-deployment-manifest",
+      "original_deployment_sha256": "a5bee236249b0f4f4507691ebf88882e1088e1d803522607e6893cf545400917",
+      "byte_identical_to_deployment": true
+    },
+    {
+      "path": "源码包说明.md",
+      "sha256": "fbb3a6788645cb8dba76ca982f8f8ffca931953a8439efe6637c1938bd38c1a0",
+      "hash_format": "utf8-lf",
+      "origin": "retained-remote-main"
+    }
+  ]
+}

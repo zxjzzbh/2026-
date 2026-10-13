@@ -33,6 +33,14 @@ Listings/
 !.env.example
 !.env.*.example
 secrets/
+delivery/
+coordination/
+connection.json
+HANDOFF.md
+id_rsa
+id_ed25519
+tailscaled.state
+*.keylog
 *.local.json
 *.local.yaml
 *.local.yml
@@ -81,3 +89,6 @@ desktop.ini
 .vscode/
 *.swp
 *~
+
+# User-requested, reviewed AI handoff archive; other archives remain ignored.
+!/docs/handoff/2026-10-12/smartcar-ai-handoff-20261012.zip

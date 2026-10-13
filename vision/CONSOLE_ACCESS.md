@@ -4,6 +4,8 @@
 
 ## 一键连接
 
+新电脑如需通过 Python 脚本同步代码到小车，先在项目根目录安装 `python -m pip install -e "vision[deploy]"`。该可选依赖提供 SSH 库 Paramiko；完整软件测试使用 `vision[test]`，也会安装部署入口测试所需的依赖。安装依赖本身不会连接或启动车辆。
+
 双击桌面 **“一键连接小车”**，或项目根目录的 `connect-car.cmd`。脚本执行 `vision/connect-car.ps1`，依次检查现有 Tailscale、车辆网页与SSH端口、本机8082转发入口，成功后打开默认浏览器；失败时保留窗口并说明当前卡在哪一层。
 
 - 已连接时直接复用，不重复启动转发。

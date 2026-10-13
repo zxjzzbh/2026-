@@ -51,6 +51,16 @@ def test_no_observed_progress_ends_drive_before_the_old_ten_second_limit():
     assert '未观察到移动' in d['reason']
 
 
+def test_lane_mode_keeps_forward_on_line_loss_but_still_brakes_at_crosswalk():
+    c=BrakeParkingController(load_settings(CONFIG),'lane')
+    for i in range(40):
+        d=c.step(sample(i/10,None,True,lane_valid=False,lane_offset=None),i/10)
+        assert d['esc_us']==1575 and d['steering_us']==1610 and d['line_search']
+    d=c.step(sample(4.,None,True,lane_valid=True,lane_offset=.5),4.)
+    assert d['esc_us']==1575 and d['steering_us']<1610 and not d['line_search']
+    assert c.step(sample(4.1,.78,True,lane_valid=False),4.1)['action']=='brake'
+
+
 def test_known_forward_and_neutral_packets_match_original_manual_driver():
     manual=RasAdapter();new=RasAdapter();original_packets=[];new_packets=[]
     manual.send=lambda *args:original_packets.append(args)

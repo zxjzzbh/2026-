@@ -1,6 +1,11 @@
 * text=auto
 *.md text eol=lf
 *.py text eol=lf
+*.pyw text eol=lf
+*.cjs text eol=lf
+*.cmd text eol=crlf
+*.service text eol=lf
+*.txt text eol=lf
 *.c text eol=lf
 *.h text eol=lf
 *.cpp text eol=lf
@@ -15,3 +20,6 @@
 *.png binary
 *.jpg binary
 *.pdf binary
+
+# Preserve reviewed patch bytes; a blank diff-context line must contain one space.
+docs/handoff/2026-10-12/pending-steering/*.patch -text whitespace=-blank-at-eol

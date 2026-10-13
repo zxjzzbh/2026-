@@ -1,0 +1,504 @@
+--- a/vision/deployment/boot-test-template.json
++++ b/vision/deployment/boot-test-template.json
+@@ -22,6 +22,9 @@
+   "steering_backend": "rasadapter5a_uart",
+   "steering_channel": 3,
+   "steering_center_us": 1610,
++  "manual_steering_span_us": 180,
++  "manual_endpoints_field_verified": false,
++  "manual_endpoints_source": "2026-10-12 operator requested larger symmetric manual steering while Pi is powered off: center 1610, left 1790, right 1430 us; physical wheel angles and mechanical clearance remain unverified",
+   "steering_boundary_center_trial_requested_by_user": false,
+   "steering_reference_previous_us": 1615,
+   "steering_reference_source": "operator requests a 1610 us steering center trial on 2026-10-08; previous reference 1615 us; low-speed straight driving validation pending",
+--- a/vision/src/carvision/manual_controls.py
++++ b/vision/src/carvision/manual_controls.py
+@@ -81,7 +81,7 @@
+   if(pwmMode){
+    el('drive-speed-section').hidden=true;
+    el('drive-speed-note').textContent='仅调 S3，每次最多 2 秒；电调保持关闭。';
+-   el('drive-limits').textContent='1550–1750 μs，每次试调最多 2 秒，结束回原中位；不自动保存标定。';
++   el('drive-limits').textContent=(s.steering_pwm_min_us??1550)+'–'+(s.steering_pwm_max_us??1750)+' μs，每次试调最多 2 秒，结束回原中位；不自动保存标定。';
+    el('bench-confirm-text').textContent='电调已关闭，车轮已架空，手已移开车轮和转向机构';
+    el('drive-enable').textContent=phase==='esc_off'?'准备 S3 调试':phase==='steering_ready'?'启用 S3 调试':'正在准备……';
+    el('drive-time').textContent=phase==='baseline'?'检查约需 30～45 秒，请保持电调关闭。':phase==='steering_ready'?'保持电调关闭，确认架空后启用；随后等待 1 秒。':'尚未启用 S3 输出。';
+@@ -171,7 +171,7 @@
+  if(s.steering_pwm_available){
+   el('bench-confirm-text').textContent=!s.boot_test&&!s.hardware_output?'我确认这是模拟 S3 模式，不连接车辆':'电调已关闭，车轮已架空，手已移开转向机构';
+   el('drive-enable').textContent='启用 S3 调试';
+-  el('drive-limits').textContent='S3 范围 1550–1750 μs；每次试调最多 2 秒，结束回原中位。松键、空格或 Esc、切换窗口和失联时停止。';
++  el('drive-limits').textContent='S3 范围 '+(s.steering_pwm_min_us??1550)+'–'+(s.steering_pwm_max_us??1750)+' μs；每次试调最多 2 秒，结束回原中位。松键、空格或 Esc、切换窗口和失联时停止。'+(s.manual_endpoints_field_verified===false?' 新端点待实测，请先架空试调。':'');
+   if(!finished)el('drive-time').textContent=s.session_remaining_s==null?'等待你确认并启用 S3 调试。':s.session_phase==='preparing'?'准备剩余 '+Math.ceil(s.session_remaining_s)+' 秒；启用后本轮 120 秒。':'S3 本轮剩余 '+Math.ceil(s.session_remaining_s)+' 秒；每次试调最多 2 秒。';
+  }
+  el('bench-ready').disabled=finished&&!nextRound;el('drive-focus').disabled=finished;
+--- a/vision/src/carvision/manual_drive.py
++++ b/vision/src/carvision/manual_drive.py
+@@ -12,6 +12,7 @@
+ import socket
+ import threading
+ import time
++from .manual_steering import manual_endpoints
+ 
+ 
+ CONTINUOUS_STARTUP_SETTLING_S = 3.0
+@@ -140,6 +141,9 @@
+         self.stage_end = None
+         self.reverse_cancelled = False
+         self.steering_center_us = getattr(self.backend, 'steering_center_us', 1650)
++        self.manual_steering_span_us = getattr(self.backend, 'manual_steering_span_us', 0)
++        self.steering_left_us, self.steering_right_us = manual_endpoints(
++            self.steering_center_us, self.manual_steering_span_us)
+         self.reverse_trim_us = getattr(self.backend, 'reverse_steering_trim_us', 0)
+         if (type(self.reverse_trim_us) is not int or abs(self.reverse_trim_us) > 30
+                 or not 1550 <= self.steering_center_us+self.reverse_trim_us <= 1750):
+@@ -291,8 +295,8 @@
+         seq, pulse = payload.get('sequence'), payload.get('pulse_us')
+         if type(seq) is not int or seq <= self.sequence:
+             raise DriveError('old or invalid command sequence')
+-        if type(pulse) is not int or not 1550 <= pulse <= 1750:
+-            raise DriveError('S3 PWM must be an integer from 1550 to 1750 us')
++        if type(pulse) is not int or not self.steering_right_us <= pulse <= self.steering_left_us:
++            raise DriveError(f'S3 PWM must be an integer from {self.steering_right_us} to {self.steering_left_us} us')
+         if self.motor != 'stop' or self.pulse != 1500 or self.started is not None and self.turn != 'pwm':
+             raise DriveError('release other controls before PWM tuning')
+         self.sequence, self.expires = seq, self.clock() + self.lease_s
+@@ -515,7 +519,7 @@
+                           if self.mode == 'enabled' and not self.blocked
+                           and self.motor == 'reverse' and self.started is not None
+                           else self.steering_center_us)
+-                target = {'center': center, 'left': 1750, 'right': 1550}[
++                target = {'center': center, 'left': self.steering_left_us, 'right': self.steering_right_us}[
+                     self.turn if self.mode == 'enabled' and not self.blocked and self.turn != 'pwm' else 'center']
+                 pwm_active = self.mode == 'enabled' and not self.blocked and self.pwm_target is not None
+                 if pwm_active:
+@@ -587,7 +591,10 @@
+                     'steering_pwm_available': self.steering_pwm_available,
+                     'steering_pwm_active': self.pwm_target is not None and self.mode == 'enabled' and not self.blocked,
+                     'steering_pwm_requested_us': self.pwm_requested,
+-                    'steering_pwm_min_us': 1550, 'steering_pwm_max_us': 1750,
++                    'steering_pwm_min_us': self.steering_right_us, 'steering_pwm_max_us': self.steering_left_us,
++                    'steering_left_us': self.steering_left_us, 'steering_right_us': self.steering_right_us,
++                    'manual_steering_span_us': self.manual_steering_span_us,
++                    'manual_endpoints_field_verified': False if self.manual_steering_span_us else None,
+                     'steering_pwm_trial_s': 2.0,
+                     'last_command_sequence': self.sequence, 'last_input_source': self.last_input_source,
+                     'lease_ms': round(self.lease_s * 1000), 'release_required': self.blocked,
+--- /dev/null
++++ b/vision/src/carvision/manual_steering.py
+@@ -0,0 +1,20 @@
++"""Operator-requested manual endpoints; independent of autonomous calibration.
++
++The 2026-10-12 request retains the 1610-us center and asks for larger,
++symmetric manual deflection. These pulse targets are not measured wheel angles.
++"""
++
++REQUESTED_CENTER_US = 1610
++REQUESTED_SPAN_US = 180
++REQUESTED_MIN_US = REQUESTED_CENTER_US - REQUESTED_SPAN_US
++REQUESTED_MAX_US = REQUESTED_CENTER_US + REQUESTED_SPAN_US
++
++
++def manual_endpoints(center_us, span_us=0):
++    if type(span_us) is not int or span_us not in (0, REQUESTED_SPAN_US):
++        raise ValueError('unsupported manual steering span')
++    if span_us:
++        if type(center_us) is not int or center_us != REQUESTED_CENTER_US:
++            raise ValueError('symmetric manual endpoints require the requested 1610-us center')
++        return center_us + span_us, center_us - span_us
++    return 1750, 1550
+--- a/vision/src/carvision/pi5_pwm.py
++++ b/vision/src/carvision/pi5_pwm.py
+@@ -18,6 +18,7 @@
+ import time
+ 
+ from .network_guard import interface_is_inactive
++from .manual_steering import manual_endpoints, REQUESTED_SPAN_US
+ 
+ 
+ def inspect_pi5():
+@@ -267,11 +268,18 @@
+ class RasAdapterPWM(ScopedPWM):
+     """Only the identified S3 steering and S4 ESC; S1/S2 never commanded."""
+     def __init__(self, *, motor, channel=None, esc_channel=None, center_us=1650, single_target=False,
+-                 boundary_center_trial=False):
++                 boundary_center_trial=False, symmetric_manual=False):
+         # Keep the common ownership lock; do not export RP1 PWM channels.
+         super().__init__(motor=False, steering=False)
+         from .rasadapter5 import RasAdapter
+         self.board = RasAdapter()
++        if type(symmetric_manual) is not bool:
++            raise ValueError('symmetric manual steering requires an explicit boolean')
++        if symmetric_manual:
++            manual_endpoints(center_us, REQUESTED_SPAN_US)
++            if channel != 3:
++                raise ValueError('symmetric manual steering is only available on S3')
++        self.symmetric_manual = symmetric_manual
+         if type(boundary_center_trial) is not bool:
+             raise ValueError('boundary center trial requires an explicit boolean')
+         if boundary_center_trial and (channel != 3 or center_us != 1550):
+@@ -323,7 +331,8 @@
+     def turn(self, pulse):
+         if self.channel is None:
+             raise ValueError('servos disabled for this RasAdapter scope')
+-        self.board.set_position(self.channel, pulse, .3 if self.single_target else .02)
++        setter = self.board.set_manual_steering if self.symmetric_manual else self.board.set_position
++        setter(self.channel, pulse, .3 if self.single_target else .02)
+         self.steering_commanded = True
+ 
+     def motion(self, pulse):
+@@ -359,7 +368,8 @@
+     pwm = (RasAdapterPWM(motor=args.motor, channel=args.steering_channel, esc_channel=args.esc_channel,
+                          center_us=args.steering_center_us,
+                          single_target=getattr(args, 'steering_single_target', False),
+-                         boundary_center_trial=getattr(args, 'steering_boundary_center_trial', False)) if args.steering_channel or args.esc_channel
++                         boundary_center_trial=getattr(args, 'steering_boundary_center_trial', False),
++                         symmetric_manual=getattr(args, 'symmetric_manual_steering', False)) if args.steering_channel or args.esc_channel
+            else ScopedPWM(motor=args.motor, steering=args.steering))
+     stopping = False
+     def stop(*_):
+@@ -467,6 +477,11 @@
+             self.signal_backend = 'rasadapter5a_uart_guardian'
+         self.motor_available = not steering_only and not neutral_only
+         self.steering_available = steering_only or combined or ground_short or ground_held or ground_continuous
++        self.manual_steering_span_us = review.get('manual_steering_span_us', 0)
++        manual_endpoints(self.steering_center_us, self.manual_steering_span_us)
++        if self.manual_steering_span_us and (not self.steering_available
++                or self.steering_backend != 'rasadapter5a_uart' or review.get('steering_channel') != 3):
++            raise ValueError('symmetric manual steering requires the identified S3 UART scope')
+         self.steering_pwm_available = (steering_only and self.steering_backend == 'rasadapter5a_uart'
+                                        and review.get('steering_channel') == 3)
+         self.steering_single_target = review.get('steering_single_target_verified') is True
+@@ -568,6 +583,8 @@
+         if self.steering_available and self.steering_backend == 'rasadapter5a_uart':
+             command.extend(['--steering-channel', str(self.review['steering_channel'])])
+             command.extend(['--steering-center-us', str(self.steering_center_us)])
++            if self.manual_steering_span_us:
++                command.append('--symmetric-manual-steering')
+             if self.steering_boundary_center_trial:
+                 command.append('--steering-boundary-center-trial')
+             if self.steering_single_target:
+@@ -686,6 +703,7 @@
+     parser.add_argument('--steering-center-us', type=int, default=1650)
+     parser.add_argument('--steering-boundary-center-trial', action='store_true')
+     parser.add_argument('--steering-single-target', action='store_true')
++    parser.add_argument('--symmetric-manual-steering', action='store_true')
+     parser.add_argument('--esc-channel', type=int)
+     parser.add_argument('--expected-boot-id')
+     parser.add_argument('--result', type=Path)
+@@ -695,6 +713,9 @@
+             parser.error('guardian requires expected boot and selected channels')
+         if options.steering_single_target and options.steering_channel != 3:
+             parser.error('single target steering requires the actual S3 channel')
++        if options.symmetric_manual_steering and (not options.steering
++                or options.steering_channel != 3 or options.steering_center_us != 1610 or options.neutral_only):
++            parser.error('symmetric manual steering requires S3 and the requested 1610-us center')
+         if options.steering_boundary_center_trial and (not options.steering
+                 or options.steering_channel != 3 or options.steering_center_us != 1550 or options.neutral_only):
+             parser.error('boundary center trial requires S3 steering at exactly 1550 us')
+--- a/vision/src/carvision/rasadapter5.py
++++ b/vision/src/carvision/rasadapter5.py
+@@ -9,6 +9,7 @@
+ import select
+ import struct
+ import time
++from .manual_steering import REQUESTED_MIN_US, REQUESTED_MAX_US
+ 
+ SOURCE = 'https://wiki.hiwonder.com/projects/Raspberry-Pi-5-Expansion-Board/en/latest/docs/2_Expansion_Board_Control_Lesson.html'
+ 
+@@ -113,6 +114,15 @@
+         duration = int(seconds * 1000)
+         self.send(4, struct.pack('<BHBBH', 1, duration, 1, channel, pulse))
+ 
++    def set_manual_steering(self, channel, pulse, seconds=.02):
++        """Explicit manual S3 envelope; does not expand set_position/autonomy."""
++        if (type(channel) is not int or channel != 3
++                or type(pulse) is not int or not REQUESTED_MIN_US <= pulse <= REQUESTED_MAX_US
++                or type(seconds) not in (int, float) or not math.isfinite(seconds)
++                or not .02 <= seconds <= .5):
++            raise ValueError('manual steering requires S3 and the requested 1430..1790 us envelope')
++        self.send(4, struct.pack('<BHBBH', 1, int(seconds * 1000), 1, channel, pulse))
++
+     def set_esc(self, channel, pulse):
+         if type(channel) is not int or channel != 4 or type(pulse) is not int or pulse not in (1500, 1575, 1300):
+             raise ValueError('only the identified S4 ESC and previously observed short-trial points are allowed')
+--- a/vision/src/carvision/steering_pwm_controls.py
++++ b/vision/src/carvision/steering_pwm_controls.py
+@@ -30,12 +30,18 @@
+  let snapshot=null,active=false,starting=false,busy=false,due=false,epoch=0,timer=null,initialized=false,wanted=1650;
+  const steps=Array.from(document.querySelectorAll('[data-pwm-step]'));
+  const inputs=[el('pwm-slider'),el('pwm-number'),el('pwm-try'),...steps];
++ function limits(){
++  const lo=snapshot?.steering_pwm_min_us,hi=snapshot?.steering_pwm_max_us;
++  return Number.isInteger(lo)&&Number.isInteger(hi)&&lo>=1430&&hi<=1790&&lo<hi?[lo,hi]:[1550,1750];
++ }
+  function cancel(){active=false;starting=false;due=false;epoch++;if(timer!==null)clearTimeout(timer);timer=null;}
+  function available(){return snapshot?.steering_pwm_available===true&&snapshot?.motor_available===false;}
+  function ready(){return available()&&snapshot.mode==='enabled'&&status().allowed&&!status().otherInput;}
+  function displayWanted(){el('pwm-slider').value=wanted;el('pwm-number').value=wanted;el('pwm-wanted').textContent=wanted+' μs';}
+  function update(s){
+   snapshot=s;
++  const [lo,hi]=limits();
++  for(const id of ['pwm-slider','pwm-number']){el(id).min=lo;el(id).max=hi;}
+   el('pwm-panel').hidden=!available()&&s.test_mode!=='steering_pwm';
+   if(!initialized&&available()){wanted=s.steering_center_us;initialized=true;displayWanted();}
+   if(active&&(!available()||s.mode!=='enabled'||s.controls_paused||s.worker_available===false||(!starting&&s.release_required)))cancel();
+@@ -58,7 +64,8 @@
+  }
+  async function tune(value){
+   const pulse=Number(value);
+-  if(!Number.isInteger(pulse)||pulse<1550||pulse>1750){displayWanted();onError(new Error('请输入 1550–1750 范围内的整数微秒值'));return;}
++  const [lo,hi]=limits();
++  if(!Number.isInteger(pulse)||pulse<lo||pulse>hi){displayWanted();onError(new Error('请输入 '+lo+'–'+hi+' 范围内的整数微秒值'));return;}
+   if(!ready())return;
+   wanted=pulse;displayWanted();
+   if(active){due=true;flush();return;}
+@@ -76,7 +83,7 @@
+  }
+  el('pwm-slider').oninput=e=>tune(e.target.value);
+  el('pwm-number').onchange=e=>tune(e.target.value);
+- steps.forEach(b=>b.onclick=()=>tune(Math.max(1550,Math.min(1750,wanted+Number(b.dataset.pwmStep)))));
++ steps.forEach(b=>b.onclick=()=>{const [lo,hi]=limits();tune(Math.max(lo,Math.min(hi,wanted+Number(b.dataset.pwmStep))));});
+  el('pwm-try').onclick=()=>tune(wanted);
+  el('pwm-stop').onclick=()=>stop();
+  setInterval(()=>{if(active&&!starting)flush();},70);
+--- a/vision/tests/js/manual_heartbeat.cjs
++++ b/vision/tests/js/manual_heartbeat.cjs
+@@ -133,7 +133,7 @@
+  // remain available with physical keyboard codes (including IME key names).
+  const l=await setup(true,{ground_continuous_trial:true,test_session_s:null,motion_hold_max_s:null,
+   reverse_available:true,session_remaining_s:null});
+- assert.equal(l.el('drive-title').textContent,'5G 长距离遥控');checks++;
++ assert.equal(l.el('drive-title').textContent,'遥控驾驶');checks++;
+  assert.equal(l.el('drive-time').textContent.includes('不设轮次'),true);checks++;
+  assert.equal(l.el('drive-limits').textContent.includes('W/S'),true);checks++;
+  l.events.keydown({code:'KeyS',key:'Process',repeat:false,target:{tagName:'DIV'},preventDefault(){}});await flush();
+@@ -160,7 +160,7 @@
+  assert.equal(p.el('bench-confirm-text').textContent.includes('电调已关闭'),true);checks++;
+  p.setStatus({boot_test_phase:'ready',mode:'enabled',hardware_output:true,release_required:false,steering_pulse_us:1715});
+  await p.poll();await flush();
+- assert.equal(p.el('pwm-slider').disabled,false);assert.equal(p.el('drive-title').textContent,'S3 实时 PWM 调试');checks++;
++ assert.equal(p.el('pwm-slider').disabled,false);assert.equal(p.el('drive-title').textContent,'转向调试');checks++;
+  await p.el('pwm-slider').oninput({target:{value:'1700'}});await flush();
+  assert.equal(p.requests.at(-1).url,'/api/drive/steering_pwm');
+  assert.equal(p.requests.at(-1).body.pulse_us,1700);assert.equal(p.requests.at(-1).body.setup_token,'pwm-ready-token');checks++;
+--- a/vision/tests/js/steering_pwm.cjs
++++ b/vision/tests/js/steering_pwm.cjs
+@@ -38,6 +38,13 @@
+   const p=await setup(state);p.input(1700);assert.equal(p.requests.length,0);assert.equal(p.el('pwm-slider').disabled,true);
+  }
+  const bad=await setup();bad.input(1751);assert.equal(bad.requests.length,0);assert.equal(bad.errors(),1);
++ const wide=await setup({steering_center_us:1610,steering_pwm_min_us:1430,steering_pwm_max_us:1790});
++ assert.equal(wide.el('pwm-slider').min,1430);assert.equal(wide.el('pwm-number').max,1790);
++ wide.input(1430);wide.reply();await flush();assert.equal(wide.requests.at(-1).body.pulse_us,1430);
++ const wideLeft=await setup({steering_center_us:1610,steering_pwm_min_us:1430,steering_pwm_max_us:1790});
++ wideLeft.input(1790);wideLeft.reply();await flush();assert.equal(wideLeft.requests.at(-1).body.pulse_us,1790);
++ const wideBad=await setup({steering_pwm_min_us:1430,steering_pwm_max_us:1790});
++ wideBad.input(1429);wideBad.input(1791);assert.equal(wideBad.requests.length,0);assert.equal(wideBad.errors(),2);
+  bad.setOther(true);bad.input(1700);assert.equal(bad.requests.length,0);
+  const fault=await setup();fault.input(1700);fault.reply();await flush();
+  fault.pending.shift().reject(new Error('offline'));await flush();assert.equal(fault.api.isActive(),false);assert.equal(fault.stops(),1);
+--- /dev/null
++++ b/vision/tests/test_symmetric_manual_steering.py
+@@ -0,0 +1,174 @@
++"""Offline-only checks of requested endpoints; no physical angle claim."""
++import json
++import struct
++from pathlib import Path
++
++import pytest
++
++from carvision.manual_drive import DriveError
++from carvision.manual_steering import manual_endpoints
++from carvision.pi5_pwm import Pi5BenchBackend, RasAdapterPWM
++from carvision.rasadapter5 import RasAdapter
++from test_steering_pwm import Steering, ready, tune
++
++
++class SymmetricSteering(Steering):
++    steering_center_us = 1610
++    manual_steering_span_us = 180
++    steering_single_target = True
++
++
++def test_requested_endpoints_are_larger_on_both_sides_and_exactly_symmetric():
++    left, right = manual_endpoints(1610, 180)
++    assert left == 1790 and right == 1430
++    assert left - 1610 == 1610 - right == 180
++    assert left > 1750 and right < 1550
++    assert manual_endpoints(1610) == (1750, 1550)
++
++
++@pytest.mark.parametrize('center,span', [(1650,180), (1610,181), (1610,True), (1610,180.0)])
++def test_unrequested_envelopes_rejected(center, span):
++    with pytest.raises(ValueError):
++        manual_endpoints(center, span)
++
++
++@pytest.mark.parametrize('direction,pulse', [('left',1790), ('right',1430)])
++def test_keyboard_uses_full_symmetric_endpoints_and_release_recenters(direction, pulse):
++    drive, backend, clock = ready(SymmetricSteering())
++    drive.request('command', dict(client='pwm-test', sequence=1, motor='stop', steering=direction))
++    drive.tick()
++    assert backend.calls[-1] == pulse
++    clock.now = .04
++    drive.request('command', dict(client='pwm-test', sequence=2, motor='stop', steering='center'))
++    drive.tick()
++    assert backend.calls[-1] == 1610
++    state = drive.status()
++    assert (state['steering_left_us'], state['steering_right_us']) == (1790,1430)
++    assert state['manual_endpoints_field_verified'] is False
++
++
++@pytest.mark.parametrize('pulse', [1430, 1549, 1610, 1751, 1790])
++def test_raw_s3_allows_requested_envelope_without_motor_output(pulse):
++    drive, backend, _ = ready(SymmetricSteering())
++    tune(drive, 1, pulse)
++    assert backend.calls[-1] == pulse
++    assert drive.status()['motor_pulse_us'] is None
++    assert drive.status()['steering_center_us'] == 1610
++
++
++@pytest.mark.parametrize('pulse', [1429, 1791, True, 1430.0, None])
++def test_raw_s3_rejects_outside_requested_envelope(pulse):
++    drive, backend, _ = ready(SymmetricSteering())
++    with pytest.raises(DriveError):
++        tune(drive, 1, pulse)
++    assert backend.calls == []
++
++
++@pytest.mark.parametrize('ending', ['stop', 'emergency', 'timeout', 'two_seconds'])
++def test_expanded_raw_target_keeps_stop_lease_and_two_second_limit(ending):
++    drive, backend, clock = ready(SymmetricSteering())
++    tune(drive, 1, 1430)
++    if ending == 'two_seconds':
++        for n in range(2,21):
++            clock.now = (n-1)*.1
++            tune(drive,n,1430)
++        clock.now = 2.01
++    elif ending == 'timeout':
++        clock.now = .21
++    else:
++        clock.now = .04
++        drive.request(ending,{})
++    drive.tick()
++    assert backend.calls[-1] == 1610
++    assert not drive.status()['steering_pwm_active']
++
++
++def test_transport_extension_is_manual_s3_only():
++    board = RasAdapter()
++    sent = []
++    board.send = lambda function,payload: sent.append((function,payload))
++    for pulse in (1430,1790):
++        board.set_manual_steering(3,pulse,.3)
++    assert sent == [(4,struct.pack('<BHBBH',1,300,1,3,p)) for p in (1430,1790)]
++    for channel,pulse in [(1,1430),(2,1790),(4,1500),(3,1429),(3,1791),(3,True)]:
++        with pytest.raises(ValueError):
++            board.set_manual_steering(channel,pulse)
++    for pulse in (1430,1790):
++        with pytest.raises(ValueError):
++            board.set_position(3,pulse)  # generic/autonomous envelope unchanged
++    assert len(sent) == 2
++
++
++def test_guardian_scope_requires_explicit_manual_selection():
++    default = RasAdapterPWM(motor=False,channel=3,center_us=1610)
++    default.board.send = lambda *args: pytest.fail('default scope must not send widened pulse')
++    with pytest.raises(ValueError):
++        default.turn(1430)
++    manual = RasAdapterPWM(motor=False,channel=3,center_us=1610,symmetric_manual=True)
++    sent = []
++    manual.board.send = lambda *args: sent.append(args)
++    manual.turn(1430)
++    manual.turn(1790)
++    assert len(sent) == 2
++    with pytest.raises(ValueError):
++        manual.turn(1791)
++    for channel,center in [(2,1610),(3,1650)]:
++        with pytest.raises(ValueError):
++            RasAdapterPWM(motor=False,channel=channel,center_us=center,symmetric_manual=True)
++
++
++def test_review_opt_in_reaches_backend_and_rejects_wrong_scope(tmp_path):
++    review = dict(model='Raspberry Pi 5 Model B Rev 1.0',boot_id='boot',
++                  wheels_raised_confirmed_by_user=True,esc_off_confirmed_by_user=True,
++                  steering_backend='rasadapter5a_uart',steering_channel=3,
++                  steering_center_us=1610,manual_steering_span_us=180)
++    backend = Pi5BenchBackend(tmp_path,tmp_path/'out','boot',review,steering_only=True)
++    assert backend.manual_steering_span_us == 180
++    for change in ({'steering_channel':2},{'steering_center_us':1650}):
++        with pytest.raises(ValueError):
++            Pi5BenchBackend(tmp_path,tmp_path/'out','boot',{**review,**change},steering_only=True)
++
++
++def test_profile_keeps_unverified_endpoints_and_center():
++    profile = json.loads((Path(__file__).parents[1]/'deployment/boot-test-template.json').read_text())
++    assert profile['steering_center_us'] == 1610
++    assert profile['manual_steering_span_us'] == 180
++    assert profile['manual_endpoints_field_verified'] is False
++
++
++@pytest.mark.parametrize('direction,pulse', [('left',1790), ('right',1430)])
++def test_normal_ramp_reaches_endpoints_without_overshoot(direction, pulse):
++    backend = SymmetricSteering()
++    backend.steering_single_target = False
++    drive, backend, clock = ready(backend)
++    for seq in range(1,21):
++        clock.now = seq*.025
++        drive.request('command',dict(client='pwm-test',sequence=seq,motor='stop',steering=direction))
++        drive.tick()
++    assert backend.calls[-1] == pulse
++    assert all(1430 <= p <= 1790 for p in backend.calls)
++    assert all(abs(a-b) <= 10 for a,b in zip([1610]+backend.calls,backend.calls))
++
++
++def test_new_span_is_forwarded_to_the_separate_guardian(tmp_path, monkeypatch):
++    review = dict(model='Raspberry Pi 5 Model B Rev 1.0',boot_id='boot',
++                  wheels_raised_confirmed_by_user=True,esc_off_confirmed_by_user=True,
++                  steering_backend='rasadapter5a_uart',steering_channel=3,
++                  steering_center_us=1610,manual_steering_span_us=180,
++                  baseline_record='baseline.json')
++    (tmp_path/'baseline.json').write_text(json.dumps(dict(
++        boot_id='boot',duration_s=30,all_power_flags_zero=True,boot_unchanged=True,
++        samples=[dict(boot_id='boot',power_flags=0)]*30)))
++    backend = Pi5BenchBackend(tmp_path,tmp_path/'out','boot',review,steering_only=True)
++    monkeypatch.setattr('carvision.pi5_pwm.inspect_pi5',lambda:dict(boot_id='boot',power_flags=0))
++    calls = []
++    monkeypatch.setattr('carvision.pi5_pwm.subprocess.Popen',lambda command,**kw:calls.append(command))
++    monkeypatch.setattr(backend,'read_reply',lambda **kw:None)
++    monkeypatch.setattr(backend,'check',lambda:None)
++    try:
++        backend.open()
++    finally:
++        backend.log.close()
++    assert '--symmetric-manual-steering' in calls[0]
++    assert calls[0][calls[0].index('--steering-channel')+1] == '3'
++    assert '--motor' not in calls[0] and '--esc-channel' not in calls[0]
+--- a/vision/tools/serve_boot_test.py
++++ b/vision/tools/serve_boot_test.py
+@@ -10,6 +10,7 @@
+ 
+ from carvision.boot_test import BootTestDrive, PiBootPreparation, reviewed_manifest
+ from carvision.config import load_config
++from carvision.manual_steering import manual_endpoints
+ from carvision.manual_drive import DeferredDrive, ManualDrive, RepeatableDrive, worker_control_endpoint, CONTINUOUS_STARTUP_SETTLING_S
+ from carvision.web_preview import serve
+ from serve_bench_drive import OwnedWorkerDrive
+@@ -66,6 +67,8 @@
+ def initial_status(review):
+     continuous = review.get('ground_continuous_requested_by_user') is True
+     steering = review.get('steering_pwm_mode') is True
++    span = review.get('manual_steering_span_us', 0)
++    left, right = manual_endpoints(review.get('steering_center_us', 1610), span)
+     return dict(esc_confirmation_only=review.get('operator_confirmation_scope') == 'esc_state_only',
+                 startup_settling_s=1 if steering else CONTINUOUS_STARTUP_SETTLING_S if continuous else 12,
+                 ground_short_trial=not (continuous or steering), ground_held_trial=continuous,
+@@ -73,6 +76,9 @@
+                 speed_percent=100, steering_available=True, motor_available=not steering, reverse_available=continuous,
+                 steering_pwm_available=steering, combined_trial=not steering, controls_paused=False, steering_center_us=review.get('steering_center_us', 1610),
+                 steering_pulse_us=None, steering_signal_active=False, steering_single_target=False,
++                manual_steering_span_us=span, steering_left_us=left, steering_right_us=right,
++                steering_pwm_min_us=right, steering_pwm_max_us=left,
++                manual_endpoints_field_verified=False if span else None,
+                 test_session_s=None if continuous else 120 if steering else 60, motion_hold_max_s=None,
+                 lease_ms=round(1000*(ManualDrive.continuous_lease_s if continuous else ManualDrive.lease_s)),
+                 release_required=False)

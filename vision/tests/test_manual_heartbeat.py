@@ -17,4 +17,4 @@ def test_delayed_reply_sends_due_heartbeat_without_replaying_released_keys():
                           text=True,encoding='utf-8',timeout=15)
     assert result.returncode==0,result.stdout+result.stderr
     record=json.loads(result.stdout)
-    assert record['checks_passed']==24 and record['hardware_output'] is False
+    assert record['checks_passed']==53 and record['hardware_output'] is False

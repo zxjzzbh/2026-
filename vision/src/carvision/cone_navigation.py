@@ -4,6 +4,8 @@ No motor I/O here. The local world origin is the vehicle rear axle when reset;
 it need not be a surveyed GPS position. Optical-flow validity is never inferred
 from throttle, and an invalid pose cannot quietly reset while driving.
 """
+
+from .steering import LEFT_US, RIGHT_US, RADIUS_ALIASES, radius_settings
 import copy
 import math
 
@@ -12,20 +14,20 @@ import numpy as np
 
 from .autonomy_profile import GroundProjection,fit_ground_calibration
 from .brake_parking import numeric
-from .cone_planning import ConeMission,readiness
+from .cone_planning import ConeMission,readiness,distance_to_path
 
 
 DEFAULT_DRIVING={
     'forward_us':1575,'max_run_s':30.,'max_speed_mps':.2,'lookahead_m':.4,
     'brake_pulse_s':.12,'brake_release_s':.1,'actuator_lease_s':.2,
-    'steering_radius_1570_cm':None,'steering_radius_1650_cm':None,
+    'steering_radius_right_cm':None,'steering_radius_left_cm':None,
     'visual_error_bound_m':None,'visual_verified_distance_m':None,
     'fixed_camera_confirmed':False,'steering_verified':False,'odometry_verified':False,
 }
 
 
 def driving_settings(settings):
-    return {**DEFAULT_DRIVING,**settings.get('driving',{})}
+    return {**DEFAULT_DRIVING,**radius_settings(settings.get('driving',{}))}
 
 
 def validate_driving(settings):
@@ -35,11 +37,15 @@ def validate_driving(settings):
     if type(d['forward_us']) is not int:raise ValueError('油门应为整数微秒')
     for key in ('fixed_camera_confirmed','steering_verified','odometry_verified'):
         if type(d[key]) is not bool:raise ValueError(key+' must be boolean')
-    for key in ('steering_radius_1570_cm','steering_radius_1650_cm'):
+    for key in ('steering_radius_right_cm','steering_radius_left_cm'):
         if d[key] is not None and (not numeric(d[key]) or not 20<=abs(d[key])<=5000):
             raise ValueError('转弯半径用 cm：左负右正，绝对值 20–5000')
-    if all(d[k] is not None for k in ('steering_radius_1570_cm','steering_radius_1650_cm')):
-        if d['steering_radius_1570_cm']*d['steering_radius_1650_cm']>=0:raise ValueError('两侧转向半径应一左一右')
+    if d['steering_radius_right_cm'] is not None and d['steering_radius_right_cm']<=0:
+        raise ValueError('1350 右转半径应为正值，不能沿用旧档位标定')
+    if d['steering_radius_left_cm'] is not None and d['steering_radius_left_cm']>=0:
+        raise ValueError('1870 左转半径应为负值，不能沿用旧档位标定')
+    if all(d[k] is not None for k in ('steering_radius_right_cm','steering_radius_left_cm')):
+        if d['steering_radius_right_cm']*d['steering_radius_left_cm']>=0:raise ValueError('两侧转向半径应一左一右')
     for key,lo,hi in [('visual_error_bound_m',.001,.1),('visual_verified_distance_m',.2,20)]:
         if d[key] is not None and (not numeric(d[key]) or not lo<=d[key]<=hi):raise ValueError(key)
     # Keep the already-used finite F/B pulse and watchdog envelope.
@@ -52,8 +58,10 @@ def execution_readiness(settings):
     report=readiness(settings);missing=list(report['missing']);d=validate_driving(settings)
     for key in ('fixed_camera_confirmed','steering_verified','odometry_verified'):
         if d[key] is not True:missing.append('driving.'+key)
-    for key in ('steering_radius_1570_cm','steering_radius_1650_cm','visual_error_bound_m','visual_verified_distance_m'):
-        if d[key] is None:missing.append('driving.'+key)
+    for key in ('steering_radius_right_cm','steering_radius_left_cm','visual_error_bound_m','visual_verified_distance_m'):
+        if d[key] is None:
+            missing.append('driving.'+key)
+            if key in RADIUS_ALIASES:missing.append('driving.'+RADIUS_ALIASES[key])
     if d['visual_error_bound_m'] is not None and numeric(settings['motion'].get('maximum_tracking_error_m')):
         if d['visual_error_bound_m']>settings['motion']['maximum_tracking_error_m']:missing.append('driving.visual_error_exceeds_budget')
     return {'ready':not missing,'metric_planning_ready':report['metric_planning_ready'],'missing':missing,'field_verified':False}
@@ -80,6 +88,37 @@ def import_ground_calibration(settings,data):
                   calibration_evidence=copy.deepcopy(data))
     candidate=copy.deepcopy(settings);candidate['ground']=result
     candidate.setdefault('driving',{})['fixed_camera_confirmed']=True
+    return candidate
+
+
+def reuse_legacy_ground(settings,data):
+    """Load the accepted historical mapping without inventing a current check.
+
+    The repository reference already includes the 640x480 -> 480x360 pixel
+    transform and the measured rear-axle origin correction. Its original
+    polygon must remain intact; loading cannot authorize extrapolation/motion.
+    """
+    if (not isinstance(data,dict) or data.get('camera')!='secondary'
+            or data.get('image_size')!=[480,360]
+            or data.get('source_commit')!='6f93ea8858bfe83676bc4bdbfd790de7979de7ec'
+            or data.get('candidate_only') is not True):
+        raise ValueError('旧标定来源或第二路图像规格不一致')
+    if settings['ground'].get('verified') is True:
+        raise ValueError('已有当前确认的地面标定，不用旧参考覆盖')
+    bound=data.get('accepted_error_m')
+    result=fit_ground_calibration(data)
+    if (not numeric(bound) or not .001<=bound<=.03
+            or result['independent_check_max_error_m']>bound
+            or not numeric(data.get('source_repeat_error_m'))
+            or data['source_repeat_error_m']>bound):
+        raise ValueError('旧标定复算误差不满足其原验收范围')
+    result.update(coordinate_frame='rear_axle_x_right_y_forward',max_error_m=bound,
+        historical_verified=True,current_pose_verified=False,
+        reuse_source={'commit':data['source_commit'],'path':data['source_path'],
+                     'pose_us':data['source_pose_us'],'source_repeat_error_m':data['source_repeat_error_m']},
+        calibration_evidence=copy.deepcopy(data))
+    candidate=copy.deepcopy(settings);candidate['ground']=result
+    candidate.setdefault('driving',{})['fixed_camera_confirmed']=False
     return candidate
 
 
@@ -140,7 +179,7 @@ class ConeOdometry:
 
 
 def metric_corridor(context,settings):
-    if not context.get('valid'):raise ValueError('未确认红色跑道及左右白线内侧')
+    if not context.get('valid'):raise ValueError('未确认所选场地及左右白线内侧')
     projection=GroundProjection(settings['ground']);sides=[]
     for key in ('left_inner','right_inner'):
         points=[]
@@ -192,7 +231,7 @@ class ConeNavigator:
             dx=pose['x_m']-prior_pose['x_m'];dy=pose['y_m']-prior_pose['y_m']
             co0,si0=math.cos(prior_pose['yaw_rad']),math.sin(prior_pose['yaw_rad'])
             px,py=co0*dx-si0*dy,si0*dx+co0*dy
-            error=min(math.hypot(p['x_m']-px,p['y_m']-py) for p in path)
+            error,_=distance_to_path([{'x_m':0.,'y_m':0.}]+path,px,py)
             if error>self.s['motion']['maximum_tracking_error_m']:
                 raise ValueError('实测车辆位置偏离上一条路径，停止并重新准备')
         projection=self.odometry.projection
@@ -226,11 +265,13 @@ class ConeNavigator:
 
 def steering_for_path(path,settings):
     d=driving_settings(settings)
+    if d['steering_radius_right_cm'] is None or d['steering_radius_left_cm'] is None:
+        raise ValueError('1350／1870 新档位尚无有效曲率映射，旧档位半径不能代用')
     choices=[p for p in path if p['y_m']>0]
     if not choices:raise ValueError('没有前方可跟随路径')
     p=min(choices,key=lambda p:abs(math.hypot(p['x_m'],p['y_m'])-d['lookahead_m']))
     curvature=2*p['x_m']/(p['x_m']**2+p['y_m']**2)
-    mapping=sorted([(100/d['steering_radius_1570_cm'],1570),(0.,1610),(100/d['steering_radius_1650_cm'],1650)])
+    mapping=sorted([(100/d['steering_radius_right_cm'],RIGHT_US),(0.,1610),(100/d['steering_radius_left_cm'],LEFT_US)])
     if not mapping[0][0]<=curvature<=mapping[-1][0]:raise ValueError('所需转向超过实测转向范围')
     return int(round(np.interp(curvature,[p[0] for p in mapping],[p[1] for p in mapping])))
 

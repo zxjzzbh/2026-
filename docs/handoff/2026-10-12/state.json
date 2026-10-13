@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "prepared_at": "2026-10-12T18:28:50.583902+08:00",
+  "timezone": "Asia/Shanghai",
+  "task": "AI development handoff; no deployment or vehicle commands in this packaging session",
+  "vehicle": {
+    "name": "smartcar-pi5",
+    "ip": "100.124.156.117",
+    "ssh_port": 22,
+    "http_port": 8080,
+    "project_path": "/home/pi/smartcar-race-20261002",
+    "service": "smartcar-preview.service",
+    "architecture": "Raspberry Pi 5 + RasAdapter5A UART; S1/S2 gimbal, S3 steering, S4 ESC; no independent STM32, no ROS",
+    "last_user_report": "Pi explicitly shut down before symmetric steering change",
+    "rechecked_after_shutdown": false,
+    "complete_current_pi_snapshot_available": false
+  },
+  "github": {
+    "checked_at": "2026-10-12T18:28:50.583902+08:00",
+    "url": "https://github.com/zxjzzbh/2026-/pull/4",
+    "title": "锥桶交错绕行及室内白线测试",
+    "state": "open",
+    "merged": false,
+    "head_sha": "68c314f14d4e141406005a7c9458ce0780b4a63c",
+    "base_sha": "604fe330528ff5cefeacfde737edd214a3ed8db6",
+    "updated_at": "2026-10-12T09:39:59Z"
+  },
+  "source_sets": {
+    "cones_pr4": {
+      "path": "sources/cones",
+      "commit": "68c314f14d4e141406005a7c9458ce0780b4a63c",
+      "files": 336,
+      "deployed_runtime_commit": "8d7947c46ab959b2adb23da0e5f7023884375608",
+      "deployment_scope": "slalom-only files; not full repository overwrite",
+      "warning": "manual/boot code in PR4 tree is older than preserved live Pi; never replace whole Pi tree from this snapshot"
+    },
+    "manual_baseline": {
+      "path": "sources/manual-base",
+      "git_base": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+      "overlay": {
+        "vision/src/carvision/manual_drive.py": "live protected snapshot 2026-10-12 17:36:01",
+        "vision/src/carvision/manual_controls.py": "live protected snapshot 2026-10-12 17:36:01",
+        "vision/src/carvision/steering_pwm_controls.py": "live protected snapshot 2026-10-12 17:36:01",
+        "vision/tools/serve_boot_test.py": "live protected snapshot 2026-10-12 17:36:01",
+        "vision/src/carvision/console_layout.py": "unchanged dependency from live protected snapshot 2026-10-12 17:36:01"
+      },
+      "files": 254,
+      "exact_full_pi_snapshot": false
+    },
+    "manual_candidate": {
+      "path": "sources/manual-next",
+      "files": 256,
+      "status": "offline, uncommitted, unpushed, undeployed, physically unverified"
+    },
+    "vehicle_snapshot": {
+      "path": "vehicle_snapshot_173601",
+      "scope": "partial preserved files and deploy evidence only"
+    },
+    "open_field_draft": {
+      "path": "drafts/open_field_unfinished",
+      "status": "unfinished and not deployable"
+    }
+  },
+  "steering": {
+    "center_us": 1610,
+    "last_observed_manual_left_us": 1750,
+    "last_observed_manual_right_us": 1550,
+    "pending_left_us": 1790,
+    "pending_right_us": 1430,
+    "pending_span_us": 180,
+    "pending_endpoints_field_verified": false,
+    "pending_deployed": false,
+    "generic_transport_range_us": [
+      1550,
+      1750
+    ],
+    "cone_drive_range_us": [
+      1570,
+      1650
+    ],
+    "manual_input_lease_ms": 500,
+    "internal_guardian_ms": 250,
+    "s3_max_trial_s": 2,
+    "note": "Pulse symmetry does not demonstrate wheel-angle symmetry"
+  },
+  "features": {
+    "5g_teleoperation": "historical user-reported physical test passed; not repeated today in handoff session",
+    "dual_camera_static_ground_mapping": "accepted 2026-10-07 at recorded fixed poses; coverage restricted; not all points in current scene covered",
+    "ordered_alternating_slalom": "implemented, offline/Pi software tests passed, deployed by selective update; physical automatic completion not verified",
+    "indoor_white_lines": "implemented and deployed; secondary white boundary observed; current metric readiness false",
+    "primary_cones": "two usable detections observed; primary not wired as current cone planner camera",
+    "symmetric_manual_steering": "offline candidate only",
+    "autonomous_full_course": "not accepted; independent cone execution not integrated into legacy full-race state machine"
+  },
+  "tests": {
+    "cone_original_local": {
+      "passed": 1183,
+      "skipped": 3,
+      "failed": 0
+    },
+    "cone_indoor_local": {
+      "passed": 1189,
+      "skipped": 3,
+      "failed": 0
+    },
+    "cone_indoor_followup": {
+      "passed": 132,
+      "failed": 0
+    },
+    "cone_pi": {
+      "passed": 308,
+      "skipped": 1,
+      "failed": 0
+    },
+    "steering_offline": {
+      "passed": 192,
+      "failed": 0,
+      "skipped": 2,
+      "skips": [
+        "Linux termios is unavailable on Windows",
+        "Pi worker Unix sockets are unavailable on Windows"
+      ],
+      "prior_test_fixture_update": "Two title assertions aligned with already-deployed dashboard labels; failure also reproduced on baseline."
+    },
+    "not_run": [
+      "new endpoint hardware test",
+      "automatic physical slalom acceptance",
+      "end-to-end autonomous course",
+      "current vehicle re-audit after shutdown"
+    ]
+  },
+  "priority_next": [
+    "readonly fresh Pi source/config/service/hash comparison and teammate coordination",
+    "merge scoped steering patch into current Pi source and run Linux checks",
+    "rebuild real boot software manifest without altering physical verified flags",
+    "progressive raised-wheel endpoint check and ground straight-line/turning/braking measurement",
+    "resolve camera source and calibrated ground/white-boundary coverage",
+    "validate feedback and alternate two-cone loop before full-course integration"
+  ]
+}

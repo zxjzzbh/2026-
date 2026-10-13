@@ -1,13 +1,17 @@
 """Browser controls for finite raised-wheel trials."""
 
 from .gamepad_controls import SCRIPT as GAMEPAD_SCRIPT
+from .steering_pwm_controls import HTML as PWM_HTML, STYLE as PWM_STYLE, SCRIPT as PWM_SCRIPT
 
 HTML = '''<section id="drive-panel" class="drive-console" tabindex="-1">
 <div class="console-heading"><h2 id="drive-title">架空驾驶短测</h2><span id="drive-link" class="link-pill">连接中</span></div>
 <p id="drive-mode">正在连接控制服务……</p>
+<div id="test-mode-section" hidden><label for="test-mode">测试模式</label>
+<select id="test-mode"><option value="driving">5G 持续遥控</option><option value="steering_pwm">仅 S3 转向调试（电调关闭）</option></select>
+<button id="drive-finish" hidden>结束当前测试，返回模式选择</button></div>
 <p id="drive-safety" class="safety-note" hidden></p>
 <p id="drive-feedback" role="status" aria-live="polite" style="padding:14px;border:2px solid #94a3b8;border-radius:8px;font-size:20px;font-weight:bold">正在核对控制服务，请稍候……</p>
-<div class="speed-control"><label for="drive-speed">速度指令 <output id="drive-speed-value">20%</output></label>
+<div id="drive-speed-section" class="speed-control"><label for="drive-speed">速度指令 <output id="drive-speed-value">20%</output></label>
 <input id="drive-speed" type="range" min="0" max="100" step="1" value="20" aria-label="速度指令比例">
 <div class="speed-presets"><button data-speed="20">慢速 20%</button><button data-speed="40">中速 40%</button><button data-speed="60">较快 60%</button></div>
 <p id="drive-speed-note">油门指令比例；实际轮速受电池、负载和电调影响。</p></div>
@@ -50,21 +54,27 @@ body{background:#0b1120}button{transition:background .12s,border-color .12s}butt
 @media(max-width:900px){main{padding:16px}.driving-layout{grid-template-columns:1fr}.drive-console{order:-1}.drive-readouts{grid-template-columns:2fr 1fr 1fr}.drive-readouts div:first-child{grid-column:auto}.camera-zone .viewer{max-height:65vh}.aux-camera{max-width:100%}.aux-camera .viewer{max-height:40vh}}
 </style>'''
 
+HTML = HTML.replace('<div class="drive-readouts">', PWM_HTML+'<div class="drive-readouts">', 1)
+STYLE += PWM_STYLE
+
 SCRIPT = '''<script>
 (()=>{
 const key=__DRIVE_KEY__, pageSession=__DRIVE_SESSION__, el=id=>document.getElementById(id);
 const client=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');
 let held=new Map(), sequence=0, busy=false, heartbeatDue=false, allowed=false, turnAvailable=true, motorAvailable=true, reverseAvailable=true, urgentGeneration=0, needsRelease=true, stopPending=false;
+let motionInFlight=0, commandReplySequence=-1;
 let stale=false, enabling=false, lastStatus=null, requestError='', localHint='', latency=null, speedWanted=null, speedBusy=false;
-let gamepadControl=null;
+let gamepadControl=null,pwmControl=null;
 const directionNames={forward:'前进',reverse:'倒车',left:'左转',right:'右转'};
 const keys={ArrowUp:'forward',w:'forward',W:'forward',ArrowDown:'reverse',s:'reverse',S:'reverse',ArrowLeft:'left',a:'left',A:'left',ArrowRight:'right',d:'right',D:'right'};
+const keyDirection=e=>keys[e.key]||({KeyW:'forward',KeyS:'reverse',KeyA:'left',KeyD:'right'})[e.code];
 const keySource=e=>'key:'+(e.code||e.key.toLowerCase());
 function feedback(message,tone='idle'){
  const colors={idle:'#94a3b8',ready:'#22c55e',sending:'#fbbf24',error:'#f87171'};
  el('drive-feedback').textContent=message;el('drive-feedback').style.borderColor=colors[tone];
 }
 function expiredPage(){
+ pwmControl?.cancel();
  stale=true;held.clear();allowed=false;urgentGeneration++;
  el('drive-mode').textContent='控制页面已过期，请刷新后核对当前模式。';
  el('drive-time').textContent='本页已禁止发送方向请求。';
@@ -76,20 +86,57 @@ async function send(action,body={},keepalive=false){
  const started=performance.now(),controller=new AbortController(), timer=setTimeout(()=>controller.abort(),2000);
  try{
  const response=await fetch('/api/drive/'+action,{method:'POST',headers:{'Content-Type':'application/json','X-Drive-Key':key},
- body:JSON.stringify({client,trial_token:lastStatus?.trial_token,...body}),cache:'no-store',keepalive,signal:controller.signal});
+ body:JSON.stringify({client,trial_token:lastStatus?.trial_token,setup_token:lastStatus?.setup_token,...body}),cache:'no-store',keepalive,signal:controller.signal});
  const result=await response.json();latency=Math.round(performance.now()-started);if(!response.ok){if(result.code==='control_page_rejected')expiredPage();throw new Error(result.error||'控制请求失败');}return result;
  }catch(e){if(e.name==='AbortError')throw new Error('2秒内未收到控制确认');throw e;}
  finally{clearTimeout(timer);}
 }
 function render(s){
  const previousStatus=lastStatus;
- if(previousStatus?.trial_token&&s.trial_token&&previousStatus.trial_token!==s.trial_token){
+ if(previousStatus?.trial_token&&s.trial_token&&previousStatus.trial_token!==s.trial_token
+    ||previousStatus?.setup_token&&s.setup_token&&previousStatus.setup_token!==s.setup_token){
+  pwmControl?.cancel();
   held.clear();heartbeatDue=false;urgentGeneration++;needsRelease=true;stopPending=false;
   gamepadControl?.requireNeutral();requestError='';localHint='';el('bench-ready').checked=false;
  }
  lastStatus=s;
+ pwmControl?.update(s);
+ el('test-mode-section').hidden=!s.boot_test;
+ if(s.test_mode)el('test-mode').value=s.test_mode;
+ el('test-mode').disabled=!(s.boot_test&&s.boot_test_phase==='esc_off'&&s.mode==='disabled');
+ el('drive-finish').hidden=!(s.boot_test&&s.boot_test_phase==='ready');
  if(s.control_session_id&&s.control_session_id!==pageSession){expiredPage();return;}
  if(stale)return;
+ if(s.boot_test&&s.boot_test_phase!=='ready'){
+  const phase=s.boot_test_phase, checking=['baseline','confirming','closing'].includes(phase), failed=s.mode==='fault', pwmMode=s.test_mode==='steering_pwm';
+  allowed=false;held.clear();heartbeatDue=false;needsRelease=true;
+  turnAvailable=false;motorAvailable=false;reverseAvailable=false;
+  const longControl=s.ground_continuous_trial===true;
+  el('drive-title').textContent=pwmMode?'S3 实时 PWM 调试':longControl?'5G 长距离遥控':'5G 一键测试';el('drive-link').textContent=checking?'正在准备':'已连接';
+  el('drive-mode').textContent=s.reason;el('drive-latency').textContent=latency==null?'—':latency+' ms';
+  el('drive-speed').disabled=true;el('drive-speed-value').textContent='固定低档位';
+  el('drive-speed-note').textContent=longControl?'固定低档位；启用后可持续遥控，不设轮次或行驶时长限制。':'准备完成后使用已验证的低档位；每轮 60 秒，可重复开始下一轮。';
+  el('drive-action').textContent='等待现场确认';el('drive-active-speed').textContent='尚未启用行驶';
+  el('drive-time').textContent=phase==='baseline'?'检查约需 30～45 秒，请保持电调关闭。':phase==='esc_on'?'打开电调并确认静止后，点击启用；随后等待 12 秒。':'行驶倒计时尚未开始。';
+  el('drive-limits').textContent=longControl?'W/S 或上下键持续前进、倒车；A/D 或左右键转向，可组合按键。松键停车，空格或 Esc 急停。':'W 前进每次最多 0.8 秒，A/D 转向；松键停车，空格急停。';
+  el('bench-confirm-text').textContent=phase==='esc_on'?'电调已打开，车轮静止，手已移开转向机构和车轮':'电调已关闭，车已落地，场地空旷，有人能立即关闭电调';
+  el('bench-ready').disabled=checking;el('drive-enable').disabled=enabling||checking||failed;
+  el('drive-enable').textContent=phase==='esc_off'?'准备测试':phase==='esc_on'?'启用键盘测试':'正在准备……';
+  if(pwmMode){
+   el('drive-speed-section').hidden=true;
+   el('drive-speed-note').textContent='仅调 S3，每次最多 2 秒；电调保持关闭。';
+   el('drive-limits').textContent='1550–1750 μs，每次试调最多 2 秒，结束回原中位；不自动保存标定。';
+   el('bench-confirm-text').textContent='电调已关闭，车轮已架空，手已移开车轮和转向机构';
+   el('drive-enable').textContent=phase==='esc_off'?'准备 S3 调试':phase==='steering_ready'?'启用 S3 调试':'正在准备……';
+   el('drive-time').textContent=phase==='baseline'?'检查约需 30～45 秒，请保持电调关闭。':phase==='steering_ready'?'保持电调关闭，确认架空后启用；随后等待 1 秒。':'尚未启用 S3 输出。';
+  }else{el('drive-speed-section').hidden=false;}
+  el('drive-next').hidden=true;el('drive-reset').hidden=!failed;el('drive-reset').textContent='重新准备';el('drive-focus').disabled=true;
+  el('drive-safety').hidden=false;el('drive-safety').textContent=failed?'准备停止。请先关闭电调，勾选现场确认后点击“重新准备”。':phase==='esc_on'?'零油门和 5G 检查完成；现在可以打开电调，先确认车轮静止。':'先保持电调关闭，勾选现场确认后点击“准备测试”。';
+  if(pwmMode&&!failed)el('drive-safety').textContent='电调全程关闭，仅 S3 转向；准备检查不发送电调、转向或云台指令。';
+  if(phase==='closing')el('drive-time').textContent='正在结束当前测试，请保持车辆静止。';
+  document.querySelectorAll('[data-drive],[data-speed]').forEach(b=>{b.disabled=true;b.classList.remove('active');});
+  feedback(requestError||s.reason,failed?'error':checking?'sending':'ready');return;
+ }
  if(s.controls_paused){
   allowed=false;held.clear();turnAvailable=false;motorAvailable=false;reverseAvailable=false;
   el('drive-title').textContent='实车控制';el('drive-link').textContent='已连接';
@@ -113,12 +160,15 @@ function render(s){
  el('drive-next').hidden=!nextRound;el('drive-next').disabled=enabling||!el('bench-ready').checked;
  if(finished){requestError='';localHint='';held.clear();needsRelease=true;}
  const wasAllowed=allowed;allowed=s.mode==='enabled'&&!requestError&&!finished;
+ pwmControl?.update(s);
+ el('drive-speed-section').hidden=s.steering_pwm_available===true;
  turnAvailable=s.steering_available!==false;
  motorAvailable=s.motor_available!==false;
  reverseAvailable=s.reverse_available!==false;
  const continuous=s.continuous_simulation===true;
- const ground=s.ground_short_trial===true, groundHeld=s.ground_held_trial===true, testSeconds=s.test_session_s??180;
- el('drive-title').textContent=groundHeld?'低速遥控测试':ground?'地面负载短测':continuous?'手动驾驶':'架空驾驶短测';
+ const ground=s.ground_short_trial===true, groundHeld=s.ground_held_trial===true, longControl=s.ground_continuous_trial===true, testSeconds=s.test_session_s??180;
+ el('drive-title').textContent=longControl?'5G 长距离遥控':groundHeld?'低速遥控测试':ground?'地面负载短测':continuous?'手动驾驶':'架空驾驶短测';
+ if(s.steering_pwm_available){el('drive-title').textContent='S3 实时 PWM 调试';}
  el('drive-link').textContent='已连接';el('drive-link').style.color='#86efac';
  el('drive-latency').textContent=latency==null?'—':latency+' ms';
  el('drive-safety').hidden=!s.real_output_paused_reason;el('drive-safety').textContent='实车未启用：'+(s.real_output_paused_reason||'')+' 电调保持关闭，当前仅验证网页控制。';
@@ -135,8 +185,9 @@ function render(s){
  if(groundHeld){el('bench-confirm-text').textContent='车已落地，路线空旷，有人跟车，电调打开后车轮静止';el('drive-speed-value').textContent='固定低档位';el('drive-speed-note').textContent='使用已验证的低档位，松开行驶键停车。';el('drive-active-speed').textContent=s.motor_pulse_us===1500?'零油门':'固定低档位';}
  el('drive-limits').textContent=s.parking_protection_trial?'只测试 W 前进和停车保护，每次最多 0.8 秒。轮子开始转动后立即触发指定保护；先不测试倒车和转向。':motorAvailable?'前进每次最多 0.8 秒；倒车请按住约 3 秒，包含刹车和回零等待。一直按住不会重复试转，需全部松开后再按。':'只测试 A/D 或左右键，每次最多 2 秒；松键后回正并关闭舵机信号。前进、倒车和云台信号保持关闭。';
  if(continuous)el('drive-limits').textContent='按住 W/S 或上下键持续发送行驶请求，A/D 可同时转向。松开行驶键停车，空格急停；切换窗口后停止发送。';
- if(ground)el('drive-limits').textContent='有限地面负载短测：W前进最多0.8秒，S请按住约3秒完成倒车准备。每组之间松开全部方向键；松键回零、空格急停。';
+ if(ground)el('drive-limits').textContent=reverseAvailable?'有限地面负载短测：W前进最多0.8秒，S请按住约3秒完成倒车准备。每组之间松开全部方向键；松键回零、空格急停。':'W前进最多0.8秒，A/D转向。每组之间松开全部方向键；松键回零、空格急停。';
  if(groundHeld)el('drive-limits').textContent='按住 W 前进，A/D 转向；松开 W 停车，松开转向键回正。空格急停，失联停车；单次按住最多 '+s.motion_hold_max_s+' 秒，本轮 '+testSeconds+' 秒。';
+ if(longControl)el('drive-limits').textContent='按住 W/S 或上下键持续行驶，A/D 或左右键可同时转向；松开行驶键停车，松开转向键回正。空格或 Esc 急停；倒车包含刹车和回零等待。';
  el('drive-mode').textContent=(s.hardware_output?(s.parking_protection_trial?'实车停车保护短测（只测前进，舵机信号关闭）':s.combined_trial?'实车联动短测（云台信号关闭）':!motorAvailable?'实车转向短测（驱动和云台信号关闭）':turnAvailable?'实车短测':'实车车轮短测（转向和云台信号关闭）'):'模拟模式（按钮不会驱动车轮）')+' · '+s.reason+
  (s.mode==='settling'?'（'+Math.ceil(s.ready_in_s)+'秒）':'');
  if(ground)el('drive-mode').textContent='实车地面负载短测 · '+s.reason+(s.mode==='settling'?'（'+Math.ceil(s.ready_in_s)+'秒）':'');
@@ -150,6 +201,10 @@ function render(s){
  if(s.repeatable_trials&&s.pending_hardware_start)el('drive-time').textContent='等待你点击启用；每轮 '+testSeconds+' 秒，正常结束后可开始下一轮。';
  if(s.repeatable_trials&&s.mode==='starting')el('drive-time').textContent='正在准备本轮，请保持车辆静止；倒计时尚未开始。';
  if(s.raised_load_probe&&s.session_remaining_s!=null)el('drive-time').textContent=s.session_phase==='preparing'?'准备剩余 '+Math.ceil(s.session_remaining_s)+' 秒；启用就绪后有 '+testSeconds+' 秒测试时间':s.mode==='settling'?'正在等待就绪；就绪后有 '+testSeconds+' 秒测试时间':'本轮剩余 '+Math.ceil(s.session_remaining_s)+' 秒';
+ if(longControl){
+  el('drive-time').textContent=s.mode==='starting'?'正在准备持续遥控，请保持车辆静止。':s.mode==='settling'?'正在等待就绪：'+Math.ceil(s.ready_in_s)+' 秒。':'持续遥控模式：不设轮次和行驶时长限制；松键、失联或切换窗口时停车。';
+  el('drive-enable').textContent=enabling||s.mode==='starting'?'正在启用……':'启用持续遥控';
+ }
  if(finished){
   el('drive-link').textContent=s.mode==='expired'?'本轮已结束':'控制已停止';el('drive-link').style.color='#fbbf24';
   el('drive-time').textContent=s.mode==='expired'&&s.session_phase==='preparing'?'准备窗口已结束，尚未启用本轮测试。请关闭电调，重新准备。':'本轮控制已结束，请关闭电调，重新准备。';
@@ -157,11 +212,17 @@ function render(s){
   if(!nextRound||previousStatus?.mode!=='expired')el('bench-ready').checked=false;
  }
  if(nextRound){el('drive-time').textContent='第 '+s.trial_number+' 轮已结束，确认停稳后点击“开始下一轮”。';el('bench-confirm-text').textContent='车已停稳，场地空旷，电调开关在手边';}
+ if(s.steering_pwm_available){
+  el('bench-confirm-text').textContent=!s.boot_test&&!s.hardware_output?'我确认这是模拟 S3 模式，不连接车辆':'电调已关闭，车轮已架空，手已移开转向机构';
+  el('drive-enable').textContent='启用 S3 调试';
+  el('drive-limits').textContent='S3 范围 1550–1750 μs；每次试调最多 2 秒，结束回原中位。松键、空格或 Esc、切换窗口和失联时停止。';
+  if(!finished)el('drive-time').textContent=s.session_remaining_s==null?'等待你确认并启用 S3 调试。':s.session_phase==='preparing'?'准备剩余 '+Math.ceil(s.session_remaining_s)+' 秒；启用后本轮 120 秒。':'S3 本轮剩余 '+Math.ceil(s.session_remaining_s)+' 秒；每次试调最多 2 秒。';
+ }
  el('bench-ready').disabled=finished&&!nextRound;el('drive-focus').disabled=finished;
  el('drive-next').disabled=enabling||!el('bench-ready').checked;
  document.querySelectorAll('[data-drive]').forEach(b=>b.disabled=!allowed||!turnAvailable&&['left','right'].includes(b.dataset.drive)||!motorAvailable&&['forward','reverse'].includes(b.dataset.drive)||!reverseAvailable&&b.dataset.drive==='reverse');
  document.querySelectorAll('[data-drive]').forEach(b=>b.classList.toggle('active',Array.from(held.values()).includes(b.dataset.drive)));
- if(wasAllowed&&!allowed)held.clear();
+ if(wasAllowed&&!allowed){held.clear();heartbeatDue=false;urgentGeneration++;needsRelease=true;}
  if(requestError){feedback(requestError,'error');return;}
  if(enabling){feedback('启用请求已发出，等待树莓派确认……','sending');return;}
  if(s.mode==='starting'){feedback('正在准备遥控，请保持车辆静止；完成后再等待就绪倒计时。','sending');return;}
@@ -171,6 +232,7 @@ function render(s){
  if(s.mode==='emergency'){feedback('已急停：'+s.reason+'。需要解除急停并重新启用。','error');return;}
  if(localHint){feedback(localHint,'sending');return;}
  if(stopPending){feedback('已收到松键／停车操作，正在等待停车确认……','sending');return;}
+ if(s.steering_pwm_active){feedback('S3 试调：目标 '+s.steering_pwm_requested_us+' μs，已下发 '+s.steering_pulse_us+' μs；最多 2 秒，结束回原中位。','ready');return;}
  if(s.motor_stage==='brake'){feedback((s.hardware_output?'倒车准备：正在输出刹车信号':'模拟倒车准备：刹车阶段')+'；请继续按住 S，松键会取消。','sending');return;}
  if(s.motor_stage==='neutral_gap'){feedback('倒车准备：回零等待 '+Math.max(0,s.reverse_wait_remaining_s).toFixed(1)+' 秒；请继续按住 S。','sending');return;}
  if(s.motor_pulse_us!==1500&&s.motor_pulse_us!=null){
@@ -185,11 +247,13 @@ function render(s){
  if(continuous&&s.steering_direction!=='center'&&!s.release_required){feedback('模拟驾驶：停车 ＋ '+directionNames[s.steering_direction]+'；车轮不会转动。','ready');return;}
  if(held.size&&s.release_required){feedback(continuous?'已停止行驶请求，请松开按键后再按。':'本次短测已回零，请松开按键后再测。','ready');return;}
  if(held.size){feedback('按键已收到，等待树莓派响应／回零准备……','sending');return;}
+ if(allowed&&s.steering_pwm_available){feedback('S3 试调已就绪；滑条、整数输入和微调按钮均可使用。停止后已请求回原中位，请观察前轮。','ready');return;}
  if(allowed&&s.reverse_cancelled){feedback('倒车准备已因松键取消；已回零，请观察车轮是否停下。再测时按住 S 约 3 秒。','sending');return;}
  if(allowed){feedback(continuous?(['松键或停车请求','按键已松开','速度指令为零'].includes(s.reason)?'模拟停车已确认：行驶请求已回零。':'模拟驾驶已就绪：按住 W/S 行驶，A/D 转向；当前没有实车输出。'):motorAvailable?(['松键或停车请求','按键已松开'].includes(s.reason)?'已收到回零确认；请观察车轮是否停下。':'已就绪：可以按住 W 前进；当前零油门。'):['松键或停车请求','按键已松开','短测结束，请松开全部方向键后再按'].includes(s.reason)?'已输出回正信号并关闭舵机信号；请观察前轮是否回正。':'已就绪：按住 A 左转、D 右转；松键回正。','ready');return;}
- feedback('尚未启用：先勾选就绪确认，再点击“'+(groundHeld?'启用低速遥控':continuous?'启用模拟驾驶':'启用短测')+'”。');
+ feedback('尚未启用：先勾选就绪确认，再点击“'+(s.steering_pwm_available?'启用 S3 调试':groundHeld?'启用低速遥控':continuous?'启用模拟驾驶':'启用短测')+'”。');
 }
 function stop(action='stop',keepalive=false,stopSource='unknown'){
+ pwmControl?.cancel();
  gamepadControl?.requireNeutral();
  held.clear();heartbeatDue=false;localHint='';urgentGeneration++;needsRelease=true;
  if(stale)return;
@@ -202,23 +266,37 @@ function stop(action='stop',keepalive=false,stopSource='unknown'){
 }
 async function heartbeat(){
  if(stopPending||!allowed||held.size===0||stale){heartbeatDue=false;return;}
- // Keep one request in flight and one due flag, rather than lose a timer
- // tick while waiting for a cellular response. Never queue old directions.
- if(busy){heartbeatDue=true;return;}
- const values=new Set(held.values());let motor=values.has('forward')?'forward':values.has('reverse')?'reverse':'stop';
- let steering=values.has('left')?'left':values.has('right')?'right':'center';
- if(values.has('forward')&&values.has('reverse')||values.has('left')&&values.has('right')){stop('stop',false,'conflicting_keys');return;}
- busy=true;heartbeatDue=false;const generation=urgentGeneration;
+ // Two bounded requests let fresh held input cross a cellular RTT without
+ // extending the configured input lease. No direction queue; release is urgent.
+ // The release handshake stays serialized, including against old requests.
+ const pipelined=lastStatus?.ground_continuous_trial===true;
+ if(busy||motionInFlight>=(pipelined?2:1)||needsRelease&&motionInFlight){heartbeatDue=true;return;}
+ const serial=!pipelined||needsRelease;
+ if(serial)busy=true;
+ motionInFlight++;heartbeatDue=false;const generation=urgentGeneration;
+ let sentSequence=null;
  try{
   if(needsRelease){const s=await send('command',{sequence:++sequence,motor:'stop',steering:'center'});
-   if(generation!==urgentGeneration||held.size===0)return;render(s);needsRelease=false;}
+   if(generation!==urgentGeneration||held.size===0)return;render(s);if(!allowed)return;needsRelease=false;
+   commandReplySequence=sequence;if(pipelined)busy=false;}
+  const values=new Set(held.values());const motor=values.has('forward')?'forward':values.has('reverse')?'reverse':'stop';
+  const steering=values.has('left')?'left':values.has('right')?'right':'center';
+  if(values.has('forward')&&values.has('reverse')||values.has('left')&&values.has('right')){stop('stop',false,'conflicting_keys');return;}
   const sources=Array.from(held.keys());
-  const s=await send('command',{sequence:++sequence,motor,steering,input_source:sources.some(x=>x.startsWith('pad:'))?'gamepad':sources.some(x=>x.startsWith('key:'))?'keyboard':'pointer'});if(generation===urgentGeneration){requestError='';localHint='';render(s);}
+  sentSequence=++sequence;
+  const s=await send('command',{sequence:sentSequence,motor,steering,input_source:sources.some(x=>x.startsWith('pad:'))?'gamepad':sources.some(x=>x.startsWith('key:'))?'keyboard':'pointer'});
+  if(generation===urgentGeneration&&sentSequence>commandReplySequence){commandReplySequence=sentSequence;requestError='';localHint='';render(s);}
  }
- catch(e){if(generation===urgentGeneration&&!stale){held.clear();heartbeatDue=false;allowed=false;requestError=e.message+'；控制请求失败，请关闭电调后检查。';feedback(requestError,'error');}}
- finally{busy=false;if(heartbeatDue&&!stopPending&&allowed&&held.size&&!stale){heartbeatDue=false;heartbeat();}}
+ catch(e){
+  // The worker rejects reordered commands without renewing their lease.
+  // A valid locally generated sequence can only be old if a newer one won.
+  const superseded=pipelined&&sentSequence!==null&&e.message==='old or invalid command sequence';
+  if(!superseded&&generation===urgentGeneration&&!stale){held.clear();heartbeatDue=false;allowed=false;needsRelease=true;urgentGeneration++;requestError=e.message+'；控制请求失败，请关闭电调后检查。';feedback(requestError,'error');}
+ }
+ finally{motionInFlight--;if(serial)busy=false;if(heartbeatDue&&!stopPending&&allowed&&held.size&&!stale){heartbeatDue=false;heartbeat();}}
 }
 function press(source,direction){
+ if(pwmControl?.isActive()){localHint='请先停止 PWM 试调，再使用方向键。';if(lastStatus)render(lastStatus);return;}
  if(gamepadControl?.armed){localHint='手柄方向模式已选中；键盘空格仍可急停。使用键盘或屏幕方向前，请取消手柄勾选。';if(lastStatus)render(lastStatus);return;}
  if(stale){expiredPage();return;}
  if(!allowed){localHint='已收到'+directionNames[direction]+'按键，但尚未就绪；请先启用并等待倒计时。';if(lastStatus)render(lastStatus);return;}
@@ -251,15 +329,27 @@ document.querySelectorAll('[data-drive]').forEach(b=>{
  b.onlostpointercapture=e=>release('pointer:'+e.pointerId);
 });
 window.addEventListener('keydown',e=>{
- if(e.code==='Space'||e.key===' '||e.key==='Spacebar'){e.preventDefault();if(!e.repeat)stop('emergency',false,'keyboard_space');return;}
- if(keys[e.key]){
+ if(e.code==='Space'||e.key===' '||e.key==='Spacebar'||e.key==='Escape'||e.code==='Escape'){e.preventDefault();if(!e.repeat)stop('emergency',false,e.key==='Escape'||e.code==='Escape'?'keyboard_escape':'keyboard_space');return;}
+ if(keyDirection(e)){
   if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)){localHint='方向键已收到，请先点击页面空白处，再按键。';if(lastStatus)render(lastStatus);return;}
-  e.preventDefault();if(!e.repeat)press(keySource(e),keys[e.key]);}
+  e.preventDefault();if(!e.repeat)press(keySource(e),keyDirection(e));}
 });
-window.addEventListener('keyup',e=>{if(keys[e.key]){e.preventDefault();release(keySource(e));}});
+window.addEventListener('keyup',e=>{if(keyDirection(e)){e.preventDefault();release(keySource(e));}});
 el('drive-stop').onclick=()=>stop('stop',false,'stop_button');el('drive-emergency').onclick=()=>stop('emergency',false,'emergency_button');
 el('drive-focus').onclick=()=>{el('drive-panel').focus();localHint=allowed?(motorAvailable?'页面已获得键盘焦点：按住 W 前进，松开停车。':'页面已获得键盘焦点：按住 A 左转、D 右转，松键回正。'):'页面已获得键盘焦点；先启用短测，再按方向键。';if(lastStatus)render(lastStatus);};
 el('drive-refresh').onclick=()=>window.location.reload();
+el('test-mode').onchange=async()=>{
+ if(stale||enabling)return;
+ pwmControl?.cancel();held.clear();heartbeatDue=false;needsRelease=true;
+ try{requestError='';render(await send('select_mode',{test_mode:el('test-mode').value}));}
+ catch(e){requestError=e.message;if(lastStatus)render(lastStatus);}
+};
+el('drive-finish').onclick=async()=>{
+ if(stale||enabling)return;
+ pwmControl?.cancel();held.clear();heartbeatDue=false;allowed=false;needsRelease=true;urgentGeneration++;
+ try{requestError='';render(await send('finish_test'));}
+ catch(e){requestError=e.message;feedback('结束测试未确认：'+e.message,'error');}
+};
 el('drive-reconnect').onclick=async()=>{
  if(stale){window.location.reload();return;}
  if(lastStatus&&(['expired','closed','fault'].includes(lastStatus.mode)||lastStatus.worker_available===false)){render(lastStatus);return;}
@@ -284,15 +374,21 @@ el('drive-enable').onclick=async()=>{
  try{sequence=0;held.clear();needsRelease=true;lastStatus=await send('enable',{bench_ready:true});}
  catch(e){requestError='启用失败：'+e.message;feedback(requestError,'error');}
  finally{enabling=false;if(lastStatus)render(lastStatus);}};
-el('drive-reset').onclick=async()=>{try{requestError='';localHint='';render(await send('reset'));el('bench-ready').checked=false;}catch(e){requestError=e.message;feedback(requestError,'error');}};
+el('drive-reset').onclick=async()=>{try{requestError='';localHint='';render(await send('reset',{bench_ready:el('bench-ready').checked}));el('bench-ready').checked=false;}catch(e){requestError=e.message;feedback(requestError,'error');}};
 window.addEventListener('blur',()=>stop('stop',false,'window_blur'));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop('stop',false,'page_hidden');});
 window.addEventListener('pagehide',()=>stop('stop',true,'page_exit'));
 async function poll(){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),1500),started=performance.now();
  try{const response=await fetch('/api/drive/status',{cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('状态读取失败');const status=await response.json();latency=Math.round(performance.now()-started);render(status);}
- catch(e){held.clear();allowed=false;requestError='控制服务连接中断，请关闭电调后检查网络。';el('drive-link').textContent='连接中断';el('drive-link').style.color='#fca5a5';feedback(requestError,'error');}
+ catch(e){pwmControl?.cancel();held.clear();allowed=false;requestError='控制服务连接中断，请关闭电调后检查网络。';el('drive-link').textContent='连接中断';el('drive-link').style.color='#fca5a5';feedback(requestError,'error');}
  finally{clearTimeout(timer);el('drive-reconnect').hidden=!requestError||stale||lastStatus&&(['expired','closed','fault'].includes(lastStatus.mode)||lastStatus.worker_available===false);setTimeout(poll,800);}}
 __GAMEPAD_CONTROLS__
+__PWM_CONTROLS__
+pwmControl=createSteeringPWMControls({el,
+ request:(action,body)=>send(action,{sequence:++sequence,...body}),
+ status:()=>({allowed:allowed&&!stopPending&&!stale,otherInput:held.size>0||el('gamepad-arm').checked}),
+ render,stop:()=>stop('stop',false,'pwm_stop'),
+ onError:e=>feedback('PWM 试调未确认：'+e.message,'error')});
 gamepadControl=createUSBGamepadControls({arm:el('gamepad-arm'),info:el('gamepad-info'),
  getPads:typeof navigator.getGamepads==='function'?()=>navigator.getGamepads():null,
  now:()=>performance.now(),state:()=>({allowed:allowed&&!stopPending,stale,
@@ -305,7 +401,7 @@ gamepadControl=createUSBGamepadControls({arm:el('gamepad-arm'),info:el('gamepad-
 setInterval(()=>gamepadControl.sample(),50);
 setInterval(heartbeat,70);poll();
 })();
-</script>'''.replace('__GAMEPAD_CONTROLS__', GAMEPAD_SCRIPT)
+</script>'''.replace('__GAMEPAD_CONTROLS__', GAMEPAD_SCRIPT).replace('__PWM_CONTROLS__', PWM_SCRIPT)
 
 AUX_SCRIPT = '''<script>
 (()=>{

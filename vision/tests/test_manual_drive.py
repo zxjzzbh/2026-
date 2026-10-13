@@ -247,6 +247,21 @@ def test_stop_rejects_delayed_motion_until_a_new_release_and_sequence():
     assert len([c for c in backend.calls if c[0]=='motion'])==2
 
 
+def test_timeout_reason_survives_late_release_and_is_returned_to_operator():
+    drive, backend, clock = prepared()
+    command(drive, 1); drive.tick()
+    clock.now = .201; drive.tick()
+    reason = drive.reason
+    assert '控制消息超时' in reason
+    drive.request('stop', {'stop_source': 'window_blur'})
+    assert drive.mode == 'emergency' and drive.reason == reason
+    assert drive.pulse == 1500
+    with pytest.raises(DriveError, match='控制消息超时'):
+        command(drive, 2)
+    drive.request('reset', {})
+    assert drive.mode == 'disabled'
+
+
 def test_release_confirmation_after_urgent_stop_does_not_expire_an_idle_lease():
     drive,backend,clock=prepared()
     command(drive,1);drive.tick()
@@ -300,7 +315,7 @@ def test_steering_is_rate_limited_and_returns_to_center_after_stop():
         clock.now=i*.02
         command(drive, i+2, 'stop', 'left');drive.tick();drive.tick()
     pulses=[c[2] for c in backend.calls if c[0]=='steering']
-    assert max(pulses)<=1750
+    assert max(pulses)<=1870
     assert all(abs(a-b)<=10 for a,b in zip([1650]+pulses,pulses))
     drive.request('stop', {})
     for i in range(20):
@@ -587,9 +602,11 @@ def test_combined_hold_preserves_finite_motor_stages_and_returns_center(motor, t
     assert len(motions)==(1 if motor=='forward' else 2)
     assert all(c[2]==(1575 if motor=='forward' else 1300) and 0<c[3]<=.8 for c in motions)
     pulses=[c[2] for c in backend.calls if c[0]=='steering']
-    assert pulses and all(1550<=p<=1750 for p in pulses)
+    assert pulses and all(1350<=p<=1870 for p in pulses)
     assert all(abs(a-b)<=10 for a,b in zip([1650]+pulses,pulses))
     assert drive.status()['release_required'] and drive.status()['motor_pulse_us']==1500
+    # Wider requested endpoints still return at the original 10-us slew rate.
+    for _ in range(40):clock.now+=.021;drive.tick()
     assert drive.status()['steering_pulse_us']==1650
     assert [c for c in backend.calls if c[0]=='idle']
 
@@ -605,13 +622,13 @@ def test_steering_only_rejects_motor_before_output_and_releases_after_center():
     drive, backend, clock = prepared()
     backend.motor_available = False
     backend.steering_idle = lambda: backend.calls.append(('idle', clock(), drive.steering_us))
-    for i in range(15):
+    for i in range(25):
         clock.now = i * .021
         command(drive, i, 'stop', 'left'); drive.tick()
-    assert drive.status()['steering_pulse_us'] == 1750
+    assert drive.status()['steering_pulse_us'] == 1870
     assert not [c for c in backend.calls if c[0] == 'motion']
     drive.request('stop', {})
-    for _ in range(12):
+    for _ in range(22):
         clock.now += .021; drive.tick()
     assert drive.status()['steering_pulse_us'] == 1650
     assert not [c for c in backend.calls if c[0] == 'idle' and c[1] > 0]

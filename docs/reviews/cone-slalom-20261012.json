@@ -1,0 +1,87 @@
+{
+  "reviewed_at": "2026-10-12",
+  "base_main": "604fe330528ff5cefeacfde737edd214a3ed8db6",
+  "branch": "fix/alternating-cone-slalom-20261012",
+  "scope": "Independent v2 cone console: required alternating side sequence and measured pass evidence",
+  "pytest": {
+    "passed": 1183,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 3,
+    "skip_reasons": [
+      "Pi worker Unix sockets",
+      "termios unavailable on Windows",
+      "Linux Unix-socket transport"
+    ]
+  },
+  "checks": [
+    "four synthetic motion replays with signed PWM mapping: two side orders and two visibility horizons",
+    "same-side passage cannot satisfy slalom completion",
+    "no drive before two confirmed cones",
+    "same-row or too-close cones do not degrade to same-side avoidance",
+    "continuous side evidence in fixed road frame",
+    "ID reacquisition preserves sequence",
+    "lost pose, shifted cone, reference deviation, boundary/coverage loss stop",
+    "actual JavaScript DOM replay",
+    "composed cone console syntax with preserved 6f93ea8 manual template",
+    "git diff --check",
+    "changed-file credential-pattern scan"
+  ],
+  "vehicle_connected": false,
+  "deployed": false,
+  "vehicle_actions_performed": false,
+  "field_verified": false,
+  "configs_and_existing_protection_outputs_unchanged": true,
+  "limitations": [
+    "Physical cone slalom has not been validated",
+    "Current camera pose/coverage and measured turn radii remain prerequisites",
+    "Legacy full-race state machine not wired to independent cone execution",
+    "Main still has older manual console: deploy slalom-only against preserved vehicle console; do not overwrite with old manual source"
+  ],
+  "changed_files": [
+    {
+      "path": "docs/current-status.md",
+      "sha256": "77bc41894d78e8c29d658b452a29e417b2bbc10bae35764613246be0ec12fc43"
+    },
+    {
+      "path": "vision/CONE_TEST.md",
+      "sha256": "0877eda1fc884d2a7b0557ea283e33c80e5b2f8616eeeff36d1d19359dd8611d"
+    },
+    {
+      "path": "vision/README.md",
+      "sha256": "be9d7811f466408435c78dc0d10bdbd6ae108cf84a2e3371c793027ab8808ad2"
+    },
+    {
+      "path": "vision/src/carvision/cone_controls.py",
+      "sha256": "b7a4c79739d8b6e281ddbe5948415a7c42141bb7c1f7283f20dde46f9e8b8c50"
+    },
+    {
+      "path": "vision/src/carvision/cone_execution.py",
+      "sha256": "cb607506e862976a7b51cc60c5a04e9936c85691cfb5b010093105357059ac10"
+    },
+    {
+      "path": "vision/src/carvision/cone_planning.py",
+      "sha256": "9115eba3fed9f70a22227b25cbe9a3a9426adddf6ca8e6b9894dd817d6d1dfe7"
+    },
+    {
+      "path": "vision/src/carvision/cone_slalom.py",
+      "sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14"
+    },
+    {
+      "path": "vision/tests/test_cone_navigation.py",
+      "sha256": "73201ddedd39c9e45d46f2317d3d362aab93629feed8a1f9eff4553fc1cffe88"
+    },
+    {
+      "path": "vision/tests/test_cone_slalom.py",
+      "sha256": "3ca2c22cec8a8014c98f78aee906ff4d35101d05eb69cbfcbe88c1944254dbd1"
+    },
+    {
+      "path": "vision/tests/test_cone_trial.py",
+      "sha256": "641903cc014559a2c31d72e8eb6946a2cf051e185ee058c106255a796604443e"
+    },
+    {
+      "path": "vision/tools/deploy_cone_trial.py",
+      "sha256": "475efaf680e54073ee41ebc82adfa91b6a9ac3f433a1cf57f5ade6f964b89947"
+    }
+  ]
+}

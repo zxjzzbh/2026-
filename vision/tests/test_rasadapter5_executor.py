@@ -393,7 +393,7 @@ def test_invalid_motion_input_stops_and_remains_latched(throttle, steering, dura
     ("command_lease_s", False), ("maximum_motion_s", float("inf")),
     ("maximum_motion_s", .801), ("maximum_motion_s", "0.8"),
     ("steering_channel", 3.0), ("esc_channel", 4.0),
-    ("steering_left_us", 1751), ("steering_right_us", 1549),
+    ("steering_left_us", 1871), ("steering_right_us", 1349),
     ("steering_center_us", 1550), ("esc_neutral_us", 1501),
     ("port", ""), ("calibration_confirmed", 1),
 ])

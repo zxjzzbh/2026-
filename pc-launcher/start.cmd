@@ -1,0 +1,4 @@
+@echo off
+chcp 65001 >nul
+set "SMARTCAR_LAUNCHER=%~dp0oneclick.pyw"
+powershell.exe -NoProfile -Command "$p=Get-Command pythonw.exe -ErrorAction SilentlyContinue;if($p){$exe=$p.Source}else{$q=Get-Command python.exe -ErrorAction SilentlyContinue;if($q){$exe=$q.Source}else{$exe=$null}};if(-not $exe){$base=@($env:CONDA_PREFIX,(Join-Path $env:USERPROFILE 'anaconda3'),(Join-Path $env:USERPROFILE 'miniconda3'));foreach($b in $base){if($b -and (Test-Path -LiteralPath (Join-Path $b 'pythonw.exe'))){$exe=Join-Path $b 'pythonw.exe';break}}};if($exe){$script=$env:SMARTCAR_LAUNCHER;Start-Process -FilePath $exe -ArgumentList ([char]34+$script+[char]34) -WindowStyle Hidden}else{Add-Type -AssemblyName PresentationFramework;[System.Windows.MessageBox]::Show('没有找到 Python。请安装 Python 3.10 或更新版本并加入 PATH，然后再次双击入口。','智能车 5G 测试')}"

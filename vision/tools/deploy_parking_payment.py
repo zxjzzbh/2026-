@@ -1,4 +1,4 @@
-"""Install only the payment extension around the idle existing console.
+"""Install departure, parking observation and payment around the idle console.
 
 Preserves installed cone/traffic/parking/manual files and service arguments.
 Never scans a code, starts a payment window, drives, or transfers money.
@@ -23,21 +23,26 @@ from carvision.brake_controls import extend_controls as brake
 from carvision.traffic_controls import extend_controls as traffic
 from carvision.payment_controls import extend_controls as payment
 from carvision.departure_controls import extend_controls as departure
+from carvision.parking_bay_controls import extend_controls as parking_bay
 
-FILES=['vision/src/carvision/'+n+'.py' for n in ('parking_payment','payment_console','payment_controls','departure','departure_trial','departure_controls')]+[
-    'vision/tools/serve_parking_payment.py','vision/tests/test_parking_payment.py','vision/tests/test_departure.py']
+FILES=['vision/src/carvision/'+n+'.py' for n in ('parking_payment','payment_console','payment_controls','departure','departure_trial','departure_controls',
+    'parking_bay','parking_mission','parking_bay_console','parking_bay_controls','parking_entry','parking_entry_run','parking_guidance')]+[
+    'vision/tools/serve_parking_payment.py','vision/tests/test_parking_payment.py','vision/tests/test_departure.py',
+    'vision/configs/parking-bay.json','vision/tests/test_parking_bay.py','vision/tools/parking_bay.py']
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
     'vision/src/carvision/'+n+'.py' for n in ('traffic_driving','traffic_trial','traffic_controls','traffic_signal',
         'traffic_voting','brake_output','cone_vision','cone_road','cone_planning','cone_navigation',
         'cone_execution','cone_observer','cone_controls','cone_short_trial','cone_short_output')]+[
     'vision/tools/serve_crosswalk_trial.py','vision/configs/traffic-driving.json','vision/configs/traffic-signal.json',
-    'vision/configs/cone-trial.json','vision/configs/cone-trial.local.json','vision/configs/departure.local.json']))
+    'vision/configs/cone-trial.json','vision/configs/cone-trial.local.json','vision/configs/departure.local.json','vision/configs/parking-bay.local.json']))
 
 
 def idle(s):
     return (base_idle(s) and not (((s.get('cone_trial') or {}).get('avoidance') or {}).get('active'))
             and not (((s.get('cone_trial') or {}).get('short_test') or {}).get('active'))
             and not (s.get('departure_trial') or {}).get('active')
+            and not (s.get('parking_trial') or {}).get('active')
+            and not (s.get('race_flow') or {}).get('active')
             and not (s.get('parking_payment') or {}).get('motion_locked'))
 
 
@@ -132,6 +137,7 @@ def main():
             cone.extend_controls(controls)
         payment(controls)
         departure(controls)
+        parking_bay(controls)
         (record/'extended-controls.js').write_text(controls.SCRIPT.strip().removeprefix('<script>').removesuffix('</script>'),encoding='utf-8')
         (record/'service.before.conf').write_bytes(before_unit)
         remote_backup=REMOTE+'/run/'+record.name;command(c,['mkdir','-p',remote_backup])
@@ -145,7 +151,7 @@ def main():
                 put_atomic(sftp,remote_backup+'/before/'+rel,backup[rel])
         for rel in FILES:
             put_atomic(sftp,REMOTE+'/'+rel,(ROOT/rel).read_bytes());changed.append(rel)
-        tests=['test_departure.py','test_parking_payment.py','test_traffic_trial.py','test_traffic_driving.py','test_traffic_voting.py',
+        tests=['test_parking_bay.py','test_departure.py','test_parking_payment.py','test_traffic_trial.py','test_traffic_driving.py','test_traffic_voting.py',
                'test_brake_trial.py','test_brake_parking_program.py']
         if '--cone-config' in before_unit.decode():tests+=['test_cone_trial.py','test_cone_navigation.py']
         audit['pi_tests']=command(c,['env','PYTHONPATH='+REMOTE+'/vision/src',PYTHON,'-m','pytest',
@@ -167,6 +173,7 @@ def main():
                 after=status()
                 if (after.get('parking_payment') or {}).get('program')!='parking-payment-v1':raise RuntimeError('Payment module not loaded')
                 if (after.get('departure_trial') or {}).get('program')!='blue-board-speech-v1':raise RuntimeError('Departure module not loaded')
+                if (after.get('parking_bay') or {}).get('program')!='two-bay-parking-v1':raise RuntimeError('Parking bay module not loaded')
                 break
             except Exception:
                 if time.monotonic()>deadline:raise

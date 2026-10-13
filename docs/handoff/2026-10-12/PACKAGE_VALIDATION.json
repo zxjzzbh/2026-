@@ -1,0 +1,34 @@
+{
+  "checked_at": "2026-10-12T18:28:58.550594+08:00",
+  "pr4_tracked_files": 336,
+  "manual_baseline_files": 254,
+  "manual_candidate_files": 256,
+  "modified_steering_files_hashes_match": true,
+  "deployed_cone_files_match_recorded_pi_sha256": 11,
+  "steering_patch_applies_and_reproduces_candidate_after_lf_normalization": true,
+  "windows_git_line_ending_differences": [
+    "vision/deployment/boot-test-template.json",
+    "vision/src/carvision/manual_drive.py",
+    "vision/src/carvision/manual_steering.py",
+    "vision/src/carvision/pi5_pwm.py",
+    "vision/src/carvision/rasadapter5.py",
+    "vision/src/carvision/steering_pwm_controls.py",
+    "vision/tests/js/manual_heartbeat.cjs",
+    "vision/tests/js/steering_pwm.cjs",
+    "vision/tests/test_symmetric_manual_steering.py",
+    "vision/tools/serve_boot_test.py"
+  ],
+  "steering_junit_confirmed": {
+    "passed": 192,
+    "skipped": 2,
+    "failed": 0
+  },
+  "credential_scan_passed": true,
+  "runtime_fields_redacted": 0,
+  "network_used": "GitHub read-only refs/PR metadata only",
+  "pi_connected": false,
+  "pi_services_restarted": false,
+  "pwm_or_drive_commands_sent": false,
+  "hardware_tests_repeated": false,
+  "archive_integrity": "Manifest verified before archive; ZIP CRC and archived payload hashes verified by builder after creation; see adjacent build-report.json"
+}
