@@ -69,6 +69,17 @@ def test_old_radius_data_is_preserved_but_does_not_authorize_new_endpoints(setti
         steering_for_path([{'x_m':.1,'y_m':.5}],settings)
 
 
+def test_installed_current_endpoint_radius_names_remain_compatible(settings):
+    from carvision.cone_navigation import driving_settings,validate_driving
+    settings['driving']={'steering_radius_1350_cm':40.,'steering_radius_1870_cm':-45.}
+    selected=trial_settings(settings)
+    assert selected['driving']['steering_radius_right_cm']==40.
+    assert selected['driving']['steering_radius_left_cm']==-45.
+    assert validate_driving(selected)['steering_radius_1350_cm']==40.
+    selected['driving']['steering_radius_right_cm']=50.
+    with pytest.raises(ValueError,match='conflicting'):driving_settings(selected)
+
+
 def test_simplified_panel_has_no_dangling_calibration_or_short_test_nodes():
     import re,shutil,subprocess
     from carvision.cone_controls import HTML,STATE,SCRIPT

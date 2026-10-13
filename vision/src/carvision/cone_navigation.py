@@ -5,7 +5,7 @@ it need not be a surveyed GPS position. Optical-flow validity is never inferred
 from throttle, and an invalid pose cannot quietly reset while driving.
 """
 
-from .steering import LEFT_US, RIGHT_US
+from .steering import LEFT_US, RIGHT_US, RADIUS_ALIASES, radius_settings
 import copy
 import math
 
@@ -27,7 +27,7 @@ DEFAULT_DRIVING={
 
 
 def driving_settings(settings):
-    return {**DEFAULT_DRIVING,**settings.get('driving',{})}
+    return {**DEFAULT_DRIVING,**radius_settings(settings.get('driving',{}))}
 
 
 def validate_driving(settings):
@@ -59,7 +59,9 @@ def execution_readiness(settings):
     for key in ('fixed_camera_confirmed','steering_verified','odometry_verified'):
         if d[key] is not True:missing.append('driving.'+key)
     for key in ('steering_radius_right_cm','steering_radius_left_cm','visual_error_bound_m','visual_verified_distance_m'):
-        if d[key] is None:missing.append('driving.'+key)
+        if d[key] is None:
+            missing.append('driving.'+key)
+            if key in RADIUS_ALIASES:missing.append('driving.'+RADIUS_ALIASES[key])
     if d['visual_error_bound_m'] is not None and numeric(settings['motion'].get('maximum_tracking_error_m')):
         if d['visual_error_bound_m']>settings['motion']['maximum_tracking_error_m']:missing.append('driving.visual_error_exceeds_budget')
     return {'ready':not missing,'metric_planning_ready':report['metric_planning_ready'],'missing':missing,'field_verified':False}

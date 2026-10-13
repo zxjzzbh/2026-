@@ -5,7 +5,7 @@ body-clearance, obstacle and lease guards still stop motion. Ordered image
 evidence permits estimated pass handoff; insufficient evidence needs review.
 """
 
-from .steering import LEFT_US, RIGHT_US
+from .steering import LEFT_US, RIGHT_US, radius_settings
 import copy
 import math
 import json
@@ -35,7 +35,7 @@ def trial_settings(settings,payload=None):
     validate_limits(right,left)
     if type(forward) is not int or not 1501<=forward<=1600:raise ValueError('测试油门仅允许 1501–1600 μs')
     if not numeric(duration) or not 5<=duration<=120:raise ValueError('本轮运行时限仅允许 5–120 秒')
-    s.setdefault('driving',{})['forward_us']=forward
+    s['driving']=radius_settings(s.get('driving',{}));s['driving']['forward_us']=forward
     s['low_speed_test']={'drive_mode':'continuous','settle_s':.55,'max_run_s':duration,'reaction_horizon_s':.25,
         'left_us':left,'right_us':right,'turn_margin_m':.03,
         'reported_braking_m':.17,'stopping_budget_m':.27,'reported_turn_radius_m':12.03,

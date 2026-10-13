@@ -32,8 +32,15 @@ PREREQUISITES=['vision/src/carvision/'+name+'.py' for name in (
     'cone_boundaries','cone_road')]
 
 
+def preserved_runtime(rel,data):
+    if data is None:return False
+    manifest=json.loads((ROOT/'vision/configs/race-upgrade-source.json').read_text(encoding='utf-8'))
+    return hashlib.sha256(data).hexdigest() in manifest.get('preserved_runtime_hashes',{}).get(rel,[])
+
+
 def compatible_source(rel,data):
     if data is None or data==(ROOT/rel).read_bytes():return True
+    if preserved_runtime(rel,data):return True
     manifest=json.loads((ROOT/'vision/configs/race-upgrade-source.json').read_text(encoding='utf-8'))
     return hashlib.sha256(data).hexdigest() in manifest['predecessor_hashes'].get(rel,[])
 
@@ -85,6 +92,12 @@ def main(argv=None):
             if not compatible_source(rel,data):
                 raise RuntimeError('车端控制源码有未对齐更新，不覆盖：'+rel)
         protected={}
+        manifest=json.loads((ROOT/'vision/configs/race-upgrade-source.json').read_text(encoding='utf-8'))
+        for rel in manifest.get('preserved_runtime_hashes',{}):
+            # Newer installed manual-control dependencies stay byte-identical.
+            data=read(sftp,REMOTE+'/'+rel)
+            if not preserved_runtime(rel,data):raise RuntimeError('已审查的车端遥控依赖发生变化：'+rel)
+            protected[rel]=data
         for rel in PROTECTED:
             if rel in FILES:continue
             try:protected[rel]=read(sftp,REMOTE+'/'+rel)
@@ -105,8 +118,10 @@ def main(argv=None):
                 put_atomic(sftp,remote_backup+'/before/'+rel,backup[rel])
         for rel in FILES:
             command(client,['mkdir','-p',REMOTE+'/'+str(Path(rel).parent).replace('\\','/')])
-            desired[rel]=backup[rel] if rel.startswith('vision/configs/') and backup[rel] is not None else (ROOT/rel).read_bytes()
-            put_atomic(sftp,REMOTE+'/'+rel,desired[rel]);changed.append(rel)
+            keep=(rel.startswith('vision/configs/') and backup[rel] is not None) or preserved_runtime(rel,backup[rel])
+            desired[rel]=backup[rel] if keep else (ROOT/rel).read_bytes()
+            if desired[rel]!=backup[rel]:
+                put_atomic(sftp,REMOTE+'/'+rel,desired[rel]);changed.append(rel)
         test_root=remote_backup+'/test-root';command(client,['mkdir','-p',test_root+'/vision/configs'])
         for name in ('race-flow','brake-parking','traffic-driving','cone-trial','parking-bay','cone-legacy-ground-candidate'):
             path=ROOT/'vision/configs'/(name+'.json')
@@ -116,6 +131,11 @@ def main(argv=None):
             'CARVISION_REPOSITORY_CONE_CONFIG='+test_root+'/vision/configs/cone-trial.json',
             PYTHON,'-m','pytest',REMOTE+'/vision/tests/test_race_flow.py',REMOTE+'/vision/tests/test_parking_bay.py',
             REMOTE+'/vision/tests/test_cone_low_speed.py',REMOTE+'/vision/tests/test_cone_trial_output.py','-q'],timeout=60)
+        if manifest.get('preserved_runtime_hashes'):
+            audit['manual_regression_tests']=command(client,['env','PYTHONPATH='+REMOTE+'/vision/src',
+                'CARVISION_REPOSITORY_CONE_CONFIG='+test_root+'/vision/configs/cone-trial.json',PYTHON,'-m','pytest',
+                *[REMOTE+'/vision/tests/'+name+'.py' for name in ('test_ground_continuous_drive','test_symmetric_manual_steering',
+                    'test_current_steering_profile','test_manual_heartbeat')],'-q'],timeout=60)
         if not flow_idle(status()):raise RuntimeError('控制已启用，禁止重启')
         verify_protected(sftp,protected)
         if read(sftp,UNIT)!=unit_before:raise RuntimeError('启动配置被其他任务修改，停止部署')
@@ -139,6 +159,7 @@ def main(argv=None):
         for rel in FILES:
             if read(sftp,REMOTE+'/'+rel)!=desired[rel]:raise RuntimeError('文件校验不一致：'+rel)
         audit.update(deployed=True,backup=remote_backup,protected_files_unchanged=True,
+                     preserved_runtime=list(manifest.get('preserved_runtime_hashes',{})),
                      controller_stage=state['race_flow']['stage'],parking_missing=state['race_flow']['parking_missing'])
     except Exception as exc:
         audit['error']=str(exc)

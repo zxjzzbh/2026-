@@ -15,6 +15,7 @@ import numpy as np
 from .autonomy_profile import GroundProjection
 from .brake_parking import numeric
 from .cone_slalom import SlalomProgress
+from .steering import radius_settings
 
 
 def load_settings(path):
@@ -133,7 +134,7 @@ def path_clear(path,cones,settings,lane_bounds,lane_heading_rad=0.):
     half=g['vehicle_width_m']/2+pad;front=g['rear_axle_to_front_m']+pad;rear=g['rear_overhang_m']+pad
     left,right=lane_bounds
     road_co,road_si=math.cos(lane_heading_rad),math.sin(lane_heading_rad)
-    driving=settings.get('driving',{})
+    driving=radius_settings(settings.get('driving',{}))
     radii=[driving.get(k) for k in ('steering_radius_right_cm','steering_radius_left_cm')]
     limits=sorted(100/r for r in radii) if all(numeric(r) and r!=0 for r in radii) else None
     for p in path:
