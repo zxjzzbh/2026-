@@ -104,23 +104,27 @@ def test_moving_feedback_requests_only_bounded_number_of_brake_pulses():
 
 
 @pytest.mark.parametrize('side',['left','right'])
-def test_selected_side_blue_board_stops_entry_and_never_switches_sides(side):
+def test_observed_target_blockage_retargets_without_neutral_or_rearming(side):
     c=ParkingEntryController(settings(),side);armed(c,side=side)
     result=tick(c,31,side=side,blocked=True)
-    assert result['phase']=='safety_brake' and result['esc_us']==1400
-    assert result['selected_side']==side
-    result=tick(c,33,side=side)
-    assert result['phase']=='fault' and result['esc_us']==1500
+    assert result['phase']=='seek' and result['esc_us']==1575
+    other='right' if side=='left' else 'left'
+    assert result['selected_side']==other and result['retarget_count']==1
+    assert result['target_change']['from']==side
+    assert c.last_far_edge is None and c.last_poly is None
+    result=tick(c,33,side=other)
+    assert result['phase']=='approach' and result['esc_us']==1575
 
 
-def test_board_direction_hint_overrides_recent_cached_polygon():
+def test_screen_half_hint_cannot_relabel_an_acquired_bay_when_camera_turns():
     c=ParkingEntryController(settings());armed(c)
     s=sample(31);s['parking']={'slots':[],'direction_hint':{'blocked_side':'right'}}
     result=c.step(s,3.1)
-    assert result['phase']=='safety_brake'
+    assert result['phase']=='seek' and result['esc_us']==1575
+    assert result['selected_side']=='right' and result['retarget_count']==0
 
 
-def test_geometry_absent_continues_low_seek_without_six_second_stop_or_infinite_turn():
+def test_no_current_target_does_not_keep_turning_indefinitely():
     c=ParkingEntryController(settings())
     for i in range(200):
         s=sample(i);s['parking']={'slots':[],'selected_slot':'right','tentative':True}
@@ -257,7 +261,8 @@ def test_unmatched_or_ambiguous_guide_cannot_refresh_old_far_edge(kind):
                        duplicate=kind=='ambiguous')
         if kind=='missing_far_flag':s['parking']['entry_guides'][0].pop('far_boundary_observed')
         result=c.step(s,round(i*.1,3))
-        assert result['phase']=='seek' and result['esc_us']==1575
+        assert result['phase']==('seek' if i<36 else 'safety_brake')
+        assert result['esc_us']==(1575 if i<36 else 1400)
         assert not result['far_boundary_fresh']
         assert result['geometry']['far_edge_y_normalized'] is None
     assert not result['done']
@@ -269,7 +274,7 @@ def test_guide_chain_cannot_refresh_itself_after_camera_gap_or_move_far_edge_bac
     assert good['geometry_source']=='tracked_far_guide'
     for i in range(32,38):
         result=c.step(guide_sample(i,160),round(i*.1,3))
-    assert result['phase']=='seek' and result['esc_us']==1575
+    assert result['phase']=='safety_brake' and result['esc_us']==1400
     assert result['geometry']['far_edge_y_normalized'] is None
 
 
@@ -307,8 +312,8 @@ def test_candidate_does_not_override_blue_board_or_multiple_candidate_ambiguity(
             if blocked:s['parking']['direction_hint']['blocked_side']='right'
             else:s['parking']['entry_candidates']*=2
             result=c.step(s,round(i*.1,3))
-        assert result['esc_us']==(1500 if blocked else 1575)
-        assert result['phase']==('fault' if blocked else 'seek')
+        assert result['esc_us']==1575 and result['phase']=='seek'
+        assert result['geometry']['far_edge_y_normalized'] is None
 
 
 def test_seek_for_seven_seconds_then_geometry_and_far_line_recover_without_rearming():
@@ -327,17 +332,18 @@ def test_seek_for_seven_seconds_then_geometry_and_far_line_recover_without_rearm
     assert not results[-1]['whole_vehicle_inside_verified']
 
 
-def test_previously_visible_target_can_drop_for_over_a_second_then_resume_without_stop():
+def test_acquired_target_loss_brakes_instead_of_returning_to_unbounded_seek():
     c=ParkingEntryController(settings());armed(c,q=LEFT)
     for i in range(31,46):
         s=sample(i);s['parking']={'slots':[]}
         result=c.step(s,round(i*.1,3))
-        assert result['esc_us']==1575 and result['phase']=='seek'
+        if i<36:assert result['esc_us']==1575 and result['phase']=='seek'
+        else:assert result['esc_us']<=1500 and result['phase'] in ('safety_brake','fault')
         assert result['geometry']['far_edge_y_normalized'] is None
     result=tick(c,46,q=NEAR)
-    assert result['phase']=='approach' and result['esc_us']==1575
+    assert result['phase']=='fault' and result['esc_us']==1500
     result=tick(c,47,q=STOP)
-    assert result['phase']=='brake_pulse' and result['esc_us']==1400
+    assert result['phase']=='fault' and result['esc_us']==1500 and not result['done']
 
 
 def test_short_missing_target_then_real_far_fragment_recovers_with_continuous_pwm():
@@ -394,18 +400,134 @@ def test_board_guided_seek_recentres_when_visible_target_is_aligned_and_never_fa
     assert result['geometry']['far_edge_y_normalized'] is None and not result['done']
 
 
-def test_seek_still_stops_for_same_side_board_and_camera_fault():
+def test_seek_still_stops_for_two_blocked_bays_and_camera_fault():
     for blocked in (True,False):
         c=ParkingEntryController(settings())
         for i in range(31):
             s=sample(i);s['parking']={'slots':[]}
             c.step(s,round(i*.1,3))
         s=sample(31);s['parking']={'slots':[]}
-        if blocked:s['parking']['direction_hint']={'blocked_side':'right'}
+        if blocked:s['parking']['slots']=[{'id':side,'availability':'blocked'} for side in ('left','right')]
         else:s['fresh']=False
         result=c.step(s,3.1)
         assert result['phase']=='safety_brake' and result['esc_us']==1400
         assert c.step(sample(33),3.3)['phase']=='fault'
+
+
+def test_real_overshoot_trace_now_brakes_after_far_target_loss_and_cannot_resume():
+    trace=json.loads((ROOT/'vision/tests/fixtures/parking-overshoot-loss-20261013.json').read_text('utf-8'))
+    c=ParkingEntryController(settings(),trace['selected_side'],forward_us=trace['forward_us'],steering_gain=1.25)
+    braking=[];after=[]
+    for row in trace['rows']:
+        result=c.step(row['sample'],row['now_s'])
+        if result['esc_us']<1500:braking.append(row['now_s'])
+        if braking:after.append(result)
+    assert braking and 5.8<braking[0]<6.4
+    assert all(r['esc_us']<=1500 for r in after)
+    assert after[-1]['phase']=='fault' and not after[-1]['done']
+    assert all(r['old_esc_us']>1500 for r in trace['rows'] if 6.5<r['now_s']<10.)
+
+
+def test_increased_gain_is_proportional_and_keeps_existing_endpoints():
+    old=ParkingEntryController(settings(),steering_gain=1.)
+    new=ParkingEntryController(settings(),steering_gain=1.25)
+    q=[[x+25,y] for x,y in ALIGNED]
+    for i in range(45):a=tick(old,i,q=q);b=tick(new,i,q=q)
+    assert abs(b['steering_us']-1610)>abs(a['steering_us']-1610)
+    assert abs(abs(b['steering_us']-1610)-1.25*abs(a['steering_us']-1610))<=1.
+    assert 1350<=b['steering_us']<=1870
+
+
+@pytest.mark.parametrize('side',['left','right'])
+def test_target_crossing_camera_centre_does_not_cause_large_opposite_steering(side):
+    c=ParkingEntryController(settings(),side,steering_gain=1.25)
+    outputs=[]
+    for i in range(80):
+        shift=-60+min(40,max(0,i-30))*3
+        if side=='right':shift=-shift
+        q=[[x+shift,y] for x,y in ALIGNED]
+        result=tick(c,i,side=side,q=q)
+        if i>=30:outputs.append(result)
+    assert all(r['esc_us']==1575 for r in outputs)
+    if side=='left':assert min(r['steering_us'] for r in outputs)>=1590
+    else:assert max(r['steering_us'] for r in outputs)<=1630
+    assert any(r['countersteer_limited'] for r in outputs)
+
+
+def test_initial_board_cue_retargets_once_and_image_half_flicker_does_not_toggle():
+    c=ParkingEntryController(settings(),'right')
+    for i in range(31):
+        s=sample(i);s['parking']={'slots':[]}
+        c.step(s,round(i*.1,3))
+    for i in range(31,46):
+        s=sample(i);s['parking']={'slots':[],'direction_hint':{
+            'blocked_side':'right' if i%2 else 'left','suggested_slot':'left' if i%2 else 'right'}}
+        r=c.step(s,round(i*.1,3))
+        assert r['selected_side']=='left' and r['retarget_count']==1
+        assert r['esc_us']==1575 and r['phase']=='seek'
+    assert c.last_far_at is None
+
+
+def test_actual_board_overlap_replans_but_unrelated_screen_side_board_does_not():
+    for overlapping in (False,True):
+        c=ParkingEntryController(settings(),'left');armed(c,side='left')
+        box=[200,230,300,330] if overlapping else [10,230,70,330]
+        s=sample(31,side='left');s['parking']={'slots':[],'direction_hint':{
+            'blocked_side':'left','suggested_slot':'right','boards':[{'side':'left','bbox_px':box}]}}
+        r=c.step(s,3.1)
+        assert r['esc_us']==1575
+        assert r['selected_side']==('right' if overlapping else 'left')
+        assert r['retarget_count']==int(overlapping)
+
+
+def test_retarget_cannot_reuse_old_half_far_line_or_old_loss_timer():
+    c=ParkingEntryController(settings(),'right');armed(c)
+    r=tick(c,31,blocked=True)
+    assert r['selected_side']=='left' and r['retarget_count']==1
+    for i in range(32,43):
+        s=sample(i);s['parking']={'slots':[],'tracked_far_lines':[{
+            'id':'right','source':'optical_flow_far_edge','frame_id':i,'captured_s':round(i*.1,3),
+            'edge_px':[[160,235],[320,235]],'tracked_points':20,'marking_support':1.}]}
+        r=c.step(s,round(i*.1,3))
+        assert r['esc_us']==1575 and r['geometry']['far_edge_y_normalized'] is None
+    assert not r['done'] and c.core is None
+
+
+def road(left,right):
+    return {'white_lines_detected':True,
+            'left_inner':[[left+(240-y)*.2,y] for y in range(120,241,15)],
+            'right_inner':[[right-(240-y)*.2,y] for y in range(120,241,15)]}
+
+
+@pytest.mark.parametrize('side,left,right,correction',[('left',200,450,'right'),('right',20,290,'left')])
+def test_white_edge_inward_correction_overrides_selected_side_limit(side,left,right,correction):
+    c=ParkingEntryController(settings(),side);armed(c,side=side,q=LEFT if side=='left' else RIGHT)
+    s=sample(31,side=side,q=LEFT if side=='left' else RIGHT);s['parking']['road_context']=road(left,right)
+    r=c.step(s,3.1)
+    assert r['esc_us']==1575 and r['white_boundary']['correction']==correction
+    assert r['steering_us']<1610 if correction=='right' else r['steering_us']>1610
+
+
+def test_persistent_body_margin_breach_brakes_instead_of_continuing_outside_white_line():
+    c=ParkingEntryController(settings(),'left');armed(c,side='left',q=LEFT)
+    for i in range(31,34):
+        s=sample(i,side='left',q=LEFT);s['parking']['road_context']=road(210,460)
+        r=c.step(s,round(i*.1,3))
+    assert r['phase']=='safety_brake' and r['esc_us']==1400
+    assert '白线' in r['reason'] and not r['done']
+
+
+def test_aligned_target_unwinds_to_centre_gradually_without_opposite_swing():
+    c=ParkingEntryController(settings(),'left');last=None
+    for i in range(55):
+        dx=-60 if i<35 else min(0,-60+(i-35)*5)
+        q=[[x+dx,y] for x,y in ALIGNED]
+        r=tick(c,i,side='left',q=q)
+        if last is not None and i>=36:
+            assert abs(r['steering_us']-last)<=26
+        assert r['steering_us']>=1610
+        last=r['steering_us']
+    assert r['steering_us']==1610 and r['esc_us']==1575
 
 
 @pytest.mark.parametrize('kwargs',[{'forward_us':1650},{'selected_side':'unknown'},

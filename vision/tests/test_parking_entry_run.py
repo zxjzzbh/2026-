@@ -33,11 +33,17 @@ def command(run, sequence, **changes):
 
 def sample(t, frame=None, **changes):
     # This deliberately unconfirmed right bay still provides an actual quad.
-    return {'fresh': True, 'camera_id': 'secondary', 'frame_id': frame if frame is not None else round(t * 1000),
+    result = {'fresh': True, 'camera_id': 'secondary', 'frame_id': frame if frame is not None else round(t * 1000),
             'captured_s': t, 'image_size': [480, 360],
             'parking': {'slots': [{'id': 'right', 'availability': 'unknown',
                                   'corners_px': [[110, 310], [380, 310], [330, 170], [150, 170]]}]},
             'motion': {'valid': True, 'moving': False}, **changes}
+    result['parking'].setdefault('road_context', {
+        'white_lines_detected': True,
+        'left_inner': [[40., float(y)] for y in range(180, 301, 10)],
+        'right_inner': [[440., float(y)] for y in range(180, 301, 10)],
+    })
+    return result
 
 
 class Actuator:
@@ -78,6 +84,7 @@ def test_prepare_and_start_are_explicit_neutral_only_then_single_three_second_ar
     p, b, c = configurations()
     originals = copy.deepcopy((p, b, c))
     run.prepare(p, b, c, base(), preparation(), 0.)
+    assert run.s['steering_gain']==1.25 and run.status(base(),0.)['steering_gain']==1.25
     assert not opened
     run.tick(sample(.1), .1)
     assert opened[0]['pwm'] == {'neutral_us': 1500, 'steering_center_us': 1610,
@@ -323,7 +330,7 @@ def test_new_frame_with_regressed_capture_is_not_treated_as_repeat():
     assert run.phase == 'fault' and actuator.closed
 
 
-def test_blocked_bay_cannot_become_success_by_session_logic():
+def test_blocked_bay_retarget_is_visible_in_session_status_without_claiming_success():
     run, actuator = prepared()
     start(run)
     for i in range(1, 36):
@@ -334,8 +341,13 @@ def test_blocked_bay_cannot_become_success_by_session_logic():
         run.tick(view, t)
         if not run.active:
             break
-    assert run.phase == 'fault' and actuator.closed
-    assert not any(c['esc_us'] > 1500 for c in actuator.commands)
+    assert run.active and run.phase=='seek' and not actuator.closed
+    report=run.status(base(),t)
+    assert report['selected_slot']=='left' and report['initial_slot']=='right'
+    assert report['retarget_count']==1 and report['selection_source']=='obstruction_replan'
+    assert any(c['esc_us']>1500 for c in actuator.commands)
+    assert not report['intent']['done'] and not report['parking_zone_verified']
+    run.cancel('operator stopped')
 
 
 @pytest.mark.parametrize('source', ['layout', 'blocked_side', 'visible_ground', 'blue_board_position'])

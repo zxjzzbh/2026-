@@ -11,6 +11,7 @@ from .parking_speech import ParkingSpeech
 from .payment_console import outputs_released
 from .race_flow import RaceFlowController, load_bundle, LABELS, parking_blockers
 from .race_flow_camera import RaceFlowCamera
+from .parking_control import calibration_tables
 
 STOP_ACTIONS={'stop','emergency','finish_test','race_cancel','race_exit'}
 
@@ -38,6 +39,8 @@ class RaceFlowDrive:
     def _make_actuator(self,b):
         f=b['flow'];settings={'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':f['forward_us'],
             'creep_us':b['brake']['pwm']['creep_us'],'brake_us':1400},'brake_pulse_s':.12,'brake_release_s':.1,'actuator_lease_s':.2}
+        if not parking_blockers(b):
+            settings['parking_forward_us']=calibration_tables(b['parking'])[0][1]
         return ConeTrialActuator(settings,left_us=f['left_us'],right_us=f['right_us'],run=self.live,esc_mode='F/B')
 
     def status(self):
@@ -83,6 +86,9 @@ class RaceFlowDrive:
             self.drive.request(action,payload);return self.status()
         with self.lock:
             if self.closed:raise ValueError('总流程服务已关闭')
+            if action=='parking_trial_keepalive' and payload.get('compact_ack') is True:
+                if self.active:raise ValueError('全流程占用控制权')
+                return self.drive.request(action,payload)
             if action=='race_enter':
                 if self.active:raise ValueError('本轮自动流程已开始')
                 if not self.live:raise ValueError('当前仅加载软件；车端使用 --race-live 才允许显式启动')

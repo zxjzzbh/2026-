@@ -13,7 +13,9 @@ from pathlib import Path
 
 from .cone_trial_output import ConeTrialActuator
 from .parking_entry import ParkingEntryController
+from .parking_control import MetricParkingController, calibration_tables
 from .steering import LEFT_US, RIGHT_US
+from .parking_log import ParkingLog
 
 
 EVIDENCE_SELECTION_SOURCES = frozenset(('layout', 'blocked_side', 'visible_ground', 'blue_board_position'))
@@ -49,8 +51,9 @@ def _clean(value):
 
 
 class ParkingEntryRun:
-    def __init__(self, factory=None, log_root=None):
+    def __init__(self, factory=None, log_root=None, *, async_log=False):
         self.factory = factory or make_actuator
+        self.async_log = async_log
         self.log_root = Path(log_root) if log_root else None
         self.active = False
         self.phase = 'idle'
@@ -75,8 +78,10 @@ class ParkingEntryRun:
 
     def status(self, base, now):
         ready = self.active and self.phase == 'ready'
+        metric=(self.s or {}).get('controller_mode')=='metric_path'
         return {
-            'program': 'experimental-parking-entry-v1',
+            'program': 'metric-parking-entry-v1' if metric else 'experimental-parking-entry-v1',
+            'controller_mode': (self.s or {}).get('controller_mode','visual_trial'),
             'active': self.active, 'phase': self.phase, 'reason': self.reason,
             'owner_client': self.owner, 'run_token': self.token,
             'can_prepare': not self.active and parking_base_idle(base),
@@ -84,18 +89,24 @@ class ParkingEntryRun:
             'can_start': ready and self._fresh(self.sample, now),
             'start_blocked_reason': '' if ready and self._fresh(self.sample, now)
                 else '需要本页完成准备并取得第二路新鲜画面；不要求选区已连续确认',
-            'selected_slot': (self.s or {}).get('selected_slot'),
+            'selected_slot': ((self.intent or {}).get('selected_side') if metric else getattr(self.controller,'side',(self.s or {}).get('selected_slot'))),
+            'initial_slot': (self.s or {}).get('selected_slot'),
+            'retarget_count': getattr(self.controller,'retarget_count',0),
+            'retarget_reason': getattr(self.controller,'retarget_reason',None),
             'prepared_slot': (self.s or {}).get('prepared_slot'),
-            'selection_source': (self.s or {}).get('selection_source'),
-            'selection_basis': (self.s or {}).get('selection_basis'),
-            'selection_locked': self.controller is not None,
+            'selection_source': 'obstruction_replan' if getattr(self.controller,'retarget_count',0) else (self.s or {}).get('selection_source'),
+            'selection_basis': getattr(self.controller,'retarget_reason',None) or (self.s or {}).get('selection_basis'),
+            'selection_locked': (bool(self.controller and self.controller.mission.selected) if metric else self.controller is not None),
+            'visual_retarget_enabled': not metric and self.controller is not None,
             'forward_us': (self.s or {}).get('forward_us', 1575),
+            'steering_gain': (self.s or {}).get('steering_gain', 1.25),
             'steering_limits_us': [RIGHT_US, LEFT_US],
             'hardware_output': bool(self.actuator and getattr(self.actuator, 'run', False)),
             'intent': copy.deepcopy(self.intent),
             'field_verified': False, 'actual_pose_not_verified': True,
             'parking_zone_verified': False,
-            'completion_basis': '视觉入位与光流停稳估计；不代表四轮物理入位验证',
+            'completion_basis': ('实测位姿下整车外廓入位并连续停稳；实车验收仍独立记录' if metric else
+                                 '视觉入位与光流停稳估计；不代表四轮物理入位验证'),
             'log_directory': str(self.folder) if self.folder else None,
         }
 
@@ -115,16 +126,24 @@ class ParkingEntryRun:
         forward = payload.get('forward_us', 1575)
         if type(forward) is not int or not 1501 <= forward <= 1625:
             raise ValueError('停车前进油门仅允许 1501–1625 μs 整数')
-        gain = payload.get('steering_gain', 1.)
+        gain = payload.get('steering_gain', 1.25)
         if type(gain) not in (int, float) or not math.isfinite(gain) or not 1 <= gain <= 3:
             raise ValueError('停车转向增益仅允许 1.0–3.0')
         parking, brake, cone = map(copy.deepcopy, (parking_settings, brake_settings, cone_settings))
+        mode=payload.get('controller_mode','visual_trial')
+        if mode not in ('visual_trial','metric_path'):
+            raise ValueError('未知停车入位模式')
         if parking.get('camera') != 'secondary' or parking.get('image_size') != [480, 360]:
             raise ValueError('停车使用第二路 480×360 实际画面')
         brake.update(arming_s=3., brake_pulse_s=.12, brake_release_s=.1, actuator_lease_s=.2)
         brake['pwm'] = {'neutral_us': 1500, 'steering_center_us': 1610,
                         'search_us': forward, 'creep_us': forward, 'brake_us': 1400}
+        if mode=='metric_path':
+            # Validation is pure and precedes ownership/hardware acquisition.
+            validated=MetricParkingController(parking,cone)
+            brake['parking_forward_us']=calibration_tables(validated.s)[0][1]
         candidate = {'parking': parking, 'brake': brake, 'cone': cone,
+                     'controller_mode':mode,
                      'selected_slot': side, 'prepared_slot': side, 'forward_us': forward, 'steering_gain': gain,
                      'selection_source': 'prepared_side', 'selection_basis': '准备时选定方向'}
         # Metadata is supplied by the observer, never accepted from page JSON.
@@ -134,6 +153,9 @@ class ParkingEntryRun:
                 candidate['selection_source'] = source
                 candidate['selection_basis'] = selection.get('suggestion_basis') or '准备时选定方向'
         candidate['prepared_selection_source'] = candidate['selection_source']
+        if mode=='metric_path':
+            candidate.update(selected_slot=None,selection_source='metric_pending',
+                             selection_basis='等待新鲜米制空位和停稳确认，网页暂定侧不授权入库')
         # Validate controller inputs before reserving a session; its constructor
         # is pure and does not start arming until the first step after start.
         self._controller(candidate)
@@ -151,7 +173,8 @@ class ParkingEntryRun:
                 self.folder.mkdir(parents=True, exist_ok=False)
                 (self.folder / 'settings.json').write_text(
                     json.dumps(_clean(self.s), ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
-                self.log = (self.folder / 'decisions.jsonl').open('w', encoding='utf-8')
+                path = self.folder / 'decisions.jsonl'
+                self.log = ParkingLog(path) if self.async_log else path.open('w', encoding='utf-8')
             except Exception:
                 self.cancel('无法创建停车入位日志', phase='fault')
                 raise
@@ -159,13 +182,16 @@ class ParkingEntryRun:
     @staticmethod
     def _controller(settings):
         p = settings['parking']
+        if settings.get('controller_mode')=='metric_path':
+            return MetricParkingController(p,settings['cone'])
         ground = settings['cone'].get('ground') or p.get('ground')
         return ParkingEntryController(
             settings['brake'], selected_side=settings['selected_slot'],
             forward_us=settings['forward_us'], steering_gain=settings['steering_gain'],
             vehicle_width_m=p['vehicle_width_m'], front_extent_m=p['front_extent_m'],
             rear_extent_m=p['rear_extent_m'], zone_length_m=p['zone_length_m'],
-            half_width_m=p['lane_width_m'] / 2, ground=ground)
+            half_width_m=p['lane_width_m'] / 2, ground=ground,
+            require_white_boundary=True)
 
     @staticmethod
     def _fresh_selection(selection, now):
@@ -195,7 +221,7 @@ class ParkingEntryRun:
                 raise ValueError('开始前需 F/B、电调打开且静止、场地就绪')
             candidate = copy.deepcopy(self.s)
             selection = self._fresh_selection(start_selection, now)
-            if selection is not None:
+            if selection is not None and candidate.get('controller_mode')!='metric_path':
                 candidate.update(selected_slot=selection['selected_slot'],
                     selection_source=selection['suggestion_source'],
                     selection_basis=selection.get('suggestion_basis') or '开始前最新视觉方向证据',
@@ -213,7 +239,8 @@ class ParkingEntryRun:
                     ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
             self.s, self.controller = candidate, controller
             self.last_control_frame = None
-            self.phase, self.reason = 'arming', '3 秒中位后低速驶向选定停车半区'
+            self.phase, self.reason = 'arming', ('3秒中位后确认米制车位，再沿路径入库' if
+                candidate.get('controller_mode')=='metric_path' else '3 秒中位后低速驶向选定停车半区')
         elif action == 'parking_trial_cancel':
             self.sequence = sequence
             self.cancel('已手动停止停车入位')
@@ -293,6 +320,8 @@ class ParkingEntryRun:
             if self.folder:
                 try:
                     summary = {'phase': phase, 'reason': reason, 'field_verified': False,
+                               'final_selected_side':getattr(self.controller,'side',(self.s or {}).get('selected_slot')),
+                               'retarget_count':getattr(self.controller,'retarget_count',0),
                                'actual_pose_not_verified': True, 'parking_zone_verified': False,
                                'failure_sample': self.sample if phase == 'fault' else None,
                                'last_requested_intent': self.intent}
