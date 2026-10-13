@@ -119,7 +119,7 @@ class ConeObserverDrive:
                 base['hardware_output']=run['hardware_output'] or short['hardware_output']
             return {**base,'cone_status_s':self.clock(),'cone_trial':{'program':'blue-cone-avoidance-v2','observing':self.observing,
                 'logic_revision':'slalom-continuity-20261012','legacy_reference_available':True,'low_speed_trial_available':True,
-                'low_speed_line_policy':'either_camera_with_bounded_hold',
+                'low_speed_line_policy':'either_camera_or_image_only_continuation',
                 'low_speed_drive_mode':'continuous',
                 'low_speed_steering_adjustable':True,
                 'low_speed_boundary_policy':'inward_correction_with_hard_clearance',

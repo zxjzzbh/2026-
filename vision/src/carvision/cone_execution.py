@@ -89,7 +89,7 @@ class ConeRun:
             if (self.phase!='ready' or not acceptable
                     or not 0<=now-nav.get('captured_s',-1e9)<=.25
                     ):
-                raise ValueError('暂不能开始：需要新鲜白线和无未确认近处障碍的画面')
+                raise ValueError('暂不能开始：需要新鲜相机画面，且无未确认的近处障碍')
             if any(payload.get(k) is not True for k in ('fb_mode_confirmed','esc_on_static','field_ready')):raise ValueError('开始前需 F/B、电调打开且静止、场地就绪')
             self.controller=LowSpeedController(self.s,now) if self.profile==PROFILE else ConeDrivingController(self.s,now)
             self.phase='arming';self.reason='3 秒中位后开始低速避障'
@@ -109,10 +109,10 @@ class ConeRun:
             motion=(navigation or {}).get('motion') or {}
             fresh=navigation and 0<=now-navigation.get('captured_s',-1e9)<=.25
             feedback_ok=bool(motion.get('valid')) if self.profile!=PROFILE else bool(
-                navigation and navigation.get('experimental') and navigation.get('lane_bounds_px'))
+                navigation and navigation.get('experimental') and navigation.get('ready'))
             if self.actuator is None:
                 if not fresh or not feedback_ok:
-                    if now-self.prepared_s>5:raise ValueError('等待任一路可靠白线超时，准备未完成' if self.profile==PROFILE else '未取得可信跑道与位移反馈，准备失败')
+                    if now-self.prepared_s>5:raise ValueError('等待新鲜可用相机画面超时，准备未完成' if self.profile==PROFILE else '未取得可信跑道与位移反馈，准备失败')
                     return
                 token=self.token;handle=self.factory(self.s)
                 if not self.active or self.token!=token:

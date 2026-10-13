@@ -19,7 +19,7 @@ from deploy_cone_trial import idle,PROTECTED,verify_protected
 MODULES=('race_flow','race_flow_camera','race_flow_console','race_flow_controls',
          'parking_bay','parking_bay_console','parking_bay_controls','parking_mission',
          'steering','manual_drive','manual_hardware','rasadapter5','pi5_pwm',
-         'brake_parking','brake_output','cone_low_speed','cone_trial_output','cone_navigation',
+         'brake_parking','brake_output','cone_low_speed','cone_trial_output','cone_navigation','cone_execution',
          'cone_planning','cone_observer','cone_controls','autonomy_profile','autonomy_motion','rasadapter5_executor')
 FILES=['vision/src/carvision/'+name+'.py' for name in MODULES]+[
     'vision/tools/serve_race_flow.py','vision/tools/serve_parking_payment.py','vision/tools/race_flow.py',

@@ -10,7 +10,7 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <div class="cone-settings"><label>前进油门（μs）<input id="cone-test-forward" type="number" min="1501" max="1600" step="1" value="1600"></label><label>运行时限（秒）<input id="cone-test-duration" type="number" min="5" max="120" step="1" value="60"></label></div>
 <div class="cone-settings"><label>左转端点（μs）<input id="cone-test-left" type="number" min="1650" max="1870" step="5" value="1870"></label><label>右转端点（μs）<input id="cone-test-right" type="number" min="1350" max="1570" step="5" value="1350"></label></div>
 <p id="cone-test-steering-state">右 1350 · 中位 1610 · 左 1870</p>
-<p>持续低速绕桶，靠近白线时向内纠偏。已跟踪的同一只桶进入车侧／近处遮挡区时继续避让驶离，不仅因画面位置靠下就停车。</p>
+<p>持续低速绕桶；白线漏检时继续前进搜索，恢复后直接循迹。靠近已识别白线时向内纠偏；已跟踪的同一只桶进入车侧／近处遮挡区时继续避让驶离。</p>
 <p id="cone-test-line-state"></p>
 <div class="cone-actions"><button id="cone-test-prepare" type="button">准备（电调关闭、F/B）</button><button id="cone-test-start" type="button" disabled>开始绕桶测试</button></div>
 <button id="cone-test-stop" type="button">急停并结束</button><button id="cone-test-confirm" type="button" disabled>核对车尾已通过后继续</button>
@@ -44,7 +44,7 @@ function renderCone(s){
  el('cone-test-steering-state').textContent=a.steering_limits_us?('本轮：右 '+a.steering_limits_us[0]+' · 中位 1610 · 左 '+a.steering_limits_us[1]):'右 1350 · 中位 1610 · 左 1870；参数在下次准备生效';
  if(oldTrial)el('cone-test-progress').textContent=(a.reason||'')+' · 已过 '+(trial.passed_count??trial.operator_confirmed_count??0)+'/2（视觉估计）'+(trial.possible_contact?' · 曾进入近处净空，接触情况需现场复核':'');
  const nav=c.latest?.navigation;
- el('cone-test-line-state').textContent=nav?.experimental?('白线：'+(nav.line_sources?.length?nav.line_sources.map(x=>x==='primary'?'第一路':'第二路').join('、'):(nav.line_held?'短时沿用最近边界':'等待恢复'))+(nav.reason?' · '+nav.reason:'')):'';
+ el('cone-test-line-state').textContent=nav?.experimental?('白线：'+(nav.line_sources?.length?nav.line_sources.map(x=>x==='primary'?'第一路':'第二路').join('、'):(nav.line_missing?'未确认，低速前进搜索':nav.line_held?'沿用最近边界，持续前进':'相机未就绪'))+(nav.reason?' · '+nav.reason:'')):'';
  const fresh=coneActive&&c.frame_age_s!=null&&c.frame_age_s>=0&&c.frame_age_s<=.25;
  el('cone-cameras').textContent=fresh?Object.entries(c.latest?.cameras||{}).map(([name,v])=>{
   const bd=v.road_context?.boundary_diagnostics,visible=(v.tracks||[]).filter(t=>t.visible&&t.confirmed&&t.kind==='cone_candidate');

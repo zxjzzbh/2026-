@@ -147,7 +147,7 @@ def test_live_short_visible_pair_reaches_driving_pipeline(settings):
     assert result['action']=='search' and result['esc_us']==1600
 
 
-@pytest.mark.parametrize('case',['lost','near_edge','crossed','stale'])
+@pytest.mark.parametrize('case',['near_edge','crossed','stale'])
 def test_white_line_or_frame_guard_stops_before_any_drive(settings,case):
     data=row();now=1.
     if case=='lost':data['road_context']['valid']=False
@@ -367,22 +367,17 @@ def test_end_brake_cannot_resume_driving_when_lines_disappear(settings,after):
     assert ctl.step(observation(4.3),4.3)['action']=='neutral'
 
 
-@pytest.mark.parametrize('case',['freshness','white','early_loss','close_cone','other_cone'])
+@pytest.mark.parametrize('case',['freshness','early_loss','close_cone','other_cone'])
 def test_runtime_hazards_interrupt_powered_segment(settings,case):
     ctl=LowSpeedController(trial_settings(settings),0.)
     first=observation(3.01)
     if case=='early_loss':first['cones'][0]['near']=False
     ctl.step(first,3.01);data=observation(3.1)
     if case=='freshness':data['captured_s']=2.
-    if case=='white':data.pop('lane_bounds_px')
     if case=='early_loss':data['cones']=[]
     if case=='close_cone':data['cones'][0].update(y_fraction=.72,fraction=.55)
     if case=='other_cone':data['cones'].append({**data['cones'][0],'id':'two','y_fraction':.7,'fraction':.5})
-    if case=='white':
-        assert ctl.step(data,3.1)['action']=='brake'
-        assert ctl.count==0
-    else:
-        with pytest.raises(ValueError):ctl.step(data,3.1)
+    with pytest.raises(ValueError):ctl.step(data,3.1)
 
 
 @pytest.mark.parametrize('available',['primary','secondary'])
@@ -405,7 +400,9 @@ def test_lane_memory_expires_from_real_observation_not_reused_frame(settings):
         assert result['line_age_s']==pytest.approx(t-1.)
     data=row(1.9,5);data['road_context']['valid']=False
     result=nav.update_views({'secondary':image},{'secondary':data},1.9)
-    assert not result['ready'] and not result.get('lane_bounds_px')
+    assert result['ready'] and result['line_missing'] and not result.get('lane_bounds_px')
+    assert result['cones'][0]['position_source']=='current_image_only'
+    assert 'fraction' not in result['cones'][0]
 
 
 def test_stale_camera_is_not_rescued_by_line_memory(settings):
@@ -431,25 +428,67 @@ def test_arming_survives_single_frame_line_miss_without_driving(settings):
     assert ctl.step(observation(3.1),3.1)['action']=='search'
 
 
-def test_line_hold_has_independent_power_budget_and_cannot_extend_burst(settings):
+def test_line_hold_and_long_line_loss_keep_throttle_without_fake_passes(settings):
     ctl=LowSpeedController(trial_settings(settings),0.)
-    ctl.step(observation(3.01),3.01)
-    assert ctl.step(observation(3.06,line_held=True),3.06)['action']=='search'
-    assert ctl.step(observation(3.18,line_held=True),3.18)['action']=='brake'
-    assert ctl.step(observation(3.4,line_held=True),3.4)['action']=='neutral'
-    assert ctl.step(observation(4.,line_held=True),4.)['action']=='neutral'
-    assert ctl.step(observation(4.1,line_held=False),4.1)['action']=='search'
+    ctl.step(observation(3.01,cones=[]),3.01)
+    for t in (3.06,3.18,3.4,4.):
+        assert ctl.step(observation(t,cones=[],line_held=True),t)['action']=='search'
+    for t in np.arange(4.1,10.,.1):
+        t=float(t);lost=observation(t,cones=[]);lost.pop('lane_bounds_px');lost.pop('ego_fraction')
+        result=ctl.step(lost,t)
+        assert result['action']=='search' and result['esc_us']==1600 and result['steering_us']==1610
+        assert result['line_search'] and not result['boundary_observed']
+    assert ctl.count==0 and ctl.phase=='driving'
+    restored=ctl.step(observation(10.1,cones=[],ego_fraction=.55),10.1)
+    assert restored['action']=='search' and restored['steering_us']==1870
+    assert ctl.line_missing_since is None
 
 
-def test_both_lines_missing_pause_then_end_without_extra_pass(settings):
-    ctl=LowSpeedController(trial_settings(settings),0.);ctl.step(observation(3.01),3.01)
-    def lost(t):
-        data=observation(t);data.pop('lane_bounds_px');return data
-    assert ctl.step(lost(3.1),3.1)['action']=='brake'
-    assert ctl.step(lost(3.3),3.3)['action']=='neutral'
-    assert ctl.step(lost(4.),4.)['action']=='neutral'
+def test_no_lines_at_start_still_arms_and_drives_with_fresh_images(settings):
+    s=trial_settings(settings);nav=DualLowSpeedNavigator(s);ctl=LowSpeedController(s,0.)
+    image=np.zeros((360,480,3),np.uint8)
+    for t in (1.,3.1,3.3,5.,8.):
+        data=row(t,round(t*100));data['road_context']['valid']=False;data['tracks']=[]
+        guide=nav.update_views({'secondary':image},{'secondary':data},t)
+        assert guide['ready'] and guide['line_missing'] and not guide.get('lane_bounds_px')
+        result=ctl.step(guide,t)
+        assert result['action']==('neutral' if t<3 else 'search')
     assert ctl.count==0
-    with pytest.raises(ValueError,match='持续未恢复'):ctl.step(lost(6.2),6.2)
+
+
+def test_image_only_cones_are_current_and_steering_is_not_held_after_disappearance(settings):
+    s=trial_settings(settings);nav=DualLowSpeedNavigator(s);ctl=LowSpeedController(s,0.)
+    image=np.zeros((360,480,3),np.uint8)
+    data=row(3.1,1);data['road_context']['valid']=False
+    guide=nav.update_views({'secondary':image},{'secondary':data},3.1)
+    assert ctl.step(guide,3.1)['steering_us']==1870
+    data=row(3.2,2);data['road_context']['valid']=False;data['tracks']=[]
+    guide=nav.update_views({'secondary':image},{'secondary':data},3.2)
+    assert ctl.step(guide,3.2)['steering_us']==1610 and not guide['cones']
+    assert ctl.count==0
+
+
+def test_real_dual_pipeline_line_loss_and_recovery_never_inserts_braking(settings):
+    s=trial_settings(settings);nav=DualLowSpeedNavigator(s);ctl=LowSpeedController(s,0.)
+    image=np.zeros((360,480,3),np.uint8)
+    for i,t in enumerate(np.arange(3.1,9.,.1)):
+        t=float(t);data=row(t,i);data['tracks']=[]
+        data['road_context']['valid']=bool(i<3 or i>48)
+        guide=nav.update_views({'secondary':image},{'secondary':data},t)
+        result=ctl.step(guide,t)
+        assert result['action']=='search' and result['esc_us']==1600
+    assert not ctl.line_missing_since
+
+
+@pytest.mark.parametrize('hazard',['camera','boundary'])
+def test_line_search_does_not_bypass_camera_or_visible_boundary_guards(settings,hazard):
+    ctl=LowSpeedController(trial_settings(settings),0.)
+    data=observation(3.1,cones=[]);data.pop('lane_bounds_px')
+    assert ctl.step(data,3.1)['action']=='search'
+    data=observation(3.2,cones=[])
+    if hazard=='camera':data['captured_s']=2.8
+    else:data.update(boundary_danger=True,reason='白线保护')
+    with pytest.raises(ValueError):ctl.step(data,3.2)
 
 
 def test_camera_switch_reassociates_unique_cone_without_double_count(settings):
@@ -498,6 +537,30 @@ class Actuator:
     def __init__(self):self.intents=[];self.closed=False
     def send(self,intent):self.intents.append(intent);return {'hardware_output':True}
     def close(self):self.closed=True
+
+
+def test_low_speed_session_can_prepare_start_and_keep_running_without_lines(settings,tmp_path):
+    made=[]
+    def factory(s):
+        a=Actuator();made.append(a);return a
+    run=ConeRun(factory,tmp_path)
+    run.prepare(settings,{'mode':'disabled','boot_test_phase':'esc_off','setup_token':'boot'},
+        {'profile':PROFILE,'client':'page','setup_token':'boot','esc_off':True,'fb_mode_confirmed':True},1.)
+    def lost(t):
+        data=observation(t,cones=[]);data.pop('lane_bounds_px');data.pop('ego_fraction');data['line_missing']=True
+        return data
+    run.tick(lost(1.1),1.1)
+    assert made and run.phase=='ready'
+    run.command('cone_start',{'client':'page','run_token':run.token,'trial_sequence':1,
+        'fb_mode_confirmed':True,'esc_on_static':True,'field_ready':True},1.2)
+    for i in range(60):
+        t=1.3+i*.1
+        run.command('cone_keepalive',{'client':'page','run_token':run.token,'trial_sequence':i+2},t)
+        run.tick(lost(t),t)
+        assert run.active
+        if t>=4.2:assert made[0].intents[-1]['action']=='search'
+    run.cancel('test emergency')
+    assert made[0].closed and not run.active
 
 
 def test_experimental_session_is_exclusive_leased_and_never_implicitly_starts(settings,tmp_path):

@@ -179,8 +179,6 @@ class BrakeParkingController:
                     return self.fault('持续前进指令但未观察到移动；检查电调解锁、供电与起步输出')
             else:
                 self.no_progress_since=None
-            if self.path_mode=='lane' and (sample.get('lane_valid') is not True or not numeric(sample.get('lane_offset'))):
-                return self.fault('循迹模式缺少有效边线')
             if self.phase=='creep' or numeric(y) and y>=creep_y:
                 self.phase='creep'
                 self.reason=('原 50 cm 区域内降低输出接近' if self.s['pwm']['creep_us']<self.s['pwm']['search_us']
@@ -191,7 +189,10 @@ class BrakeParkingController:
                 self.reason='低输出前进搜索斑马线'
                 result=self.output('search')
             if self.path_mode=='lane':
-                result['steering_us']=from_offset(sample['lane_offset'])
+                visible=sample.get('lane_valid') is True and numeric(sample.get('lane_offset'))
+                result['steering_us']=from_offset(sample['lane_offset']) if visible else self.s['pwm']['steering_center_us']
+                result['line_search']=not visible
+                if not visible:result['reason']+='；白线暂失，保持低速直行搜索'
             return result
         if now-self.brake_started>self.s['brake_timeout_s'] and self.phase!='hold':
             return self.fault('制动后未取得连续停稳反馈')

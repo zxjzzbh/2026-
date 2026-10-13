@@ -123,14 +123,15 @@ class RaceFlowController:
         self.guide=None;self.last_module_id=None;self.last_intent=None;self.events=[];self.transitions=[]
         self.parking=ParkingMission(self.b['parking']);self.parking_wait=None
         self.payment_started=None;self.paid=False;self.paid_in_time=False;self.last_drive=False;self.audio_wait=None;self.stationary_since=None
+        self.passed_cone_ids=set()
 
     def _go(self,stage,now,reason):
         self.transitions.append({'from':self.stage,'to':stage,'at_s':now,'reason':reason})
         self.stage=stage;self.entered=now;self.reason=reason;self.last_module_id=None;self.last_intent=None
-        self.guide=LowSpeedController(self.b['cones'],now-3.)
+        self.guide=LowSpeedController(self.b['cones'],now,initialized=True)
         if stage=='crosswalk':self.controller=BrakeParkingController(self.b['brake'],'straight')
         elif stage=='traffic':self.controller=FlowTrafficController(self.b['traffic'],now,self.s['max_stage_s'])
-        elif stage=='cones':self.controller=LowSpeedController(self.b['cones'],now-3.)
+        elif stage=='cones':self.controller=LowSpeedController(self.b['cones'],now,stop_on_complete=False,initialized=True)
 
     def _out(self,reason=None,intent=None,events=None):
         raw=intent or {'action':'neutral','esc_us':1500,'steering_us':1610}
@@ -151,15 +152,20 @@ class RaceFlowController:
         self._go('complete',now,'已记录队员付款声明；支付平台到账结果未自动核验')
 
     def _guided(self,nav,now,base=None):
-        if not nav:raise ValueError('缺少新鲜白线引导')
+        if not nav:raise ValueError('缺少新鲜相机引导')
         # Reuse the existing lane-loss and inward-correction behavior without
         # selecting cone targets before the traffic stage has finished.
+        nav={**nav,'cones':[c for c in nav.get('cones',[]) if c['id'] not in self.passed_cone_ids]}
         lane={**nav,'cones':[]}
         steer=self.guide.step(lane,now)
         if steer['action'] not in ('search','creep'):return steer
         # Apply the same near-obstacle clearance guard to the real observations.
-        steer=self.guide._forward(nav,now,steer,'沿赛道低速前进')
-        return {**(base or steer),'steering_us':steer['steering_us']}
+        if nav.get('line_missing') or not nav.get('lane_bounds_px') or 'ego_fraction' not in nav:
+            steer=self.guide._without_lines(nav,now,steer)
+        else:steer=self.guide._forward(nav,now,steer,'沿赛道低速前进')
+        result={**(base or steer),'steering_us':steer['steering_us']}
+        if steer.get('line_search'):result.update(line_search=True,boundary_observed=False,reason=steer['reason'])
+        return result
 
     def step(self,sample,now,audio=None):
         audio=audio or {}
@@ -184,80 +190,96 @@ class RaceFlowController:
             elif motion.get('moving') is False:
                 if self.stationary_since is None:self.stationary_since=now
                 if now-self.stationary_since>=19:return self.fail('自动阶段连续停止接近 20 秒，结束本轮并保持停止')
-        try:
-            if self.stage=='arming':
-                if now-self.started>=3:self._go('wait_board',now,'等待先看到蓝色挡板，再确认移开')
-                return self._out()
-            if self.stage=='wait_board':
-                ready=self.departure.update(sample.get('board',{}),now)
-                if ready:
-                    self._go('crosswalk',now,'挡板移开已确认，开始自主循迹')
-                    return self._out(events=[{'event':'speak','id':'departure','text':'我发车啦'}])
-                return self._out(self.departure.reason)
-            if self.stage in ('crosswalk','traffic'):
-                module=sample.get(self.stage);nav=sample.get('navigation')
-                if not module or not 0<=now-module.get('captured_s',-1e9)<=.25:raise ValueError('任务观测过期')
-                if module['frame_id']!=self.last_module_id:
-                    self.last_module_id=module['frame_id'];self.last_intent=self.controller.step(module,now)
-                    events=[{**e,'id':self.stage} for e in self.last_intent.get('events',[]) if e.get('event')=='speak']
-                else:events=[]
-                decision=copy.deepcopy(self.last_intent)
-                if decision['phase']=='fault':raise ValueError(decision['reason'])
-                if decision['phase']=='done':
-                    if self.stage=='crosswalk':
-                        if audio.get('crosswalk')=='failed':raise ValueError('队伍播报发送失败')
-                        if audio.get('crosswalk')!='command_sent':
-                            if self.audio_wait is None:self.audio_wait=now
-                            if now-self.audio_wait>3:raise ValueError('队伍播报发送未确认，停止本轮')
-                            return self._out('已停够 10 秒，等待播报发送结果',events=events)
-                        self._go('traffic',now,'斑马线任务完成，接近红绿灯')
-                    else:self._go('cones',now,'实际绿灯达标，继续行驶并开始两桶避障')
-                    return self._out(events=events)
-                if decision['esc_us']>1500:decision=self._guided(nav,now,decision)
-                return self._out(decision['reason'],decision,events)
-            if self.stage=='cones':
-                decision=self.controller.step(sample.get('navigation'),now)
-                if decision['phase']=='review':raise ValueError('锥桶通过证据不足；全流程停止，不以人工跳过冒充自主通过')
-                if decision['phase']=='complete':
-                    self._go('parking_search',now,'两桶通过流程结束，寻找停车区')
-                    return self._out()
-                return self._out(decision['reason'],decision)
-            if self.stage=='parking_search':
-                view=sample.get('parking_view') or {}
-                if view.get('layout_found'):
-                    self._go('parking_entry',now,'已发现停车区，制动并核对空闲半区')
-                    self.parking_wait=now
-                    return self._out(intent={'action':'brake','esc_us':1400,'steering_us':1610})
-                if now-self.entered>self.s['parking_search_s']:raise ValueError('停车区搜索超时')
-                return self._out('沿赛道寻找停车区',self._guided(sample.get('navigation'),now))
-            if self.stage=='parking_entry':
-                # Maintain the original finite brake length; do not hold reverse.
-                if now-self.parking_wait<.12:return self._out(intent={'action':'brake','esc_us':1400,'steering_us':1610})
-                missing=parking_blockers(self.b)
-                if now-self.parking_wait>=18 and (missing or sample.get('parking') is None):
-                    raise ValueError('停车入位反馈持续未就绪，结束本轮并保持停止')
-                if missing:return self._out('停车入位等待有效反馈：'+', '.join(missing))
-                parking=sample.get('parking')
-                if parking is None:return self._out('等待停车区世界坐标、位姿和速度反馈')
-                if parking['frame_id']==self.last_module_id:return self._out()
-                self.last_module_id=parking['frame_id'];decision=self.parking.step(parking,now)
-                if decision['phase']=='fault':raise ValueError(decision['reason'])
-                if decision['phase']=='parked':
-                    self.payment_started=now;self._go('payment',now,'正确半区内已取得停稳反馈，30 秒内由队员扫码支付 0.01 元')
-                    return self._out(events=[{'event':'payment_window_opened','amount_cents':1}])
-                if decision['action']=='follow_path':
-                    d=self.b['cones']['driving'];curvature=decision['target_curvature_1pm']
-                    endpoint=RIGHT_US if curvature>0 else LEFT_US
-                    radius=abs(d['steering_radius_right_cm' if curvature>0 else 'steering_radius_left_cm'])/100
-                    ratio=abs(curvature)*radius
-                    if ratio>1:raise ValueError('入位转向需求超过既有实测档位')
-                    steer=round(1610+ratio*(endpoint-1610))
-                    return self._out(decision['reason'],{'action':'creep','esc_us':self.b['brake']['pwm']['creep_us'],'steering_us':steer})
-                # A repeated brake request is bounded by the shared actuator.
-                return self._out(decision['reason'],{'action':'brake' if decision['action']=='brake' else 'neutral',
-                    'esc_us':1400 if decision['action']=='brake' else 1500,'steering_us':1610})
-            raise ValueError('未知比赛阶段')
+        try:return self._step_stage(sample,now,audio)
         except (ValueError,KeyError,TypeError) as exc:return self.fail(str(exc))
+
+    def _advance(self,stage,now,reason,sample,audio,events=None):
+        # Dispatch the next task in the same camera batch. No neutral pulse
+        # or repeated ESC initialization between moving mission stages.
+        self._go(stage,now,reason)
+        if stage in ('crosswalk','traffic') and not sample.get(stage):
+            # The cached reader processes only the active task each batch.
+            # Bridge to its first observation with live lane/image guidance,
+            # not a neutral pulse or fabricated traffic/crosswalk observation.
+            intent=self._guided(sample.get('navigation'),now)
+            intent['esc_us']=self.b['brake' if stage=='crosswalk' else 'traffic']['pwm']['search_us']
+            result=self._out(reason,intent)
+        else:result=self._step_stage(sample,now,audio)
+        result['events']=(events or [])+result.get('events',[])
+        return result
+
+    def _step_stage(self,sample,now,audio):
+        if self.stage=='arming':
+            if now-self.started>=3:self._go('wait_board',now,'等待先看到蓝色挡板，再确认移开')
+            return self._out()
+        if self.stage=='wait_board':
+            ready=self.departure.update(sample.get('board',{}),now)
+            if ready:
+                return self._advance('crosswalk',now,'挡板移开已确认，开始自主循迹',sample,audio,
+                    [{'event':'speak','id':'departure','text':'我发车啦'}])
+            return self._out(self.departure.reason)
+        if self.stage in ('crosswalk','traffic'):
+            module=sample.get(self.stage);nav=sample.get('navigation')
+            if not module or not 0<=now-module.get('captured_s',-1e9)<=.25:raise ValueError('任务观测过期')
+            if module['frame_id']!=self.last_module_id:
+                self.last_module_id=module['frame_id'];self.last_intent=self.controller.step(module,now)
+                events=[{**e,'id':self.stage} for e in self.last_intent.get('events',[]) if e.get('event')=='speak']
+            else:events=[]
+            decision=copy.deepcopy(self.last_intent)
+            if decision['phase']=='fault':raise ValueError(decision['reason'])
+            if decision['phase']=='done':
+                if self.stage=='crosswalk':
+                    if audio.get('crosswalk')=='failed':raise ValueError('队伍播报发送失败')
+                    if audio.get('crosswalk')!='command_sent':
+                        if self.audio_wait is None:self.audio_wait=now
+                        if now-self.audio_wait>3:raise ValueError('队伍播报发送未确认，停止本轮')
+                        return self._out('已停够 10 秒，等待播报发送结果',events=events)
+                    return self._advance('traffic',now,'斑马线任务完成，接近红绿灯',sample,audio,events)
+                return self._advance('cones',now,'实际绿灯达标，继续行驶并开始两桶避障',sample,audio,events)
+            if decision['esc_us']>1500:decision=self._guided(nav,now,decision)
+            return self._out(decision['reason'],decision,events)
+        if self.stage=='cones':
+            decision=self.controller.step(sample.get('navigation'),now)
+            if decision['phase']=='review':raise ValueError('锥桶通过证据不足；全流程停止，不以人工跳过冒充自主通过')
+            if decision['phase']=='complete':
+                self.passed_cone_ids.update(self.controller.passed_ids)
+                return self._advance('parking_search',now,'两桶通过流程结束，寻找停车区',sample,audio)
+            return self._out(decision['reason'],decision)
+        if self.stage=='parking_search':
+            view=sample.get('parking_view') or {}
+            if view.get('layout_found'):
+                self._go('parking_entry',now,'已发现停车区，制动并核对空闲半区')
+                self.parking_wait=now
+                return self._out(intent={'action':'brake','esc_us':1400,'steering_us':1610})
+            if now-self.entered>self.s['parking_search_s']:raise ValueError('停车区搜索超时')
+            return self._out('沿赛道寻找停车区',self._guided(sample.get('navigation'),now))
+        if self.stage=='parking_entry':
+            # Maintain the original finite brake length; do not hold reverse.
+            if now-self.parking_wait<.12:return self._out(intent={'action':'brake','esc_us':1400,'steering_us':1610})
+            missing=parking_blockers(self.b)
+            if now-self.parking_wait>=18 and (missing or sample.get('parking') is None):
+                raise ValueError('停车入位反馈持续未就绪，结束本轮并保持停止')
+            if missing:return self._out('停车入位等待有效反馈：'+', '.join(missing))
+            parking=sample.get('parking')
+            if parking is None:return self._out('等待停车区世界坐标、位姿和速度反馈')
+            if parking['frame_id']==self.last_module_id:return self._out()
+            self.last_module_id=parking['frame_id'];decision=self.parking.step(parking,now)
+            if decision['phase']=='fault':raise ValueError(decision['reason'])
+            if decision['phase']=='parked':
+                self.payment_started=now;self._go('payment',now,'正确半区内已取得停稳反馈，30 秒内由队员扫码支付 0.01 元')
+                return self._out(events=[{'event':'payment_window_opened','amount_cents':1}])
+            if decision['action']=='follow_path':
+                d=self.b['cones']['driving'];curvature=decision['target_curvature_1pm']
+                endpoint=RIGHT_US if curvature>0 else LEFT_US
+                radius=abs(d['steering_radius_right_cm' if curvature>0 else 'steering_radius_left_cm'])/100
+                ratio=abs(curvature)*radius
+                if ratio>1:raise ValueError('入位转向需求超过既有实测档位')
+                steer=round(1610+ratio*(endpoint-1610))
+                return self._out(decision['reason'],{'action':'creep','esc_us':self.b['brake']['pwm']['creep_us'],'steering_us':steer})
+            # A repeated brake request is bounded by the shared actuator.
+            return self._out(decision['reason'],{'action':'brake' if decision['action']=='brake' else 'neutral',
+                'esc_us':1400 if decision['action']=='brake' else 1500,'steering_us':1610})
+        raise ValueError('未知比赛阶段')
 
     def status(self,now):
         return {'stage':self.stage,'stage_label':LABELS[self.stage],'reason':self.reason,'transitions':list(self.transitions),
