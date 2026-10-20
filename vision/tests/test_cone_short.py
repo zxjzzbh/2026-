@@ -21,11 +21,11 @@ class Harness:
     def advance(self,end):
         while self.now+.001<end:
             self.now=round(min(end,self.now+.025),6);self.send()
-    def start(self,mode='turn_1570',duration=.8):
+    def start(self,mode='turn_1350',duration=.8):
         self.send('start',mode=mode,forward_us=1575,duration_s=duration,expected_round=self.guard.round)
 
 
-@pytest.mark.parametrize('mode,steer',[('turn_1570',1570),('turn_1650',1650),('brake',1610)])
+@pytest.mark.parametrize('mode,steer',[('turn_1350',1350),('turn_1870',1870),('brake',1610)])
 def test_child_owns_alignment_forward_deadline_braking_and_recenter(mode,steer):
     h=Harness();h.start(mode)
     h.advance(3.2)
@@ -38,7 +38,7 @@ def test_child_owns_alignment_forward_deadline_braking_and_recenter(mode,steer):
     pulses=[r for r in h.writes if r[1:]==(4,1400)]
     assert len(pulses)==3
     assert all(channel in (3,4) for _,channel,_ in h.writes)
-    assert all(p in (1570,1610,1650) for _,ch,p in h.writes if ch==3)
+    assert all(p in (1350,1610,1870) for _,ch,p in h.writes if ch==3)
     positive=sum(ch==4 and p>1500 for _,ch,p in h.writes)
     h.advance(15.)
     assert sum(ch==4 and p>1500 for _,ch,p in h.writes)==positive
@@ -46,7 +46,7 @@ def test_child_owns_alignment_forward_deadline_braking_and_recenter(mode,steer):
 
 def test_only_an_explicit_new_round_repeats_a_short_test():
     h=Harness();h.start();h.advance(8.)
-    h.start('turn_1650',.2);h.advance(13.)
+    h.start('turn_1870',.2);h.advance(13.)
     assert h.guard.round==2 and h.guard.phase=='complete'
 
 
@@ -118,7 +118,7 @@ def session(tmp_path):
 def owned(run,seq,**kw):return {'client':'page','run_token':run.token,'trial_sequence':seq,**kw}
 
 
-def start(run,seq=0,mode='turn_1570'):
+def start(run,seq=0,mode='turn_1350'):
     run.command('cone_short_start',owned(run,seq,mode=mode,forward_us=1575,duration_s=.8,expected_round=run.round,
         fb_mode_confirmed=True,esc_on_static=True,field_ready=True))
 

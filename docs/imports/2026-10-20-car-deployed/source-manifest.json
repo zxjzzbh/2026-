@@ -1,0 +1,425 @@
+{
+  "version": "20261020-car-deployed",
+  "type": "cone-and-parking-module-update",
+  "core_changed_modules": [
+    "vision/src/carvision/steering.py",
+    "vision/src/carvision/cone_continuous.py",
+    "vision/src/carvision/cone_controls.py",
+    "vision/src/carvision/cone_observer.py",
+    "vision/src/carvision/parking_entry.py",
+    "vision/src/carvision/race_flow.py"
+  ],
+  "source_baseline": "reviewed installed runtime plus GitHub-main algorithm changes",
+  "requires_existing_project": true,
+  "physical_driving_verified": false,
+  "files": [
+    {
+      "path": "vision/pyproject.toml",
+      "sha256": "2498c94f80b8ff048018f99082ac93b90a53fb0b1d7d8a18968368b4f8af63c8"
+    },
+    {
+      "path": "vision/src/carvision/brake_output.py",
+      "sha256": "7a620d855020475c020ca2c62b131232ef9446a94bd2464274aa3afd6a9353ca"
+    },
+    {
+      "path": "vision/src/carvision/brake_parking.py",
+      "sha256": "0b6ea8f8c5412b076a44fbdebf220c89f14ea402cc14607a8d316852116fb2f2"
+    },
+    {
+      "path": "vision/src/carvision/cone_boundaries.py",
+      "sha256": "6218f771aac72d26c764972d464b10fef0098e98a5ccdfbed927b4ad35819e50"
+    },
+    {
+      "path": "vision/src/carvision/cone_continuous.py",
+      "sha256": "23b6483f2b2c327db4d250e58de17ac71dbce39428b80d1c611bfe29f744f447"
+    },
+    {
+      "path": "vision/src/carvision/cone_controls.py",
+      "sha256": "d3a6ccca43bb5540e8b9c440ca53f8429ba26fdc8d98723dd9fba50021fa0c47"
+    },
+    {
+      "path": "vision/src/carvision/cone_execution.py",
+      "sha256": "cd0119270e4ffd600c042f291a3a1594f7e45abdad49ff53cf2331394e6b5829"
+    },
+    {
+      "path": "vision/src/carvision/cone_low_speed.py",
+      "sha256": "b41a795be0b92060987b227500700972f8c8904d9339342bd4fec2c5b669a3c8"
+    },
+    {
+      "path": "vision/src/carvision/cone_navigation.py",
+      "sha256": "a20b7e3df026eaec4f2a077679fb0c3041e093d9752661d852aaed6dcbc4052b"
+    },
+    {
+      "path": "vision/src/carvision/cone_observer.py",
+      "sha256": "e6cd985c31fa70b313cb8cb68e113f220fde4c66765a5f5f64effce4541d739b"
+    },
+    {
+      "path": "vision/src/carvision/cone_planning.py",
+      "sha256": "46cb84ddd68d3339d90460a861eed997102f109e897bdaa0561f9659f8e64664"
+    },
+    {
+      "path": "vision/src/carvision/cone_road.py",
+      "sha256": "83d4bf1f0b1bc1408af125e9e9890ddd75ce1ea13ec9a42f389c8b2502aaa2dc"
+    },
+    {
+      "path": "vision/src/carvision/cone_shapes.py",
+      "sha256": "d1e69ebeca028171fc9de4ce268ca5a97336623f1e1f183af8c315f78e76fdfe"
+    },
+    {
+      "path": "vision/src/carvision/cone_short_output.py",
+      "sha256": "9723f20d29c1ae19ae9b93e90960fb557c211bac4e2a1d3a7183239a919cf4a5"
+    },
+    {
+      "path": "vision/src/carvision/cone_short_trial.py",
+      "sha256": "0b632f5e6f6923eb29ac191ecb50fe4c23c7c40a241dd0eac07283d5876ebc06"
+    },
+    {
+      "path": "vision/src/carvision/cone_slalom.py",
+      "sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14"
+    },
+    {
+      "path": "vision/src/carvision/cone_trial_output.py",
+      "sha256": "65baf11b05ff13370294fd545ed07720cb7b89758936bede0ec86398d28ceeff"
+    },
+    {
+      "path": "vision/src/carvision/cone_vision.py",
+      "sha256": "05d912610caf5bd80c01325aaf03afa45d8d30dee2f3023534840fbda8005c85"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay.py",
+      "sha256": "fffa959d2669cfbc2334ee694e712876415280e5d7b68f57163ba67e2c0092de"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_console.py",
+      "sha256": "8285d423cb7078f7680869d27a016ecb07f8f197774a5dc3405dc2ad646de4ea"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_controls.py",
+      "sha256": "e0ac2eb2305acbb3688653bacd667825d9da20b7886d83420b51b7e48a16977f"
+    },
+    {
+      "path": "vision/src/carvision/parking_control.py",
+      "sha256": "cc62ab03c009062fa663c10c553cb9a60b732906df89ae0463f4fe4c9ee87fc7"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry.py",
+      "sha256": "f89c9fbe2edc9e0fe136172029fc690371d4a856f6390ee5c8f1d3a5cf40df17"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry_run.py",
+      "sha256": "0ab2ffe5a4ad824da1f7a85dcc2f193df63a2a38138d17778fdecb1045d2ad1e"
+    },
+    {
+      "path": "vision/src/carvision/parking_far_tracker.py",
+      "sha256": "803156dd4212726e028692410088e18e55c893363559b6224fc458d9afbfd64a"
+    },
+    {
+      "path": "vision/src/carvision/parking_feedback.py",
+      "sha256": "a0911f86e5ab245971dbc19ea1476b5529587baab1afb173c176293ecf28e160"
+    },
+    {
+      "path": "vision/src/carvision/parking_guidance.py",
+      "sha256": "1faa663cc46b5dacb0cc47472180e75c8ae43624313165494a7a30983bbf3b5c"
+    },
+    {
+      "path": "vision/src/carvision/parking_log.py",
+      "sha256": "f2bdb2e3d3bfd1e1381d2145eaedee92e461a8b512bde359e53f34862389105e"
+    },
+    {
+      "path": "vision/src/carvision/parking_mission.py",
+      "sha256": "47d10f246172996772fea177ac71edf1e467d30522bdab096dad174e898e25d8"
+    },
+    {
+      "path": "vision/src/carvision/parking_path.py",
+      "sha256": "209adfc0ea19cab76f9c9bff85594bdbc09a152751cb8e569a3f3b74bd5e08c5"
+    },
+    {
+      "path": "vision/src/carvision/parking_payment.py",
+      "sha256": "749ea6d64f3ed966f0574851662e8a97ce748502f8649c77d3e77c26a326f34d"
+    },
+    {
+      "path": "vision/src/carvision/parking_speech.py",
+      "sha256": "4ef77f2e16c528bc4e7b97eb49016df74dc5519e4ffc796a9933cd44f39cb142"
+    },
+    {
+      "path": "vision/src/carvision/race_flow.py",
+      "sha256": "529e981a929074498c235959687d75b54e9fb12477592f8e6a607f5ad9cfa3d4"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_camera.py",
+      "sha256": "e3a4c32cfe4c37562c8c6e92f4bee38b459933cbd64238f863e04d1f52c5890a"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_console.py",
+      "sha256": "7b79e4fb1480ecae94a780f96f3cb5114fb64ab12901636722d6651bf6c0ddf0"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_controls.py",
+      "sha256": "bf45cccd0db60111aafdea7ca84fcc402159a7040c88b4fdacde47364d801660"
+    },
+    {
+      "path": "vision/src/carvision/steering.py",
+      "sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7"
+    },
+    {
+      "path": "vision/tests/fixtures/blue-board-close.jpg",
+      "sha256": "864b0fc527aeec0e9a6532014b093a9ff5235362073b8bfc7be0f3d4c865737d"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-continuity-20261013.json",
+      "sha256": "3c9664a6ed0822412b4ed98d5eda61fc5efeefdce74ae1d9695b9e96229e3bd0"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-left-with-small-background-patch.jpg",
+      "sha256": "4da176e81f3f8c12a935629aa6f00683e01d47b3df44f1f4bc0e6de17026c32b"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-primary-a.jpg",
+      "sha256": "426f874ad2568c7a8ea641a8608e95ec4e7734ee7b72f268bae1d35b5f650302"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-primary-b.jpg",
+      "sha256": "e7ff7cb3113699686e82a9db453bb43d38b0bfb7b6484ab6abdbb5c97c05ff20"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-primary-a.jpg",
+      "sha256": "282c2dcdad3ec42fc649fc7b721c0c56f398f25c738e6a7cec7c2af2c55efb95"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-primary-b.jpg",
+      "sha256": "34f967040553d869781d43895f03fb48b9e074af0b9d8ff8add6ba1a9236f1de"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-secondary-a.jpg",
+      "sha256": "ef97fc4be9ca6169dff6eefed279f2f9165f4a3ab000e2be250dd03d01308ccf"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-secondary-b.jpg",
+      "sha256": "4c0d62528e236646e8890ab60ba1f7fe37e09412be403511cba7f4b5c3cc0ee1"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-reflection-a.jpg",
+      "sha256": "2dabe222500d2bc7372cb5d0d73795777ed55fcaca4a59ba0cf6616f751229a5"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-reflection-b.jpg",
+      "sha256": "07511d863e221e247e1b15da0ad0c88a7a738a8e738973536afcc1f913d290be"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-rounded-tip.jpg",
+      "sha256": "44c4e57efb2ead4f7178a51e7dcd7563b54fe518e3e39e975634802ea6714230"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-secondary-a.jpg",
+      "sha256": "f9bac6065b01693142539c3823b3ff82050a98cf359c2a76984d0510979215f0"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-secondary-b.jpg",
+      "sha256": "a0b045b34f79ab52b17b771079158ec3fb18f2dbfb044daa8deb821bf02b8d36"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-track-glare-primary.jpg",
+      "sha256": "d00de2f8414fdcec48b7d0142edafc8260780b00d077eab89ca41194e4d4679b"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-track-glare-secondary.jpg",
+      "sha256": "e1855562c653f892c232c8f9858d0876e4b7b09be13bb71694bf608b695b25c0"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-track-short-secondary.jpg",
+      "sha256": "947803c6236f7fe68d27e2730ff2cdd79dcba9ef11b037a0bbb2006783bfcd31"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-front.jpg",
+      "sha256": "ac8d4145eff6363fb2485732acc9e436dbb7b48a59bee8defa23a2bf4677601c"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-oblique.jpg",
+      "sha256": "769b82d35d8bcb4fc820de23c7ed01d173797f23b89f3c61669ba4c0dc1d8798"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-side.jpg",
+      "sha256": "e82eab3efc123b3ae4bb597a848e44e07f0af67c106dd17a4a8d3540e7ad82d6"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-top.jpg",
+      "sha256": "d718273b214f49a851c8703cd63a207dad2f54ba34b112e657b2a83ff4b9434a"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-white-mask-20261012.png",
+      "sha256": "85bd74cdb09b9e9ad4c4c33f9ea4fe8d209af179ed4ccdefaa919eed085d2080"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-background-primary.jpg",
+      "sha256": "dcfe1cbc721acfb23d850d69c654865d3502e94f4de703f2e8c588c4bf0c16dc"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-clipped-primary-20261009.jpg",
+      "sha256": "4f57618e09d7d67e25601125fe812b4c1089b4506332128c73d81e5757e66d23"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-clipped-secondary-20261009.jpg",
+      "sha256": "b8b27e471cf2444434febe8b74220c3941653b77642154cb001264156807c9cb"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-distant-secondary-20261009.jpg",
+      "sha256": "95e508bc3fbae5ac444e117ba2dec74cc675be16b383c01a58bd56df3daf095c"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-papers-secondary.jpg",
+      "sha256": "e1a4b41a6c88d9538e0fbdac412e18a5128fbcc46d24c6dd6ebd6272af3f1ad2"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-border-clipped-left-board-20261013.jpg",
+      "sha256": "bf8d2f160e742803191b50b69a11eb28c0489b827da64af59e5d9fac2ebeb9fe"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-boundary-loss-20261013.json",
+      "sha256": "c24e0fe01cace11398a86d5e9bc3ddaaf67ff5e4a007173088a147b5969bff03"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-overshoot-loss-20261013.json",
+      "sha256": "148b314802ef49d47443c286e2b1c637cbbb099f55f1a10a58205c3947bd1974"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-pale-green-left-board-20261013.jpg",
+      "sha256": "3604e3355033a7f2f1fc52060a953fd916fab028fccdcb3eafb68f9602d24d9f"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-washed-right-board-20261013.jpg",
+      "sha256": "b4b1b0095245430cef03b3afb9542ac00e9a6c835ce9ff9d4b9581a62354c721"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-white-mask-20261013.png",
+      "sha256": "d3a3d7c97e54242f73e113d652fce8dfe3ef802fd0b12c989fb48036e4b72e77"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-all-off.jpg",
+      "sha256": "d590d0d143a5c2dfbb84c4f9713f17e519dcffda80cd9c3c511c84f42ef48118"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-background-primary.jpg",
+      "sha256": "705da6bbca5cad67b1d6d2898a1612548af74a4fe70bfaad8af947247a19e937"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-green-overexposed.jpg",
+      "sha256": "9ec8fa7f533500d8221ca0e7d4692e7e5ee3b15a59c923f1a1f176be975e3174"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-red-overexposed.jpg",
+      "sha256": "8d104f0438e1ec91c7d6d6c7626384741a77459eaf75b69229b163c289d21936"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-yellow-overexposed.jpg",
+      "sha256": "b6c656fac276744a4c0d261abe89b1669406fa3f117eebc8a88b984e0acb2bc4"
+    },
+    {
+      "path": "vision/tests/test_cone_boundaries.py",
+      "sha256": "76660254f57d85721858ff98bf9a9ff597983ce62bc97aafea38dc934332af17"
+    },
+    {
+      "path": "vision/tests/test_cone_continuous.py",
+      "sha256": "690404a00ff4da621ff2c4f6371b4acc51679757bd4099dea6c74bc9fa49deb4"
+    },
+    {
+      "path": "vision/tests/test_cone_low_speed.py",
+      "sha256": "71bb1a3f1f7d6a4336bc829f7dfef846b3d4586654c844504aca105444a9dd22"
+    },
+    {
+      "path": "vision/tests/test_cone_navigation.py",
+      "sha256": "9cd38d0261f3dfb83c93fb632d733cea5610a829b5393da212ea5aa2b9414de7"
+    },
+    {
+      "path": "vision/tests/test_cone_shapes.py",
+      "sha256": "4aafb338194ff10caeebca1dcdd2544dfc970143d4e3da51f180aa296686bb18"
+    },
+    {
+      "path": "vision/tests/test_cone_short.py",
+      "sha256": "80fccb2a95860a597e5a8e5fd18e7acffbc394db9b2f19ea5441c767590710ad"
+    },
+    {
+      "path": "vision/tests/test_cone_slalom.py",
+      "sha256": "ab38f58646a01760ac0bc572f878b06232901b16265cc33906a27984f73a8873"
+    },
+    {
+      "path": "vision/tests/test_cone_trial.py",
+      "sha256": "4ac04295173d15a06698bdde57889213f9ebc96413d48397069eb6e5df9448e1"
+    },
+    {
+      "path": "vision/tests/test_cone_trial_output.py",
+      "sha256": "7f17cc30511407b20022f98ea0a2671e12a39c30fe663b9330d35e65e81f3a96"
+    },
+    {
+      "path": "vision/tests/test_edge_pd_live_integration.py",
+      "sha256": "f0fb541fbde0e3e10ce9b2f86f724ca5f98594440da32204238f9e4144bcd427"
+    },
+    {
+      "path": "vision/tests/test_image_pd.py",
+      "sha256": "bc54ba7bf09cd2ec4116468b825d71d8984b012359f4faa5b8745dad4817314b"
+    },
+    {
+      "path": "vision/tests/test_parking_bay.py",
+      "sha256": "8066215f1cb9717543299e3f060ca106370a49b109c197d5f0203f04ab167534"
+    },
+    {
+      "path": "vision/tests/test_parking_boundary_guard.py",
+      "sha256": "70c8c43c5a795f239eae74e15d9a6352624daed6c5cb0f9ad5c176bff05de4ff"
+    },
+    {
+      "path": "vision/tests/test_parking_boundary_search.py",
+      "sha256": "88c727c3fefdf421ae32949b6efd338d0a5a243b10744cc7355f83b802f6b293"
+    },
+    {
+      "path": "vision/tests/test_parking_control_cadence.py",
+      "sha256": "bc09956e3aaa1b8e03cfe8b3b259e8c5858c63d174d98fe30d03bebb67c026ac"
+    },
+    {
+      "path": "vision/tests/test_parking_direction_hint.py",
+      "sha256": "2b4986878761aad773914a0e5d80da5ef5baa73686537859d46f4e4f5a64ee38"
+    },
+    {
+      "path": "vision/tests/test_parking_entry.py",
+      "sha256": "3f1c53b37114b3365ef34d24916ed7a35d57bd4589485842fc0830fffc85d305"
+    },
+    {
+      "path": "vision/tests/test_parking_entry_run.py",
+      "sha256": "fa570a4f236bdb8934d14110f16752c2828d28d194177e3a25d191d9e74e228d"
+    },
+    {
+      "path": "vision/tests/test_parking_far_tracker.py",
+      "sha256": "e3e44a1efe21d8c66ffe5b2ac079862499b6c1e49fec5487b5f63736254de2b1"
+    },
+    {
+      "path": "vision/tests/test_parking_guidance.py",
+      "sha256": "b1a95fd8d668df27362920585ef318c15ece4bb31bd426caa6a7076e6a245c8e"
+    },
+    {
+      "path": "vision/tests/test_parking_path.py",
+      "sha256": "ce76baf268673c4d151248e116d3a2e7037c0930261952a48b9f63dc187d5671"
+    },
+    {
+      "path": "vision/tests/test_parking_payment.py",
+      "sha256": "7ffb89719f9103d9018d5032ea20c2352248bc9066f8a3cb380d045cae79a841"
+    },
+    {
+      "path": "vision/tests/test_parking_speech.py",
+      "sha256": "9fff2d7c6a6f5aff99a0bcdbdd9c0de32c0894e9941758e9536896557f108334"
+    },
+    {
+      "path": "vision/tests/test_parking_washed_board.py",
+      "sha256": "ac28e5246158b0a24d7b5d97ff60bdce69c7b606585f3f54fcc517d75b5b2fd4"
+    },
+    {
+      "path": "vision/tests/test_race_flow.py",
+      "sha256": "b3b5127d6e2210864903070fe663575a1037618a8d5dbcd3861209a89a1a58c1"
+    },
+    {
+      "path": "验证记录/实车部署记录.json",
+      "sha256": "83016df37bb0847cbd392e5a68faf8d8367c921b7a3d48a15d3e0d86fa550925"
+    },
+    {
+      "path": "验证记录/车端回归测试.txt",
+      "sha256": "4c304ab0dc89a3f5249662dc37719147ea83fb5376664fbb5f88dc1a2921ef41"
+    }
+  ]
+}

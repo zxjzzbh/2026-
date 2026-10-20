@@ -134,6 +134,7 @@ def test_complete_task_chain_and_every_pwm_through_real_guard(bundle):
     assert c.payment_started==r.t and r.outputs[-1][1]['esc_us']==1500
     c.report_paid(r.t+2);assert c.stage=='complete' and c.paid_in_time and not c.status(r.t+2)['provider_verified']
     assert [t['to'] for t in c.transitions]==['wait_board','crosswalk','traffic','cones','parking_search','parking_entry','payment','complete']
+    assert any(o.get('steering_policy')=='verified_path_pd' for _,o in r.outputs)
     writes=[];act={'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':1600,'creep_us':1575,'brake_us':1400},
                    'brake_pulse_s':.12,'brake_release_s':.1,'actuator_lease_s':.2}
     act['parking_forward_us']=[r['pwm_us'] for r in b['parking']['motion_calibration']['speed_pwm']]
@@ -148,6 +149,14 @@ def test_all_moving_stages_continue_through_line_loss(bundle,stage):
     if stage=='crosswalk':
         # Keep the real zebra stop decision separate from lane segmentation.
         c.controller.brake_reference['far_edge_y_normalized']=.90
+        # First-sighting stop is intentional. Finish it before lane-loss testing.
+        first=r.step(lines=False,moving=True,color='unknown')
+        assert first['action']=='brake' and first['stop_stage']=='first_detection'
+        for _ in range(30):
+            out=r.step(lines=False,moving=False,color='unknown')
+            assert not any(e['event']=='speak' for e in out['events'])
+            if c.controller.first_detection_handled and not c.controller.preliminary_stop:break
+        assert c.controller.phase=='search' and not c.controller.preliminary_stop
     for _ in range(70):
         out=r.step(lines=False,moving=True,color='unknown')
         assert out['esc_us']>1500 and out['line_search'],out

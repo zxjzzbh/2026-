@@ -49,11 +49,30 @@ def test_three_seconds_neutral_then_proportional_turn_to_explicit_side(side,q,di
     result=armed(c,side=side,q=q)
     assert result['phase']=='approach' and result['esc_us']==1575
     assert direction*(result['steering_us']-1610)>0
-    assert abs(result['steering_us']-1610)<=26
+    assert 26<abs(result['steering_us']-1610)<=60
     assert 1350<=result['steering_us']<=1870
     assert result['action']=='search'
     assert not result['field_verified'] and result['actual_pose_not_verified']
     assert result['metric_pose'] is None and result['distance_estimate_m'] is None
+
+
+def test_parking_can_reach_selected_turn_within_half_a_second_without_wider_endpoints():
+    c=ParkingEntryController(settings(),'right');result=armed(c,q=RIGHT)
+    for i in range(31,35):result=tick(c,i,q=RIGHT)
+    assert result['steering_us']==1350
+    assert result['esc_us']==1575 and result['guidance_phase']=='turn_in'
+
+
+@pytest.mark.parametrize('mirror',[-1,1])
+def test_parking_corrects_heading_even_when_single_lookahead_center_is_aligned(mirror):
+    q=[[100+60*mirror,330],[380+60*mirror,330],
+       [320-40*mirror,180],[160-40*mirror,180]]
+    side='left' if mirror==1 else 'right'
+    c=ParkingEntryController(settings(),side);result=armed(c,side=side,q=q)
+    assert abs(result['geometry']['lateral_error'])<1e-6
+    assert abs(result['geometry']['heading_error'])>.1
+    assert mirror*(result['steering_us']-1610)>0
+    assert result['guidance_phase']=='align' and not result['done']
 
 
 def test_selected_side_stays_fixed_when_recommendation_changes():
@@ -524,7 +543,7 @@ def test_aligned_target_unwinds_to_centre_gradually_without_opposite_swing():
         q=[[x+dx,y] for x,y in ALIGNED]
         r=tick(c,i,side='left',q=q)
         if last is not None and i>=36:
-            assert abs(r['steering_us']-last)<=26
+            assert abs(r['steering_us']-last)<=61
         assert r['steering_us']>=1610
         last=r['steering_us']
     assert r['steering_us']==1610 and r['esc_us']==1575

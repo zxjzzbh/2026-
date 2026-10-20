@@ -101,7 +101,7 @@ fresh frame IDs alone are not evidence that the vehicle is stationary.
 
 
 class BrakeParkingController:
-    def __init__(self,settings,path_mode='straight'):
+    def __init__(self,settings,path_mode='straight',*,first_detection_stop=False):
         if path_mode not in ('straight','lane'):raise ValueError('invalid path mode')
         self.s,self.path_mode=settings,path_mode
         self.brake_reference=brake_trigger_reference(settings)
@@ -115,6 +115,15 @@ class BrakeParkingController:
         self.reason='等待新画面'
         self.metric_history=deque(maxlen=6)
         self.distance=self.speed=None
+        # Opt in only at crosswalk entry points; parking uses the same core.
+        self.first_detection_stop=bool(first_detection_stop)
+        self.first_detection_handled=False
+        self.preliminary_stop=False
+        self.preliminary_started=None
+        self.first_detection_pause_s=.5
+
+    def _hold_seconds(self):
+        return self.first_detection_pause_s if self.preliminary_stop else self.s['hold_s']
 
     def output(self,action='neutral',events=None):
         p=self.s['pwm']
@@ -124,7 +133,10 @@ class BrakeParkingController:
                 'events':events or [],'brake_pulses':self.brake_count,
                 'brake_trigger':self.brake_reference,
                 'distance_estimate_m':self.distance,'closing_speed_estimate_mps':self.speed,
-                'hold_remaining_s':None if self.hold_since is None else max(0,self.s['hold_s']-(self.last_t-self.hold_since)),
+                'hold_remaining_s':None if self.hold_since is None else max(0,self._hold_seconds()-(self.last_t-self.hold_since)),
+                'stop_stage':'first_detection' if self.preliminary_stop else 'original_operation',
+                'first_detection_handled':self.first_detection_handled,
+                'first_detection_pause_s':self.first_detection_pause_s if self.first_detection_stop else None,
                 'physical_stop_verified':False,'parking_zone_verified':False,'tuning_verified':False}
 
     def fault(self,reason):
@@ -162,16 +174,29 @@ class BrakeParkingController:
         y=sample.get('far_edge_y_normalized') if sample.get('candidate') is True else None
         if numeric(y):self.seen_at=now
         self._estimate_distance(y,t)
+        brake_y=self.brake_reference['far_edge_y_normalized']
+        # If coasting already reaches the calibrated stop reference, retain the
+        # stop and perform the original hold rather than driving over the line.
+        if self.preliminary_stop and numeric(y) and y>=brake_y:
+            self.preliminary_stop=False;self.hold_since=None
+            self.reason='首次制动已到原停车参考，直接完成原有停车操作'
         if self.phase in ('search','approach','creep'):
             if now-self.started>self.s['max_approach_s']:return self.fault('接近时限已到')
             if self.seen_at is not None and now-self.seen_at>.25:return self.fault('已见斑马线持续丢失')
-            brake_y=self.brake_reference['far_edge_y_normalized']
             creep_y=self.s['references'][1]['far_edge_y_normalized']
+            first_seen=(self.first_detection_stop and not self.first_detection_handled
+                        and sample.get('candidate') is True)
+            if first_seen:self.first_detection_handled=True
             if numeric(y) and y>=brake_y:
                 self.phase='brake_pulse'
                 self.reason=f"到达约 {self.brake_reference['distance_m']*100:g} cm 刹车触发参考，发出 F/B 制动请求"
                 self.brake_started=now;self.pulse_until=now+self.s['brake_pulse_s'];self.brake_count=1
                 return self.output('brake')
+            if first_seen:
+                self.preliminary_stop=True;self.preliminary_started=now
+                self.phase='brake_pulse';self.reason='首次识别斑马线，立即制动；停稳后短停 0.5 秒再接近'
+                self.brake_started=now;self.pulse_until=now+self.s['brake_pulse_s'];self.brake_count=1
+                return self.output('brake',events=[{'event':'crosswalk_first_detection_stop'}])
             motion=sample.get('motion') or {}
             if motion.get('valid') is True and motion.get('moving') is False:
                 if self.no_progress_since is None:self.no_progress_since=now
@@ -209,9 +234,21 @@ class BrakeParkingController:
             if self.stop_since is None:self.stop_since=now
             if now-self.stop_since>=self.s['stop_confirm_s']:
                 if self.hold_since is None:self.hold_since=now
-                self.phase='hold';self.reason=f"停稳候选持续成立，保持停止 {self.s['hold_s']:g} 秒"
+                self.phase='hold';self.reason=f"停稳候选持续成立，保持停止 {self._hold_seconds():g} 秒"
                 events=[]
-                if not self.spoken:self.spoken=True;events=[{'event':'speak','text':self.s['speech_text']}]
+                if not self.preliminary_stop and not self.spoken:
+                    self.spoken=True;events=[{'event':'speak','text':self.s['speech_text']}]
+                if now-self.hold_since>=self._hold_seconds() and self.preliminary_stop:
+                    self.started+=now-self.preliminary_started
+                    self.preliminary_stop=False
+                    self.phase='search';self.reason='首次短停完成，继续原有斑马线接近与定点停车'
+                    self.brake_started=self.pulse_until=self.release_until=None
+                    self.stop_since=self.hold_since=self.no_progress_since=None
+                    self.seen_at=now if numeric(y) else None
+                    self.brake_count=0;self.metric_history.clear()
+                    # Resume on the next fresh frame; do not reuse this frame
+                    # to issue a forward pulse while finishing the stop.
+                    return self.output(events=[{'event':'crosswalk_first_detection_resume'}])
                 if now-self.hold_since>=self.s['hold_s']:
                     self.phase,self.reason='done','停车流程完成，保持停止'
                 return self.output(events=events)

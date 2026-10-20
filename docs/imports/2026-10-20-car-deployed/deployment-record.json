@@ -1,0 +1,142 @@
+{
+  "deployed": true,
+  "motion_commands_sent": false,
+  "physical_driving_retested": false,
+  "remote_backup": "/home/pi/smartcar-race-20261002/run/edge-pd-deploy-20261020-1792499271118233700/before",
+  "source_files": [
+    "vision/src/carvision/steering.py",
+    "vision/src/carvision/cone_continuous.py",
+    "vision/src/carvision/cone_controls.py",
+    "vision/src/carvision/cone_observer.py",
+    "vision/src/carvision/parking_entry.py",
+    "vision/src/carvision/race_flow.py"
+  ],
+  "stage_test_summary": "556 passed, 7 skipped, 1 deselected in 10.33s",
+  "known_preexisting_tests": "Two guardian fixture failures reproduce with unmodified installed source; see baseline-guardian-tests.txt.",
+  "before_status": {
+    "mode": "disabled",
+    "reason": "请先确认电调关闭，再准备测试",
+    "hardware_output": false,
+    "worker_started": false,
+    "pending_hardware_start": false,
+    "boot_test_phase": "esc_off"
+  },
+  "installed_tests": "........................................................................ [ 12%]\n...s..........................................................ss........ [ 25%]\n......................s................................................. [ 38%]\n........................................................................ [ 51%]\n........................................................................ [ 63%]\n.......................................................s................ [ 76%]\n..s..................................................................... [ 89%]\n....s......................................................              [100%]\n=========================== short test summary info ============================\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_low_speed.py:143: Node required to check real panel initialization\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_low_speed.py:697: Node is required for actual page render logic\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_low_speed.py:729: Node required for actual prepare callback\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_slalom.py:267: Node.js required for actual console render replay\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_parking_path.py:229: Node.js is required for the browser contract check\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_race_flow.py:302: PC deployment helper is not installed on the car\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_manual_heartbeat.py:14: Node.js is required for delayed browser-response checks\n556 passed, 7 skipped, 1 deselected in 8.80s\n",
+  "manifest_rechecked": "software manifest verified",
+  "protected_source_and_configs_unchanged": true,
+  "changed_files": [
+    "vision/src/carvision/steering.py",
+    "vision/src/carvision/cone_continuous.py",
+    "vision/src/carvision/cone_controls.py",
+    "vision/src/carvision/cone_observer.py",
+    "vision/src/carvision/parking_entry.py",
+    "vision/src/carvision/race_flow.py",
+    "vision/tests/test_cone_continuous.py",
+    "vision/tests/test_parking_entry.py",
+    "vision/tests/test_race_flow.py",
+    "vision/tests/test_image_pd.py",
+    "vision/tests/test_edge_pd_live_integration.py",
+    "vision/ALGORITHM_EDGE_PD.md"
+  ],
+  "after_status": {
+    "mode": "disabled",
+    "reason": "请先确认电调关闭，再准备测试",
+    "hardware_output": false,
+    "worker_started": false,
+    "pending_hardware_start": false,
+    "boot_test_phase": "esc_off"
+  },
+  "startup_unchanged": true,
+  "installed_sha256": {
+    "vision/src/carvision/steering.py": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7",
+    "vision/src/carvision/cone_continuous.py": "23b6483f2b2c327db4d250e58de17ac71dbce39428b80d1c611bfe29f744f447",
+    "vision/src/carvision/cone_controls.py": "d3a6ccca43bb5540e8b9c440ca53f8429ba26fdc8d98723dd9fba50021fa0c47",
+    "vision/src/carvision/cone_observer.py": "e6cd985c31fa70b313cb8cb68e113f220fde4c66765a5f5f64effce4541d739b",
+    "vision/src/carvision/parking_entry.py": "f89c9fbe2edc9e0fe136172029fc690371d4a856f6390ee5c8f1d3a5cf40df17",
+    "vision/src/carvision/race_flow.py": "529e981a929074498c235959687d75b54e9fb12477592f8e6a607f5ad9cfa3d4",
+    "vision/tests/test_cone_continuous.py": "690404a00ff4da621ff2c4f6371b4acc51679757bd4099dea6c74bc9fa49deb4",
+    "vision/tests/test_parking_entry.py": "3f1c53b37114b3365ef34d24916ed7a35d57bd4589485842fc0830fffc85d305",
+    "vision/tests/test_race_flow.py": "b3b5127d6e2210864903070fe663575a1037618a8d5dbcd3861209a89a1a58c1",
+    "vision/tests/test_image_pd.py": "bc54ba7bf09cd2ec4116468b825d71d8984b012359f4faa5b8745dad4817314b",
+    "vision/tests/test_edge_pd_live_integration.py": "f0fb541fbde0e3e10ce9b2f86f724ca5f98594440da32204238f9e4144bcd427",
+    "vision/ALGORITHM_EDGE_PD.md": "593090067b291fdcc40c15cdbb34b76e9dd2913055e48ddf221b3e11cc5c07a3"
+  },
+  "service_active": "active",
+  "completed_at_epoch_s": 1792499339.4538286,
+  "final_health": {
+    "controller": {
+      "mode": "disabled",
+      "reason": "请先确认电调关闭，再准备测试",
+      "hardware_output": true,
+      "worker_started": false,
+      "pending_hardware_start": false,
+      "boot_test_phase": "esc_off"
+    },
+    "cameras": {
+      "primary": {
+        "state": "ok",
+        "error": null
+      },
+      "secondary": {
+        "state": "ok",
+        "error": null
+      }
+    },
+    "manifest": "software manifest verified",
+    "service": "NRestarts=0\nActiveState=active\nSubState=running",
+    "installed_digests_match": true,
+    "checked_at_epoch_s": 1792499410.8584504
+  },
+  "last_observed_session": {
+    "mode": "disabled",
+    "reason": "请先确认电调关闭，再准备测试",
+    "hardware_output": true,
+    "worker_started": false,
+    "pending_hardware_start": false,
+    "boot_test_phase": "esc_off",
+    "race_flow": {
+      "active": false,
+      "stage": "idle",
+      "reason": "已停止全流程，车辆控制已释放",
+      "hardware_output": false
+    },
+    "parking_trial": {
+      "active": false,
+      "phase": "idle",
+      "reason": "尚未准备实验停车入位",
+      "hardware_output": false
+    },
+    "traffic_trial": {
+      "active": false,
+      "phase": "idle",
+      "reason": "红绿灯场地测试就绪；先关闭电调并准备",
+      "hardware_output": false
+    },
+    "crosswalk_trial": {
+      "active": false,
+      "phase": "idle",
+      "reason": "电调保持关闭，先准备 F/B 斑马线测试"
+    },
+    "plan_b": {
+      "active": false,
+      "phase": "idle",
+      "reason": "选择Plan B后，全程由操作员遥控"
+    },
+    "cone_policy": "locked_cone_edge_pd",
+    "cone_avoidance": {
+      "active": true,
+      "phase": "ready",
+      "reason": "准备完成，打开电调并确认静止后开始",
+      "hardware_output": true
+    },
+    "cone_short_test": {
+      "active": false,
+      "phase": "idle",
+      "reason": "尚未准备固定档短测",
+      "hardware_output": false,
+      "output": {}
+    }
+  },
+  "last_observed_session_note": "After the service restarted idle, the cone trial was prepared through another session and is ready, waiting for explicit start. This deployment sent no prepare/start/drive commands.",
+  "compatibility_merge": "Only six reviewed algorithm modules were merged with the newer installed runtime. Retained cone recentering, parking white-line guards, retargeting, far-edge-loss braking, measured metric speed/PWM mapping, the Plan B launcher and all calibration values."
+}

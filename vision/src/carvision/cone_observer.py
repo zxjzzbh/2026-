@@ -122,7 +122,7 @@ class ConeObserverDrive:
                 'low_speed_line_policy':'either_camera_or_image_only_continuation',
                 'low_speed_drive_mode':'continuous',
                 'low_speed_stop_policy':'operator_end_with_camera_and_lease_failsafe',
-                'low_speed_steering_policy':'two_target_guidance_proportional_rate_limited',
+                'low_speed_steering_policy':'locked_cone_edge_pd',
                 'low_speed_steering_adjustable':True,
                 'low_speed_boundary_policy':'nearest_row_correction_persistent_departure_guard',
                 'low_speed_pass_policy':'visual_estimate_with_review_fallback',

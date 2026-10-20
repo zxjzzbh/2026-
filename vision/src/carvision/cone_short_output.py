@@ -8,16 +8,17 @@ import sys
 import time
 
 from .brake_parking import numeric
+from .steering import LEFT_US as STEERING_LEFT_US, CENTER_US as STEERING_CENTER_US, RIGHT_US as STEERING_RIGHT_US
 from .brake_output import write_parking_pulse,verify_neutral_readback
 
-MODES={'turn_1570':1570,'turn_1650':1650,'brake':1610}
+MODES={'turn_1350':STEERING_RIGHT_US,'turn_1870':STEERING_LEFT_US,'brake':STEERING_CENTER_US}
 PHASE_TEXT={'ready':'中位已准备','arming':'3 秒中位初始化','aligning':'固定转向，电机中位',
     'driving':'定时低速前进','braking':'F/B 主动制动','releasing':'刹车释放中位',
     'settling':'中位等待、随后回正','complete':'短测结束，请现场确认停稳','fault':'已停止短测'}
 
 
 def validate_parameters(mode,forward_us,duration_s):
-    if mode not in MODES:raise ValueError('只允许 1570、1650 固定转向或回中刹车短测')
+    if mode not in MODES:raise ValueError('只允许 1350、1870 固定转向或回中刹车短测')
     if type(forward_us) is not int or not 1501<=forward_us<=1625:raise ValueError('短测油门范围为 1501–1625 μs')
     if not numeric(duration_s) or not .2<=duration_s<=2.:raise ValueError('前进时长须为 0.2–2.0 秒')
 

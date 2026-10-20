@@ -35,6 +35,7 @@
 
 | 文档 | 用途 |
 | --- | --- |
+| [10月20日实车模块导入](imports/2026-10-20-car-deployed/README.md) | 用户上传包的来源哈希、兼容处理、部署记录与本地复测 |
 | [开发与部署历史](history/README.md) | 从长篇 README/状态页归档的原过程记录 |
 | [历史源码包](archive/README.md) | 旧包说明、部署报告、双摄验证与标定记录 |
 | [源码审查](reviews/2026-10-08-source-review.md) | 10 月 8 日基线的问题与复现 |
