@@ -1,0 +1,46 @@
+........................................................................ [  4%]
+........................................................................ [  8%]
+........................................................................ [ 12%]
+.s...................................................................... [ 16%]
+........................................................................ [ 20%]
+........................................................................ [ 24%]
+........................................................................ [ 28%]
+........................................................................ [ 32%]
+........................................................................ [ 37%]
+........................................................................ [ 41%]
+........................................................................ [ 45%]
+.......................................................................s [ 49%]
+........................................................................ [ 53%]
+........................................................................ [ 57%]
+........................................................................ [ 61%]
+........................................................................ [ 65%]
+........................................................................ [ 70%]
+........................................................................ [ 74%]
+..................................s...............s..................... [ 78%]
+........................................................................ [ 82%]
+........................................................................ [ 86%]
+........................................................................ [ 90%]
+........................................................................ [ 94%]
+..............................................F.....s................... [ 98%]
+..................                                                       [100%]
+================================== FAILURES ===================================
+_ test_rejected_control_bodies_close_the_connection[/api/drive/command-True-{}-extra_headers2-400] _
+tmp\repo_compare_20261016\2026-\run\parking-fixes-1792506057987236400\candidate\vision\tests\test_web_preview.py:367: in test_rejected_control_bodies_close_the_connection
+    response = connection.getresponse()
+C:\Users\lsj06\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\http\client.py:1478: in getresponse
+    response.begin()
+C:\Users\lsj06\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\http\client.py:343: in begin
+    version, status, reason = self._read_status()
+C:\Users\lsj06\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\http\client.py:304: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+C:\Users\lsj06\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\socket.py:720: in readinto
+    return self._sock.recv_into(b)
+E   ConnectionAbortedError: [WinError 10053] 你的主机中的软件中止了一个已建立的连接。
+=========================== short test summary info ===========================
+SKIPPED [1] tmp\repo_compare_20261016\2026-\run\parking-fixes-1792506057987236400\candidate\vision\tests\test_competition_page.py:70: PC deployment-helper check
+SKIPPED [1] tmp\repo_compare_20261016\2026-\run\parking-fixes-1792506057987236400\candidate\vision\tests\test_manual_drive.py:766: Pi worker uses Unix sockets
+SKIPPED [1] tmp\repo_compare_20261016\2026-\run\parking-fixes-1792506057987236400\candidate\vision\tests\test_race_flow.py:302: PC deployment helper is not installed on the car
+SKIPPED [1] tmp\repo_compare_20261016\2026-\run\parking-fixes-1792506057987236400\candidate\vision\tests\test_rasadapter5.py:49: could not import 'termios': No module named 'termios'
+SKIPPED [1] tmp\repo_compare_20261016\2026-\run\parking-fixes-1792506057987236400\candidate\vision\tests\test_worker_endpoint.py:35: actual Linux Unix-socket transport check
+FAILED tmp\repo_compare_20261016\2026-\run\parking-fixes-1792506057987236400\candidate\vision\tests\test_web_preview.py::test_rejected_control_bodies_close_the_connection[/api/drive/command-True-{}-extra_headers2-400]
+1 failed, 1740 passed, 5 skipped, 4 deselected in 72.23s (0:01:12)

@@ -7,6 +7,7 @@
 | 版本 | 用途 | 获取方式 |
 | --- | --- | --- |
 | `main` | 持续更新的最新已合并代码；队员日常开发统一入口 | [浏览源码](https://github.com/zxjzzbh/2026-/tree/main) · [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip) |
+| `sync/parking-fix-package-20261020` | 最新停车修复包整合分支，保留r4及光流修复；尚待PR合并 | [浏览代码](https://github.com/zxjzzbh/2026-/tree/sync/parking-fix-package-20261020) · [完整分支ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/sync/parking-fix-package-20261020.zip) · [来源与验证](imports/2026-10-20-parking-fix/README.md) |
 | `source-2026-10-20-r4` | 最新固定快照：PR #9实车避障/停车模块与r3完整主线 | [发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r4) · [smartcar-source-20261020-r4.zip](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r4/smartcar-source-20261020-r4.zip) · [SHA256](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r4/smartcar-source-20261020-r4.zip.sha256) |
 | `source-2026-10-20-r3` | 历史快照：包含光流修复，不含PR #9实车模块导入 | [历史发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r3) |
 | `source-2026-10-20-r2` | 历史快照：含 PR #6 停车改进，仍有旧自主框架的光流点对异常 | [历史发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r2) |
@@ -14,6 +15,8 @@
 | 任务分支 / 未合并 PR | 正在开发或审阅的独立改动，不计入已合并主线 | [Pull requests](https://github.com/zxjzzbh/2026-/pulls) |
 
 固定标签指向实际合并提交，完整提交号记在发布页。后续 `main` 可以继续更新，固定包不会随之改变；不要用解压文件夹的修改时间判断代码新旧。
+
+新上传的`parking_closed_loop_v2`先保存在上述独立分支；r4及更早固定包保持原样，尚未包含这次停车修复。
 
 上传包属于部分模块更新，通过 [PR #9](https://github.com/zxjzzbh/2026-/pull/9) 整合到完整主线，再生成r4源码包；没有删除包外的主线模块，也没有替换r3附件。原包清单、部署记录和兼容处理详见 [来源说明](imports/2026-10-20-car-deployed/README.md)。
 

@@ -88,7 +88,7 @@ def test_prepare_and_start_are_explicit_neutral_only_then_single_three_second_ar
     assert not opened
     run.tick(sample(.1), .1)
     assert opened[0]['pwm'] == {'neutral_us': 1500, 'steering_center_us': 1610,
-                               'search_us': 1575, 'creep_us': 1575, 'brake_us': 1400}
+                               'search_us': 1575, 'creep_us': 1550, 'brake_us': 1400}
     assert opened[0]['actuator_lease_s'] == .2 and opened[0]['brake_pulse_s'] == .12
     assert actuator.commands[-1]['action'] == 'neutral'
     assert run.status(base(), .15)['can_start']
@@ -100,8 +100,8 @@ def test_prepare_and_start_are_explicit_neutral_only_then_single_three_second_ar
         assert run.active, run.reason
         if i <= 30:
             assert actuator.commands[-1]['esc_us'] == 1500
-    assert actuator.commands[-1]['action'] == 'search'
-    assert actuator.commands[-1]['esc_us'] == 1575
+    assert actuator.commands[-1]['action'] == 'creep'
+    assert actuator.commands[-1]['esc_us'] == 1550
     assert (p, b, c) == originals
     report = run.status(base(), 3.6)
     assert report['field_verified'] is False and report['parking_zone_verified'] is False

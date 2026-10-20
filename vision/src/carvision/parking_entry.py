@@ -1,10 +1,9 @@
 """Image-guided parking entry trial; pure computation, no hardware/network I/O.
 
-Uses the existing secondary-camera 50 cm row as a *transfer reference* for the
-far yellow edge. A previously observed 17 cm braking travel would leave about
-33 cm before that edge, enough for a 42 cm vehicle in a 1 m bay. Neither the
-transfer to yellow tape nor the resulting whole-vehicle containment is verified.
-The historical homography, when supplied, supplies an image centreline only.
+Uses separately configurable image slowdown/stop rows for the far yellow edge.
+Old camera rows remain a labelled, unverified transfer fallback. Neither an
+image row nor lower PWM proves distance, speed or whole-vehicle containment.
+The historical homography supplies an image centreline only.
 """
 import copy
 import math
@@ -12,7 +11,8 @@ import math
 import cv2
 import numpy as np
 
-from .brake_parking import BrakeParkingController, brake_trigger_reference, numeric
+from .brake_parking import BrakeParkingController, numeric
+from .parking_visual import resolve_visual_options
 from .steering import CENTER_US, LEFT_US, RIGHT_US, ImagePD, from_offset
 
 PARKING_STEERING_RATE_US_S = 600.
@@ -30,7 +30,7 @@ class ParkingEntryController:
     def __init__(self, brake_settings, selected_side='right', *, forward_us=1575,
                  steering_gain=1., vehicle_width_m=.295, front_extent_m=.335,
                  rear_extent_m=.085, zone_length_m=1., half_width_m=.625,
-                 ground=None, require_white_boundary=False):
+                 ground=None, require_white_boundary=False, visual_options=None):
         if selected_side not in ('left', 'right'):
             raise ValueError('selected_side must be left or right')
         if type(forward_us) is not int or not 1501 <= forward_us <= 1625:
@@ -60,10 +60,12 @@ class ParkingEntryController:
                 raise ValueError('invalid '+name)
         if self.s['max_frame_age_s'] > .25:
             raise ValueError('freshness must remain at most 250 ms')
-        self.s.update(brake_trigger_distance_m=.5, arming_s=3., hold_s=.5,
+        self.s.update(arming_s=3., hold_s=.5,
                       max_approach_s=30., speech_text='停车停稳，请确认车辆已进入停车区')
-        self.s['pwm'].update(search_us=forward_us, creep_us=forward_us)
-        self.brake_reference=brake_trigger_reference(self.s)
+        self.visual=resolve_visual_options(visual_options,self.s,forward_us)
+        self.s['pwm'].update(search_us=forward_us, creep_us=self.visual['slow_forward_us'])
+        self.brake_reference={'distance_m':None,'far_edge_y_normalized':self.visual['stop_line_y_normalized'],
+                              'measured':False,'source':self.visual['reference_source']}
         self.side, self.gain=selected_side, float(steering_gain)
         self.width_ratio=vehicle_width_m/half_width_m
         self.clearance_ratio=.02/half_width_m
@@ -102,6 +104,7 @@ class ParkingEntryController:
         self.target_change=None
         self.aligned_frames=0
         self.countersteer_limited=False
+        self.countersteer_active=False
         self.boundary={'observed':False,'correction':None}
         self.boundary_breach_frames=0
         # The live session always enables this. False is retained only for
@@ -109,10 +112,17 @@ class ParkingEntryController:
         self.require_white_boundary=bool(require_white_boundary)
         self.pd=ImagePD(kp=1.,kd=.12)
         self.guidance_phase='seek'
+        self.seek_since=None
+        self.last_white_at=self.last_white=None
+        self.last_boundary_risk=None
+        self.boundary_wait_since=self.boundary_brake_until=None
+        self.boundary_paused_driving=False
+        self.bay_since=self.bay_at=None;self.bay_frames=0
 
     def _result(self, esc_us=1500, events=None):
         out={**self.last_core_output, 'schema_version':1, 'phase':self.phase,
-             'action':'brake' if esc_us < 1500 else 'search' if esc_us > 1500 else 'neutral',
+             'action':'brake' if esc_us < 1500 else (
+                 'creep' if esc_us==self.s['pwm']['creep_us'] else 'search') if esc_us > 1500 else 'neutral',
              'esc_us':esc_us, 'throttle_us':esc_us,
              'steering_us':CENTER_US if esc_us == 1500 else round(self.steering),
              'reason':self.reason, 'events':events or [], 'selected_side':self.side,
@@ -127,13 +137,21 @@ class ParkingEntryController:
              'guidance_phase':self.guidance_phase,
              'steering_policy':'bay_center_heading_pd',
              'steering_rate_us_s':PARKING_STEERING_RATE_US_S,
+             'logic_revision':'parking_closed_loop_v2',
+             'slow_forward_us':self.visual['slow_forward_us'],
+             'slowdown_available':self.visual['slow_forward_us']<self.s['pwm']['search_us'],
+             'slow_line_y_normalized':self.visual['slow_line_y_normalized'],
+             'seek_timeout_s':self.visual['seek_timeout_s'],
+             'max_entry_s':self.visual['max_run_s'],
+             'boundary_wait_elapsed_s':None if self.boundary_wait_since is None else self.last_now-self.boundary_wait_since,
              'near_boundary_observed':self.near_boundary_observed,
              'far_boundary_fresh':not self.cached_geometry and self.last_far_at == self.last_now,
              'target_acquired':self.last_far_edge is not None,
              'far_tracking_age_s':None if self.last_far_at is None else self.last_now-self.last_far_at,
              'retarget_count':self.retarget_count,'retarget_reason':self.retarget_reason,
              'target_change':self.target_change,'countersteer_limited':self.countersteer_limited,
-             'opposite_correction_limit_us':20,
+             'countersteer_active':self.countersteer_active,
+             'opposite_correction_limit_us':self.visual['countersteer_limit_us'],
              'white_boundary':copy.deepcopy(self.boundary),
              'geometry':copy.deepcopy(self.geometry),
              'centerline_source':'historical_ground_image_reference' if self.center_h is not None else 'image_midpoint',
@@ -289,13 +307,13 @@ class ParkingEntryController:
         self.geometry={};self.geometry_age=None;self.cached_geometry=False
         self.core=None;self.last_core_output={};self.guidance_target_px=None
         self.seek_no_progress_since=None;self.aligned_frames=0;self.phase='seek'
+        self.bay_since=self.bay_at=None;self.bay_frames=0
         self.pd.reset()
         return None
 
     def _steer(self,desired,dt,aligned=False):
-        """Keep the selected-side arc; only allow small confirmed corrections."""
-        self.aligned_frames=min(3,self.aligned_frames+1) if aligned else 0
-        correction=20 if self.aligned_frames>=3 else 0
+        """Fresh same-bay evidence enables bounded correction before alignment."""
+        correction=self.visual['countersteer_limit_us'] if self._bay_stable() else 0
         lower=CENTER_US-correction if self.side=='left' else RIGHT_US
         upper=LEFT_US if self.side=='left' else CENTER_US+correction
         limited=max(lower,min(upper,desired));self.countersteer_limited=limited!=desired
@@ -307,10 +325,11 @@ class ParkingEntryController:
             error=(.08+soft-near) if correction=='right' else (-.08-(near-(1-soft)))
             limited=from_offset(max(-1.,min(1.,error/.12)))
             self.countersteer_limited=False
+        self.countersteer_active=(limited<CENTER_US if self.side=='left' else limited>CENTER_US)
         delta=(1200. if correction else PARKING_STEERING_RATE_US_S)*dt
         self.steering=max(float(RIGHT_US),min(float(LEFT_US),self.steering+max(-delta,min(delta,limited-self.steering))))
 
-    def _white_guard(self,parking):
+    def _white_guard(self,parking,now):
         road=parking.get('road_context') or {}
         previous_breach=self.boundary_breach_frames;self.boundary_breach_frames=0
         self.boundary={'observed':False,'correction':None,'metric_boundary_verified':False,
@@ -345,7 +364,86 @@ class ParkingEntryController:
             'hard_fraction':hard,'row_px':y,'left_px':left,'right_px':right,
             'breach_frames':self.boundary_breach_frames,'metric_boundary_verified':False,
             'reason':'图像边界有效；近场车身包络仍未实测验证'}
+        self.last_white_at=now;self.last_white=copy.deepcopy(self.boundary)
+        if self.boundary_breach_frames:self.last_boundary_risk=now
         return self.boundary_breach_frames>=3
+
+    def _bay_evidence(self,now):
+        g=self.geometry
+        usable=(self.last_far_at==now and self.geometry_source in
+                ('complete_quad','visible_candidate','tracked_far_guide')
+                and g.get('availability')=='clear'
+                and numeric(g.get('lateral_error')) and numeric(g.get('heading_error')))
+        if not usable:
+            self.bay_since=self.bay_at=None;self.bay_frames=0;return
+        if self.bay_at is None or not 0<now-self.bay_at<=.25:
+            self.bay_since=now;self.bay_frames=0
+        self.bay_at=now;self.bay_frames+=1
+
+    def _bay_stable(self):
+        return self.bay_frames>=3 and self.bay_at-self.bay_since>=.12
+
+    def _visible_edge_risk(self,parking):
+        """A currently seen dangerous edge vetoes use of the other evidence."""
+        road=parking.get('road_context') or {}
+        for key in ('left_inner','right_inner'):
+            try:points=np.asarray(road.get(key,[]),dtype=float)
+            except (ValueError,TypeError):continue
+            if (points.ndim!=2 or points.shape[1]!=2 or len(points)<6 or not np.isfinite(points).all()
+                    or np.ptp(points[:,1])<32 or (points<0).any()
+                    or (points[:,0]>=480).any() or (points[:,1]>=360).any()):continue
+            if self.last_white is not None:
+                y=float(points[:,1].max())
+                width=self.last_white['right_px']-self.last_white['left_px']
+                margin=width*self.last_white['hard_fraction']
+            else:
+                checks=[check for check in self.geometry.get('envelope_checks',[])
+                        if float(points[:,1].min())<=check['row_px']<=float(points[:,1].max())]
+                if not checks:continue
+                check=max(checks,key=lambda c:c['row_px']);y=check['row_px'];margin=check['envelope_half_width_px']
+            center=self._center_x(y)
+            if center is None:continue
+            fit=np.polyfit(points[:,1],points[:,0],1);edge=float(np.polyval(fit,y))
+            if np.max(np.abs(np.polyval(fit,points[:,1])-points[:,0]))>8:continue
+            if key=='left_inner' and center-edge<margin:return True
+            if key=='right_inner' and edge-center<margin:return True
+        return False
+
+    def _boundary_gate(self,parking,sample,now):
+        """Fuse fresh bay geometry; otherwise pause without cancelling a blink."""
+        fresh_bay=(self.last_far_at==now and self.geometry.get('availability')=='clear'
+                   and self.geometry.get('lateral_envelope_estimate_inside') is True
+                   and numeric(self.geometry.get('heading_error')) and abs(self.geometry['heading_error'])<=.35)
+        risk=self._visible_edge_risk(parking)
+        recent_risk=self.last_boundary_risk is not None and now-self.last_boundary_risk<.5
+        supported=(not self.require_white_boundary or self.boundary['observed'])
+        mode='white_lines' if self.boundary['observed'] else 'historical_replay'
+        if not supported and not risk and not recent_risk:
+            if fresh_bay and self._bay_stable():supported=True;mode='current_bay_envelope'
+            elif (fresh_bay and self.last_white_at is not None
+                    and now-self.last_white_at<=self.visual['boundary_grace_s']):
+                supported=True;mode='recent_white_and_current_bay'
+        self.boundary.update(usable=bool(supported),support_source=mode if supported else 'waiting')
+        if supported and self.boundary_wait_since is not None and self.boundary_paused_driving:
+            stopped=(sample.get('motion') or {}).get('valid') is True and (sample.get('motion') or {}).get('moving') is False
+            if now<(self.boundary_brake_until or now)+self.s['brake_release_s'] or not stopped:supported=False
+        self.boundary['usable']=bool(supported)
+        if supported:
+            self.boundary_wait_since=self.boundary_brake_until=None;self.boundary_paused_driving=False
+            if mode not in ('white_lines','historical_replay'):
+                self.boundary['reason']='由连续新鲜车位边界补充白线；低输出修正，未作米制验证'
+            return None
+        if self.boundary_wait_since is None:
+            self.boundary_wait_since=now;self.boundary_paused_driving=self.was_driving
+            self.boundary_brake_until=now+(self.s['brake_pulse_s'] if self.was_driving else 0.)
+            self.core=None;self.last_core_output={};self.pd.reset()
+        if now-self.boundary_wait_since>=self.visual['boundary_wait_s']:
+            return self._abort('停车边界或暂停后的停稳反馈持续不足，结束入位',now)
+        self.phase='boundary_wait';self.guidance_phase='boundary_wait'
+        self.reason='停车边界暂不明确，暂停等待新鲜边界和停稳反馈'
+        if now<self.boundary_brake_until:return self._result(self.s['pwm']['brake_us'])
+        self.steering=float(CENTER_US);self.was_driving=False
+        return self._result()
 
     def _geometry(self, q):
         far=float(np.mean(q[2:,1])); near=float(np.mean(q[:2,1]))
@@ -383,12 +481,14 @@ class ParkingEntryController:
         """Keep a low forward command without inventing a missing far edge.
 
         A current board supplies a continuously updated target in its opposite
-        half. A bare chosen side keeps a mild heading bias; it is not followed
-        by a timed opposite turn. Fresh geometry can reduce the selected-side
-        arc, with only a small correction allowed after stable alignment.
+        half. Without a visible target, unwind to centre under a bounded
+        search deadline. Current same-bay geometry can authorize correction.
         """
         if self.last_far_at is not None and now-self.last_far_at>.6:
             return self._abort('已锁定停车目标后远端线跟踪丢失，刹停防止越过车位',now)
+        if self.seek_since is None:self.seek_since=now
+        if now-self.seek_since>=self.visual['seek_timeout_s']:
+            return self._abort('寻位超时，仍无可靠停车目标，结束入位',now)
         self.phase='seek'
         self.guidance_phase='seek'
         self.core=None  # No stale crosswalk seen_at/last_t timer during seeking.
@@ -443,7 +543,7 @@ class ParkingEntryController:
         else:self.reason+='；目标暂失，逐步减小转向低速寻找'
         if self.boundary.get('correction'):self.reason+='；白线优先向内纠偏'
         self.was_driving=True
-        return self._result(self.s['pwm']['search_us'])
+        return self._result(self.s['pwm']['creep_us'])
 
     def _tracked_geometry(self,parking,now):
         """Associate measured optical-flow far points; do not invent a bay box."""
@@ -511,9 +611,9 @@ class ParkingEntryController:
         parking=sample.get('parking') or {}
         braking=self.phase in ('brake_pulse','settle','hold')
         if not braking:
-            if self._white_guard(parking):return self._abort('连续白线观测显示车身边缘风险，刹停防止继续越线',now)
-            if self.require_white_boundary and not self.boundary['observed']:
-                return self._abort('有效白线边界不足，停止入位：'+self.boundary['reason'],now)
+            if now-self.started-3.>=self.visual['max_run_s']:
+                return self._abort('停车入位总时限已到，结束本轮',now)
+            if self._white_guard(parking,now):return self._abort('连续白线观测显示车身边缘风险，刹停防止继续越线',now)
             obstruction=self._retarget_if_blocked(parking,now)
             if obstruction:return self._abort(obstruction,now)
             q, blocked, source, near_observed=self._polygon(parking,now)
@@ -529,10 +629,22 @@ class ParkingEntryController:
                 self.geometry_age=0.
                 self.last_far_edge,self.last_far_at=q[[3,2]].copy(),now
                 self.geometry=self._geometry(q)
+                collection=parking.get('slots',[]) if source=='complete_quad' else parking.get('entry_guides',[])
+                clear=(source=='visible_candidate' or any(
+                    isinstance(item,dict) and item.get('id') in (self.side,None)
+                    and item.get('availability')=='clear'
+                    and (observed:=self._valid_quad(item.get('corners_px'))) is not None
+                    and np.allclose(observed,q) for item in collection))
+                self.geometry['availability']='clear' if clear else 'unknown'
             else:
                 tracked=self._tracked_geometry(parking,now)
-                if tracked is None:return self._seek(sample,parking,now,dt)
+                if tracked is None:
+                    self.bay_since=self.bay_at=None;self.bay_frames=0
+                    pause=self._boundary_gate(parking,sample,now)
+                    if pause is not None:return pause
+                    return self._seek(sample,parking,now,dt)
                 self.geometry=tracked
+            self.seek_since=None
             self.seek_no_progress_since=None
             self.geometry.update(geometry_source=self.geometry_source,
                                  near_boundary_observed=self.near_boundary_observed,
@@ -540,6 +652,9 @@ class ParkingEntryController:
             y=self.geometry['far_edge_y_normalized']
             if self.geometry['steering_error'] is None:
                 return self._abort('历史中心参考不在当前画面内',now)
+            self._bay_evidence(now)
+            pause=self._boundary_gate(parking,sample,now)
+            if pause is not None:return pause
             if y >= self.brake_reference['far_edge_y_normalized'] and (
                     self.geometry['lateral_envelope_estimate_inside'] is False or
                     (numeric(self.geometry.get('heading_error')) and abs(self.geometry['heading_error'])>.15)):
@@ -550,7 +665,9 @@ class ParkingEntryController:
                 context=(self.side,self.geometry_source),gain=self.gain))
             self._steer(desired,dt,self.geometry.get('image_aligned',False))
             if self.core is None:
-                self.core=BrakeParkingController(self.s, path_mode='straight')
+                self.core=BrakeParkingController(self.s, path_mode='straight',
+                    image_brake_y=self.visual['stop_line_y_normalized'],
+                    image_creep_y=self.visual['slow_line_y_normalized'])
         core_sample={**sample, 'candidate':True,
                      'far_edge_y_normalized':self.geometry.get('far_edge_y_normalized')}
         result=self.core.step(core_sample,now)
@@ -561,6 +678,10 @@ class ParkingEntryController:
         if self.phase in ('search','creep'):
             self.phase='approach'
         esc=result['esc_us']
+        if esc>1500 and (self.guidance_phase in ('align','enter')
+                or self.countersteer_active
+                or self.boundary.get('support_source') in ('current_bay_envelope','recent_white_and_current_bay')):
+            esc=min(esc,self.visual['slow_forward_us'])
         self.was_driving=esc > 1500
         if esc > 1500:
             side='左' if self.side=='left' else '右'
@@ -576,7 +697,7 @@ class ParkingEntryController:
             if self.boundary.get('correction'):self.reason+='；白线优先向内纠偏'
         elif self.phase == 'brake_pulse':
             self.guidance_phase='brake'
-            self.reason='远端黄线到达既有 50 cm 图像参考，发出有限 F/B 制动'
+            self.reason='实际远端黄线到达停车图像停止参考，发出有限 F/B 制动'
         elif self.phase == 'done':
             self.guidance_phase='stopped'
             self.reason='画面连续停稳候选成立；实际四轮入位尚未验证'

@@ -16,6 +16,7 @@ from .parking_entry import ParkingEntryController
 from .parking_control import MetricParkingController, calibration_tables
 from .steering import LEFT_US, RIGHT_US
 from .parking_log import ParkingLog
+from .parking_visual import resolve_visual_options
 
 
 EVIDENCE_SELECTION_SOURCES = frozenset(('layout', 'blocked_side', 'visible_ground', 'blue_board_position'))
@@ -100,6 +101,8 @@ class ParkingEntryRun:
             'visual_retarget_enabled': not metric and self.controller is not None,
             'forward_us': (self.s or {}).get('forward_us', 1575),
             'steering_gain': (self.s or {}).get('steering_gain', 1.25),
+            'logic_revision':'parking_closed_loop_v2',
+            'slow_forward_us':((self.s or {}).get('brake') or {}).get('pwm',{}).get('creep_us'),
             'steering_limits_us': [RIGHT_US, LEFT_US],
             'hardware_output': bool(self.actuator and getattr(self.actuator, 'run', False)),
             'intent': copy.deepcopy(self.intent),
@@ -138,6 +141,9 @@ class ParkingEntryRun:
         brake.update(arming_s=3., brake_pulse_s=.12, brake_release_s=.1, actuator_lease_s=.2)
         brake['pwm'] = {'neutral_us': 1500, 'steering_center_us': 1610,
                         'search_us': forward, 'creep_us': forward, 'brake_us': 1400}
+        if mode=='visual_trial':
+            visual=resolve_visual_options(parking.get('visual_entry'),brake,forward)
+            brake['pwm']['creep_us']=visual['slow_forward_us']
         if mode=='metric_path':
             # Validation is pure and precedes ownership/hardware acquisition.
             validated=MetricParkingController(parking,cone)
@@ -191,7 +197,7 @@ class ParkingEntryRun:
             vehicle_width_m=p['vehicle_width_m'], front_extent_m=p['front_extent_m'],
             rear_extent_m=p['rear_extent_m'], zone_length_m=p['zone_length_m'],
             half_width_m=p['lane_width_m'] / 2, ground=ground,
-            require_white_boundary=True)
+            require_white_boundary=True,visual_options=p.get('visual_entry'))
 
     @staticmethod
     def _fresh_selection(selection, now):

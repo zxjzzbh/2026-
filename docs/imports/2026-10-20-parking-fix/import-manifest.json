@@ -1,0 +1,633 @@
+{
+  "source_archive": "避障与停车代码_停车修复版_20261020.zip",
+  "archive_sha256": "5b32c869bd559993482a0ad552a6e27e382153d7e073fb130fc558f5a47eac79",
+  "base_commit": "517f7647ca1c3c9b434f2712a102052b019371e6",
+  "archive_files": 108,
+  "source_manifest_hashes_verified": 106,
+  "core_modules_match_supplied_deployment_hashes": 7,
+  "scope": "partial_module_update; absent repository files retained",
+  "hardware_connected_or_deployed_by_this_import": false,
+  "source_deployment_evidence_independently_retested": false,
+  "source_document_mapping": {
+    "文件清单.json": "source-manifest.json",
+    "使用说明.txt": "source-notes.txt",
+    "验证记录/停车入位修复部署记录.json": "deployment-record.json",
+    "验证记录/历史失败轮次离线回放.json": "field-replay.json",
+    "验证记录/本地扩大检查.txt": "local-checks.txt",
+    "验证记录/车端安装后回归.txt": "car-tests.txt",
+    "验证记录/车端网页接口回归.txt": "http-tests.txt"
+  },
+  "repository_adjustments": [
+    "Preserve existing dependency and steering-constant compatibility",
+    "Add parking_visual and its regression fixture to the existing deployment file lists; require image-reference support in the protected brake module",
+    "Preserve the existing lane-loss crosswalk regression that the supplied test file omitted; runtime behavior is unchanged"
+  ],
+  "files": [
+    {
+      "path": "vision/pyproject.toml",
+      "source_sha256": "2498c94f80b8ff048018f99082ac93b90a53fb0b1d7d8a18968368b4f8af63c8",
+      "integrated_sha256": "1e7d9bdf4d2ba7051f42dcc9a50548d411d0b529642791080ee42efdcd4d45b5",
+      "decision": "retain_main_deploy_and_test_dependencies"
+    },
+    {
+      "path": "vision/src/carvision/brake_output.py",
+      "source_sha256": "7a620d855020475c020ca2c62b131232ef9446a94bd2464274aa3afd6a9353ca",
+      "integrated_sha256": "9fafe798cc7d7c1de3433f0da69d1bd24e1bf0348b6634acf3b35db0cb193b14",
+      "decision": "adapt_missing_steering_limits_to_existing_constants"
+    },
+    {
+      "path": "vision/src/carvision/brake_parking.py",
+      "source_sha256": "880a876f8d400e3fa98e8921b7cb079783b8ce5e8561dde4c0d49d2c2f9613bb",
+      "integrated_sha256": "80f107212273719c9c2484077b75440be46de3bf3810d14fdda68857b65dff62",
+      "decision": "import_normalized_lf"
+    },
+    {
+      "path": "vision/src/carvision/cone_boundaries.py",
+      "source_sha256": "6218f771aac72d26c764972d464b10fef0098e98a5ccdfbed927b4ad35819e50",
+      "integrated_sha256": "6218f771aac72d26c764972d464b10fef0098e98a5ccdfbed927b4ad35819e50",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_continuous.py",
+      "source_sha256": "23b6483f2b2c327db4d250e58de17ac71dbce39428b80d1c611bfe29f744f447",
+      "integrated_sha256": "23b6483f2b2c327db4d250e58de17ac71dbce39428b80d1c611bfe29f744f447",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_controls.py",
+      "source_sha256": "d3a6ccca43bb5540e8b9c440ca53f8429ba26fdc8d98723dd9fba50021fa0c47",
+      "integrated_sha256": "d3a6ccca43bb5540e8b9c440ca53f8429ba26fdc8d98723dd9fba50021fa0c47",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_execution.py",
+      "source_sha256": "cd0119270e4ffd600c042f291a3a1594f7e45abdad49ff53cf2331394e6b5829",
+      "integrated_sha256": "cd0119270e4ffd600c042f291a3a1594f7e45abdad49ff53cf2331394e6b5829",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_low_speed.py",
+      "source_sha256": "b41a795be0b92060987b227500700972f8c8904d9339342bd4fec2c5b669a3c8",
+      "integrated_sha256": "b41a795be0b92060987b227500700972f8c8904d9339342bd4fec2c5b669a3c8",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_navigation.py",
+      "source_sha256": "a20b7e3df026eaec4f2a077679fb0c3041e093d9752661d852aaed6dcbc4052b",
+      "integrated_sha256": "a20b7e3df026eaec4f2a077679fb0c3041e093d9752661d852aaed6dcbc4052b",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_observer.py",
+      "source_sha256": "e6cd985c31fa70b313cb8cb68e113f220fde4c66765a5f5f64effce4541d739b",
+      "integrated_sha256": "e6cd985c31fa70b313cb8cb68e113f220fde4c66765a5f5f64effce4541d739b",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_planning.py",
+      "source_sha256": "46cb84ddd68d3339d90460a861eed997102f109e897bdaa0561f9659f8e64664",
+      "integrated_sha256": "46cb84ddd68d3339d90460a861eed997102f109e897bdaa0561f9659f8e64664",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_road.py",
+      "source_sha256": "83d4bf1f0b1bc1408af125e9e9890ddd75ce1ea13ec9a42f389c8b2502aaa2dc",
+      "integrated_sha256": "83d4bf1f0b1bc1408af125e9e9890ddd75ce1ea13ec9a42f389c8b2502aaa2dc",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_shapes.py",
+      "source_sha256": "d1e69ebeca028171fc9de4ce268ca5a97336623f1e1f183af8c315f78e76fdfe",
+      "integrated_sha256": "d1e69ebeca028171fc9de4ce268ca5a97336623f1e1f183af8c315f78e76fdfe",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_short_output.py",
+      "source_sha256": "9723f20d29c1ae19ae9b93e90960fb557c211bac4e2a1d3a7183239a919cf4a5",
+      "integrated_sha256": "d10af83a6af7c3b3c7729a713870707cb675117089409cee50cfb6943c4828f1",
+      "decision": "adapt_missing_steering_limits_to_existing_constants"
+    },
+    {
+      "path": "vision/src/carvision/cone_short_trial.py",
+      "source_sha256": "0b632f5e6f6923eb29ac191ecb50fe4c23c7c40a241dd0eac07283d5876ebc06",
+      "integrated_sha256": "0b632f5e6f6923eb29ac191ecb50fe4c23c7c40a241dd0eac07283d5876ebc06",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_slalom.py",
+      "source_sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14",
+      "integrated_sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_trial_output.py",
+      "source_sha256": "65baf11b05ff13370294fd545ed07720cb7b89758936bede0ec86398d28ceeff",
+      "integrated_sha256": "65baf11b05ff13370294fd545ed07720cb7b89758936bede0ec86398d28ceeff",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/cone_vision.py",
+      "source_sha256": "05d912610caf5bd80c01325aaf03afa45d8d30dee2f3023534840fbda8005c85",
+      "integrated_sha256": "05d912610caf5bd80c01325aaf03afa45d8d30dee2f3023534840fbda8005c85",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay.py",
+      "source_sha256": "f3c9b1bcd08b40eafdaccf9630c04a958267225869bc5a58a4b75beb5d7d6c76",
+      "integrated_sha256": "f3c9b1bcd08b40eafdaccf9630c04a958267225869bc5a58a4b75beb5d7d6c76",
+      "decision": "import"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_console.py",
+      "source_sha256": "c2af256e612aa91c08870cead121c2a69c5d685ff32efb521cd2b3503f650611",
+      "integrated_sha256": "1880fcfdf3b5d504bb6461ce56fe2c3dfcce97b4738e2e3637d73b3855f6b33a",
+      "decision": "import_normalized_lf"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_controls.py",
+      "source_sha256": "6b1a014c58599a8662b63bb66a9e6f51856cb9b9b22a3e96a2c5357508c50d72",
+      "integrated_sha256": "dcfa7f28f041666d785ae4ca4b8d6d0680aa5855f06ff29abf2557fb03c23cf5",
+      "decision": "import_normalized_lf"
+    },
+    {
+      "path": "vision/src/carvision/parking_control.py",
+      "source_sha256": "cc62ab03c009062fa663c10c553cb9a60b732906df89ae0463f4fe4c9ee87fc7",
+      "integrated_sha256": "cc62ab03c009062fa663c10c553cb9a60b732906df89ae0463f4fe4c9ee87fc7",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry.py",
+      "source_sha256": "e6787f557d0d89257c5503d959b3426bab9d67a6866d2ec5d52e9dcae142a27c",
+      "integrated_sha256": "e6787f557d0d89257c5503d959b3426bab9d67a6866d2ec5d52e9dcae142a27c",
+      "decision": "import"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry_run.py",
+      "source_sha256": "742636742f164d31686eea8f7d2d4747b3397a0cfddfb079e32f2ef911a99c6e",
+      "integrated_sha256": "b81a9c2aa225ceea544d9952c1fad3d5d92ba468c8ff5fbc9a878e4e67e6f31b",
+      "decision": "import_normalized_lf"
+    },
+    {
+      "path": "vision/src/carvision/parking_far_tracker.py",
+      "source_sha256": "803156dd4212726e028692410088e18e55c893363559b6224fc458d9afbfd64a",
+      "integrated_sha256": "948530d3b0e72cf6792cfc3698d2de40a7cb45b15cc413f1e82196ed052f55ca",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/parking_feedback.py",
+      "source_sha256": "a0911f86e5ab245971dbc19ea1476b5529587baab1afb173c176293ecf28e160",
+      "integrated_sha256": "a0911f86e5ab245971dbc19ea1476b5529587baab1afb173c176293ecf28e160",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/parking_guidance.py",
+      "source_sha256": "1faa663cc46b5dacb0cc47472180e75c8ae43624313165494a7a30983bbf3b5c",
+      "integrated_sha256": "1faa663cc46b5dacb0cc47472180e75c8ae43624313165494a7a30983bbf3b5c",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/parking_log.py",
+      "source_sha256": "f2bdb2e3d3bfd1e1381d2145eaedee92e461a8b512bde359e53f34862389105e",
+      "integrated_sha256": "f2bdb2e3d3bfd1e1381d2145eaedee92e461a8b512bde359e53f34862389105e",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/parking_mission.py",
+      "source_sha256": "47d10f246172996772fea177ac71edf1e467d30522bdab096dad174e898e25d8",
+      "integrated_sha256": "47d10f246172996772fea177ac71edf1e467d30522bdab096dad174e898e25d8",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/parking_path.py",
+      "source_sha256": "209adfc0ea19cab76f9c9bff85594bdbc09a152751cb8e569a3f3b74bd5e08c5",
+      "integrated_sha256": "209adfc0ea19cab76f9c9bff85594bdbc09a152751cb8e569a3f3b74bd5e08c5",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/parking_payment.py",
+      "source_sha256": "749ea6d64f3ed966f0574851662e8a97ce748502f8649c77d3e77c26a326f34d",
+      "integrated_sha256": "749ea6d64f3ed966f0574851662e8a97ce748502f8649c77d3e77c26a326f34d",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/parking_speech.py",
+      "source_sha256": "4ef77f2e16c528bc4e7b97eb49016df74dc5519e4ffc796a9933cd44f39cb142",
+      "integrated_sha256": "4ef77f2e16c528bc4e7b97eb49016df74dc5519e4ffc796a9933cd44f39cb142",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/parking_visual.py",
+      "source_sha256": "3ceb5d8e499d8f431219634a5f99f32f49aebf92996e9bb9b892d9b7c4fdd689",
+      "integrated_sha256": "3ceb5d8e499d8f431219634a5f99f32f49aebf92996e9bb9b892d9b7c4fdd689",
+      "decision": "import"
+    },
+    {
+      "path": "vision/src/carvision/race_flow.py",
+      "source_sha256": "529e981a929074498c235959687d75b54e9fb12477592f8e6a607f5ad9cfa3d4",
+      "integrated_sha256": "529e981a929074498c235959687d75b54e9fb12477592f8e6a607f5ad9cfa3d4",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_camera.py",
+      "source_sha256": "e3a4c32cfe4c37562c8c6e92f4bee38b459933cbd64238f863e04d1f52c5890a",
+      "integrated_sha256": "678508e19eec4a1f7b899fa54e335de775ffd645d5481c1a6874c7f91c52db68",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_console.py",
+      "source_sha256": "7b79e4fb1480ecae94a780f96f3cb5114fb64ab12901636722d6651bf6c0ddf0",
+      "integrated_sha256": "7b79e4fb1480ecae94a780f96f3cb5114fb64ab12901636722d6651bf6c0ddf0",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_controls.py",
+      "source_sha256": "bf45cccd0db60111aafdea7ca84fcc402159a7040c88b4fdacde47364d801660",
+      "integrated_sha256": "bf45cccd0db60111aafdea7ca84fcc402159a7040c88b4fdacde47364d801660",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/src/carvision/steering.py",
+      "source_sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7",
+      "integrated_sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/blue-board-close.jpg",
+      "source_sha256": "864b0fc527aeec0e9a6532014b093a9ff5235362073b8bfc7be0f3d4c865737d",
+      "integrated_sha256": "864b0fc527aeec0e9a6532014b093a9ff5235362073b8bfc7be0f3d4c865737d",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-continuity-20261013.json",
+      "source_sha256": "3c9664a6ed0822412b4ed98d5eda61fc5efeefdce74ae1d9695b9e96229e3bd0",
+      "integrated_sha256": "3c9664a6ed0822412b4ed98d5eda61fc5efeefdce74ae1d9695b9e96229e3bd0",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-left-with-small-background-patch.jpg",
+      "source_sha256": "4da176e81f3f8c12a935629aa6f00683e01d47b3df44f1f4bc0e6de17026c32b",
+      "integrated_sha256": "4da176e81f3f8c12a935629aa6f00683e01d47b3df44f1f4bc0e6de17026c32b",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-primary-a.jpg",
+      "source_sha256": "426f874ad2568c7a8ea641a8608e95ec4e7734ee7b72f268bae1d35b5f650302",
+      "integrated_sha256": "426f874ad2568c7a8ea641a8608e95ec4e7734ee7b72f268bae1d35b5f650302",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-primary-b.jpg",
+      "source_sha256": "e7ff7cb3113699686e82a9db453bb43d38b0bfb7b6484ab6abdbb5c97c05ff20",
+      "integrated_sha256": "e7ff7cb3113699686e82a9db453bb43d38b0bfb7b6484ab6abdbb5c97c05ff20",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-primary-a.jpg",
+      "source_sha256": "282c2dcdad3ec42fc649fc7b721c0c56f398f25c738e6a7cec7c2af2c55efb95",
+      "integrated_sha256": "282c2dcdad3ec42fc649fc7b721c0c56f398f25c738e6a7cec7c2af2c55efb95",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-primary-b.jpg",
+      "source_sha256": "34f967040553d869781d43895f03fb48b9e074af0b9d8ff8add6ba1a9236f1de",
+      "integrated_sha256": "34f967040553d869781d43895f03fb48b9e074af0b9d8ff8add6ba1a9236f1de",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-secondary-a.jpg",
+      "source_sha256": "ef97fc4be9ca6169dff6eefed279f2f9165f4a3ab000e2be250dd03d01308ccf",
+      "integrated_sha256": "ef97fc4be9ca6169dff6eefed279f2f9165f4a3ab000e2be250dd03d01308ccf",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-secondary-b.jpg",
+      "source_sha256": "4c0d62528e236646e8890ab60ba1f7fe37e09412be403511cba7f4b5c3cc0ee1",
+      "integrated_sha256": "4c0d62528e236646e8890ab60ba1f7fe37e09412be403511cba7f4b5c3cc0ee1",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-reflection-a.jpg",
+      "source_sha256": "2dabe222500d2bc7372cb5d0d73795777ed55fcaca4a59ba0cf6616f751229a5",
+      "integrated_sha256": "2dabe222500d2bc7372cb5d0d73795777ed55fcaca4a59ba0cf6616f751229a5",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-reflection-b.jpg",
+      "source_sha256": "07511d863e221e247e1b15da0ad0c88a7a738a8e738973536afcc1f913d290be",
+      "integrated_sha256": "07511d863e221e247e1b15da0ad0c88a7a738a8e738973536afcc1f913d290be",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-rounded-tip.jpg",
+      "source_sha256": "44c4e57efb2ead4f7178a51e7dcd7563b54fe518e3e39e975634802ea6714230",
+      "integrated_sha256": "44c4e57efb2ead4f7178a51e7dcd7563b54fe518e3e39e975634802ea6714230",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-secondary-a.jpg",
+      "source_sha256": "f9bac6065b01693142539c3823b3ff82050a98cf359c2a76984d0510979215f0",
+      "integrated_sha256": "f9bac6065b01693142539c3823b3ff82050a98cf359c2a76984d0510979215f0",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-secondary-b.jpg",
+      "source_sha256": "a0b045b34f79ab52b17b771079158ec3fb18f2dbfb044daa8deb821bf02b8d36",
+      "integrated_sha256": "a0b045b34f79ab52b17b771079158ec3fb18f2dbfb044daa8deb821bf02b8d36",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-track-glare-primary.jpg",
+      "source_sha256": "d00de2f8414fdcec48b7d0142edafc8260780b00d077eab89ca41194e4d4679b",
+      "integrated_sha256": "d00de2f8414fdcec48b7d0142edafc8260780b00d077eab89ca41194e4d4679b",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-track-glare-secondary.jpg",
+      "source_sha256": "e1855562c653f892c232c8f9858d0876e4b7b09be13bb71694bf608b695b25c0",
+      "integrated_sha256": "e1855562c653f892c232c8f9858d0876e4b7b09be13bb71694bf608b695b25c0",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-track-short-secondary.jpg",
+      "source_sha256": "947803c6236f7fe68d27e2730ff2cdd79dcba9ef11b037a0bbb2006783bfcd31",
+      "integrated_sha256": "947803c6236f7fe68d27e2730ff2cdd79dcba9ef11b037a0bbb2006783bfcd31",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-front.jpg",
+      "source_sha256": "ac8d4145eff6363fb2485732acc9e436dbb7b48a59bee8defa23a2bf4677601c",
+      "integrated_sha256": "ac8d4145eff6363fb2485732acc9e436dbb7b48a59bee8defa23a2bf4677601c",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-oblique.jpg",
+      "source_sha256": "769b82d35d8bcb4fc820de23c7ed01d173797f23b89f3c61669ba4c0dc1d8798",
+      "integrated_sha256": "769b82d35d8bcb4fc820de23c7ed01d173797f23b89f3c61669ba4c0dc1d8798",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-side.jpg",
+      "source_sha256": "e82eab3efc123b3ae4bb597a848e44e07f0af67c106dd17a4a8d3540e7ad82d6",
+      "integrated_sha256": "e82eab3efc123b3ae4bb597a848e44e07f0af67c106dd17a4a8d3540e7ad82d6",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-top.jpg",
+      "source_sha256": "d718273b214f49a851c8703cd63a207dad2f54ba34b112e657b2a83ff4b9434a",
+      "integrated_sha256": "d718273b214f49a851c8703cd63a207dad2f54ba34b112e657b2a83ff4b9434a",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-white-mask-20261012.png",
+      "source_sha256": "85bd74cdb09b9e9ad4c4c33f9ea4fe8d209af179ed4ccdefaa919eed085d2080",
+      "integrated_sha256": "85bd74cdb09b9e9ad4c4c33f9ea4fe8d209af179ed4ccdefaa919eed085d2080",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-background-primary.jpg",
+      "source_sha256": "dcfe1cbc721acfb23d850d69c654865d3502e94f4de703f2e8c588c4bf0c16dc",
+      "integrated_sha256": "dcfe1cbc721acfb23d850d69c654865d3502e94f4de703f2e8c588c4bf0c16dc",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-papers-secondary.jpg",
+      "source_sha256": "e1a4b41a6c88d9538e0fbdac412e18a5128fbcc46d24c6dd6ebd6272af3f1ad2",
+      "integrated_sha256": "e1a4b41a6c88d9538e0fbdac412e18a5128fbcc46d24c6dd6ebd6272af3f1ad2",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-border-clipped-left-board-20261013.jpg",
+      "source_sha256": "bf8d2f160e742803191b50b69a11eb28c0489b827da64af59e5d9fac2ebeb9fe",
+      "integrated_sha256": "bf8d2f160e742803191b50b69a11eb28c0489b827da64af59e5d9fac2ebeb9fe",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-boundary-failures-20261020.json",
+      "source_sha256": "84ffdca436c65f2c74aa4af49ef2b51551a5aa3144b2ac6b28c4f9285b48d493",
+      "integrated_sha256": "84ffdca436c65f2c74aa4af49ef2b51551a5aa3144b2ac6b28c4f9285b48d493",
+      "decision": "import"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-boundary-loss-20261013.json",
+      "source_sha256": "c24e0fe01cace11398a86d5e9bc3ddaaf67ff5e4a007173088a147b5969bff03",
+      "integrated_sha256": "b77e751877647edd8aeaaa2979b1d53fa2bca0d2c84c1f1e33880cc566d3c93e",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-overshoot-loss-20261013.json",
+      "source_sha256": "148b314802ef49d47443c286e2b1c637cbbb099f55f1a10a58205c3947bd1974",
+      "integrated_sha256": "148b314802ef49d47443c286e2b1c637cbbb099f55f1a10a58205c3947bd1974",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-pale-green-left-board-20261013.jpg",
+      "source_sha256": "3604e3355033a7f2f1fc52060a953fd916fab028fccdcb3eafb68f9602d24d9f",
+      "integrated_sha256": "3604e3355033a7f2f1fc52060a953fd916fab028fccdcb3eafb68f9602d24d9f",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-washed-right-board-20261013.jpg",
+      "source_sha256": "b4b1b0095245430cef03b3afb9542ac00e9a6c835ce9ff9d4b9581a62354c721",
+      "integrated_sha256": "b4b1b0095245430cef03b3afb9542ac00e9a6c835ce9ff9d4b9581a62354c721",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-white-mask-20261013.png",
+      "source_sha256": "d3a3d7c97e54242f73e113d652fce8dfe3ef802fd0b12c989fb48036e4b72e77",
+      "integrated_sha256": "d3a3d7c97e54242f73e113d652fce8dfe3ef802fd0b12c989fb48036e4b72e77",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-all-off.jpg",
+      "source_sha256": "d590d0d143a5c2dfbb84c4f9713f17e519dcffda80cd9c3c511c84f42ef48118",
+      "integrated_sha256": "d590d0d143a5c2dfbb84c4f9713f17e519dcffda80cd9c3c511c84f42ef48118",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-background-primary.jpg",
+      "source_sha256": "705da6bbca5cad67b1d6d2898a1612548af74a4fe70bfaad8af947247a19e937",
+      "integrated_sha256": "705da6bbca5cad67b1d6d2898a1612548af74a4fe70bfaad8af947247a19e937",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-green-overexposed.jpg",
+      "source_sha256": "9ec8fa7f533500d8221ca0e7d4692e7e5ee3b15a59c923f1a1f176be975e3174",
+      "integrated_sha256": "9ec8fa7f533500d8221ca0e7d4692e7e5ee3b15a59c923f1a1f176be975e3174",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-red-overexposed.jpg",
+      "source_sha256": "8d104f0438e1ec91c7d6d6c7626384741a77459eaf75b69229b163c289d21936",
+      "integrated_sha256": "8d104f0438e1ec91c7d6d6c7626384741a77459eaf75b69229b163c289d21936",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-yellow-overexposed.jpg",
+      "source_sha256": "b6c656fac276744a4c0d261abe89b1669406fa3f117eebc8a88b984e0acb2bc4",
+      "integrated_sha256": "b6c656fac276744a4c0d261abe89b1669406fa3f117eebc8a88b984e0acb2bc4",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_brake_parking_program.py",
+      "source_sha256": "0f71a07b1920e12678643fa3bced2abff05eb65402faf6048dbc001faa2ee866",
+      "integrated_sha256": "110b1aa4dd3d0fd250b0ab3235f0f48eb86814c592efeeea99bf3a6404d0bfab",
+      "decision": "retain_main_lane_loss_crosswalk_regression"
+    },
+    {
+      "path": "vision/tests/test_cone_boundaries.py",
+      "source_sha256": "76660254f57d85721858ff98bf9a9ff597983ce62bc97aafea38dc934332af17",
+      "integrated_sha256": "76660254f57d85721858ff98bf9a9ff597983ce62bc97aafea38dc934332af17",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_cone_continuous.py",
+      "source_sha256": "690404a00ff4da621ff2c4f6371b4acc51679757bd4099dea6c74bc9fa49deb4",
+      "integrated_sha256": "690404a00ff4da621ff2c4f6371b4acc51679757bd4099dea6c74bc9fa49deb4",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_cone_low_speed.py",
+      "source_sha256": "71bb1a3f1f7d6a4336bc829f7dfef846b3d4586654c844504aca105444a9dd22",
+      "integrated_sha256": "71bb1a3f1f7d6a4336bc829f7dfef846b3d4586654c844504aca105444a9dd22",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_cone_navigation.py",
+      "source_sha256": "9cd38d0261f3dfb83c93fb632d733cea5610a829b5393da212ea5aa2b9414de7",
+      "integrated_sha256": "9cd38d0261f3dfb83c93fb632d733cea5610a829b5393da212ea5aa2b9414de7",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_cone_shapes.py",
+      "source_sha256": "4aafb338194ff10caeebca1dcdd2544dfc970143d4e3da51f180aa296686bb18",
+      "integrated_sha256": "4aafb338194ff10caeebca1dcdd2544dfc970143d4e3da51f180aa296686bb18",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_cone_short.py",
+      "source_sha256": "80fccb2a95860a597e5a8e5fd18e7acffbc394db9b2f19ea5441c767590710ad",
+      "integrated_sha256": "80fccb2a95860a597e5a8e5fd18e7acffbc394db9b2f19ea5441c767590710ad",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_cone_slalom.py",
+      "source_sha256": "ab38f58646a01760ac0bc572f878b06232901b16265cc33906a27984f73a8873",
+      "integrated_sha256": "ab38f58646a01760ac0bc572f878b06232901b16265cc33906a27984f73a8873",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_cone_trial.py",
+      "source_sha256": "4ac04295173d15a06698bdde57889213f9ebc96413d48397069eb6e5df9448e1",
+      "integrated_sha256": "4ac04295173d15a06698bdde57889213f9ebc96413d48397069eb6e5df9448e1",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_cone_trial_output.py",
+      "source_sha256": "7f17cc30511407b20022f98ea0a2671e12a39c30fe663b9330d35e65e81f3a96",
+      "integrated_sha256": "7f17cc30511407b20022f98ea0a2671e12a39c30fe663b9330d35e65e81f3a96",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_edge_pd_live_integration.py",
+      "source_sha256": "f0fb541fbde0e3e10ce9b2f86f724ca5f98594440da32204238f9e4144bcd427",
+      "integrated_sha256": "f0fb541fbde0e3e10ce9b2f86f724ca5f98594440da32204238f9e4144bcd427",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_image_pd.py",
+      "source_sha256": "bc54ba7bf09cd2ec4116468b825d71d8984b012359f4faa5b8745dad4817314b",
+      "integrated_sha256": "bc54ba7bf09cd2ec4116468b825d71d8984b012359f4faa5b8745dad4817314b",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_parking_bay.py",
+      "source_sha256": "8066215f1cb9717543299e3f060ca106370a49b109c197d5f0203f04ab167534",
+      "integrated_sha256": "8066215f1cb9717543299e3f060ca106370a49b109c197d5f0203f04ab167534",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_parking_boundary_guard.py",
+      "source_sha256": "0012ca047210ceb101f36435dc2e228399cd19d6e71c009a427a13da0bfa629a",
+      "integrated_sha256": "0012ca047210ceb101f36435dc2e228399cd19d6e71c009a427a13da0bfa629a",
+      "decision": "import"
+    },
+    {
+      "path": "vision/tests/test_parking_boundary_search.py",
+      "source_sha256": "88c727c3fefdf421ae32949b6efd338d0a5a243b10744cc7355f83b802f6b293",
+      "integrated_sha256": "88c727c3fefdf421ae32949b6efd338d0a5a243b10744cc7355f83b802f6b293",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_parking_control_cadence.py",
+      "source_sha256": "bc09956e3aaa1b8e03cfe8b3b259e8c5858c63d174d98fe30d03bebb67c026ac",
+      "integrated_sha256": "bc09956e3aaa1b8e03cfe8b3b259e8c5858c63d174d98fe30d03bebb67c026ac",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_parking_direction_hint.py",
+      "source_sha256": "2b4986878761aad773914a0e5d80da5ef5baa73686537859d46f4e4f5a64ee38",
+      "integrated_sha256": "2b4986878761aad773914a0e5d80da5ef5baa73686537859d46f4e4f5a64ee38",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_parking_entry.py",
+      "source_sha256": "abe3f562c0824546d34b642494d62d306b314c9be2cf4a20d8b41cbc7ce2b3c0",
+      "integrated_sha256": "abe3f562c0824546d34b642494d62d306b314c9be2cf4a20d8b41cbc7ce2b3c0",
+      "decision": "import"
+    },
+    {
+      "path": "vision/tests/test_parking_entry_run.py",
+      "source_sha256": "cfd580ff7eeeae5c78d8f770bf9990e520d3e883031f5a98b85b34c2c63ddc20",
+      "integrated_sha256": "cfd580ff7eeeae5c78d8f770bf9990e520d3e883031f5a98b85b34c2c63ddc20",
+      "decision": "import"
+    },
+    {
+      "path": "vision/tests/test_parking_far_tracker.py",
+      "source_sha256": "a3f5e3672f65fb54487046c1e1be20a6ad6a822c50ba5550dff62f05f3a657c2",
+      "integrated_sha256": "548862890f867402c2deaad76f409758bed3e33c53171063eb890646838070a6",
+      "decision": "import_normalized_lf"
+    },
+    {
+      "path": "vision/tests/test_parking_guidance.py",
+      "source_sha256": "b1a95fd8d668df27362920585ef318c15ece4bb31bd426caa6a7076e6a245c8e",
+      "integrated_sha256": "b1a95fd8d668df27362920585ef318c15ece4bb31bd426caa6a7076e6a245c8e",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_parking_path.py",
+      "source_sha256": "ce76baf268673c4d151248e116d3a2e7037c0930261952a48b9f63dc187d5671",
+      "integrated_sha256": "ce76baf268673c4d151248e116d3a2e7037c0930261952a48b9f63dc187d5671",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_parking_payment.py",
+      "source_sha256": "7ffb89719f9103d9018d5032ea20c2352248bc9066f8a3cb380d045cae79a841",
+      "integrated_sha256": "1679f97980b86f77e4dd4c91b292ce46e897ff2a9242ea2fd7ebe0e80eeaa07d",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_parking_speech.py",
+      "source_sha256": "9fff2d7c6a6f5aff99a0bcdbdd9c0de32c0894e9941758e9536896557f108334",
+      "integrated_sha256": "9fff2d7c6a6f5aff99a0bcdbdd9c0de32c0894e9941758e9536896557f108334",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_parking_visual_fixes.py",
+      "source_sha256": "68726aef0785497b3b57403a62eb6a10d1275e2d0397e0142af6fe52deb9dcba",
+      "integrated_sha256": "68726aef0785497b3b57403a62eb6a10d1275e2d0397e0142af6fe52deb9dcba",
+      "decision": "import"
+    },
+    {
+      "path": "vision/tests/test_parking_washed_board.py",
+      "source_sha256": "ac28e5246158b0a24d7b5d97ff60bdce69c7b606585f3f54fcc517d75b5b2fd4",
+      "integrated_sha256": "ac28e5246158b0a24d7b5d97ff60bdce69c7b606585f3f54fcc517d75b5b2fd4",
+      "decision": "unchanged"
+    },
+    {
+      "path": "vision/tests/test_race_flow.py",
+      "source_sha256": "b3b5127d6e2210864903070fe663575a1037618a8d5dbcd3861209a89a1a58c1",
+      "integrated_sha256": "b3b5127d6e2210864903070fe663575a1037618a8d5dbcd3861209a89a1a58c1",
+      "decision": "unchanged"
+    }
+  ]
+}

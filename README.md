@@ -4,6 +4,14 @@
 
 **从 [项目内容概览](docs/overview.md) 开始。** 概览介绍各项功能、代码位置和完成程度；[当前进度](docs/current-status.md) 区分主线代码、历史部署与待验收项。完整自主赛道和停车入位尚未通过实车验收。
 
+## 新上传的停车修复包（待合并）
+
+`parking_closed_loop_v2` 已导入 [`sync/parking-fix-package-20261020`](https://github.com/zxjzzbh/2026-/tree/sync/parking-fix-package-20261020)：补充边界判断、有限暂停恢复、受控反打、寻位/总时限和独立图像停车参考。基于r4整合，原光流修复及绕桶PD保留。
+
+[下载整合分支源码](https://github.com/zxjzzbh/2026-/archive/refs/heads/sync/parking-fix-package-20261020.zip) · [来源、兼容处理与测试记录](docs/imports/2026-10-20-parking-fix/README.md)
+
+本地完整回归 **1769通过、3项平台跳过**，未按包内记录排除测试，并保留主线原有的斑马线丢线回归。本分支尚待PR合并；下方r4固定发布包不含这次停车修复。
+
 ## 最新整合的实车模块
 
 2026-10-20，队伍提供的避障与停车模块包通过 [PR #9](https://github.com/zxjzzbh/2026-/pull/9) 整合进主线。包括绕桶边缘PD、目标释放回中、停车中心/朝向PD及配套测试；r3的光流修复继续保留。

@@ -13,6 +13,7 @@ import numpy as np
 
 from .autonomy_profile import GroundProjection
 from .parking_guidance import visible_far_guides
+from .parking_visual import validate_visual_options
 
 
 def number(x):return type(x) in (int,float) and math.isfinite(x)
@@ -22,6 +23,7 @@ def validate(s):
     if not isinstance(s,dict) or s.get('schema_version')!=1 or s.get('camera')!='secondary' or s.get('image_size')!=[480,360]:
         raise ValueError('停车使用第二路 H65 的480×360原图')
     s=copy.deepcopy(s);s.setdefault('max_run_s',30.);s.setdefault('surface','auto')
+    s['visual_entry']=validate_visual_options(s.get('visual_entry'))
     for key,value in {'lookahead_m':.25,'final_speed_mps':.05,'slowdown_distance_m':.6,
                       'maximum_tracking_error_m':.06,'stopped_speed_mps':.01}.items():
         s.setdefault(key,value)

@@ -101,10 +101,21 @@ fresh frame IDs alone are not evidence that the vehicle is stationary.
 
 
 class BrakeParkingController:
-    def __init__(self,settings,path_mode='straight',*,first_detection_stop=False):
+    def __init__(self,settings,path_mode='straight',*,first_detection_stop=False,
+                 image_brake_y=None,image_creep_y=None):
         if path_mode not in ('straight','lane'):raise ValueError('invalid path mode')
         self.s,self.path_mode=settings,path_mode
         self.brake_reference=brake_trigger_reference(settings)
+        self.image_reference=image_brake_y is not None
+        if self.image_reference:
+            if not numeric(image_brake_y) or not .3<=image_brake_y<=.95:
+                raise ValueError('invalid image-only brake reference')
+            self.brake_reference={'distance_m':None,'far_edge_y_normalized':image_brake_y,
+                                  'measured':False,'source':'parking_image_reference'}
+        if image_creep_y is not None and (not numeric(image_creep_y)
+                or not .3<=image_creep_y<self.brake_reference['far_edge_y_normalized']):
+            raise ValueError('image creep reference must precede braking')
+        self.image_creep_y=image_creep_y
         self.phase='search'
         self.started=self.last_t=self.last_frame=self.last_capture=None
         self.seen_at=self.brake_started=self.pulse_until=self.release_until=None
@@ -173,7 +184,7 @@ class BrakeParkingController:
         self.last_frame,self.last_capture=frame_id,t
         y=sample.get('far_edge_y_normalized') if sample.get('candidate') is True else None
         if numeric(y):self.seen_at=now
-        self._estimate_distance(y,t)
+        if not self.image_reference:self._estimate_distance(y,t)
         brake_y=self.brake_reference['far_edge_y_normalized']
         # If coasting already reaches the calibrated stop reference, retain the
         # stop and perform the original hold rather than driving over the line.
@@ -183,13 +194,14 @@ class BrakeParkingController:
         if self.phase in ('search','approach','creep'):
             if now-self.started>self.s['max_approach_s']:return self.fault('接近时限已到')
             if self.seen_at is not None and now-self.seen_at>.25:return self.fault('已见斑马线持续丢失')
-            creep_y=self.s['references'][1]['far_edge_y_normalized']
+            creep_y=self.image_creep_y if self.image_creep_y is not None else self.s['references'][1]['far_edge_y_normalized']
             first_seen=(self.first_detection_stop and not self.first_detection_handled
                         and sample.get('candidate') is True)
             if first_seen:self.first_detection_handled=True
             if numeric(y) and y>=brake_y:
                 self.phase='brake_pulse'
-                self.reason=f"到达约 {self.brake_reference['distance_m']*100:g} cm 刹车触发参考，发出 F/B 制动请求"
+                self.reason=('实际远线到达停车图像停止参考，发出有限 F/B 制动请求' if self.image_reference else
+                    f"到达约 {self.brake_reference['distance_m']*100:g} cm 刹车触发参考，发出 F/B 制动请求")
                 self.brake_started=now;self.pulse_until=now+self.s['brake_pulse_s'];self.brake_count=1
                 return self.output('brake')
             if first_seen:

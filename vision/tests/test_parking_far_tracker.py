@@ -28,7 +28,9 @@ def test_actual_edge_pixels_keep_tracking_without_any_new_bay_boxes_and_trigger_
                     'parking':observed,'motion':{'valid':True,'moving':not braked}},round(i*.1,3))
         outputs.append(out)
         if out['phase']=='brake_pulse':braked=True
-    assert all(x['esc_us']==1575 for x in outputs[30:56])
+    assert all(x['esc_us'] in (1550,1575) for x in outputs[30:56])
+    slow=next(i for i in range(30,56) if outputs[i]['esc_us']==1550)
+    assert all(x['esc_us']<=1550 for x in outputs[slow:])
     assert outputs[55]['geometry_source']=='optical_flow_far_edge'
     assert outputs[55]['geometry']['near_edge_y_normalized'] is None
     assert any(x['esc_us']==1400 for x in outputs)

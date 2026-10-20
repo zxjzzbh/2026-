@@ -30,11 +30,11 @@ def test_live_session_cannot_disable_white_boundary_requirement():
 
 def test_first_missing_boundary_never_starts_driving():
     c = ParkingEntryController(settings(), require_white_boundary=True)
-    for i in range(31):
+    for i in range(45):
         out = c.step(frame(i, {}), i*.1)
         assert out['esc_us'] == 1500
     assert out['phase'] == 'fault'
-    assert '白线' in out['reason']
+    assert '边界' in out['reason']
 
 
 def test_detected_white_pixels_with_inadequate_span_are_not_accepted():
@@ -42,7 +42,7 @@ def test_detected_white_pixels_with_inadequate_span_are_not_accepted():
     boundary = road()
     for side in ('left_inner', 'right_inner'):
         boundary[side] = boundary[side][:3]
-    for i in range(31):
+    for i in range(45):
         out = c.step(frame(i, boundary), i*.1)
     assert out['phase'] == 'fault' and out['esc_us'] == 1500
     assert out['white_boundary']['reason'] == '白线有效点或纵向覆盖不足'
@@ -54,7 +54,7 @@ def test_loss_after_motion_brakes_immediately_and_latches_when_lines_return():
         out = c.step(frame(i, road()), i*.1)
     assert out['esc_us'] > 1500
     out = c.step(frame(31, {}), 3.1)
-    assert out['esc_us'] == 1400 and out['phase'] == 'safety_brake'
+    assert out['esc_us'] == 1400 and out['phase'] == 'boundary_wait'
     for i in range(32, 45):
         out = c.step(frame(i, road()), i*.1)
         assert out['esc_us'] <= 1500
@@ -71,7 +71,7 @@ def test_real_departure_replay_stops_before_continuing_with_unusable_boundaries(
             moved = True
             assert out['white_boundary']['observed'] is True
             assert not stopped
-        if moved and out['phase'] in ('safety_brake', 'fault'):
+        if moved and out['phase'] in ('boundary_wait','safety_brake', 'fault'):
             stopped = True
-            assert '白线' in out['reason']
+            assert '边界' in out['reason']
     assert moved and stopped and out['phase'] == 'fault'
