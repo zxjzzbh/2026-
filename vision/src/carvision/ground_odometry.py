@@ -60,10 +60,14 @@ class GroundVisualOdometry:
             if not good or error > 20:
                 continue
             try:
-                before.append(self.projection.point(p))
-                after.append(self.projection.point(q))
+                previous_ground = self.projection.point(p)
+                current_ground = self.projection.point(q)
             except ValueError:
-                pass
+                continue
+            # Keep correspondence atomic: either projection may reject a
+            # point outside the measured ground region or at the horizon.
+            before.append(previous_ground)
+            after.append(current_ground)
         if len(before) < 20:
             self.pose_valid = False
             return invalid
