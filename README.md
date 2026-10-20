@@ -12,12 +12,12 @@
 | --- | --- |
 | 浏览最新已合并源码 | [main 主分支](https://github.com/zxjzzbh/2026-/tree/main) |
 | 下载随主线更新的完整源码 | [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip) |
-| 获取本次固定版本（含停车 PR #6） | [2026-10-20 r2 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r2) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r2/smartcar-source-20261020-r2.zip) |
+| 获取本次固定版本（含光流修复） | [2026-10-20 r3 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r3) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r3/smartcar-source-20261020-r3.zip) |
 | 核对包含内容、版本和安装步骤 | [最新代码说明](docs/latest-code.md) |
 
-本次固定版本为 **`source-2026-10-20-r2`**，包含 PR #7 的结构整理、两张结构图，以及 [PR #6](https://github.com/zxjzzbh/2026-/pull/6) 的路径跟踪入库、实测 PWM 转换、白线丢失保护和独立控制续期。旧 `source-2026-10-20` 包保留用于追溯，不包含 PR #6。
+本次固定版本为 **`source-2026-10-20-r3`**，在 r2 完整主线基础上修复旧自主框架的光流点对异常：前后坐标都有效才一起加入拟合，任一坐标失败就整对丢弃；有效点不足时返回测量无效。包含 PR #7 的结构图和目录整理，以及 [PR #6](https://github.com/zxjzzbh/2026-/pull/6) 的停车路径改进。旧版标签和源码包保持固定。
 
-停车更新已通过合并前代码检查及本地 **1698 项测试（3 项平台跳过）**；详见 [检查记录](docs/reviews/2026-10-20-pr6-review.md)。路径模式默认仍有 **13 项实测/反馈缺项**，缺项时禁止启动，不自动退回视觉试验。源码已合并不表示已部署到小车或通过全程实车验收。
+本次新增 **14 项光流回归测试**；本地全量 **1712 项通过、3 项平台跳过**，原审查样例已不再抛异常。详见 [光流修复记录](docs/reviews/2026-10-20-ground-flow-fix.md)；停车检查历史见 [PR #6 记录](docs/reviews/2026-10-20-pr6-review.md)。路径模式默认仍有 **13 项实测/反馈缺项**，缺项时禁止启动，不自动退回视觉试验。源码已合并不表示已部署到小车或通过全程实车验收。
 
 首次获取：
 
