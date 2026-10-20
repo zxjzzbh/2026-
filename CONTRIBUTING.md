@@ -100,6 +100,8 @@ GitHub Desktop 可以 clone 仓库、新建分支、查看修改、commit、publ
 
 ## 8. 文件与目录约定
 
+先查 [目录与维护约定](docs/repository-structure.md)。实际应用源码/配置/测试集中在 `vision/`；当前结论更新 `docs/current-status.md`，操作入口登记到 `docs/guides/README.md`，逐次开发和部署日志放 `docs/history/`。修改链接或归档文件后，检查相对路径仍可打开。
+
 - 目录/代码文件尽量使用英文；说明文档用中文；文本 UTF-8、换行 LF。
 - 同一模块统一放在对应目录，不在根目录创建“张三最终版”“最终版2”等文件夹。
 - 个人实验用 `experiments/日期-昵称-主题/`，成熟后迁移回正式模块，避免长期重复维护两套源码。
