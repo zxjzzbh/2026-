@@ -1,6 +1,8 @@
+> 历史归档：原位置 `CAMERA_GIMBAL_VERIFICATION.md`，于 2026-10-20 整理。保留当时结论与数值，文中“当前／最新／待部署”仅指记录当时。现状请查 [当前进度](../../current-status.md)。文中的运行路径以仓库根目录为基准；未随仓库提供的本地证据不能在此直接打开。
+
 # 双摄像头与云台验证，2026-10-02
 
-> 2026-10-08 同步说明：当前为 Pi 5 + RasAdapter5A UART，无独立 STM32。此文保留不同日期记录，当前进度以 [状态页](docs/current-status.md) 为准；旧 GPIO 接线、连接占位符和历史 review 不是本次实车启动依据。
+> 2026-10-08 同步说明：当前为 Pi 5 + RasAdapter5A UART，无独立 STM32。此文保留不同日期记录，当前进度以 [状态页](../../current-status.md) 为准；旧 GPIO 接线、连接占位符和历史 review 不是本次实车启动依据。
 
 - 已更新部署 v0.2.1 到 `/home/pi/smartcar-race-20261002`，82 个源码/配置/驱动源文件与本地 SHA256 清单一致。
 - 更新前备份：`/home/pi/smartcar-race-backups/before-camera-gimbal-20261002T031953Z.tar.gz`。
@@ -14,4 +16,4 @@
 - 舵机型号、供电电压、3.3 V 信号兼容性与三点脉宽未确认，真实运动入口仍关闭。未测试实际动作、负载电源和脉冲抖动。
 - 5G 模块未接入，本轮通过网线验证。
 
-接线见 [CAMERAS_GIMBAL.md](vision/CAMERAS_GIMBAL.md)，原始记录见 [verification-cameras-gimbal-20261002](verification-cameras-gimbal-20261002/)。
+接线见 [CAMERAS_GIMBAL.md](../../../vision/CAMERAS_GIMBAL.md)，原始记录路径为 `verification-cameras-gimbal-20261002/`（未随仓库提供）。

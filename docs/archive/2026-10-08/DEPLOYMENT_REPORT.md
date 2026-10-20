@@ -1,6 +1,8 @@
+> 历史归档：原位置 `DEPLOYMENT_REPORT.md`，于 2026-10-20 整理。保留当时结论与数值，文中“当前／最新／待部署”仅指记录当时。现状请查 [当前进度](../../current-status.md)。文中的运行路径以仓库根目录为基准；未随仓库提供的本地证据不能在此直接打开。
+
 # 部署验证记录，2026-10-02
 
-> 2026-10-08 同步说明：当前为 Pi 5 + RasAdapter5A UART，无独立 STM32。此文保留不同日期记录，当前进度以 [状态页](docs/current-status.md) 为准；旧 GPIO 接线、连接占位符和历史 review 不是本次实车启动依据。
+> 2026-10-08 同步说明：当前为 Pi 5 + RasAdapter5A UART，无独立 STM32。此文保留不同日期记录，当前进度以 [状态页](../../current-status.md) 为准；旧 GPIO 接线、连接占位符和历史 review 不是本次实车启动依据。
 
 - 本地源码：`<LOCAL_CHECKOUT>`。
 - 远端：`pi@PI_LAN_ADDRESS:/home/pi/smartcar-race-20261002`。
@@ -14,4 +16,4 @@
 - 收尾只读引脚检查：BCM12 和 BCM13 均为 input/pulldown/low；PWM 控制器尚未启用；未运行实际运动入口。
 - 电调型号、停止/前进脉宽、舵机限位和速度环待标定；学校/队名、真实比赛感知标定、速度反馈适配和已认证 5G 通路待完善。
 
-接线与运行见 [RACE_2026.md](vision/RACE_2026.md)。原始验证记录在 [verification-20261002](verification-20261002/)。
+接线与运行见 [RACE_2026.md](../../../vision/RACE_2026.md)。原始验证记录路径为 `verification-20261002/`（未随仓库提供）。

@@ -1,95 +1,134 @@
-# 2026 室外 5G 远程驾驶无人车赛
+# 2026 室外 5G 远程驾驶无人车
 
-2026-10-13：[完整比赛流程整合](vision/RACE_FLOW.md)。手动切换后按挡板、斑马线、红绿灯、两桶、停车、缴费衔接，保留原单项测试。最新分项与完整流程代码已整理到主线，停车入位仍属待实车验收的试验功能。检查入口 `check-race-flow.cmd`，显式部署入口 `update-race-flow.cmd`。
+基于 **Raspberry Pi 5 + RasAdapter5A 串口扩展板 + 双 USB 摄像头**的比赛项目，包含 5G 网页遥控、视觉感知、分项测试与完整比赛流程。当前不使用独立 STM32，不依赖 ROS。
 
-2026-10-12：[今日改动与完整 AI 交接包](docs/handoff/2026-10-12/README.md)。包含交错绕桶、室内白线部署记录，以及 **1610 μs 中位、左右 ±180 μs 的待部署手动转向补丁**。压缩包内多份源码的来源与部署状态分别说明，不能整包覆盖车端。
+**从 [项目内容概览](docs/overview.md) 开始。** 概览介绍各项功能、代码位置和完成程度；[当前进度](docs/current-status.md) 区分主线代码、历史部署与待验收项。完整自主赛道和停车入位尚未通过实车验收。
 
-本次开发更新（2026-10-09 至 10-10）：
+## 最新代码从这里获取
 
-- [斑马线主动制动测试](vision/BRAKE_PARKING.md)：F/B 模式有限刹车脉冲，网页准备／开始／停止、25–65 cm 触发距离设置、停稳等待 10 秒及队伍语音播报。默认触发距离 55 cm；实际停车精度与低速控制仍需实车验收。
-- [一键连接小车](vision/CONSOLE_ACCESS.md)：双击项目根目录 `connect-car.cmd`（当前电脑桌面也有“一键连接小车”），检查／恢复本机Tailscale与8082入口、成功后打开网页；不启用车辆控制。
-- [红绿灯采集与标注](vision/TRAFFIC_LIGHT_CAPTURE.md)：读取真实双摄画面，支持人工灯色／框标注、完整批次分页、筛选和历史批次恢复。运行入口 `vision/run-traffic-capture.ps1`，本机页面端口 8091。
-- [红绿灯识别与场地测试](vision/TRAFFIC_SIGNAL.md)：8082两路使用同一灯色算法，各自统计2秒红／绿比例，任一路达标即确认，红灯优先；网页提供红绿共用百分比。准备后无需见灯即可限时搜索；停稳后绿灯确认只播报、不实际前行。第二路提供地面运动估计，154张历史开发回放不代表室外或停车区实测验收。
+**日常开发统一使用 `main` 主分支。** 这里的“最新代码”指最新已合并代码；尚未合并的任务分支单独保留。
 
-电脑最终版本与车端部署差异见 [当前进度](docs/current-status.md)。采集原图、人工标注数据集、运行日志和连接凭据保留在本地，不包含在本次源码提交中；测试所需的三张小图片夹具随代码提交。
+| 用途 | 明确入口 |
+| --- | --- |
+| 浏览最新已合并源码 | [main 主分支](https://github.com/zxjzzbh/2026-/tree/main) |
+| 下载随主线更新的完整源码 | [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip) |
+| 获取本次固定版本 | [2026-10-20 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20/smartcar-source-20261020.zip) |
+| 核对包含内容、版本和安装步骤 | [最新代码说明](docs/latest-code.md) |
 
-**当前硬件：Raspberry Pi 5 + RasAdapter5A 串口扩展板，不使用独立 STM32、不依赖 ROS。**
+本次固定版本标签为 **`source-2026-10-20`**，包含 PR #7 合并后的完整主线、两张结构图和整理后的文档。10 月 20 日仍未合并的 [停车路径 PR #6](https://github.com/zxjzzbh/2026-/pull/6) 不包含在此快照中。源码已合并不表示已部署到小车或通过全程实车验收。
 
-主线已合入10月9日的开机等待页、持续5G遥控与启动依赖，以及后续比赛流程。新电脑入口、部署记录与剩余验证见 [当前进度](docs/current-status.md)，分支用途和历史保留点见 [分支说明](docs/branches.md)。
+首次获取：
 
-当前源码已经包含双摄感知、网页遥控、UART 执行、比赛状态机和自主运行框架。有限低速/5G 测试有历史记录；**完整自主赛道尚未实车验收，真实自主输出仍被未完成标定项阻止。**
+```sh
+git clone --branch main https://github.com/zxjzzbh/2026-.git
+cd 2026-
+git log -1 --oneline
+```
 
-- [当前进度与待办](docs/current-status.md)：唯一当前状态入口。
-- [源码审查与改进建议](docs/reviews/2026-10-08-source-review.md)：功能、技术栈、复现的问题、改进优先级。
-- [系统架构](docs/architecture.md)、[硬件基线](hardware/README.md)、[接口](interfaces/README.md)。
-- [团队分工](docs/team.md)和[贡献流程](CONTRIBUTING.md)：保持独立分支 → PR → 合并。
+已有工作目录先检查 `git status`，在保存本地修改后执行 `git switch main`、`git pull --ff-only origin main`。不需要复制一份“最新代码”子目录；源码包由同一 Git 版本生成。
 
-## 实际架构
+## 按需求查找
+
+| 我要做什么 | 入口 |
+| --- | --- |
+| 获取明确的最新主线或固定源码包 | [最新代码说明](docs/latest-code.md) |
+| 了解项目有哪些内容 | [内容概览](docs/overview.md) |
+| 找代码、配置、工具或资料 | [目录与维护约定](docs/repository-structure.md) |
+| 连接小车、测试一个比赛任务 | [操作指南导航](docs/guides/README.md) |
+| 查看已完成内容和下一步 | [当前进度](docs/current-status.md) |
+| 在新电脑安装并做离线检查 | [安装与复现](docs/reproduce.md) |
+| 理解数据流、硬件和接口 | [系统架构](docs/architecture.md) · [硬件](hardware/README.md) · [接口](interfaces/README.md) |
+| 参与开发和提交代码 | [贡献指南](CONTRIBUTING.md) · [团队分工](docs/team.md) |
+| 追溯旧版本与部署记录 | [历史记录](docs/history/README.md) · [源码包归档](docs/archive/README.md) · [分支说明](docs/branches.md) |
+
+## 仓库结构
+
+实际运行代码集中在 **`vision/src/carvision/`**，其中包含视觉、遥控、比赛流程和硬件控制。`vehicle/`、`communication/` 等目录主要提供职责说明。下图按用途归组，完整目录职责见 [目录说明](docs/repository-structure.md)。
 
 ```mermaid
 flowchart LR
-    Remote[浏览器键盘 / 手柄] <-->|5G网络 + Tailscale| Web[Pi 5 HTTP控制 / MJPEG视频]
-    Cam[两路 USB 摄像头] --> Capture[采集与最新帧缓存]
-    Capture --> Web
-    Capture --> Perception[OpenCV / 可选比赛YOLO]
-    Perception --> Decision[比赛状态机与运动规划]
-    Feedback[待验收的速度 / 位姿反馈] --> Decision
-    Web --> Manual[手动有限测试执行]
-    Manual --> UART[独占 UART 所有权]
-    Decision --> Auto[自主执行门控 / 看门狗]
-    Auto --> UART
-    UART --> Board[RasAdapter5A]
-    Board --> Output[S1/S2 云台 S3 转向 S4 ESC]
+    R["2026- 项目仓库"]
+
+    R --> V["vision/<br/>主要运行工程"]
+    V --> S["src/carvision/<br/>Python 核心代码"]
+    V --> C["configs/<br/>算法参数、任务配置、标定"]
+    V --> T["tests/<br/>软件测试、模拟设备、图片夹具"]
+    V --> U["tools/ 与 deployment/<br/>采集、调试、部署、开机服务"]
+
+    R --> D["docs/<br/>项目资料"]
+    D --> D1["overview / current-status<br/>内容概览与当前进度"]
+    D --> D2["guides/<br/>操作指南导航"]
+    D --> D3["history/ 与 archive/<br/>开发日志与旧版本资料"]
+
+    R --> P["pc-launcher/ 与根目录 .cmd<br/>电脑连接、检查、更新入口"]
+    R --> I["hardware/ 与 interfaces/<br/>硬件说明与接口协议"]
+    R --> N["vehicle/ 与 communication/<br/>职责说明，指向实际代码"]
+    R --> A["data/、models/、run/<br/>数据索引、模型索引、运行证据"]
+    R --> H["drivers/ 与 firmware/<br/>早期驱动和历史方案"]
 ```
 
-手动与自主不允许同时占有串口，实际交接仍需整车验收。上图的反馈输入不表示编码器已接通；板内 PWM 回读不等于轮速或实际舵角。
+根目录的 `.cmd` 是兼容现有操作习惯的快捷入口；`SOURCE-MANIFEST.json` 与 `source-snapshot.json` 是历史来源清单。各目录的准确职责见 [目录说明](docs/repository-structure.md)。
 
-## 技术栈
+## 小车运行时如何配合
 
-Python ≥3.10；OpenCV 4.11.0.86；NumPy 2.2.6；PyYAML 6.0.2；原生 HTML/CSS/JavaScript；Python HTTP/1.1 + MJPEG；Linux UART/V4L2/I2C/systemd；pytest 与 Node.js 浏览器逻辑检查。Ultralytics、ONNX/ONNX Runtime 是可选训练/推理依赖，比赛权重仍待验收。项目不依赖 ROS。
+图中树莓派内的软件主要位于 `carvision` 包，包含独立分项测试和完整比赛两种任务组织方式。
 
-## 代码放在哪里
+```mermaid
+flowchart TD
+    PC["电脑浏览器<br/>键盘 / 手柄"]
+    CAM["两路 USB 摄像头"]
 
-| 目录 | 当前用途 |
-|---|---|
-| `vision/src/carvision/` | 现阶段实际运行包；同时含视觉、遥控、状态机和树莓派驱动，尚未按顶层规划拆包 |
-| `vision/configs/` | 感知、比赛、Pi5 标定配置；实测值保留，未完成项仍为 false/null |
-| `vision/tests/` | 离线、模拟驱动和小图片夹具测试 |
-| `vision/tools/` | 预览、台架、检查、打包和显式部署工具 |
-| `drivers/pigpio/` | 早期 Pi4 路径所需第三方 C 源码、来源和许可证；不是当前 UART 后端 |
-| `vehicle/`、`communication/`、`hardware/` | 职责索引和当前接入说明，避免误以为另有一套可运行主程序 |
-| `firmware/stm32/` | 不采用的早期规划记录，不是当前待开发任务 |
-| `interfaces/` | 感知、比赛观测及当前 UART 说明 |
-| `run/` | 原包自带少量核验/标定 JSON；不提供当前开机授权；其他新运行日志默认忽略 |
-| `docs/` | 当前进度、审查、规则及团队文档 |
+    subgraph PI["树莓派 5：carvision 应用"]
+        CAP["图像采集与最新帧缓存<br/>cameras / sources"]
+        WEB["网页控制与视频预览<br/>web_preview"]
+        VIS["视觉感知<br/>白线、挡板、红绿灯、锥桶、车位、二维码"]
+        MAN["手动遥控<br/>manual_controls / manual_drive"]
+        TASK["比赛分项控制<br/>departure / brake / traffic / cone / parking"]
+        FLOW["完整比赛流程<br/>race_flow"]
+        OWN["控制权互斥与超时保护"]
+        OUT["串口与输出适配<br/>rasadapter5 / pi5_pwm"]
+
+        CAP --> WEB
+        CAP --> VIS
+        WEB --> MAN
+        VIS --> TASK
+        TASK --> FLOW
+        TASK -->|"独立分项测试"| OWN
+        FLOW --> OWN
+        MAN --> OWN
+        OWN --> OUT
+    end
+
+    CAM --> CAP
+    PC <-->|"5G + Tailscale：控制 / 视频"| WEB
+    OUT -->|"UART 串口"| BOARD["RasAdapter5A 扩展板"]
+    BOARD --> G["S1 / S2：云台"]
+    BOARD --> ST["S3：转向舵机"]
+    BOARD --> ESC["S4：电调 → 电机"]
+```
+
+`race.py` 和 `autonomy_*` 另外提供米制观测、运动规划与离线回放框架；真实反馈、运动标定和实车验收情况见 [当前进度](docs/current-status.md)。
+
+## 比赛任务
+
+5G 远程驾驶 → 换区停稳并手动切换 → 蓝挡板移开 → 自主循迹 → 斑马线停车播报 → 红绿灯 → 两桶避障 → 空闲半区停车 → 队员扫码缴费。
+
+单项测试与完整流程的行为有区别，例如红绿灯单测在绿灯确认后只播报，完整流程才继续下一阶段。详见 [任务指南](docs/guides/README.md) 和 [规则记录](docs/rules/README.md)。
 
 ## 电脑离线检查
 
-建议独立 Python 3.12 环境，浏览器模拟测试另需 Node.js。以下命令不启动实车：
+推荐 Python 3.12；浏览器逻辑测试需要 Node.js，CI 使用 Node.js 22。从仓库根目录执行：
 
 ```sh
 python -m venv .venv
-# Windows 激活：.venv/Scripts/Activate.ps1
-# Linux 激活：source .venv/bin/activate
+# Windows PowerShell:
+.venv/Scripts/Activate.ps1
+# Linux 使用：source .venv/bin/activate
 python -m pip install -e "vision[test]"
 python -m pytest vision/tests -q -ra
 python -m carvision autonomy-check --profile vision/configs/autonomy-pi5.json
-python -m carvision autonomy-demo --profile vision/configs/autonomy-pi5.json --race-config vision/configs/race-2026.json --output run/new-demo
-python tools/audit_snapshot_20261008.py
 ```
 
-输出目录必须是新目录。原配置的正常检查结果是 **18 个准备缺项**；demo 的 complete 只代表决策回放完成，不能当作车已经跑完。最近测试结果见[当前进度](docs/current-status.md)。CI 在 Linux/Windows 上运行软件检查，不操作硬件。
+这些是软件检查。当前自主配置仍有未完成标定项；离线检查或模拟完成不等于实车完赛。更多回放命令见 [复现说明](docs/reproduce.md)。
 
-实车相关入口见 [MANUAL_BENCH](vision/MANUAL_BENCH.md)、[红绿灯场地测试](vision/TRAFFIC_SIGNAL.md) 与 [AUTONOMY_PI5](vision/AUTONOMY_PI5.md)，先阅读当前状态；文档保留历史段落。不要沿用旧GPIO接线或旧开机记录。斑马线和红绿灯场地测试已部署，红绿灯最后反光过滤微调已于10月10日同步；完整自主赛道仍未验收。
-
-## 比赛目标
-
-5G 远程驾驶 → 换区停稳 → 蓝挡板移开 → 自主循迹 → 斑马线停车播报 → 红绿灯 → 红/蓝锥桶 → 未遮挡车位 → 队员扫码。
-
-依据队伍提供的 2026 年 8 月规则初稿；3/10 秒、设备资格等疑点见 [规则记录](docs/rules/README.md)。当前硬件方案与参赛资格是两回事，仍需队伍确认。
-
-## 源码来源与历史
-
-本次来源为 2026-10-08 源码包；原包 [SOURCE-MANIFEST](SOURCE-MANIFEST.json) 已核验。原 README 保留为 [SOURCE_HISTORY](SOURCE_HISTORY_20261008.md)，其他较早报告只作为历史。原始 manifest 针对原包，README 改名、文档脱敏及部署主机参数化差异由 [发布映射](docs/reviews/publication-manifest-20261008.json) 记录。
-
-仓库公开可见，不包含密码、令牌、SSH 私钥、Python 环境、大录像或模型权重；历史连接地址已经替换为占位符，不能直接用于联网。个人部署地址需自行显式填写，主机密钥仍须已可信。团队尚未选择整体开源许可证，第三方代码保留各自许可证。
+公开仓库保留源码、可公开配置和小型测试夹具；个人凭据、大录像、模型权重与大部分运行日志通过本地配置或索引管理。团队尚未选择整体开源许可证，第三方源码保留各自许可证。
