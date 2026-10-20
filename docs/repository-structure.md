@@ -29,6 +29,7 @@
 
 ```text
 docs/
+├── latest-code.md          最新主线入口、固定源码包与校验
 ├── overview.md             项目内容、功能与代码地图
 ├── current-status.md       当前结论、证据入口、下一步
 ├── repository-structure.md 目录与维护约定

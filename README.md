@@ -4,10 +4,34 @@
 
 **从 [项目内容概览](docs/overview.md) 开始。** 概览介绍各项功能、代码位置和完成程度；[当前进度](docs/current-status.md) 区分主线代码、历史部署与待验收项。完整自主赛道和停车入位尚未通过实车验收。
 
+## 最新代码从这里获取
+
+**日常开发统一使用 `main` 主分支。** 这里的“最新代码”指最新已合并代码；尚未合并的任务分支单独保留。
+
+| 用途 | 明确入口 |
+| --- | --- |
+| 浏览最新已合并源码 | [main 主分支](https://github.com/zxjzzbh/2026-/tree/main) |
+| 下载随主线更新的完整源码 | [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip) |
+| 获取本次固定版本 | [2026-10-20 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20/smartcar-source-20261020.zip) |
+| 核对包含内容、版本和安装步骤 | [最新代码说明](docs/latest-code.md) |
+
+本次固定版本标签为 **`source-2026-10-20`**，包含 PR #7 合并后的完整主线、两张结构图和整理后的文档。10 月 20 日仍未合并的 [停车路径 PR #6](https://github.com/zxjzzbh/2026-/pull/6) 不包含在此快照中。源码已合并不表示已部署到小车或通过全程实车验收。
+
+首次获取：
+
+```sh
+git clone --branch main https://github.com/zxjzzbh/2026-.git
+cd 2026-
+git log -1 --oneline
+```
+
+已有工作目录先检查 `git status`，在保存本地修改后执行 `git switch main`、`git pull --ff-only origin main`。不需要复制一份“最新代码”子目录；源码包由同一 Git 版本生成。
+
 ## 按需求查找
 
 | 我要做什么 | 入口 |
 | --- | --- |
+| 获取明确的最新主线或固定源码包 | [最新代码说明](docs/latest-code.md) |
 | 了解项目有哪些内容 | [内容概览](docs/overview.md) |
 | 找代码、配置、工具或资料 | [目录与维护约定](docs/repository-structure.md) |
 | 连接小车、测试一个比赛任务 | [操作指南导航](docs/guides/README.md) |
@@ -19,27 +43,71 @@
 
 ## 仓库结构
 
-```text
-2026-/
-├── vision/                 实际运行工程：感知、控制、比赛任务与网页
-│   ├── src/carvision/      Python 运行包
-│   ├── configs/            运行配置与标定
-│   ├── tests/              离线回归、浏览器逻辑与图片夹具
-│   ├── tools/              采集、检查、部署与台架工具
-│   └── deployment/         systemd 与开机检查模板
-├── pc-launcher/            Windows 连接启动器（18080）
-├── docs/                   概览、当前进度、指南导航、历史与归档
-├── hardware/ interfaces/   硬件说明与跨模块协议
-├── vehicle/ communication/ 职责导航；实现位置见各目录 README
-├── configs/ tests/         共享配置／集成测试的职责索引
-├── data/ models/           数据与模型来源索引
-├── tools/                  仓库级审查、历史核验、模拟工具
-├── experiments/            独立实验约定
-├── drivers/ firmware/      早期驱动／方案说明，见目录约定
-└── run/                    少量历史标定证据；新日志默认留在本地
+实际运行代码集中在 **`vision/src/carvision/`**，其中包含视觉、遥控、比赛流程和硬件控制。`vehicle/`、`communication/` 等目录主要提供职责说明。下图按用途归组，完整目录职责见 [目录说明](docs/repository-structure.md)。
+
+```mermaid
+flowchart LR
+    R["2026- 项目仓库"]
+
+    R --> V["vision/<br/>主要运行工程"]
+    V --> S["src/carvision/<br/>Python 核心代码"]
+    V --> C["configs/<br/>算法参数、任务配置、标定"]
+    V --> T["tests/<br/>软件测试、模拟设备、图片夹具"]
+    V --> U["tools/ 与 deployment/<br/>采集、调试、部署、开机服务"]
+
+    R --> D["docs/<br/>项目资料"]
+    D --> D1["overview / current-status<br/>内容概览与当前进度"]
+    D --> D2["guides/<br/>操作指南导航"]
+    D --> D3["history/ 与 archive/<br/>开发日志与旧版本资料"]
+
+    R --> P["pc-launcher/ 与根目录 .cmd<br/>电脑连接、检查、更新入口"]
+    R --> I["hardware/ 与 interfaces/<br/>硬件说明与接口协议"]
+    R --> N["vehicle/ 与 communication/<br/>职责说明，指向实际代码"]
+    R --> A["data/、models/、run/<br/>数据索引、模型索引、运行证据"]
+    R --> H["drivers/ 与 firmware/<br/>早期驱动和历史方案"]
 ```
 
 根目录的 `.cmd` 是兼容现有操作习惯的快捷入口；`SOURCE-MANIFEST.json` 与 `source-snapshot.json` 是历史来源清单。各目录的准确职责见 [目录说明](docs/repository-structure.md)。
+
+## 小车运行时如何配合
+
+图中树莓派内的软件主要位于 `carvision` 包，包含独立分项测试和完整比赛两种任务组织方式。
+
+```mermaid
+flowchart TD
+    PC["电脑浏览器<br/>键盘 / 手柄"]
+    CAM["两路 USB 摄像头"]
+
+    subgraph PI["树莓派 5：carvision 应用"]
+        CAP["图像采集与最新帧缓存<br/>cameras / sources"]
+        WEB["网页控制与视频预览<br/>web_preview"]
+        VIS["视觉感知<br/>白线、挡板、红绿灯、锥桶、车位、二维码"]
+        MAN["手动遥控<br/>manual_controls / manual_drive"]
+        TASK["比赛分项控制<br/>departure / brake / traffic / cone / parking"]
+        FLOW["完整比赛流程<br/>race_flow"]
+        OWN["控制权互斥与超时保护"]
+        OUT["串口与输出适配<br/>rasadapter5 / pi5_pwm"]
+
+        CAP --> WEB
+        CAP --> VIS
+        WEB --> MAN
+        VIS --> TASK
+        TASK --> FLOW
+        TASK -->|"独立分项测试"| OWN
+        FLOW --> OWN
+        MAN --> OWN
+        OWN --> OUT
+    end
+
+    CAM --> CAP
+    PC <-->|"5G + Tailscale：控制 / 视频"| WEB
+    OUT -->|"UART 串口"| BOARD["RasAdapter5A 扩展板"]
+    BOARD --> G["S1 / S2：云台"]
+    BOARD --> ST["S3：转向舵机"]
+    BOARD --> ESC["S4：电调 → 电机"]
+```
+
+`race.py` 和 `autonomy_*` 另外提供米制观测、运动规划与离线回放框架；真实反馈、运动标定和实车验收情况见 [当前进度](docs/current-status.md)。
 
 ## 比赛任务
 
