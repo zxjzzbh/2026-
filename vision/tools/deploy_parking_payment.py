@@ -26,7 +26,7 @@ from carvision.departure_controls import extend_controls as departure
 from carvision.parking_bay_controls import extend_controls as parking_bay
 
 FILES=['vision/src/carvision/'+n+'.py' for n in ('parking_payment','payment_console','payment_controls','departure','departure_trial','departure_controls',
-    'parking_bay','parking_mission','parking_bay_console','parking_bay_controls','parking_entry','parking_entry_run','parking_log','parking_guidance','parking_path','parking_control','parking_feedback','parking_far_tracker')]+[
+    'parking_bay','parking_mission','parking_bay_console','parking_bay_controls','parking_entry','parking_entry_run','parking_log','parking_guidance','parking_path','parking_control','parking_feedback','parking_far_tracker','parking_visual')]+[
     'vision/tools/serve_parking_payment.py','vision/tests/test_parking_payment.py','vision/tests/test_departure.py',
     'vision/configs/parking-bay.json','vision/tests/test_parking_bay.py','vision/tests/test_parking_path.py','vision/tests/test_parking_entry_run.py','vision/tools/parking_bay.py']
 PROTECTED=list(dict.fromkeys(BASE_PROTECTED+[
@@ -118,9 +118,10 @@ def main():
         require_idle()
         for rel,marker in [('vision/src/carvision/cone_trial_output.py',b'parking_forward_us'),
                            ('vision/src/carvision/cone_road.py',b'thorough_boundary_search'),
-                           ('vision/src/carvision/cone_boundaries.py',b'complete_small_sets')]:
+                           ('vision/src/carvision/cone_boundaries.py',b'complete_small_sets'),
+                           ('vision/src/carvision/brake_parking.py',b'image_brake_y')]:
             if marker not in read(sftp,REMOTE+'/'+rel):
-                raise RuntimeError('路径停车需要同步输出与白线识别依赖；请使用 update-race-flow.cmd 完整更新，未写入文件')
+                raise RuntimeError('停车需要同步输出、白线识别与图像制动参考依赖；请使用 update-race-flow.cmd 完整更新，未写入文件')
         protected={}
         for rel in PROTECTED:
             try:protected[rel]=read(sftp,REMOTE+'/'+rel)

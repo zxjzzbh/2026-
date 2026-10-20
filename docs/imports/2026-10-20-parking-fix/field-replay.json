@@ -1,0 +1,40 @@
+[
+  {
+    "folder": "parking-entry-1792500456517036884",
+    "original_reason": "有效白线边界不足，停止入位：双侧白线未连续确认",
+    "new_frames": 31,
+    "phases": {
+      "arming": 30,
+      "boundary_wait": 1
+    },
+    "final_phase": "boundary_wait",
+    "final_reason": "停车边界暂不明确，暂停等待新鲜边界和停稳反馈",
+    "physical_vehicle_not_driven": true
+  },
+  {
+    "folder": "parking-entry-1792500469762678159",
+    "original_reason": "有效白线边界不足，停止入位：双侧白线未连续确认",
+    "new_frames": 32,
+    "phases": {
+      "arming": 31,
+      "boundary_wait": 1
+    },
+    "final_phase": "boundary_wait",
+    "final_reason": "停车边界暂不明确，暂停等待新鲜边界和停稳反馈",
+    "physical_vehicle_not_driven": true
+  },
+  {
+    "folder": "parking-entry-1792500504455555028",
+    "original_reason": "有效白线边界不足，停止入位：双侧白线未连续确认",
+    "new_frames": 46,
+    "phases": {
+      "arming": 31,
+      "seek": 7,
+      "approach": 5,
+      "boundary_wait": 3
+    },
+    "final_phase": "boundary_wait",
+    "final_reason": "停车边界暂不明确，暂停等待新鲜边界和停稳反馈",
+    "physical_vehicle_not_driven": true
+  }
+]

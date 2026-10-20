@@ -1,0 +1,151 @@
+{
+  "deployed": true,
+  "motion_commands_sent": false,
+  "physical_driving_retested": false,
+  "remote_backup": "/home/pi/smartcar-race-20261002/run/edge-pd-deploy-20261020-1792507142764456500/before",
+  "source_files": [
+    "vision/src/carvision/parking_entry.py",
+    "vision/src/carvision/parking_visual.py",
+    "vision/src/carvision/parking_entry_run.py",
+    "vision/src/carvision/parking_bay.py",
+    "vision/src/carvision/parking_bay_console.py",
+    "vision/src/carvision/parking_bay_controls.py",
+    "vision/src/carvision/brake_parking.py"
+  ],
+  "stage_test_summary": "754 passed, 7 skipped, 1 deselected in 15.09s",
+  "known_preexisting_tests": "The previously documented guardian fixture mismatch remains outside this parking change; no hardware guardian code was modified.",
+  "before_status": {
+    "mode": "disabled",
+    "reason": "请先确认电调关闭，再准备测试",
+    "hardware_output": false,
+    "worker_started": false,
+    "pending_hardware_start": false,
+    "boot_test_phase": "esc_off"
+  },
+  "installed_tests": "........................................................................ [  9%]\n...s..........................................................ss........ [ 18%]\n......................s................................................. [ 28%]\n........................................................................ [ 37%]\n........................................................................ [ 47%]\n.......................................................s................ [ 56%]\n..s..................................................................... [ 66%]\n....s................................................................... [ 75%]\n........................................................................ [ 85%]\n........................................................................ [ 94%]\n.........................................                                [100%]\n=========================== short test summary info ============================\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_low_speed.py:143: Node required to check real panel initialization\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_low_speed.py:697: Node is required for actual page render logic\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_low_speed.py:729: Node required for actual prepare callback\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_slalom.py:267: Node.js required for actual console render replay\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_parking_path.py:229: Node.js is required for the browser contract check\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_race_flow.py:302: PC deployment helper is not installed on the car\nSKIPPED [1] smartcar-race-20261002/vision/tests/test_manual_heartbeat.py:14: Node.js is required for delayed browser-response checks\n754 passed, 7 skipped, 1 deselected in 11.66s\n",
+  "manifest_rechecked": "software manifest verified",
+  "protected_source_and_configs_unchanged": true,
+  "changed_files": [
+    "vision/src/carvision/parking_entry.py",
+    "vision/src/carvision/parking_visual.py",
+    "vision/src/carvision/parking_entry_run.py",
+    "vision/src/carvision/parking_bay.py",
+    "vision/src/carvision/parking_bay_console.py",
+    "vision/src/carvision/parking_bay_controls.py",
+    "vision/src/carvision/brake_parking.py",
+    "vision/tests/test_parking_entry.py",
+    "vision/tests/test_parking_entry_run.py",
+    "vision/tests/test_parking_boundary_guard.py",
+    "vision/tests/test_parking_far_tracker.py",
+    "vision/tests/test_parking_visual_fixes.py",
+    "vision/tests/fixtures/parking-boundary-failures-20261020.json"
+  ],
+  "after_status": {
+    "mode": "disabled",
+    "reason": "请先确认电调关闭，再准备测试",
+    "hardware_output": false,
+    "worker_started": false,
+    "pending_hardware_start": false,
+    "boot_test_phase": "esc_off"
+  },
+  "startup_unchanged": true,
+  "installed_sha256": {
+    "vision/src/carvision/parking_entry.py": "e6787f557d0d89257c5503d959b3426bab9d67a6866d2ec5d52e9dcae142a27c",
+    "vision/src/carvision/parking_visual.py": "3ceb5d8e499d8f431219634a5f99f32f49aebf92996e9bb9b892d9b7c4fdd689",
+    "vision/src/carvision/parking_entry_run.py": "742636742f164d31686eea8f7d2d4747b3397a0cfddfb079e32f2ef911a99c6e",
+    "vision/src/carvision/parking_bay.py": "f3c9b1bcd08b40eafdaccf9630c04a958267225869bc5a58a4b75beb5d7d6c76",
+    "vision/src/carvision/parking_bay_console.py": "c2af256e612aa91c08870cead121c2a69c5d685ff32efb521cd2b3503f650611",
+    "vision/src/carvision/parking_bay_controls.py": "6b1a014c58599a8662b63bb66a9e6f51856cb9b9b22a3e96a2c5357508c50d72",
+    "vision/src/carvision/brake_parking.py": "880a876f8d400e3fa98e8921b7cb079783b8ce5e8561dde4c0d49d2c2f9613bb",
+    "vision/tests/test_parking_entry.py": "abe3f562c0824546d34b642494d62d306b314c9be2cf4a20d8b41cbc7ce2b3c0",
+    "vision/tests/test_parking_entry_run.py": "cfd580ff7eeeae5c78d8f770bf9990e520d3e883031f5a98b85b34c2c63ddc20",
+    "vision/tests/test_parking_boundary_guard.py": "0012ca047210ceb101f36435dc2e228399cd19d6e71c009a427a13da0bfa629a",
+    "vision/tests/test_parking_far_tracker.py": "a3f5e3672f65fb54487046c1e1be20a6ad6a822c50ba5550dff62f05f3a657c2",
+    "vision/tests/test_parking_visual_fixes.py": "68726aef0785497b3b57403a62eb6a10d1275e2d0397e0142af6fe52deb9dcba",
+    "vision/tests/fixtures/parking-boundary-failures-20261020.json": "84ffdca436c65f2c74aa4af49ef2b51551a5aa3144b2ac6b28c4f9285b48d493"
+  },
+  "service_active": "active",
+  "completed_at_epoch_s": 1792507295.187724,
+  "release": "parking_closed_loop_v2",
+  "final_health": {
+    "controller": {
+      "mode": "disabled",
+      "reason": "请先确认电调关闭，再准备测试",
+      "hardware_output": false,
+      "worker_started": false,
+      "pending_hardware_start": false,
+      "boot_test_phase": "esc_off"
+    },
+    "parking_logic_revision": "parking_closed_loop_v2",
+    "visual_options": {
+      "slow_forward_us": 1550,
+      "seek_timeout_s": 5.0,
+      "max_run_s": 30.0,
+      "boundary_grace_s": 0.25,
+      "boundary_wait_s": 1.2,
+      "countersteer_limit_us": 80,
+      "slow_line_y_normalized": null,
+      "stop_line_y_normalized": null
+    },
+    "cameras": {
+      "primary": {
+        "state": "ok",
+        "error": null
+      },
+      "secondary": {
+        "state": "ok",
+        "error": null
+      }
+    },
+    "manifest": "software manifest verified",
+    "service": "NRestarts=0\nActiveState=active\nSubState=running",
+    "digests_match": true,
+    "local_page": {
+      "http": 200,
+      "new_visual_settings_present": true
+    },
+    "checked_at_epoch_s": 1792507405.613664
+  },
+  "field_replay": [
+    {
+      "folder": "parking-entry-1792500456517036884",
+      "original_reason": "有效白线边界不足，停止入位：双侧白线未连续确认",
+      "new_frames": 31,
+      "phases": {
+        "arming": 30,
+        "boundary_wait": 1
+      },
+      "final_phase": "boundary_wait",
+      "final_reason": "停车边界暂不明确，暂停等待新鲜边界和停稳反馈",
+      "physical_vehicle_not_driven": true
+    },
+    {
+      "folder": "parking-entry-1792500469762678159",
+      "original_reason": "有效白线边界不足，停止入位：双侧白线未连续确认",
+      "new_frames": 32,
+      "phases": {
+        "arming": 31,
+        "boundary_wait": 1
+      },
+      "final_phase": "boundary_wait",
+      "final_reason": "停车边界暂不明确，暂停等待新鲜边界和停稳反馈",
+      "physical_vehicle_not_driven": true
+    },
+    {
+      "folder": "parking-entry-1792500504455555028",
+      "original_reason": "有效白线边界不足，停止入位：双侧白线未连续确认",
+      "new_frames": 46,
+      "phases": {
+        "arming": 31,
+        "seek": 7,
+        "approach": 5,
+        "boundary_wait": 3
+      },
+      "final_phase": "boundary_wait",
+      "final_reason": "停车边界暂不明确，暂停等待新鲜边界和停稳反馈",
+      "physical_vehicle_not_driven": true
+    }
+  ],
+  "http_regression_summary": "..................                                                       [100%]\n18 passed in 0.76s",
+  "local_full_suite_note": "1740 passed, 5 skipped, 4 known guardian-fixture cases deselected; one intermittent Windows socket-abort failure in unchanged HTTP tests. The same complete HTTP test module passed 18/18 on the car."
+}

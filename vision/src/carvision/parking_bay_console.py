@@ -212,7 +212,7 @@ class ParkingBayDrive:
                 if payload.get('setup_token')!=self.drive.status().get('setup_token') or payload.get('settings_revision')!=self.revision:
                     raise ValueError('页面或参数已变化，请刷新核对')
                 candidate=copy.deepcopy(self.settings)
-                for key in ('blocked_blue_fraction','clear_ground_fraction','lane_width_m','surface'):
+                for key in ('blocked_blue_fraction','clear_ground_fraction','lane_width_m','surface','visual_entry'):
                     if key in payload:candidate[key]=payload[key]
                 candidate=validate(candidate);self.path.parent.mkdir(parents=True,exist_ok=True)
                 tmp=self.path.with_suffix('.json.tmp');tmp.write_text(json.dumps(candidate,ensure_ascii=False,indent=2),encoding='utf-8');tmp.replace(self.path)
