@@ -10,10 +10,11 @@
 | `feat/race-flow-20261013` | 10月13日整合任务的保留分支，日常获取代码使用main |
 | `feat/parking-path-tracking-20261013` | PR #6 停车路径跟踪任务的保留分支，合并后日常获取代码使用main |
 | `sync/car-deployed-modules-20261020` | PR #9实车模块导入的保留分支，合并后统一从main或r4固定包获取 |
+| `sync/parking-fix-package-20261020` | PR #10停车修复包的保留分支，合并后统一从main或r5固定包获取 |
 
 ## 本次固定源码版本
 
-最新固定版 `source-2026-10-20-r4` 包含目录整理、停车路径、光流修复及PR #9的实车模块导入。下载、SHA256和完整提交号见 [源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r4)。`r3`不含PR #9，`r2`尚未修复旧光流异常，首版不含PR #6；旧标签及附件保留。后续 `main` 继续更新，固定标签和包不会被覆盖。
+最新固定版 `source-2026-10-20-r5` 包含完整主线和PR #10的`parking_closed_loop_v2`修复。下载、SHA256和完整提交号见 [源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r5)。`r4`不含PR #10，`r3`不含PR #9，`r2`尚未修复旧光流异常，首版不含PR #6；旧标签及附件保留。后续 `main` 继续更新，固定标签和包不会被覆盖。
 
 合并源码不等于整车比赛验收。停车、实际停点与完整流程的验证范围以 [当前进度](current-status.md) 为准。10月13日部署记录对应当时车端受保留的运行模块；本次仓库分支整合不更新小车服务。
 

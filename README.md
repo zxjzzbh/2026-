@@ -4,21 +4,13 @@
 
 **从 [项目内容概览](docs/overview.md) 开始。** 概览介绍各项功能、代码位置和完成程度；[当前进度](docs/current-status.md) 区分主线代码、历史部署与待验收项。完整自主赛道和停车入位尚未通过实车验收。
 
-## 新上传的停车修复包（待合并）
+## 本次停车修复
 
-`parking_closed_loop_v2` 已导入 [`sync/parking-fix-package-20261020`](https://github.com/zxjzzbh/2026-/tree/sync/parking-fix-package-20261020)：补充边界判断、有限暂停恢复、受控反打、寻位/总时限和独立图像停车参考。基于r4整合，原光流修复及绕桶PD保留。
+`parking_closed_loop_v2` 通过 [PR #10](https://github.com/zxjzzbh/2026-/pull/10) 整合进主线：补充白线与当前车位证据判断、有限暂停恢复、受控反打、寻位/总时限、末段减速和独立图像停车参考。r4的绕桶PD、原光流修复及回归测试继续保留。
 
-[下载整合分支源码](https://github.com/zxjzzbh/2026-/archive/refs/heads/sync/parking-fix-package-20261020.zip) · [来源、兼容处理与测试记录](docs/imports/2026-10-20-parking-fix/README.md)
+[下载 r5 完整源码](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r5/smartcar-source-20261020-r5.zip) · [来源、兼容处理与测试记录](docs/imports/2026-10-20-parking-fix/README.md)
 
-本地完整回归 **1769通过、3项平台跳过**，未按包内记录排除测试，并保留主线原有的斑马线丢线回归。本分支尚待PR合并；下方r4固定发布包不含这次停车修复。
-
-## 最新整合的实车模块
-
-2026-10-20，队伍提供的避障与停车模块包通过 [PR #9](https://github.com/zxjzzbh/2026-/pull/9) 整合进主线。包括绕桶边缘PD、目标释放回中、停车中心/朝向PD及配套测试；r3的光流修复继续保留。
-
-[下载 r4 完整源码](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r4/smartcar-source-20261020-r4.zip) · [来源、兼容处理与验证记录](docs/imports/2026-10-20-car-deployed/README.md)
-
-本地完整复测 **1739通过、3项平台跳过**；合并前核对最终PR提交的Linux/Windows CI。包内“已部署”是随包提供的历史记录，本次仓库整合没有重新部署或操作车辆。
+本地完整回归 **1769通过、3项平台跳过**，未按包内记录排除测试，并保留主线原有的斑马线丢线回归。合并前核对最终PR提交的Linux/Windows CI。包内“已部署”是提供者的历史记录，本次仓库整合没有重新部署或操作车辆。
 
 ## 最新代码从这里获取
 
@@ -28,10 +20,10 @@
 | --- | --- |
 | 浏览最新已合并源码 | [main 主分支](https://github.com/zxjzzbh/2026-/tree/main) |
 | 下载随主线更新的完整源码 | [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip) |
-| 获取本次固定版本（含最新实车模块和光流修复） | [2026-10-20 r4 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r4) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r4/smartcar-source-20261020-r4.zip) |
+| 获取本次固定版本（含停车修复及完整主线） | [2026-10-20 r5 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r5) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r5/smartcar-source-20261020-r5.zip) |
 | 核对包含内容、版本和安装步骤 | [最新代码说明](docs/latest-code.md) |
 
-本次固定版本为 **`source-2026-10-20-r4`**，包含 PR #9 的最新实车模块、r3光流修复、PR #6 路径停车，以及PR #7的结构图与目录整理。兼容处理中保留主线SSH依赖，并将包内缺失的转向常量模块引用接到现有同值常量。旧版标签和源码包保持固定。
+本次固定版本为 **`source-2026-10-20-r5`**，包含PR #10停车修复、PR #9避障/停车PD、r3光流修复、PR #6路径停车和PR #7的结构图与目录整理。补齐`parking_visual.py`部署依赖，并保留主线SSH依赖、同值转向常量和原有测试。旧版标签和源码包保持固定。
 
 原有 **14项光流回归测试**继续通过，详见 [光流修复记录](docs/reviews/2026-10-20-ground-flow-fix.md)；停车检查历史见 [PR #6 记录](docs/reviews/2026-10-20-pr6-review.md)。路径模式默认仍有 **13项实测/反馈缺项**，缺项时禁止启动，不自动退回视觉试验。源码已合并不表示已部署到小车或通过全程实车验收。
 

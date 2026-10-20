@@ -1,6 +1,6 @@
 # 项目内容概览
 
-更新日期：2026-10-20；包含主线目录整理、停车路径、光流修复和PR #9实车模块导入。本文介绍仓库内容，部署和验收进度统一维护在 [当前进度](current-status.md)。
+更新日期：2026-10-20；包含主线目录整理、停车路径、光流修复、PR #9实车模块和PR #10停车修复版。本文介绍仓库内容，部署和验收进度统一维护在 [当前进度](current-status.md)。
 
 ## 项目做什么
 
@@ -36,7 +36,7 @@ flowchart LR
 | 斑马线停车 | 图像参考、F/B 有限制动、停稳观察与语音 | `crosswalk.py`、`brake_parking.py`、`brake_trial.py`、`brake_output.py` | [主动制动](../vision/BRAKE_PARKING.md) |
 | 红绿灯 | 双路灯色识别、时间窗确认、停车/绿灯播报 | `traffic_signal.py`、`traffic_voting.py`、`traffic_driving.py`、`traffic_trial.py` | [红绿灯测试](../vision/TRAFFIC_SIGNAL.md) |
 | 锥桶避障 | 锁定绕行侧、边缘PD跟踪、连续低速、目标释放回中 | `cone_vision.py`、`cone_continuous.py`、`cone_low_speed.py`、`cone_navigation.py` | [锥桶说明](../vision/CONE_TEST.md)、[最新导入记录](imports/2026-10-20-car-deployed/README.md) |
-| 停车区 | 空闲侧建议、可见边界跟踪、中心/朝向PD、独立低速入位试验 | `parking_bay.py`、`parking_guidance.py`、`parking_entry.py`、`parking_entry_run.py` | [停车说明](../vision/PARKING_BAY.md)、[最新导入记录](imports/2026-10-20-car-deployed/README.md) |
+| 停车区 | 边界融合、中心/朝向PD、有限暂停恢复、受控反打、末段减速及独立图像参考 | `parking_bay.py`、`parking_guidance.py`、`parking_entry.py`、`parking_entry_run.py`、`parking_visual.py` | [停车说明](../vision/PARKING_BAY.md)、[最新修复记录](imports/2026-10-20-parking-fix/README.md) |
 | 路径入库 | 米制路径、Pure Pursuit、实测速度/曲率表、停稳确认 | `parking_path.py`、`parking_mission.py`、`parking_control.py`、`parking_feedback.py` | [路径停车](../vision/PARKING_PATH.md) |
 | 扫码缴费 | 二维码观察、图片保留、倒计时与人工回执 | `parking_payment.py`、`payment_console.py`、`payment_controls.py` | [缴费说明](../vision/PARKING_PAYMENT.md) |
 | 完整流程 | 挡板→斑马线→红绿灯→锥桶→停车→缴费 | `race_flow.py`、`race_flow_camera.py`、`race_flow_controls.py`、`race_flow_console.py` | [流程说明](../vision/RACE_FLOW.md) |

@@ -24,7 +24,7 @@
 | 斑马线 3 秒逻辑实验 | [CROSSWALK_3S](../../vision/CROSSWALK_3S.md) | 软件意图模块；不替代当前整场 10 秒配置 |
 | 红绿灯 | [TRAFFIC_SIGNAL](../../vision/TRAFFIC_SIGNAL.md) | 独立测试绿灯只播报，总流程衔接前进 |
 | 循迹与锥桶 | [CONE_TEST](../../vision/CONE_TEST.md) | 区分识别观察、连续低速试验和严格米制规划 |
-| 停车选区与低速入位 | [PARKING_BAY](../../vision/PARKING_BAY.md) | 独立像素试验不等于严格米制停车验收 |
+| 停车选区与低速入位 | [PARKING_BAY](../../vision/PARKING_BAY.md)、[parking_closed_loop_v2更新](../imports/2026-10-20-parking-fix/README.md) | 新版边界融合、有限暂停、末段减速与图像参考；实际入位仍待验收 |
 | 路径跟踪入库 | [PARKING_PATH](../../vision/PARKING_PATH.md) | 独立页/总流程共用，实测表和反馈缺失时禁止启动 |
 | 停车闭环方案 | [PARKING_CLOSED_LOOP](../../vision/PARKING_CLOSED_LOOP.md) | 反馈和标定准备条件另查 |
 | 扫码缴费 | [PARKING_PAYMENT](../../vision/PARKING_PAYMENT.md) | 队员实际支付，程序保存人工回执 |
