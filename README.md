@@ -4,6 +4,14 @@
 
 **从 [项目内容概览](docs/overview.md) 开始。** 概览介绍各项功能、代码位置和完成程度；[当前进度](docs/current-status.md) 区分主线代码、历史部署与待验收项。完整自主赛道和停车入位尚未通过实车验收。
 
+## 最新上传的实车模块
+
+2026-10-20，已将队伍提供的避障与停车模块包整合到 [`sync/car-deployed-modules-20261020` 分支](https://github.com/zxjzzbh/2026-/tree/sync/car-deployed-modules-20261020)。包括绕桶边缘PD、目标释放回中、停车中心/朝向PD及配套测试；主线已有的光流修复继续保留。
+
+[下载整合分支完整源码](https://github.com/zxjzzbh/2026-/archive/refs/heads/sync/car-deployed-modules-20261020.zip) · [来源、兼容处理与验证记录](docs/imports/2026-10-20-car-deployed/README.md)
+
+该次导入本地完整复测 **1739通过、3项平台跳过**；合并状态以对应PR为准。下方r3是此前已合并的固定快照，不含本次实车模块导入。
+
 ## 最新代码从这里获取
 
 **日常开发统一使用 `main` 主分支。** 这里的“最新代码”指最新已合并代码；尚未合并的任务分支单独保留。

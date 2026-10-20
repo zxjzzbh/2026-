@@ -9,9 +9,9 @@ HTML = '''<section class="drive-panel" id="cone-test">
 <div class="cone-settings"><label>白线亮度（0–255）<input id="cone-white-v" type="number" min="0" max="255" step="1" value="200"></label><button id="cone-white-save" type="button">应用亮度</button></div><p id="cone-white-status"></p>
 <div class="cone-settings"><label>前进油门（μs）<input id="cone-test-forward" type="number" min="1501" max="1625" step="1" value="1600"></label><span>持续运行，不按时间或通过数量自动结束</span></div>
 <div class="cone-settings"><label>左转端点（μs）<input id="cone-test-left" type="number" min="1650" max="1870" step="5" value="1870"></label><label>右转端点（μs）<input id="cone-test-right" type="number" min="1350" max="1570" step="5" value="1350"></label></div>
-<div class="cone-settings"><label>转向增益<input id="cone-test-steering-gain" type="number" min="1" max="3" step="0.1" value="1.0"></label><span>1.0 保持当前转向效果；越大，同样偏差下转向越明显。下次准备生效。</span></div>
+<div class="cone-settings"><label>转向增益<input id="cone-test-steering-gain" type="number" min="1" max="3" step="0.1" value="1.0"></label><span>1.0 为本版目标跟随基准；越大，同样偏差下转向越明显。下次准备生效。</span></div>
 <p id="cone-test-steering-state">右 1350 · 中位 1610 · 左 1870</p>
-<p>持续低速绕桶，由你手动停止。白线预警、目标漏检、通过两桶都不自动刹停；转向随偏差逐步调整。断流、失联和硬件故障保护保留。</p>
+<p>持续低速绕桶，由你手动停止。同一锥桶保持已选绕行侧，跟随桶边目标修正转向。白线预警、目标漏检、通过两桶都不自动刹停；断流、失联和硬件故障保护保留。</p>
 <p id="cone-test-line-state"></p>
 <div class="cone-actions"><button id="cone-test-prepare" type="button">准备（电调关闭、F/B）</button><button id="cone-test-start" type="button" disabled>开始绕桶测试</button></div>
 <button id="cone-test-stop" type="button">停止／急停并结束</button>

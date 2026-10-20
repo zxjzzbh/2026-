@@ -7,12 +7,15 @@
 | 版本 | 用途 | 获取方式 |
 | --- | --- | --- |
 | `main` | 持续更新的最新已合并代码；队员日常开发统一入口 | [浏览源码](https://github.com/zxjzzbh/2026-/tree/main) · [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip) |
+| `sync/car-deployed-modules-20261020` | 最新上传的避障/停车模块整合分支；保留r3光流修复，是否进入main以PR合并状态为准 | [浏览分支](https://github.com/zxjzzbh/2026-/tree/sync/car-deployed-modules-20261020) · [完整分支ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/sync/car-deployed-modules-20261020.zip) · [来源与验证](imports/2026-10-20-car-deployed/README.md) |
 | `source-2026-10-20-r3` | 最新固定快照：r2完整主线加光流点对修复和14项回归测试 | [发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r3) · [smartcar-source-20261020-r3.zip](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r3/smartcar-source-20261020-r3.zip) · [SHA256](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r3/smartcar-source-20261020-r3.zip.sha256) |
 | `source-2026-10-20-r2` | 历史快照：含 PR #6 停车改进，仍有旧自主框架的光流点对异常 | [历史发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r2) |
 | `source-2026-10-20` | 之前仅合并 PR #7 的历史快照，不含 PR #6；标签和附件保持固定 | [历史发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20) |
 | 任务分支 / 未合并 PR | 正在开发或审阅的独立改动，不计入已合并主线 | [Pull requests](https://github.com/zxjzzbh/2026-/pulls) |
 
 固定标签指向实际合并提交，完整提交号记在发布页。后续 `main` 可以继续更新，固定包不会随之改变；不要用解压文件夹的修改时间判断代码新旧。
+
+上传包属于部分模块更新，本次只在导入分支整合，未替换r3发布附件。分支ZIP包含完整仓库与本次更新；原包清单、部署记录和两处导入兼容处理详见来源说明。
 
 `r3` 包保留 [PR #6](https://github.com/zxjzzbh/2026-/pull/6) 的功能，并修复后续确认的旧光流点对数量不一致问题。使用新标签和包名区分版本，不覆盖旧包；详见 [修复及验证记录](reviews/2026-10-20-ground-flow-fix.md)。
 

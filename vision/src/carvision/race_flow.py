@@ -5,7 +5,8 @@ Visual cone passage remains estimated; parking needs measured world feedback.
 Payment is reported by the operator, never performed by the vehicle software.
 """
 
-from .steering import LEFT_US, RIGHT_US
+from .steering import LEFT_US, RIGHT_US, ImagePD, from_offset
+from .parking_entry import PARKING_STEERING_RATE_US_S
 import copy
 import json
 import math
@@ -111,6 +112,8 @@ class RaceFlowController:
         self.controller=None;self.departure=DepartureSequence(self.b['departure'].get('clear_confirm_s',1.))
         self.guide=None;self.last_module_id=None;self.last_intent=None;self.events=[];self.transitions=[]
         self.parking=ParkingMission(self.b['parking']);self.parking_wait=None
+        self.parking_pd=ImagePD(kp=1.,kd=.08)
+        self.parking_steering=1610.;self.parking_control_at=None
         self.payment_started=None;self.paid=False;self.paid_in_time=False;self.last_drive=False;self.audio_wait=None;self.stationary_since=None
         self.passed_cone_ids=set()
 
@@ -118,9 +121,11 @@ class RaceFlowController:
         self.transitions.append({'from':self.stage,'to':stage,'at_s':now,'reason':reason})
         self.stage=stage;self.entered=now;self.reason=reason;self.last_module_id=None;self.last_intent=None
         self.guide=LowSpeedController(self.b['cones'],now,initialized=True)
-        if stage=='crosswalk':self.controller=BrakeParkingController(self.b['brake'],'straight')
+        if stage=='crosswalk':self.controller=BrakeParkingController(self.b['brake'],'straight',first_detection_stop=True)
         elif stage=='traffic':self.controller=FlowTrafficController(self.b['traffic'],now,self.s['max_stage_s'])
         elif stage=='cones':self.controller=ContinuousConeController(self.b['cones'],now,initialized=True,handoff_after_two=True)
+        elif stage=='parking_entry':
+            self.parking_pd.reset();self.parking_steering=1610.;self.parking_control_at=now
 
     def _out(self,reason=None,intent=None,events=None):
         raw=intent or {'action':'neutral','esc_us':1500,'steering_us':1610}
@@ -257,7 +262,22 @@ class RaceFlowController:
             if decision['phase']=='parked':
                 self.payment_started=now;self._go('payment',now,'正确半区内已取得停稳反馈，30 秒内由队员扫码支付 0.01 元')
                 return self._out(events=[{'event':'payment_window_opened','amount_cents':1}])
-            return self._out(decision['reason'],parking_intent(decision,self.b['parking']))
+            intent=parking_intent(decision,self.b['parking'])
+            if decision['action']=='follow_path':
+                signed_ratio=(1610-intent['steering_us'])/260.
+                command=self.parking_pd.update(signed_ratio,parking['captured_s'],context=self.parking.selected)
+                requested=from_offset(command)
+                rows=self.b['parking']['motion_calibration']['curvature_pwm']
+                requested=max(min(r['pwm_us'] for r in rows),min(max(r['pwm_us'] for r in rows),requested))
+                dt=min(.25,max(0.,now-(self.parking_control_at if self.parking_control_at is not None else now-.1)))
+                change=PARKING_STEERING_RATE_US_S*dt
+                self.parking_steering+=max(-change,min(change,requested-self.parking_steering))
+                self.parking_control_at=now
+                intent.update(steering_us=round(self.parking_steering),steering_policy='verified_path_pd',
+                              requested_steering_us=requested)
+            else:
+                self.parking_pd.reset();self.parking_steering=1610.;self.parking_control_at=now
+            return self._out(decision['reason'],intent)
         raise ValueError('未知比赛阶段')
 
     def status(self,now):

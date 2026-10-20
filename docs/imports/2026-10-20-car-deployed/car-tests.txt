@@ -1,0 +1,17 @@
+........................................................................ [ 12%]
+...s..........................................................ss........ [ 25%]
+......................s................................................. [ 38%]
+........................................................................ [ 51%]
+........................................................................ [ 63%]
+.......................................................s................ [ 76%]
+..s..................................................................... [ 89%]
+....s......................................................              [100%]
+=========================== short test summary info ============================
+SKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_low_speed.py:143: Node required to check real panel initialization
+SKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_low_speed.py:697: Node is required for actual page render logic
+SKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_low_speed.py:729: Node required for actual prepare callback
+SKIPPED [1] smartcar-race-20261002/vision/tests/test_cone_slalom.py:267: Node.js required for actual console render replay
+SKIPPED [1] smartcar-race-20261002/vision/tests/test_parking_path.py:229: Node.js is required for the browser contract check
+SKIPPED [1] smartcar-race-20261002/vision/tests/test_race_flow.py:302: PC deployment helper is not installed on the car
+SKIPPED [1] smartcar-race-20261002/vision/tests/test_manual_heartbeat.py:14: Node.js is required for delayed browser-response checks
+556 passed, 7 skipped, 1 deselected in 8.80s

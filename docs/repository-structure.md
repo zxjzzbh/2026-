@@ -38,6 +38,7 @@ docs/
 ├── reproduce.md            安装、离线检查、历史核验边界
 ├── guides/README.md        按操作任务查找 vision/ 中的指南
 ├── history/                开发和部署过程记录
+├── imports/                外部模块包来源、文件清单与集成验证
 ├── archive/                按原版本日期归档的旧说明
 ├── handoff/                指定日期的完整交接材料
 ├── reviews/                审查、发布映射与核验记录

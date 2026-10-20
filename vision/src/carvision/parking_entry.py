@@ -13,7 +13,9 @@ import cv2
 import numpy as np
 
 from .brake_parking import BrakeParkingController, brake_trigger_reference, numeric
-from .steering import CENTER_US, LEFT_US, RIGHT_US, from_offset
+from .steering import CENTER_US, LEFT_US, RIGHT_US, ImagePD, from_offset
+
+PARKING_STEERING_RATE_US_S = 600.
 
 
 class ParkingEntryController:
@@ -105,6 +107,8 @@ class ParkingEntryController:
         # The live session always enables this. False is retained only for
         # isolated historical geometry replays without a road observation.
         self.require_white_boundary=bool(require_white_boundary)
+        self.pd=ImagePD(kp=1.,kd=.12)
+        self.guidance_phase='seek'
 
     def _result(self, esc_us=1500, events=None):
         out={**self.last_core_output, 'schema_version':1, 'phase':self.phase,
@@ -120,6 +124,9 @@ class ParkingEntryController:
              'cached_geometry':self.cached_geometry, 'geometry_age_s':self.geometry_age,
              'geometry_source':self.geometry_source,
              'guidance_target_px':self.guidance_target_px,
+             'guidance_phase':self.guidance_phase,
+             'steering_policy':'bay_center_heading_pd',
+             'steering_rate_us_s':PARKING_STEERING_RATE_US_S,
              'near_boundary_observed':self.near_boundary_observed,
              'far_boundary_fresh':not self.cached_geometry and self.last_far_at == self.last_now,
              'target_acquired':self.last_far_edge is not None,
@@ -282,6 +289,7 @@ class ParkingEntryController:
         self.geometry={};self.geometry_age=None;self.cached_geometry=False
         self.core=None;self.last_core_output={};self.guidance_target_px=None
         self.seek_no_progress_since=None;self.aligned_frames=0;self.phase='seek'
+        self.pd.reset()
         return None
 
     def _steer(self,desired,dt,aligned=False):
@@ -299,8 +307,7 @@ class ParkingEntryController:
             error=(.08+soft-near) if correction=='right' else (-.08-(near-(1-soft)))
             limited=from_offset(max(-1.,min(1.,error/.12)))
             self.countersteer_limited=False
-        returning=abs(limited-CENTER_US)<abs(self.steering-CENTER_US)
-        delta=(1200. if correction else 180. if returning else 260.)*dt
+        delta=(1200. if correction else PARKING_STEERING_RATE_US_S)*dt
         self.steering=max(float(RIGHT_US),min(float(LEFT_US),self.steering+max(-delta,min(delta,limited-self.steering))))
 
     def _white_guard(self,parking):
@@ -358,11 +365,18 @@ class ParkingEntryController:
                            'inside':center is not None and left+margin <= center <= right-margin})
         target_y=far+(near-far)*.4
         left,right=bounds(target_y); center=self._center_x(target_y)
-        error=None if center is None else ((left+right)/2-center)/max(10.,(right-left)/2)
-        if error is not None and all(c['inside'] for c in checks) and abs(error)<.15:error=0.
+        lateral=None if center is None else ((left+right)/2-center)/max(10.,(right-left)/2)
+        offsets=[None if c['center_px'] is None else
+                 ((c['left_px']+c['right_px'])/2-c['center_px'])/max(10.,(c['right_px']-c['left_px'])/2)
+                 for c in checks]
+        heading=None if None in offsets else offsets[0]-offsets[1]
+        error=None if lateral is None or heading is None else lateral+.45*heading
+        aligned=(error is not None and all(c['inside'] for c in checks)
+                 and abs(lateral)<.12 and abs(heading)<.12)
         return {'far_edge_y_normalized':far/359., 'near_edge_y_normalized':near/359.,
                 'lateral_envelope_estimate_inside':all(c['inside'] for c in checks),
                 'envelope_checks':checks, 'steering_error':error,
+                'lateral_error':lateral,'heading_error':heading,'image_aligned':aligned,
                 'actual_pose_not_verified':True}
 
     def _seek(self, sample, parking, now, dt):
@@ -376,6 +390,7 @@ class ParkingEntryController:
         if self.last_far_at is not None and now-self.last_far_at>.6:
             return self._abort('已锁定停车目标后远端线跟踪丢失，刹停防止越过车位',now)
         self.phase='seek'
+        self.guidance_phase='seek'
         self.core=None  # No stale crosswalk seen_at/last_t timer during seeking.
         self.last_core_output={}
         self.geometry_age=None if self.last_far_at is None else now-self.last_far_at
@@ -385,6 +400,7 @@ class ParkingEntryController:
         if self.cached_geometry:
             desired=self.steering
             source='cached_heading'
+            self.pd.reset()
         else:
             # With no current target evidence, unwind gently to straight;
             # do not keep an old quarter-turn indefinitely.
@@ -402,11 +418,11 @@ class ParkingEntryController:
                     target=min(479.,x2+(x2-x1)/2) if self.side == 'right' else max(0.,x1-(x2-x1)/2)
                     center=self._center_x(y2)
                     if center is not None:
-                        bias=max(-1.,min(1.,(target-center)/max(20.,(x2-x1)/2)*self.gain))
-                        if abs(bias)<.10:bias=0.
+                        bias=max(-1.,min(1.,(target-center)/max(20.,(x2-x1)/2)))
                         self.guidance_target_px=[target,y2]
-            desired=from_offset(bias)
             source='blue_board_seek' if self.guidance_target_px is not None else 'selected_side_seek'
+            desired=from_offset(self.pd.update(bias,sample['captured_s'],
+                context=(self.side,source),gain=self.gain))
         self._steer(desired,dt)
         self.geometry_source=source
         self.near_boundary_observed=False
@@ -457,7 +473,7 @@ class ParkingEntryController:
         error=(float(edge[:,0].mean())-center)/max(10.,float(edge[1,0]-edge[0,0])/2)
         if abs(error)<.10:error=0.
         return {'far_edge_y_normalized':y/359.,'near_edge_y_normalized':None,
-                'steering_error':error,
+                'steering_error':error,'lateral_error':error,'heading_error':None,'image_aligned':False,
                 'lateral_envelope_estimate_inside':None,'envelope_checks':[],
                 'actual_pose_not_verified':True}
 
@@ -524,10 +540,15 @@ class ParkingEntryController:
             y=self.geometry['far_edge_y_normalized']
             if self.geometry['steering_error'] is None:
                 return self._abort('历史中心参考不在当前画面内',now)
-            if y >= self.brake_reference['far_edge_y_normalized'] and self.geometry['lateral_envelope_estimate_inside'] is False:
+            if y >= self.brake_reference['far_edge_y_normalized'] and (
+                    self.geometry['lateral_envelope_estimate_inside'] is False or
+                    (numeric(self.geometry.get('heading_error')) and abs(self.geometry['heading_error'])>.15)):
                 return self._abort('已到远端停车参考但车身横向尚未对齐，停止而不越过远边',now)
-            desired=from_offset(self.geometry['steering_error']*self.gain)
-            self._steer(desired,dt,self.geometry['lateral_envelope_estimate_inside'] is True)
+            self.guidance_phase='enter' if self.geometry.get('image_aligned',False) else (
+                'align' if self.geometry['lateral_envelope_estimate_inside'] else 'turn_in')
+            desired=from_offset(self.pd.update(self.geometry['steering_error'],captured,
+                context=(self.side,self.geometry_source),gain=self.gain))
+            self._steer(desired,dt,self.geometry.get('image_aligned',False))
             if self.core is None:
                 self.core=BrakeParkingController(self.s, path_mode='straight')
         core_sample={**sample, 'candidate':True,
@@ -542,7 +563,10 @@ class ParkingEntryController:
         esc=result['esc_us']
         self.was_driving=esc > 1500
         if esc > 1500:
-            self.reason='低速向所选'+('左' if self.side == 'left' else '右')+'半区居中进入'
+            side='左' if self.side=='left' else '右'
+            self.reason={'turn_in':'跟随车位中心目标，低速转入'+side+'半区',
+                         'align':'结合远近中心偏差回正，对齐'+side+'车位',
+                         'enter':'车位图像已对齐，低速接近实际远端黄线'}[self.guidance_phase]
             if self.cached_geometry:
                 self.reason+='；短时沿用边界 '+str(round(self.geometry_age,2))+' 秒'
             elif self.geometry_source == 'tracked_far_guide':
@@ -551,8 +575,10 @@ class ParkingEntryController:
                 self.reason+='；完整框缺失，持续跟踪已锁定远端黄线'
             if self.boundary.get('correction'):self.reason+='；白线优先向内纠偏'
         elif self.phase == 'brake_pulse':
+            self.guidance_phase='brake'
             self.reason='远端黄线到达既有 50 cm 图像参考，发出有限 F/B 制动'
         elif self.phase == 'done':
+            self.guidance_phase='stopped'
             self.reason='画面连续停稳候选成立；实际四轮入位尚未验证'
         else:
             self.reason=result['reason']
