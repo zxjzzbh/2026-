@@ -4,13 +4,13 @@
 
 **从 [项目内容概览](docs/overview.md) 开始。** 概览介绍各项功能、代码位置和完成程度；[当前进度](docs/current-status.md) 区分主线代码、历史部署与待验收项。完整自主赛道和停车入位尚未通过实车验收。
 
-## 最新上传的实车模块
+## 最新整合的实车模块
 
-2026-10-20，已将队伍提供的避障与停车模块包整合到 [`sync/car-deployed-modules-20261020` 分支](https://github.com/zxjzzbh/2026-/tree/sync/car-deployed-modules-20261020)。包括绕桶边缘PD、目标释放回中、停车中心/朝向PD及配套测试；主线已有的光流修复继续保留。
+2026-10-20，队伍提供的避障与停车模块包通过 [PR #9](https://github.com/zxjzzbh/2026-/pull/9) 整合进主线。包括绕桶边缘PD、目标释放回中、停车中心/朝向PD及配套测试；r3的光流修复继续保留。
 
-[下载整合分支完整源码](https://github.com/zxjzzbh/2026-/archive/refs/heads/sync/car-deployed-modules-20261020.zip) · [来源、兼容处理与验证记录](docs/imports/2026-10-20-car-deployed/README.md)
+[下载 r4 完整源码](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r4/smartcar-source-20261020-r4.zip) · [来源、兼容处理与验证记录](docs/imports/2026-10-20-car-deployed/README.md)
 
-该次导入本地完整复测 **1739通过、3项平台跳过**；合并状态以对应PR为准。下方r3是此前已合并的固定快照，不含本次实车模块导入。
+本地完整复测 **1739通过、3项平台跳过**；合并前核对最终PR提交的Linux/Windows CI。包内“已部署”是随包提供的历史记录，本次仓库整合没有重新部署或操作车辆。
 
 ## 最新代码从这里获取
 
@@ -20,12 +20,12 @@
 | --- | --- |
 | 浏览最新已合并源码 | [main 主分支](https://github.com/zxjzzbh/2026-/tree/main) |
 | 下载随主线更新的完整源码 | [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip) |
-| 获取本次固定版本（含光流修复） | [2026-10-20 r3 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r3) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r3/smartcar-source-20261020-r3.zip) |
+| 获取本次固定版本（含最新实车模块和光流修复） | [2026-10-20 r4 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r4) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r4/smartcar-source-20261020-r4.zip) |
 | 核对包含内容、版本和安装步骤 | [最新代码说明](docs/latest-code.md) |
 
-本次固定版本为 **`source-2026-10-20-r3`**，在 r2 完整主线基础上修复旧自主框架的光流点对异常：前后坐标都有效才一起加入拟合，任一坐标失败就整对丢弃；有效点不足时返回测量无效。包含 PR #7 的结构图和目录整理，以及 [PR #6](https://github.com/zxjzzbh/2026-/pull/6) 的停车路径改进。旧版标签和源码包保持固定。
+本次固定版本为 **`source-2026-10-20-r4`**，包含 PR #9 的最新实车模块、r3光流修复、PR #6 路径停车，以及PR #7的结构图与目录整理。兼容处理中保留主线SSH依赖，并将包内缺失的转向常量模块引用接到现有同值常量。旧版标签和源码包保持固定。
 
-本次新增 **14 项光流回归测试**；本地全量 **1712 项通过、3 项平台跳过**，原审查样例已不再抛异常。详见 [光流修复记录](docs/reviews/2026-10-20-ground-flow-fix.md)；停车检查历史见 [PR #6 记录](docs/reviews/2026-10-20-pr6-review.md)。路径模式默认仍有 **13 项实测/反馈缺项**，缺项时禁止启动，不自动退回视觉试验。源码已合并不表示已部署到小车或通过全程实车验收。
+原有 **14项光流回归测试**继续通过，详见 [光流修复记录](docs/reviews/2026-10-20-ground-flow-fix.md)；停车检查历史见 [PR #6 记录](docs/reviews/2026-10-20-pr6-review.md)。路径模式默认仍有 **13项实测/反馈缺项**，缺项时禁止启动，不自动退回视觉试验。源码已合并不表示已部署到小车或通过全程实车验收。
 
 首次获取：
 
