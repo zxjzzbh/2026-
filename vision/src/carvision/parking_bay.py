@@ -22,6 +22,14 @@ def validate(s):
     if not isinstance(s,dict) or s.get('schema_version')!=1 or s.get('camera')!='secondary' or s.get('image_size')!=[480,360]:
         raise ValueError('停车使用第二路 H65 的480×360原图')
     s=copy.deepcopy(s);s.setdefault('max_run_s',30.);s.setdefault('surface','auto')
+    for key,value in {'lookahead_m':.25,'final_speed_mps':.05,'slowdown_distance_m':.6,
+                      'maximum_tracking_error_m':.06,'stopped_speed_mps':.01}.items():
+        s.setdefault(key,value)
+    for key,lo,hi in [('lookahead_m',.1,.6),('final_speed_mps',.02,.25),
+                      ('slowdown_distance_m',.2,1.),('maximum_tracking_error_m',.01,.1),
+                      ('stopped_speed_mps',.001,.02)]:
+        if not number(s[key]) or not lo<=s[key]<=hi:raise ValueError('停车控制参数越界：'+key)
+    if s['final_speed_mps']>s['max_speed_mps']:raise ValueError('末段速度不能超过停车速度上限')
     if s['surface'] not in ('auto','red_running_track','indoor_green'):raise ValueError('停车地面类型无效')
     for name,lo,hi in [('zone_length_m',1,1),('lane_width_m',.6,2),('vehicle_width_m',.1,.6),
                        ('front_extent_m',.1,.8),('rear_extent_m',.01,.4),('clearance_m',.01,.1),

@@ -27,6 +27,7 @@
 | 红绿灯 | `traffic_*` | [TRAFFIC_SIGNAL](TRAFFIC_SIGNAL.md) |
 | 白线与锥桶 | `lane`、`cone_*` | [CONE_TEST](CONE_TEST.md) |
 | 停车入位 | `parking_bay*`、`parking_guidance`、`parking_entry*`、`parking_mission` | [PARKING_BAY](PARKING_BAY.md) |
+| 路径跟踪入库 | `parking_path`、`parking_control`、`parking_feedback`、`parking_mission` | [PARKING_PATH](PARKING_PATH.md) |
 | 扫码缴费 | `parking_payment`、`payment_*` | [PARKING_PAYMENT](PARKING_PAYMENT.md) |
 | 完整流程 | `race_flow*` | [RACE_FLOW](RACE_FLOW.md) |
 | 自主框架与硬件 | `race`、`autonomy_*`、`rasadapter5*`、`pi5_pwm` | [AUTONOMY_PI5](AUTONOMY_PI5.md) |

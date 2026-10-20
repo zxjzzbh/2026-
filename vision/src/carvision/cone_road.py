@@ -28,7 +28,8 @@ def inner_edge(mask,x,y,direction):
 
 
 class ConeRoadContext:
-    def __init__(self,settings,camera='secondary'):
+    def __init__(self,settings,camera='secondary',*,thorough_boundary_search=False):
+        self.thorough_boundary_search=bool(thorough_boundary_search)
         self.s=settings;config=load_config(None).lane
         # The generic preview threshold also includes pale green floor glare.
         # In the cone corridor that merges the left tape with the floor, so
@@ -65,11 +66,15 @@ class ConeRoadContext:
         diagnostics={'detector':'fixed_band','baseline_reason':lane.reason,'support_rows':len(left),
                      'roi_top':self.lane.config.roi_top,'white_v_min':self.lane.config.white_v_min,
                      'white_s_max':self.lane.config.white_s_max}
-        if not enough:
-            adaptive_left,adaptive_right,adaptive_white,diagnostics=adaptive_inner_edges(image,blue_mask,self.lane.config)
+        if not enough or self.thorough_boundary_search:
+            baseline_diagnostics=diagnostics
+            adaptive_left,adaptive_right,adaptive_white,diagnostics=adaptive_inner_edges(
+                image,blue_mask,self.lane.config,complete_small_sets=self.thorough_boundary_search)
             diagnostics['baseline_reason']=lane.reason
             if adaptive_left:
                 left,right,white=adaptive_left,adaptive_right,adaptive_white;enough=True
+            elif enough:
+                diagnostics={**baseline_diagnostics,'adaptive_failure':diagnostics['reason']}
         region=np.zeros(image.shape[:2],np.uint8)
         if enough:
             cv2.fillPoly(region,[np.asarray(left+right[::-1],np.int32)],255)

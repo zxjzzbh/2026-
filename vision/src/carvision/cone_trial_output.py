@@ -26,6 +26,11 @@ class ConePulseGuard(PulseGuard):
         if not 1500<settings.get('pwm',{}).get('search_us',0)<=1625:
             raise ValueError('锥桶测试油门上限为 1625 μs')
         self.right_us,self.left_us=right_us,left_us;self.actual_steering=1610;self.actual_write=write
+        pulses=settings.get('parking_forward_us',[])
+        if (not isinstance(pulses,list) or len(pulses)>32 or
+                any(type(p) is not int or not 1501<=p<=1625 for p in pulses)):
+            raise ValueError('parking forward whitelist exceeds existing F/B envelope')
+        self.parking_pulses=tuple(pulses)
         super().__init__(settings,self._write,mode=mode,forward_limit_us=1625)
 
     def _write(self,channel,pulse):
@@ -45,7 +50,22 @@ class ConePulseGuard(PulseGuard):
                 raise ValueError('steering exceeds selected cone envelope')
             if command.get('action')=='neutral' and steer!=1610:raise ValueError('neutral must center S3')
             self.actual_steering=steer
-            super().accept({**command,'steering_us':1610},now)
+            parking={('parking_'+str(p)):p for p in self.parking_pulses}
+            pulse=parking.get(command.get('action'))
+            if pulse is None:
+                super().accept({**command,'steering_us':1610},now)
+            else:
+                if command.get('esc_us')!=pulse:
+                    raise ValueError('parking pulse does not match frozen measurement whitelist')
+                # Reuse the installed PulseGuard unchanged. Only its forward
+                # setpoint is scoped to this synchronous accept; brake, lease,
+                # time/sequence checks and fault latch remain exactly the same.
+                original=self.s
+                try:
+                    self.s={**original,'pwm':{**original['pwm'],'search_us':pulse}}
+                    super().accept({**command,'action':'search','steering_us':1610},now)
+                finally:
+                    self.s=original
         except Exception as exc:
             self.abort(str(exc),now);raise
 

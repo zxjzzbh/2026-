@@ -1,6 +1,6 @@
 # 项目内容概览
 
-整理日期：2026-10-20；依据主线 `cdf8d31` 及仓库内记录。本文介绍仓库内容，部署和验收进度统一维护在 [当前进度](current-status.md)。
+更新日期：2026-10-20；包含主线目录整理与 PR #6 停车路径改进。本文介绍仓库内容，部署和验收进度统一维护在 [当前进度](current-status.md)。
 
 ## 项目做什么
 
@@ -37,6 +37,7 @@ flowchart LR
 | 红绿灯 | 双路灯色识别、时间窗确认、停车/绿灯播报 | `traffic_signal.py`、`traffic_voting.py`、`traffic_driving.py`、`traffic_trial.py` | [红绿灯测试](../vision/TRAFFIC_SIGNAL.md) |
 | 锥桶避障 | 目标识别与跟踪、连续低速引导、转向平滑 | `cone_vision.py`、`cone_continuous.py`、`cone_low_speed.py`、`cone_navigation.py` | [锥桶说明](../vision/CONE_TEST.md) |
 | 停车区 | 空闲侧建议、可见边界跟踪、独立低速入位试验 | `parking_bay.py`、`parking_guidance.py`、`parking_entry.py`、`parking_entry_run.py` | [停车说明](../vision/PARKING_BAY.md) |
+| 路径入库 | 米制路径、Pure Pursuit、实测速度/曲率表、停稳确认 | `parking_path.py`、`parking_mission.py`、`parking_control.py`、`parking_feedback.py` | [路径停车](../vision/PARKING_PATH.md) |
 | 扫码缴费 | 二维码观察、图片保留、倒计时与人工回执 | `parking_payment.py`、`payment_console.py`、`payment_controls.py` | [缴费说明](../vision/PARKING_PAYMENT.md) |
 | 完整流程 | 挡板→斑马线→红绿灯→锥桶→停车→缴费 | `race_flow.py`、`race_flow_camera.py`、`race_flow_controls.py`、`race_flow_console.py` | [流程说明](../vision/RACE_FLOW.md) |
 | 自主框架 | 版本化观测、米制几何、运动门控、离线回放 | `race.py`、`autonomy_*.py`、`ground_odometry.py`、`parking_mission.py` | [自主框架](../vision/AUTONOMY_PI5.md) |
@@ -51,7 +52,7 @@ flowchart LR
 | 单项观察与实车试验 | 现有网页中的发车、斑马线、红绿灯、锥桶、停车面板 | 各有准备/开始/停止条件，按相应指南记录现场结果 |
 | 完整比赛与米制自主 | `race_flow.py` 与 `autonomy_*` 框架 | 是两条相互关联的实现路径；不能用分项试验结果替代完整验收 |
 
-`race_flow.py` 串接现有任务控制器，`race.py`/`autonomy_*` 提供观测、米制意图和执行框架；二者不是可以随意互换的重复文件。完整流程中的米制停车契约与独立像素入位试验也有不同准备条件。
+`race_flow.py` 串接现有任务控制器，`race.py`/`autonomy_*` 提供观测、米制意图和执行框架；二者不是可以随意互换的重复文件。完整流程和独立停车页共用 `ParkingMission` 路径控制与实测 PWM 转换；原像素入位保留为显式对照模式，准备条件不同，不自动作为路径模式的降级策略。
 
 ## 配置、工具和验证资料
 

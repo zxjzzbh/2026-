@@ -25,6 +25,7 @@
 | 红绿灯 | [TRAFFIC_SIGNAL](../../vision/TRAFFIC_SIGNAL.md) | 独立测试绿灯只播报，总流程衔接前进 |
 | 循迹与锥桶 | [CONE_TEST](../../vision/CONE_TEST.md) | 区分识别观察、连续低速试验和严格米制规划 |
 | 停车选区与低速入位 | [PARKING_BAY](../../vision/PARKING_BAY.md) | 独立像素试验不等于严格米制停车验收 |
+| 路径跟踪入库 | [PARKING_PATH](../../vision/PARKING_PATH.md) | 独立页/总流程共用，实测表和反馈缺失时禁止启动 |
 | 停车闭环方案 | [PARKING_CLOSED_LOOP](../../vision/PARKING_CLOSED_LOOP.md) | 反馈和标定准备条件另查 |
 | 扫码缴费 | [PARKING_PAYMENT](../../vision/PARKING_PAYMENT.md) | 队员实际支付，程序保存人工回执 |
 | 完整比赛流程 | [RACE_FLOW](../../vision/RACE_FLOW.md) | 根 `check-race-flow.cmd` 检查，`update-race-flow.cmd` 显式部署 |

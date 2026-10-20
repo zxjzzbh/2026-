@@ -12,10 +12,12 @@
 | --- | --- |
 | 浏览最新已合并源码 | [main 主分支](https://github.com/zxjzzbh/2026-/tree/main) |
 | 下载随主线更新的完整源码 | [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip) |
-| 获取本次固定版本 | [2026-10-20 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20/smartcar-source-20261020.zip) |
+| 获取本次固定版本（含停车 PR #6） | [2026-10-20 r2 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r2) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r2/smartcar-source-20261020-r2.zip) |
 | 核对包含内容、版本和安装步骤 | [最新代码说明](docs/latest-code.md) |
 
-本次固定版本标签为 **`source-2026-10-20`**，包含 PR #7 合并后的完整主线、两张结构图和整理后的文档。10 月 20 日仍未合并的 [停车路径 PR #6](https://github.com/zxjzzbh/2026-/pull/6) 不包含在此快照中。源码已合并不表示已部署到小车或通过全程实车验收。
+本次固定版本为 **`source-2026-10-20-r2`**，包含 PR #7 的结构整理、两张结构图，以及 [PR #6](https://github.com/zxjzzbh/2026-/pull/6) 的路径跟踪入库、实测 PWM 转换、白线丢失保护和独立控制续期。旧 `source-2026-10-20` 包保留用于追溯，不包含 PR #6。
+
+停车更新已通过合并前代码检查及本地 **1698 项测试（3 项平台跳过）**；详见 [检查记录](docs/reviews/2026-10-20-pr6-review.md)。路径模式默认仍有 **13 项实测/反馈缺项**，缺项时禁止启动，不自动退回视觉试验。源码已合并不表示已部署到小车或通过全程实车验收。
 
 首次获取：
 

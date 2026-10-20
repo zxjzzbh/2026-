@@ -14,6 +14,10 @@ from .brake_parking import GroundMotionEstimate,load_settings as load_brake
 from .cone_planning import load_settings as load_cones
 from .cone_navigation import reuse_legacy_ground
 from .parking_entry_run import ParkingEntryRun
+from .parking_feedback import ParkingFrameFeedback
+from .parking_control import parking_blockers
+from .parking_far_tracker import ParkingFarTracker
+from .cone_road import ConeRoadContext
 
 
 class BaySelection:
@@ -84,8 +88,13 @@ class ParkingBayDrive:
         self.revision=secrets.token_hex(8);self.selector=BaySelection(self.settings['selection_confirm_s'])
         self.latest={};self.recommendation={};self.preview=None;self.updated=None;self.folder=None;self.last=None
         self.reason='停车模块待观察；当前只显示实际识别与选区，不启动车辆'
-        self.entry=ParkingEntryRun(factory=entry_factory,log_root=self.root/'run')
-        self.motion=GroundMotionEstimate();self.entry_sample=None
+        self.entry=ParkingEntryRun(factory=entry_factory,log_root=self.root/'run',async_log=True)
+        self.control_thread=None
+        self.output_initializing=False
+        self.motion=GroundMotionEstimate();self.far_tracker=ParkingFarTracker();self.entry_sample=None
+        self.road=None
+        self.metric_feedback=None
+        self.metric_missing=None
 
     def status(self):
         with self.lock:
@@ -99,6 +108,13 @@ class ParkingBayDrive:
                 'observation':self.latest if fresh else None,'selection':selection,
                 'frame_age_s':age,'readiness':readiness(self.settings),'motor_output_enabled':entry['hardware_output'],
                 'execution_adapter_connected':True,'payment_ready':False,'record_directory':str(self.folder) if self.folder else None}
+            if self.metric_missing is None:
+                try:
+                    parking,_,cones=self._entry_settings()
+                    self.metric_missing=parking_blockers({'parking':parking,'cones':cones})
+                except (OSError,ValueError,KeyError,TypeError) as exc:
+                    self.metric_missing=[str(exc)]
+            entry['metric_missing']=list(self.metric_missing)
             s['parking_trial']=entry;s['parking_trial_status_s']=self.clock()
             if entry['active']:
                 s['hardware_output']=entry['hardware_output']
@@ -116,7 +132,7 @@ class ParkingBayDrive:
         if self.thread and self.thread.is_alive():raise ValueError('停车观察正在结束，请稍后重试')
         self.selector=BaySelection(self.settings['selection_confirm_s']);self.latest={}
         self.recommendation=self.selector.snapshot('等待画面，先给出暂定方向');self.last=None
-        self.preview=None;self.updated=None;self.entry_sample=None;self.motion=GroundMotionEstimate()
+        self.preview=None;self.updated=None;self.entry_sample=None;self.motion=GroundMotionEstimate();self.far_tracker=ParkingFarTracker();self.road=None
         self.folder=self.root/'run'/('parking-bay-'+str(time.time_ns()));self.folder.mkdir(parents=True,exist_ok=False)
         self.active=True;self.stop.clear();self.reason='正在读取第二路实际停车区画面'
         self.thread=threading.Thread(target=self._run,name='parking-bay-observation',daemon=True);self.thread.start()
@@ -131,7 +147,10 @@ class ParkingBayDrive:
         geometry=cones['geometry']
         for target,source in [('lane_width_m','lane_width_m'),('vehicle_width_m','vehicle_width_m'),
                               ('front_extent_m','rear_axle_to_front_m'),('rear_extent_m','rear_overhang_m')]:
-            if type(geometry.get(source)) in (int,float) and geometry[source]>0:parking[target]=geometry[source]
+            if type(geometry.get(source)) in (int,float) and geometry[source]>0:
+                if parking['perception_verified'] and abs(parking[target]-geometry[source])>.005:
+                    raise ValueError('停车与车辆尺寸配置不一致：'+target)
+                parking[target]=geometry[source]
         return parking,load_brake(configs/'brake-parking.json'),cones
 
     def _selection_for_start(self,now):
@@ -151,11 +170,16 @@ class ParkingBayDrive:
                 return self.status()
             if action=='parking_trial_prepare':
                 if self.settings_error:raise ValueError(self.settings_error)
+                self.metric_missing=None
                 selected=payload.get('selected_slot') or self.selector.snapshot()['selected_slot']
                 recommendation=self.recommendation or self.selector.snapshot()
                 self.entry.prepare(*self._entry_settings(),self.drive.status(),{**payload,'selected_slot':selected},self.clock(),
                                    selection=recommendation)
-                try:self._start_observation()
+                try:
+                    self.metric_feedback=(ParkingFrameFeedback(self.entry.s['parking'],self.entry.s['cone'])
+                        if self.entry.s.get('controller_mode')=='metric_path' else None)
+                    self.last=None
+                    self._start_observation()
                 except Exception:
                     self.entry.cancel('停车观察未能启动',phase='fault');raise
                 return self.status()
@@ -165,6 +189,9 @@ class ParkingBayDrive:
                 # and any client-supplied side/evidence cannot redirect a run.
                 self.entry.command(action,payload,now,
                     start_selection=self._selection_for_start(now) if action=='parking_trial_start' else None)
+                if action=='parking_trial_keepalive' and payload.get('compact_ack') is True:
+                    return {'parking_keepalive':True,'active':self.entry.active,'phase':self.entry.phase,
+                            'parking_trial_status_s':self.clock()}
                 return self.status()
             if self.entry.active and not action.startswith('parking_bay_'):
                 if action=='status':return self.status()
@@ -189,11 +216,59 @@ class ParkingBayDrive:
                     if key in payload:candidate[key]=payload[key]
                 candidate=validate(candidate);self.path.parent.mkdir(parents=True,exist_ok=True)
                 tmp=self.path.with_suffix('.json.tmp');tmp.write_text(json.dumps(candidate,ensure_ascii=False,indent=2),encoding='utf-8');tmp.replace(self.path)
-                self.settings=candidate;self.revision=secrets.token_hex(8)
+                self.settings=candidate;self.revision=secrets.token_hex(8);self.metric_missing=None
             else:raise ValueError('未知停车观察动作；本接口不提供电机输出')
             return self.status()
 
+    def _control_tick(self):
+        # Serialize ownership/start/cancel with this tick, never with image
+        # processing or observation file I/O. tick checks BOTH the page lease
+        # and the original capture timestamp before every output renewal.
+        with self.lock:
+            if self.output_initializing:return
+            now=self.clock()
+            initialize=(self.entry.active and self.entry.actuator is None
+                and self.entry._fresh(self.entry_sample,now) and now<=self.entry.lease_until)
+            if not initialize:
+                self.entry.tick(self.entry_sample,now)
+                return
+            self.output_initializing=True
+            token=self.entry.token
+            settings=copy.deepcopy(self.entry.s['brake'])
+        # Opening the child, UART and neutral readback can take hundreds of
+        # milliseconds. Publish new camera frames and accept page heartbeats
+        # during that wait; only this thread may initialize an output handle.
+        handle=None
+        try:
+            handle=self.entry.factory(settings)
+            with self.lock:
+                if (self.entry.active and self.entry.token==token
+                        and not self.closed and not self.stop.is_set()):
+                    self.entry.actuator=handle
+                    handle=None
+                    # Re-evaluate the LATEST sample and actual time after
+                    # initialization, never the frame captured before opening.
+                    self.entry.tick(self.entry_sample,self.clock())
+        except Exception as exc:
+            with self.lock:
+                if self.entry.active and self.entry.token==token:
+                    self.entry.cancel(str(exc),phase='fault')
+        finally:
+            if handle is not None:handle.close()
+            with self.lock:self.output_initializing=False
+
+    def _control_run(self):
+        try:
+            while not self.stop.wait(.04):
+                self._control_tick()
+        except Exception as exc:
+            with self.lock:
+                if self.entry.active:self.entry.cancel('停车控制循环异常：'+str(exc),phase='fault')
+            self.stop.set()
+
     def _run(self):
+        self.control_thread=threading.Thread(target=self._control_run,name='parking-entry-control',daemon=True)
+        self.control_thread.start()
         try:
             while not self.stop.is_set():
                 try:
@@ -202,51 +277,73 @@ class ParkingBayDrive:
                     t=ms/1000 if isinstance(ms,(int,float)) else -1
                     if failed or not jpg or type(fid) is not int or not 0<=self.clock()-t<=self.settings['max_frame_age_s']:raise ValueError('第二路没有新鲜画面')
                     if self.last==(fid,t):
-                        self.entry.tick(self.entry_sample,self.clock())
-                        if self.stop.wait(.04):break
+                        if self.stop.wait(.01):break
                         continue
                     processing_started=self.clock()
                     image=cv2.imdecode(np.frombuffer(jpg,np.uint8),cv2.IMREAD_COLOR)
                     if image is None:raise ValueError('相机图像无法解码')
                     observation,overlay=detect_parking(image,self.settings)
+                    if self.road is None:
+                        cone_path=self.root/'vision/configs/cone-trial.local.json'
+                        if not cone_path.exists():cone_path=self.root/'vision/configs/cone-trial.json'
+                        road_settings=json.loads(cone_path.read_text(encoding='utf-8-sig')) if cone_path.exists() else {}
+                        self.road=ConeRoadContext(road_settings,'secondary',thorough_boundary_search=True)
+                    hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
+                    blue=cv2.inRange(hsv,tuple(self.settings['blue_lower']),tuple(self.settings['blue_upper']))
+                    observation['road_context']=self.road.inspect(image,blue)
+                    for key in ('left_inner','right_inner'):
+                        points=observation['road_context'].get(key,[])
+                        if points:cv2.polylines(overlay,[np.rint(points).astype(np.int32)],False,(255,255,0),2)
+                    observation['tracked_far_lines']=self.far_tracker.update(image,observation,fid,t,self.settings)
+                    for line in observation['tracked_far_lines']:
+                        a,b=np.rint(np.asarray(line['edge_px'])).astype(int)
+                        cv2.line(overlay,tuple(a),tuple(b),(255,0,255),2)
                     motion=self.motion.update(image,fid,t);now=self.clock()
                     timings={'processing_ms':max(0.,(now-processing_started)*1000.),'frame_age_ms':max(0.,(now-t)*1000.)}
                     entry_sample={'fresh':0<=now-t<=self.settings['max_frame_age_s'],'frame_id':fid,'captured_s':t,'camera_id':'secondary',
                                   'image_size':[image.shape[1],image.shape[0]],'parking':observation,
                                   'motion':motion,**timings}
-                    self.entry_sample=entry_sample
+                    if self.entry.active and self.metric_feedback is not None:
+                        entry_sample['parking_world']=self.metric_feedback.update(image,fid,t,observation,self.clock())
                     recommendation=self.selector.update(observation,fid,t,now)
                     label='SUGGEST '+recommendation['selected_slot'].upper()+(' / VISUAL' if recommendation['confirmed'] else ' / TENTATIVE')
                     cv2.putText(overlay,label,(8,24),cv2.FONT_HERSHEY_SIMPLEX,.5,(0,210,0) if recommendation['confirmed'] else (0,170,255),2)
                     ok,encoded=cv2.imencode('.jpg',overlay)
                     with self.lock:
                         if not self.active:break
+                        self.entry_sample=entry_sample
                         self.last=(fid,t);self.latest={**observation,'frame_id':fid,'captured_s':t,'camera_id':'secondary',**timings}
                         self.recommendation=recommendation;self.updated=t;self.preview=encoded.tobytes() if ok else None
                         self.reason=(observation.get('reason') or recommendation['reason']) if not observation.get('layout_found') else recommendation['reason']
-                        with (self.folder/'observations.jsonl').open('a',encoding='utf-8') as f:
-                            handle=getattr(self.entry,'actuator',None)
-                            f.write(json.dumps({'observation':self.latest,'selection':recommendation,
-                                'hardware_output':bool(handle and getattr(handle,'run',False)),
-                                'output_scope':'parking_entry','perception_hardware_output':False},ensure_ascii=False,allow_nan=False)+'\n')
-                        if fid%10==0:(self.folder/'latest.jpg').write_bytes(jpg)
-                    self.entry.tick(entry_sample,self.clock())
+                        handle=getattr(self.entry,'actuator',None)
+                        record={'observation':self.latest,'selection':recommendation,
+                            'hardware_output':bool(handle and getattr(handle,'run',False)),
+                            'output_scope':'parking_entry','perception_hardware_output':False}
+                    # Neither journal/image writes nor detection hold the
+                    # control lock. A slow frame will still expire at 250 ms.
+                    with (self.folder/'observations.jsonl').open('a',encoding='utf-8') as f:
+                        f.write(json.dumps(record,ensure_ascii=False,allow_nan=False)+'\n')
+                    if fid%10==0:(self.folder/'latest.jpg').write_bytes(jpg)
                 except (ValueError,KeyError,cv2.error) as exc:
-                    self.entry.tick({'fresh':False,'reason':str(exc)},self.clock())
                     with self.lock:
+                        self.entry_sample={**(self.entry_sample or {}),'fresh':False,'reason':str(exc)}
                         self.reason=str(exc);self.latest={};self.recommendation=self.selector.snapshot(str(exc),stale=True);self.preview=None;self.updated=None
                         self.selector.pending=None;self.selector.since=None;self.selector.count=0
-                if self.stop.wait(.03 if self.entry.active else .10):break
+                if self.stop.wait(.005 if self.entry.active else .02):break
         except Exception as exc:
             with self.lock:self.reason='停车观察异常：'+str(exc);self.preview=None;self.updated=None
         finally:
-            if self.entry.active:self.entry.cancel('停车观察线程结束，输出已释放',phase='fault')
-            with self.lock:self.active=False
+            self.stop.set()
+            with self.lock:
+                if self.entry.active:self.entry.cancel('停车观察线程结束，输出已释放',phase='fault')
+                self.active=False
+            if self.control_thread is not threading.current_thread():self.control_thread.join(timeout=2)
 
     def image(self):
         with self.lock:return self.preview if self.updated is not None and self.clock()-self.updated<=.5 else None
 
     def close(self):
-        self.closed=True;self.stop.set()
-        if self.entry.active:self.entry.cancel('停车服务关闭，输出已释放')
+        with self.lock:
+            self.closed=True;self.stop.set()
+            if self.entry.active:self.entry.cancel('停车服务关闭，输出已释放')
         if self.thread and self.thread is not threading.current_thread():self.thread.join(timeout=2)
