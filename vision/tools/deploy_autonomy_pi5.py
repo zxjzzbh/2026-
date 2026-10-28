@@ -31,8 +31,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True, help="extracted project root")
     parser.add_argument("--manifest", type=Path, required=True)
-    parser.add_argument("--host", required=True, help="explicit trusted Pi address; no personal address is shipped")
-    parser.add_argument("--host-key-alias", help="optional already-verified known_hosts name for this same Pi")
+    parser.add_argument("--host", choices=("100.124.156.117", "192.168.137.190"), default="100.124.156.117")
     parser.add_argument("--remote", default="/home/pi/smartcar-race-20261002")
     parser.add_argument("--ssh-deps", type=Path, help="optional existing directory containing paramiko")
     args = parser.parse_args()
@@ -55,8 +54,8 @@ def main():
         raise ValueError("deployment target must be the existing named Pi workspace")
     client = paramiko.SSHClient()
     client.load_host_keys(str(Path.home() / ".ssh/known_hosts"))
-    if args.host_key_alias:
-        pinned = client.get_host_keys().lookup(args.host_key_alias)
+    if args.host == "100.124.156.117":
+        pinned = client.get_host_keys().lookup("192.168.137.190")
         if not pinned:
             raise RuntimeError("verified Pi host key unavailable")
         for kind, key in pinned.items():

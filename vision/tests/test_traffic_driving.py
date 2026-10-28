@@ -37,16 +37,21 @@ class Run:
         raise AssertionError(self.rows[-1])
 
 
-def test_red_requires_half_the_last_two_seconds_and_brakes_at_equality():
+def test_first_red_frame_brakes_before_formal_red_reaches_half_the_window():
     r = Run()
     r.until('approach', moving=True)
-    for _ in range(9):
-        row = r.step('red', True)
-        assert row['action'] == 'search' and not row['red_seen_this_round']
     row = r.step('red', True)
     assert row['action'] == 'brake' and row['esc_us'] == 1400
-    assert row['red_seen_this_round'] and not row['parking_zone_verified']
-    assert row['red_vote']['red_frames'] == 10 and row['red_vote']['total_frames'] == 20
+    assert row['approach_guard']['stop_reason'] == 'first_trustworthy_red'
+    assert not row['red_seen_this_round']
+    for _ in range(2):row = r.step('red')
+    assert row['red_vote']['red_frames'] == 3 and row['red_vote']['red_percent'] == 30
+    assert not row['parking_zone_verified']
+    row = r.step('red')
+    assert row['action'] != 'search' and not row['red_seen_this_round']
+    row = r.step('red')
+    assert row['red_seen_this_round']
+    assert row['red_vote']['red_frames'] == 5 and row['red_vote']['total_frames'] == 10
     assert row['red_vote']['red_percent'] == 50
 
 
@@ -54,7 +59,11 @@ def test_unlit_fixture_can_be_approached_to_trigger_sensor_then_red_stops():
     r = Run('off'); r.until('approach', moving=True)
     assert r.rows[-1]['action'] == 'search' and not r.c.red_seen
     r.until('brake_pulse', 'red', True)
-    r.until('wait_green', 'off')
+    assert not r.c.red_seen
+    # A quick safety stop is not evidence of the full red/green task cycle.
+    # Keep observing red until its formal vote and stationary hold both pass.
+    r.until('wait_green', 'red')
+    assert r.c.red_seen
     for _ in range(10):
         assert r.step('off')['action'] == 'neutral'
     r.until('done', 'green')
@@ -69,11 +78,12 @@ def test_missing_fixture_allows_search_but_is_not_red_evidence():
     assert not row['red_seen_this_round'] and row['red_vote']['red_frames']==0
 
 
-def test_start_without_lamp_searches_until_fixed_approach_timeout():
+def test_initial_unknown_can_approach_for_the_saved_budget_without_waiting_for_untriggered_green():
     r = Run('unknown');r.until('approach',moving=True)
     assert r.rows[-1]['action']=='search'
-    r.until('fault','unknown',moving=True)
+    r.until('fault',moving=True)
     assert '接近超时' in r.c.reason and not r.c.red_seen
+    assert not any(row['phase']=='wait_green' for row in r.rows)
 
 
 def test_after_red_stop_missing_lamp_never_restarts_motion_or_speaks():
@@ -85,8 +95,10 @@ def test_after_red_stop_missing_lamp_never_restarts_motion_or_speaks():
 
 
 def test_yellow_seen_during_arming_still_stops_if_lamp_then_turns_off():
-    r = Run('off'); r.step('yellow'); r.until('wait_green')
+    r = Run('off'); r.step('yellow'); r.until('fault')
     assert not any(x['action'] == 'search' for x in r.rows)
+    assert any(x['phase']=='verify_red' for x in r.rows)
+    assert not any(x['phase']=='wait_green' for x in r.rows)
 
 
 @pytest.mark.parametrize('color', ['yellow'])
@@ -94,7 +106,7 @@ def test_other_non_green_stops_approach_and_does_not_fake_a_red_cycle(color):
     r = Run()
     r.until('approach', moving=True)
     assert r.step(color, True)['action'] == 'brake'
-    r.until('wait_green', color)
+    r.until('verify_red', color)
     for _ in range(15):
         assert r.step('green')['action'] == 'neutral'
     assert not r.c.red_seen
@@ -110,19 +122,21 @@ def test_red_during_arming_is_latched_even_when_it_turns_green_before_arm_end():
     assert r.rows[-1]['esc_us'] == 1500
 
 
-def test_one_red_frame_during_arming_does_not_latch_red_or_brake():
+def test_one_red_frame_during_arming_latches_stop_only_without_formal_red():
     r = Run(); r.step('red')
-    r.until('approach', 'green', True)
-    assert not r.c.red_seen and not r.c.stop_signal_seen
-    assert not any(x['action'] == 'brake' for x in r.rows)
+    r.until('verify_red', 'green', False)
+    assert not r.c.red_seen and r.c.stop_signal_seen
+    assert not any(x['action'] == 'search' for x in r.rows)
+    for _ in range(25):assert r.step('green')['events'] == []
 
 
-def test_candidate_fixture_change_before_confirmation_resets_vote_not_brakes():
+def test_unrelated_fixture_cannot_replace_locked_fixture_or_supply_red():
     r = Run('off'); r.until('approach', moving=True)
     row = r.step(moving=True, signal={'state': 'red', 'fixture_detected': True, 'bbox_xyxy': [280, 200, 460, 260]})
     assert row['action'] == 'search' and not row['red_seen_this_round']
     row = r.step('off', True)
-    assert row['action'] == 'search' and row['red_vote']['total_frames'] == 1
+    assert row['action'] == 'search' and row['red_vote']['red_frames'] == 0
+    assert row['approach_guard']['cameras']['secondary']['bbox_xyxy'] == [100,70,250,125]
 
 
 def test_vote_needs_a_full_two_seconds_even_when_all_initial_frames_are_red():
@@ -144,15 +158,38 @@ def test_vote_is_time_windowed_and_counts_every_state_in_denominator():
     assert row['red_frames'] == 9 and row['red_percent'] == 45 and not row['confirmed']
 
 
-@pytest.mark.parametrize('threshold,red_frames', [(25, 5), (50, 10), (75, 15), (100, 20)])
-def test_configured_threshold_changes_the_actual_brake_trigger(threshold, red_frames):
+@pytest.mark.parametrize('threshold,red_frames', [(25, 3), (50, 5), (75, 8), (100, 10)])
+def test_configured_threshold_confirms_red_after_quick_stop_before_green_completion(threshold, red_frames):
     r = Run('off'); r.c.s['red_confirm_percent'] = threshold
     r.c = TrafficDrivingController(r.c.s)
     r.until('approach', moving=True)
-    for _ in range(red_frames-1):
-        assert r.step('red', True)['action'] == 'search'
-    assert r.step('red', True)['action'] == 'brake'
-    assert r.rows[-1]['red_vote']['threshold_percent'] == threshold
+    for _ in range(2):
+        row = r.step('red', True)
+        assert row['action'] == 'brake' and not row['red_seen_this_round']
+    row = r.step('red', True)
+    assert row['action'] == 'brake' and row['esc_us'] == 1400
+    assert row['approach_guard']['stop_reason'] == 'first_trustworthy_red'
+    assert row['red_vote']['threshold_percent'] == threshold
+    if threshold == 25:
+        # At 25%, the third red frame also legitimately meets the formal vote.
+        assert row['red_seen_this_round'] and row['red_vote']['red_percent'] == 30
+    else:
+        assert not row['red_seen_this_round']
+        assert row['red_vote']['red_percent'] < threshold
+        for observed_red_frames in range(4, red_frames+1):
+            row = r.step('red')
+            assert row['action'] != 'search' and row['events'] == []
+            assert row['red_seen_this_round'] is (observed_red_frames == red_frames)
+        assert row['red_vote']['red_frames'] == red_frames
+        assert row['red_vote']['red_percent'] >= threshold
+    r.until('wait_green', 'red')
+    assert r.c.red_seen
+    for _ in range(5):
+        row = r.step('green')
+        assert row['action'] == 'neutral' and row['events'] == []
+    row = r.until('done', 'green')
+    assert row['esc_us'] == 1500
+    assert row['events'] == [{'event': 'speak', 'text': '红绿灯结束，开始前行'}]
 
 
 def test_window_is_two_seconds_not_a_fixed_number_of_frames():
@@ -172,7 +209,7 @@ def test_vote_rejects_duplicate_reversed_gapped_or_invalid_frames(fid,t):
 
 def test_one_red_cannot_authorize_green_speech_after_independent_safety_stop():
     r = Run('off'); r.until('approach', moving=True); r.step('red',True)
-    r.step('yellow',True); r.until('wait_green','green')
+    r.step('yellow',True); r.until('verify_red','green')
     for _ in range(15): assert r.step('green')['events'] == []
     assert not r.c.red_seen
 
@@ -279,7 +316,7 @@ def test_controller_actions_are_accepted_by_existing_finite_pulse_guard():
         row = r.step(color, moving)
         guard.accept({'sequence': i, 'sent_s': r.t, 'action': row['action'],
                       'esc_us': row['esc_us'], 'steering_us': row['steering_us']}, r.t)
-    assert (4, 1400) in writes and (4, 1600) in writes and writes[-2:] == [(4, 1500), (3, 1610)]
+    assert (4, 1400) in writes and (4, 1570) in writes and writes[-2:] == [(4, 1500), (3, 1610)]
 
 
 @pytest.mark.parametrize('changes', [{'green_action': 'forward'}, {'max_frame_age_s': 1},
@@ -296,11 +333,11 @@ def test_forward_ceiling_rejects_fast_or_reverse_commands():
 
 
 @pytest.mark.parametrize('pulse',[1501,1575,1600,1605,1625])
-def test_traffic_approach_uses_the_configured_tuning_value(pulse):
+def test_traffic_approach_caps_the_configured_tuning_value(pulse):
     r = Run('off');r.c.s['pwm']['search_us']=r.c.s['pwm']['creep_us']=pulse
     r.c=TrafficDrivingController(r.c.s)
     row=r.until('approach',moving=True)
-    assert row['esc_us']==pulse and row['steering_us']==1610
+    assert row['esc_us']==min(pulse,1570) and row['steering_us']==1610
     r.until('brake_pulse','red',True)
     assert r.rows[-1]['esc_us']==1400
 
@@ -315,7 +352,7 @@ def dual_step(r, primary, secondary, moving=False):
 
 @pytest.mark.parametrize('red_camera',['primary','secondary'])
 @pytest.mark.parametrize('green_camera',['primary','secondary'])
-def test_either_camera_can_stop_and_either_camera_can_finish_with_same_threshold(red_camera,green_camera):
+def test_green_release_requires_that_camera_to_confirm_the_same_red_cycle(red_camera,green_camera):
     r=Run('off');r.until('approach',moving=True)
     colors={red_camera:'red',('primary' if red_camera=='secondary' else 'secondary'):'off'}
     for _ in range(35):
@@ -327,9 +364,14 @@ def test_either_camera_can_stop_and_either_camera_can_finish_with_same_threshold
         row=dual_step(r,colors['primary'],colors['secondary'])
         assert row['action']=='neutral' and row['events']==[]
     row=dual_step(r,colors['primary'],colors['secondary'])
-    assert row['phase']=='done' and row['esc_us']==1500
+    assert row['esc_us']==1500
     assert row['signal_votes']['green_sources']==[green_camera]
-    assert row['events']==[{'event':'speak','text':'红绿灯结束，开始前行'}]
+    if red_camera == green_camera:
+        assert row['phase']=='done'
+        assert row['events']==[{'event':'speak','text':'红绿灯结束，开始前行'}]
+    else:
+        assert row['phase']=='wait_green' and row['events']==[]
+        assert row['red_sources_this_round'] == [red_camera]
 
 
 def test_green_before_stop_is_discarded_and_red_wins_conflicting_camera_after_stop():
@@ -344,5 +386,8 @@ def test_green_before_stop_is_discarded_and_red_wins_conflicting_camera_after_st
     assert row['signal_votes']['conflict'] and not row['stable']['green_confirmed']
     for _ in range(25):
         row=dual_step(r,'off','green')
+        assert row['phase']=='wait_green' and row['events']==[]
+    for _ in range(25):
+        row=dual_step(r,'green','green')
         if row['phase']=='done':break
     assert row['phase']=='done'

@@ -11,14 +11,13 @@ This software watchdog still depends on OS scheduling and UART writes; it is
 not an MCU watchdog or a substitute for physical cutoff.
 """
 
-from .steering import LEFT_US, RIGHT_US
-
 import math
 import threading
 import time
 from dataclasses import dataclass
 
 from .rasadapter5 import RasAdapter
+from .steering_limits import STEERING_LEFT_US, STEERING_RIGHT_US
 
 
 @dataclass(frozen=True)
@@ -70,8 +69,8 @@ class RasAdapterExecutionConfig:
             "steering_right_us",
         ):
             value = getattr(self, name)
-            if value is not None and (type(value) is not int or not RIGHT_US <= value <= LEFT_US):
-                raise ValueError(f"{name} must fit the S3 1350..1870 us range")
+            if value is not None and (type(value) is not int or not STEERING_RIGHT_US <= value <= STEERING_LEFT_US):
+                raise ValueError(f"{name} must fit the reviewed S3 1350..1870 us range")
         for name, reviewed in (("esc_neutral_us", 1500), ("esc_forward_us", 1575),
                                ("esc_reverse_us", 1300)):
             value = getattr(self, name)

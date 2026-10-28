@@ -14,15 +14,24 @@ import cv2
 import numpy as np
 
 from .brake_output import BrakeActuator
-from .brake_parking import BrakeParkingController, GroundMotionEstimate, load_settings, numeric, brake_trigger_reference
+from .brake_parking import (BrakeParkingController, GroundMotionEstimate, load_settings, numeric,
+                            brake_trigger_reference, crosswalk_trigger_reference,
+                            crosswalk_calibrated_settings, crosswalk_distance_limits)
 from .config import load_config
 from .crosswalk import CrosswalkDetector
 from .lane import LaneDetector
 from .parking_speech import ParkingSpeech
+from .crosswalk_calibration import load_profile,validate_profile
 
 
 class TrialCamera:
-    def __init__(self, states, settings):
+    def __init__(self, states, settings, *, clock=None):
+        self.calibrated = None
+        if settings.get('crosswalk_calibration') is not None:
+            from .crosswalk_observation import CalibratedTrialCamera
+            self.calibrated = CalibratedTrialCamera(states, settings,clock=clock)
+            self.jpeg = None
+            return
         self.state = states[settings['camera']]
         self.settings = settings
         self.last_id = None
@@ -32,6 +41,10 @@ class TrialCamera:
         self.jpeg = None
 
     def read(self, now):
+        if self.calibrated is not None:
+            result = self.calibrated.read(now)
+            self.jpeg = self.calibrated.jpeg
+            return result
         state = self.state
         with state.condition:
             jpeg, frame_id, captured = state.raw_jpeg, state.raw_frame_id, state.raw_received_ms
@@ -66,6 +79,7 @@ class BrakeTrialDrive:
         self.root, self.clock = Path(root), clock
         self.settings_path = self.root/'vision/configs/brake-parking.local.json'
         self.settings_error = None
+        self.calibration_error = None
         self.settings_revision = secrets.token_hex(8)
         if self.settings_path.exists():
             try:
@@ -75,7 +89,22 @@ class BrakeTrialDrive:
                 self.settings = candidate
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 self.settings_error = '已保存距离无效，请在页面重新保存：'+str(exc)
-        self.brake_reference = brake_trigger_reference(self.settings)
+        try:
+            self.settings = crosswalk_calibrated_settings(self.settings,self.root)
+        except (OSError,ValueError,KeyError,TypeError) as exc:
+            self.settings_error = '新斑马线标定不可用，已禁止开始：'+str(exc)
+            # A bad trigger must not discard a valid geometric table. A bad
+            # table, however, cannot be repaired by the distance-save action.
+            try:
+                profile=load_profile(self.root/'vision/configs/crosswalk-distance-calibration.json',require_ready=True)
+                profile=validate_profile(profile,require_ready=True)
+                self.settings={**self.settings,'crosswalk_calibration':profile,
+                               'crosswalk_distance_trigger_m':profile['overlap_range_m'][0]}
+            except (OSError,ValueError,KeyError,TypeError):
+                self.calibration_error=self.settings_error
+        self.brake_reference = crosswalk_trigger_reference(self.settings)
+        if self.settings.get('crosswalk_calibration') is not None:
+            self.settings_path = self.root/'vision/configs/crosswalk-distance.local.json'
         self.active_settings = copy.deepcopy(self.settings)
         self.round_number = 0
         self.actuator_factory = actuator_factory or (
@@ -93,6 +122,36 @@ class BrakeTrialDrive:
         self.arm_until = self.started = None
         self.path_mode = 'straight'
         self.latest = self.speech = self.controller = None
+        self.distance_reader = None
+        self.distance_reader_revision = None
+        self.distance_sample = None
+        self.distance_checked = -1e9
+        self.distance_error = None
+
+    def _distance_status(self):
+        """Read-only idle observation: no actuator, UART acquisition or drive action."""
+        if self.settings.get('crosswalk_calibration') is None:return None
+        now=self.clock()
+        if not self.busy and now-self.distance_checked>=.25:
+            self.distance_checked=now
+            try:
+                if self.distance_reader_revision!=self.settings_revision:
+                    self.distance_reader=TrialCamera(self.states,self.settings,clock=self.clock)
+                    self.distance_reader_revision=self.settings_revision
+                    self.distance_sample=None
+                value=self.distance_reader.read(now)
+                if value is not None:self.distance_sample=value
+                self.distance_error=None
+            except (ValueError,KeyError,TypeError) as exc:
+                self.distance_error=str(exc)
+        sample=self.distance_sample
+        if self.distance_error:return {'state':'error','reason':self.distance_error}
+        if not sample:return {'state':'starting'}
+        now=self.clock()  # A new capture may arrive during the two-view read.
+        age=now-sample['captured_s']
+        if not 0<=age<=self.settings.get('crosswalk_max_frame_age_s',self.settings['max_frame_age_s']):return {'state':'stale','age_s':age}
+        return {'state':'ok',**{k:sample.get(k) for k in ('calibration_id','source_camera','frame_id','captured_s',
+                    'candidate','distance_estimate_m','distance_status','near_edge_y_normalized','near_limit_reached')}}
 
     def status(self):
         with self.lock:
@@ -104,17 +163,24 @@ class BrakeTrialDrive:
                               '原遥控仍在准备或故障状态；先结束准备或关闭电调后重置')
             blocked_reason = self.settings_error or blocked_reason
             trial = {'program': 'fb-brake-v1', 'active': self.busy,
+                     'frame_age_limit_ms':self.settings.get('crosswalk_max_frame_age_s',self.settings['max_frame_age_s'])*1000,
+                     'actuator_lease_ms':self.settings['actuator_lease_s']*1000,
                      'phase': self.phase, 'reason': self.reason, 'owner_client': self.client,
                      'run_token': self.token, 'can_prepare': not self.busy and (manual_idle or can_end_manual) and not self.closed and not self.settings_error,
                      'can_end_manual': can_end_manual, 'prepare_blocked_reason': blocked_reason,
                      'can_start': self.busy and self.phase in ('ready', 'complete'), 'esc_mode': 'F/B',
-                     'camera': 'secondary', 'brake_trigger': self.brake_reference,
-                     'running_brake_trigger': brake_trigger_reference(self.active_settings),
+                     'camera': 'dual' if self.settings.get('crosswalk_calibration') else 'secondary', 'brake_trigger': self.brake_reference,
+                     'running_brake_trigger': crosswalk_trigger_reference(self.active_settings),
+                     'calibration_id': (self.settings.get('crosswalk_calibration') or {}).get('profile_id'),
+                     'distance_feature': self.brake_reference.get('image_feature','legacy_far_edge'),
+                     'distance_observation': self._distance_status(),
                      'settings_revision': self.settings_revision, 'settings_error': self.settings_error,
+                     'can_save_distance': self.calibration_error is None,
                      'round_number': self.round_number, 'hold_s': self.settings['hold_s'],
                      'speech_text': self.settings['speech_text'],
-                     'distance_limits_cm': [25,65],
-                     'reference_summary': f"H65 第二路：65 / 50 / 25 cm 标定保留；约 {self.brake_reference['distance_m']*100:g} cm 触发制动（原标定插值）",
+                     'distance_limits_cm': crosswalk_distance_limits(self.settings),
+                     'reference_summary': (f"当前双摄近边标定：40 / 50 / 65 cm；约 {self.brake_reference['distance_m']*100:g} cm 开始刹车，实际停车位置待实测" if self.settings.get('crosswalk_calibration') else
+                         f"H65 第二路：65 / 50 / 25 cm 标定保留；约 {self.brake_reference['distance_m']*100:g} cm 触发制动（原标定插值）"),
                      'arming_remaining_s': max(0, self.arm_until-self.clock()) if self.phase == 'arming' else 0,
                      'intent': self.latest, 'speech': self.speech.status() if self.speech else None,
                      'log_directory': str(self.folder) if self.folder else None,
@@ -155,18 +221,24 @@ class BrakeTrialDrive:
             if not isinstance(client, str) or not 1 <= len(client) <= 128:
                 raise ValueError('控制页面身份无效')
             if action == 'crosswalk_settings':
+                if self.calibration_error:
+                    raise ValueError(self.calibration_error)
                 if payload.get('settings_revision') != self.settings_revision:
                     raise ValueError('距离已被其他操作更新，请读取当前值后再保存')
                 if self.busy and client != self.client:
                     raise ValueError('请在持有本轮控制权的页面调整距离')
                 cm = payload.get('brake_distance_cm')
-                if not numeric(cm) or not 25 <= cm <= 65:
-                    raise ValueError('现有标定支持 25–65 cm；超出范围需要补充实测标定')
-                updated = {**self.settings, 'brake_trigger_distance_m': cm/100}
-                trigger = brake_trigger_reference(updated)
+                lo,hi = crosswalk_distance_limits(self.settings)
+                if not numeric(cm) or not lo <= cm <= hi:
+                    raise ValueError(f'当前实测标定只支持 {lo:g}–{hi:g} cm，禁止外推')
+                calibrated = self.settings.get('crosswalk_calibration') is not None
+                updated = {**self.settings, ('crosswalk_distance_trigger_m' if calibrated else 'brake_trigger_distance_m'): cm/100}
+                trigger = crosswalk_trigger_reference(updated)
                 self.settings_path.parent.mkdir(parents=True, exist_ok=True)
                 temporary = self.settings_path.with_suffix('.json.tmp')
-                temporary.write_text(json.dumps({'schema_version':1,'brake_trigger_distance_m':cm/100},indent=2),encoding='utf-8')
+                saved = {'schema_version':1,'brake_trigger_distance_m':cm/100}
+                if calibrated:saved['calibration_id']=self.settings['crosswalk_calibration']['profile_id']
+                temporary.write_text(json.dumps(saved,indent=2),encoding='utf-8')
                 temporary.replace(self.settings_path)
                 self.settings, self.brake_reference = updated, trigger
                 self.settings_error = None
@@ -175,6 +247,15 @@ class BrakeTrialDrive:
             if action == 'crosswalk_prepare':
                 if not self.status()['crosswalk_trial']['can_prepare']:
                     raise ValueError('先结束原遥控控制，并等待电调关闭准备状态')
+                # Recheck the on-disk profile before UART acquisition. The
+                # returned settings are then frozen for this preparation.
+                try:
+                    self.settings=crosswalk_calibrated_settings(self.settings,self.root)
+                    self.brake_reference=crosswalk_trigger_reference(self.settings)
+                except (OSError,ValueError,KeyError,TypeError) as exc:
+                    self.settings_error='新标定文件在准备前发生变化：'+str(exc)
+                    self.calibration_error=self.settings_error
+                    raise ValueError(self.settings_error) from exc
                 if payload.get('setup_token') != self.drive.status().get('setup_token'):
                     raise ValueError('控制页面已变化，请刷新')
                 if payload.get('esc_off') is not True or payload.get('fb_mode_confirmed') is not True:
@@ -239,7 +320,9 @@ class BrakeTrialDrive:
                 if self.clock() >= release_deadline:
                     raise ValueError('原遥控尚未释放串口，请结束控制后重试')
                 self.stop.wait(.01)
-            reader = self.reader_factory(self.states, self.settings)
+            reader = (self.reader_factory(self.states,self.settings,clock=self.clock)
+                      if self.reader_factory is TrialCamera else self.reader_factory(self.states,self.settings))
+            reader_round = self.round_number
             # A broken/mismatched camera must be caught before UART acquisition.
             first = reader.read(self.clock())
             if first is None:
@@ -260,6 +343,14 @@ class BrakeTrialDrive:
                             raise ValueError('控制页心跳中断，已结束本轮')
                         if self.phase in ('preparing', 'ready', 'complete') and now-prepared_at > 120:
                             raise ValueError('等待开始超时，请重新准备')
+                        if reader_round != self.round_number:
+                            # Selection priority depends on this round's brake
+                            # trigger as well as the calibration table. Freeze
+                            # the reader and controller to the same snapshot.
+                            reader = (self.reader_factory(self.states,copy.deepcopy(self.active_settings),clock=self.clock)
+                                      if self.reader_factory is TrialCamera else self.reader_factory(self.states,copy.deepcopy(self.active_settings)))
+                            reader_round = self.round_number
+                            sample = None
                     if sample is None:
                         sample = reader.read(now)
                     if sample is None:
@@ -269,9 +360,15 @@ class BrakeTrialDrive:
                     with self.lock:
                         if self.stop.is_set():
                             break
+                        if reader_round != self.round_number:
+                            # A start may arrive while decoding outside the
+                            # lock. Do not apply its previous-round sample.
+                            sample = None
+                            continue
                         if now > self.lease_until:
                             raise ValueError('控制页心跳中断，已结束本轮')
-                        if not 0 <= now-sample['captured_s'] <= self.settings['max_frame_age_s']:
+                        limit=self.active_settings.get('crosswalk_max_frame_age_s',self.active_settings['max_frame_age_s'])
+                        if not 0 <= now-sample['captured_s'] <= limit:
                             raise ValueError('视觉处理后图像已过期')
                         if self.phase in ('preparing', 'ready'):
                             self.phase, self.reason = 'ready', '中位已准备；打开电调并确认静止后点击开始'
@@ -285,10 +382,12 @@ class BrakeTrialDrive:
                                       'steering_us': 1610, 'events': []}
                         else:
                             if self.controller is None:
-                                self.controller = BrakeParkingController(self.active_settings, self.path_mode)
+                                self.controller = BrakeParkingController(self.active_settings, self.path_mode, first_detection_stop=True,crosswalk=True)
                                 self.started = now
                             intent = self.controller.step(sample, now)
                             self.phase, self.reason = intent['phase'], intent['reason']
+                        if self.settings.get('crosswalk_calibration') is not None:
+                            self.distance_sample=copy.deepcopy(sample);self.distance_error=None
                         self.latest = intent
                         if self.round_number != logged_round:
                             (self.folder/f'round-{self.round_number:03d}.settings.json').write_text(
@@ -307,7 +406,7 @@ class BrakeTrialDrive:
                             stream.write(json.dumps(row, ensure_ascii=False, allow_nan=False)+'\n')
                             stream.flush()
                         if intent['phase'] in ('brake_pulse', 'hold') and reader.jpeg:
-                            evidence = self.folder/(f'round-{self.round_number:03d}-'+intent['phase']+'.jpg')
+                            evidence = self.folder/(f'round-{self.round_number:03d}-'+intent.get('stop_stage','original_operation')+'-'+intent['phase']+'.jpg')
                             if not evidence.exists():
                                 evidence.write_bytes(reader.jpeg)
                         if self.phase == 'done':

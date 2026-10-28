@@ -29,7 +29,7 @@ def arm(s):
 
 def test_rectangle_and_near_clipped_panel_are_present_but_small_cone_is_not():
     image=scene();cv2.rectangle(image,(170,100),(290,250),(255,0,0),-1)
-    result=detect_board(image);assert result['state']=='present'
+    result=detect_board(image,min_blue_percent=3);assert result['state']=='present'
     assert result['dimensions_cm']=={'width':40,'height':50} and not result['metric_distance_available']
     json.dumps(result,allow_nan=False)
     assert detect_board(np.full((360,480,3),(255,0,0),np.uint8))['state']=='present'
@@ -37,9 +37,25 @@ def test_rectangle_and_near_clipped_panel_are_present_but_small_cone_is_not():
     assert detect_board(image)['state']=='absent'
 
 
+def test_side_parking_board_is_not_a_start_board():
+    image=scene();cv2.rectangle(image,(365,90),(475,285),(255,0,0),-1)
+    result=detect_board(image)
+    assert result['state']=='absent'
+    assert result['boxes']==[]
+
+
 def test_real_historical_close_board_is_recognized():
     image=cv2.imdecode(np.frombuffer((Path(__file__).parent/'fixtures/blue-board-close.jpg').read_bytes(),np.uint8),cv2.IMREAD_COLOR)
+    assert detect_board(image,min_blue_percent=3)['state']=='present'
+
+
+def test_default_requires_blue_board_to_cover_half_of_the_camera_frame():
+    image=scene();cv2.rectangle(image,(170,100),(290,250),(255,0,0),-1)
+    assert detect_board(image)['state']=='unknown'
+    image=scene();cv2.rectangle(image,(85,30),(395,330),(255,0,0),-1)
+    assert detect_board(image)['largest_blue_fraction']>=.5
     assert detect_board(image)['state']=='present'
+    assert detect_board(np.full((360,480,3),(255,0,0),np.uint8))['state']=='present'
 
 
 @pytest.mark.parametrize('value',[0,15,255])
@@ -59,6 +75,14 @@ def test_confirmed_board_then_both_clear_triggers_once():
     assert sum(events)==1 and s.phase=='complete'
 
 
+def test_shortest_configured_clear_confirmation_is_still_frame_and_time_gated():
+    s=DepartureSequence(.5);arm(s)
+    events=[]
+    for i in range(4,8):events.append(s.update(rows(i*.2,i,'absent','absent'),i*.2))
+    assert sum(events)==1 and s.phase=='complete'
+    assert not s.update(rows(2.,99,'absent','absent'),2.)
+
+
 def test_secondary_alone_can_establish_presence_and_blocks_removal():
     s=DepartureSequence()
     for i in range(15):assert not s.update(rows(i*.2,i,'absent','present'),i*.2)
@@ -66,7 +90,7 @@ def test_secondary_alone_can_establish_presence_and_blocks_removal():
 
 
 def test_brief_miss_and_reappearance_restart_clear_count():
-    s=DepartureSequence();arm(s)
+    s=DepartureSequence(1.);arm(s)
     for i in range(4,7):assert not s.update(rows(i*.2,i,'absent','absent'),i*.2)
     assert not s.update(rows(1.4,7),1.4) and s.clear_elapsed==0
     for i in range(8,12):assert not s.update(rows(i*.2,i,'absent','absent'),i*.2)
@@ -105,11 +129,11 @@ def test_one_clear_board_view_can_confirm_presence_while_other_has_ambiguous_sha
 def test_tunable_area_threshold_rejects_small_blue_panel_at_higher_setting():
     image=scene();cv2.rectangle(image,(210,160),(260,240),(255,0,0),-1)
     assert detect_board(image,min_blue_percent=1.5)['state']=='present'
-    assert detect_board(image,min_blue_percent=3.)['state']=='absent'
-    assert detect_board(image)['min_blue_percent']==3.
+    assert detect_board(image,min_blue_percent=3.)['state']=='unknown'
+    assert detect_board(image)['min_blue_percent'] == pytest.approx(60000/(640*480)*100)
 
 
-@pytest.mark.parametrize('area',[True,0,.4,31,float('nan'),'3'])
+@pytest.mark.parametrize('area',[True,0,.4,101,float('nan'),'3'])
 def test_area_threshold_validation(area):
     with pytest.raises(ValueError):detect_board(scene(),min_blue_percent=area)
 
@@ -205,7 +229,7 @@ def test_invalid_saved_settings_can_be_repaired_with_save(tmp_path):
     file=tmp_path/'vision/configs/departure.local.json';file.parent.mkdir(parents=True);file.write_text('{bad',encoding='utf-8')
     base=Base();trial=DepartureTrialDrive(base,{},tmp_path)
     state=trial.status()['departure_trial'];assert not state['can_start'] and state['can_save']
-    trial.request('departure_save',{'setup_token':'boot','settings_revision':trial.settings_revision,'min_blue_percent':3,'clear_confirm_s':1})
+    trial.request('departure_save',{'setup_token':'boot','settings_revision':trial.settings_revision,'min_blue_percent':50,'clear_confirm_s':1})
     assert trial.status()['departure_trial']['can_start']
 
 

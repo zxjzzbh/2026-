@@ -75,7 +75,7 @@ def test_status_settings_and_manual_forward_do_not_open_new_hardware(trial):
     assert restored.settings['pwm']['search_us'] == 1565 and restored.settings['max_approach_s'] == 2
 
 
-def test_higher_forward_is_saved_without_driving_and_used_by_next_round(trial):
+def test_higher_forward_is_saved_but_capped_for_the_next_round(trial):
     w, base, now, opened=trial
     assert w.settings['pwm']['search_us']==1600
     w.request('traffic_settings',{'client':'page','settings_revision':w.settings_revision,'forward_us':1605})
@@ -83,10 +83,10 @@ def test_higher_forward_is_saved_without_driving_and_used_by_next_round(trial):
     assert restored.settings['pwm']['search_us']==1605
     prepare(w);ready(w,now[0])
     w.request('traffic_start',owned(w,fb_mode_confirmed=True,esc_on_static=True,field_ready=True))
-    assert w.controller.s['pwm']['search_us']==1605 and not opened
+    assert w.controller.s['pwm']['search_us']==1570 and not opened
     with pytest.raises(ValueError):
         w.request('traffic_settings',{'client':'page','settings_revision':w.settings_revision,'forward_us':1610})
-    assert w.active_settings['pwm']['search_us']==1605
+    assert w.active_settings['pwm']['search_us']==1570
 
 
 def test_only_traffic_factory_requests_the_higher_output_envelope(trial,monkeypatch):
@@ -95,7 +95,7 @@ def test_only_traffic_factory_requests_the_higher_output_envelope(trial,monkeypa
     actual=TrafficTrialDrive(base,{},CONFIG,PROFILE,w.root)
     actual.actuator_factory()
     assert calls[0][1]['forward_limit_us']==1625
-    assert calls[0][0][0]['pwm']['search_us']==1600
+    assert calls[0][0][0]['pwm']['search_us']==1570
 
 
 @pytest.mark.parametrize('pulse',[1500,1626,1700,True,float('nan')])
@@ -112,7 +112,8 @@ def test_red_percentage_persists_and_is_frozen_while_prepared(trial):
     w.request('traffic_settings', {'client': 'page', 'settings_revision': w.settings_revision,
                                    'red_confirm_percent': 70})
     restored = TrafficTrialDrive(base, {}, CONFIG, PROFILE, w.root)
-    assert restored.settings['red_confirm_percent'] == 70 and restored.settings['red_window_s'] == 2
+    assert restored.settings['red_confirm_percent'] == 70 and restored.settings['red_window_s'] == 1
+    assert restored.settings['green_window_s'] == 2 and restored.settings['brake_pulse_s'] == .35
     prepare(w); ready(w,now[0])
     w.request('traffic_start', owned(w, fb_mode_confirmed=True, esc_on_static=True, field_ready=True))
     assert w.controller.votes.threshold == 70
@@ -312,7 +313,7 @@ def test_decision_and_motion_use_same_secondary_frame_even_if_primary_is_broken(
     primary,secondary=state(20,90),state(180,7)
     primary.state='error'
     reader=TrafficCamera({'primary':primary,'secondary':secondary},load_settings(CONFIG),None)
-    reader.detectors['secondary']=SimpleNamespace(detect=lambda image:{'state':'red' if image.mean()>100 else 'green','bbox_xyxy':None})
+    reader.detectors['secondary']=SimpleNamespace(detect=lambda image, **kw:{'state':'red' if image.mean()>100 else 'green','bbox_xyxy':None})
     sample=reader.read(1)
     assert sample['camera_id']=='dual' and sample['camera_observations']['secondary']['frame_id']==7 and sample['signal']['state']=='red'
     assert reader.jpegs['secondary']==secondary.raw_jpeg and sample['motion']['captured_s']==sample['captured_s']
@@ -343,7 +344,7 @@ def test_both_streams_use_original_classifier_profile_and_keep_independent_ids()
     assert all(type(d) is TrafficSignalDetector for d in reader.detectors.values())
     assert reader.detectors['primary'].profile==reader.detectors['secondary'].profile
     seen=[]
-    def detect(image):
+    def detect(image, **kw):
         seen.append(round(float(image.mean())))
         return {'state':'red' if image.mean()>100 else 'green','fixture_detected':True,'bbox_xyxy':[20,20,200,90]}
     for c in reader.detectors:reader.detectors[c]=SimpleNamespace(detect=detect)
@@ -366,11 +367,11 @@ def test_secondary_published_during_primary_processing_is_not_mistaken_for_futur
     p,s=state(),state();timer=[10.]
     monkeypatch.setattr('carvision.traffic_trial.time.perf_counter',lambda:timer[0])
     reader=TrafficCamera({'primary':p,'secondary':s},load_settings(CONFIG),None)
-    def first(image):
+    def first(image, **kw):
         timer[0]+=.1;s.raw_received_ms=1100
         return {'state':'unknown','bbox_xyxy':None}
     reader.detectors['primary']=SimpleNamespace(detect=first)
-    reader.detectors['secondary']=SimpleNamespace(detect=lambda image:{'state':'unknown','bbox_xyxy':None})
+    reader.detectors['secondary']=SimpleNamespace(detect=lambda image, **kw:{'state':'unknown','bbox_xyxy':None})
     sample=reader.read(1.)
     assert set(sample['camera_observations'])=={'primary','secondary'}
     assert sample['camera_observations']['secondary']['captured_s']==1.1

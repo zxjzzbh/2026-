@@ -1,0 +1,2628 @@
+{
+  "source_revision": "white-lane-row-tracking-local-20261026",
+  "publication_date": "2026-10-28",
+  "base_commit": "02bb367a597720cc5b2cbf9eb3e3451d74c343ff",
+  "format": "SHA256 of Git index blobs; .gitattributes normalization applies",
+  "files": [
+    {
+      "path": "drivers/pigpio/Makefile",
+      "sha256": "b34c9b3f41f403f1590a09916b9a683189180ad90016c0590b1e2c4db27ccebe",
+      "git_blob_sha": "0aa14fe400303e6efbc371be38f6fa93cb5ec9e8"
+    },
+    {
+      "path": "drivers/pigpio/README",
+      "sha256": "148d4375cc67bae98b712e3954580bddf180af38b758dd5c70c889d88be712e0",
+      "git_blob_sha": "ed453a902b630622a9722e2a68c1389c1935148f"
+    },
+    {
+      "path": "drivers/pigpio/UNLICENCE",
+      "sha256": "6a90b88421a0d9b090e121daa11b3c6d55eed5eeb3281a2fcc454d6a28b5547c",
+      "git_blob_sha": "471f09f4cfb55e0f1eada17d06022eccead0c747"
+    },
+    {
+      "path": "drivers/pigpio/command.c",
+      "sha256": "20086424f6dcf4e3777dbb3e0625ae3bbe91b3f9d2e183aac1fd71be86b5e956",
+      "git_blob_sha": "ffc34630edbe8d174a56d98cdeec324b0694bd7d"
+    },
+    {
+      "path": "drivers/pigpio/command.h",
+      "sha256": "47c1f41b24788b6214321507b35dbeeba7f7490e8b2fbc183d9009f7ad3b5382",
+      "git_blob_sha": "3e5c3364314ab7f6da81cb8498aaf61e77a443c0"
+    },
+    {
+      "path": "drivers/pigpio/custom.cext",
+      "sha256": "8addd3446e2f0b0fd5ba010292bf0c89d8a07c4975db37e926e0075fff29128f",
+      "git_blob_sha": "905884d433075df21458e7474f9f84f3cdc7d268"
+    },
+    {
+      "path": "drivers/pigpio/pigpio.c",
+      "sha256": "91e254814aa772f5a115c7846d624a852bbda9982cd8e8acb70b929927f3d611",
+      "git_blob_sha": "97bfc54b125e7bc26da378b722b4d63de0bdddff"
+    },
+    {
+      "path": "drivers/pigpio/pigpio.h",
+      "sha256": "b20dc8efb79560dd11f58ccb787c0faefd8ed5fff20079827170856794a1b248",
+      "git_blob_sha": "1b8e51c82ab7d9e078b2b83a9fedc516e9dda510"
+    },
+    {
+      "path": "drivers/pigpio/pigpiod.c",
+      "sha256": "ced3d02d609a35ab623cb161df81745291ba042c8c7213bfd1844af6d8870344",
+      "git_blob_sha": "899ddf8eb5649b35b80ac4265b8f1ac92f7ae8ef"
+    },
+    {
+      "path": "drivers/pigpio/upstream.json",
+      "sha256": "c18ef1ed25ee5db1b2ea37666dbfb527336c3dbbe67626e91dcc3df4a0ed2fd4",
+      "git_blob_sha": "a3d344cb102dddb8e97004d65ee9875529601d2c"
+    },
+    {
+      "path": "interfaces/README.md",
+      "sha256": "80aaf5ad9c506d0bba260d2e6570f65116c80e7a35d659da931b643e3eca8e4a",
+      "git_blob_sha": "f721068af6639fb166cb094eeaf7bdb55fc7d602"
+    },
+    {
+      "path": "interfaces/race-observation-0.2.md",
+      "sha256": "2c6b0bb20cd558c906b754be31c4265465cdec0fe7ffa84981215e5148786faf",
+      "git_blob_sha": "8848357ff00be5d9da412ffbce537647be95d451"
+    },
+    {
+      "path": "interfaces/vision-result-v0.1.md",
+      "sha256": "53cfe04b74e0ae63a01ade30928363d8f4c0ef72566c6369cd982503748de98d",
+      "git_blob_sha": "45eaaa11dfebdcd32aafbaebabfe984f091a0d4f"
+    },
+    {
+      "path": "pc-launcher/launch_vehicle.py",
+      "sha256": "2b63c0a79a9bc06dfca603c30d0e4ca26cf0599a3ff66aa5ba89101d56873e71",
+      "git_blob_sha": "53900db7cd60defd3e29a8d02bcf354bcbdc0fd6"
+    },
+    {
+      "path": "pc-launcher/oneclick.pyw",
+      "sha256": "81afcfe935602002d660f7af613d64dc7c874fa499213bfd07371fd01367c4f5",
+      "git_blob_sha": "bf083a83ebdcdda1b9f50caee964125669979d77"
+    },
+    {
+      "path": "pc-launcher/start.cmd",
+      "sha256": "5a9cc5412ebe43fee3b4d153035dc5f961aebec8ab8c11e5b53840297d398ac1",
+      "git_blob_sha": "2f587ba8bc25f14e8160cd2c7c9c29911c99c298"
+    },
+    {
+      "path": "pc-launcher/使用说明.txt",
+      "sha256": "44715ab15d3ade805ae6a4ee5a451d98d9c2b2224295dc623d7f2c4c50ebd356",
+      "git_blob_sha": "5dc3c18091b33efc1bd07c25dc441756fa5cef18"
+    },
+    {
+      "path": "vision/ALGORITHM_EDGE_PD.md",
+      "sha256": "593090067b291fdcc40c15cdbb34b76e9dd2913055e48ddf221b3e11cc5c07a3",
+      "git_blob_sha": "265aff53c928d26388d6165d0f08c12926f1eb6d"
+    },
+    {
+      "path": "vision/ANNOTATION.md",
+      "sha256": "cd62682d25bc484bbf17e04ceefa7c4f37f70069be11b880d110e037f312d14e",
+      "git_blob_sha": "f0651b02503694764a42aed70c4333b6df503dea"
+    },
+    {
+      "path": "vision/AUTONOMY_PI5.md",
+      "sha256": "5555d79b5f0c624895443fda02089f21827feee8d7a96e3f0376b40ce1ca61fa",
+      "git_blob_sha": "9c093c5cdc4259dba1015a8fd97efef4f9686930"
+    },
+    {
+      "path": "vision/BEGINNER_GUIDE.md",
+      "sha256": "8739a128acfb62ab09b1f64177217664dd2712d40c224654b1033cb75470ebfc",
+      "git_blob_sha": "a08e2629b3728de0edaed82254e9322626935b9b"
+    },
+    {
+      "path": "vision/BENCH_CALIBRATION.md",
+      "sha256": "19f9c56b55f75a2d8c9b5a9fce75b7b819c11528fbf9ddd88a07635a71f064c9",
+      "git_blob_sha": "2aadecb276682072cd9296897496845ca6460b1f"
+    },
+    {
+      "path": "vision/BOOT_TEST.md",
+      "sha256": "bb99436ab4fe6f439c23c6de82a5eb57bfa2cc50ebc4a062587ff6462eb50f48",
+      "git_blob_sha": "324fe599fb255eba1700e4cff985bfc6a61482d3"
+    },
+    {
+      "path": "vision/BRAKE_PARKING.md",
+      "sha256": "7dea4f5582ebcf9baf41dfc3aa39cf9eeceeb54ab8f208faf633e852c5b557c3",
+      "git_blob_sha": "a13e8402ef8b7b53ca805a806f7111fbc6c0bb8d"
+    },
+    {
+      "path": "vision/CAMERAS_GIMBAL.md",
+      "sha256": "da5ee5861d7baafb4d3c68e4e9f8cbc40c3b577be5ff15edae4695fce5eb3a22",
+      "git_blob_sha": "224ce31232a1852d6ec04c47d34d7c408d0a3a5f"
+    },
+    {
+      "path": "vision/CAMERA_TEST_2026-09-23.md",
+      "sha256": "7414ed22cdc919ea940784ec1e968422252c60180b32addadc2c4f79973ae07f",
+      "git_blob_sha": "ffba3b0e8e7daa5c1c5a796c007c6543ebfc9db7"
+    },
+    {
+      "path": "vision/COMPETITION_PAGE.md",
+      "sha256": "6e7b5da85e3c4c993f6efeaf43ad92468320adb3cb991965f83d6749764c40d3",
+      "git_blob_sha": "85f0fd8039e113134634f4e7424df38c1211a2cf"
+    },
+    {
+      "path": "vision/CONE_TEST.md",
+      "sha256": "4dd3fcf48016b67ba2c6ee9c995c999d93f4498634395234d30a9b0159787653",
+      "git_blob_sha": "7fb11c17dcce053f78b22b1062f6f52cac0d1cbb"
+    },
+    {
+      "path": "vision/CONSOLE_ACCESS.md",
+      "sha256": "807619d2df07692606d12d7429585a3a782a80219cf8b4d5405fe53a68edd446",
+      "git_blob_sha": "9d25131d7fd798a66175f17bb19777e05f755e19"
+    },
+    {
+      "path": "vision/CROSSWALK_3S.md",
+      "sha256": "40745350ce29dad71c6fb4b7ed10e3f7184b151aba55f80d95bd258beb6a8acd",
+      "git_blob_sha": "3eef1937ebd9de534c3c647d50f63a43505ff7eb"
+    },
+    {
+      "path": "vision/CROSSWALK_PARKING_TEST.md",
+      "sha256": "5bd50f662122d41fc083c81240475ea95f74697a984f3894a792ec8458c01de7",
+      "git_blob_sha": "432ab8d1c5c96657353b51ef7a17684d0cf0a368"
+    },
+    {
+      "path": "vision/DATA_COLLECTION.md",
+      "sha256": "5324dcf31b2e8deec591b2731a9d07b7a6b31ca3779c8588ca431dfc0925929e",
+      "git_blob_sha": "35b9bbd0c47db2787e584202a4a8017f0f23efed"
+    },
+    {
+      "path": "vision/DEPARTURE_TEST.md",
+      "sha256": "122e671affb2eff02f553fa24dbf8fe64b28ecf9183c3940086462c1d79dbd68",
+      "git_blob_sha": "ab6396b839202fb3fb283e99e51bfa6bacbea3dc"
+    },
+    {
+      "path": "vision/ESC_BENCH.md",
+      "sha256": "0ac96f018428f9817d8b5ecc593865ae388f48eea693ad0182320616165f10cd",
+      "git_blob_sha": "af47de87464a60fdd4954afb44faba1e335b4bf3"
+    },
+    {
+      "path": "vision/LIVE_PREVIEW.md",
+      "sha256": "cc6d356f879bf1059611f5bafbc437345cd492ae9f2ce8d64702413cc650722f",
+      "git_blob_sha": "c9d284a669d68b3528d0b585ac12f53292e706be"
+    },
+    {
+      "path": "vision/MANUAL_BENCH.md",
+      "sha256": "e97f84e350b5e28e2c864f312b4676ea9f822edd7be39e690868ecebcb6b4052",
+      "git_blob_sha": "df7d39fda6f0d142eab309f96ac774d9e35c4f1b"
+    },
+    {
+      "path": "vision/PARKING_BAY.md",
+      "sha256": "9c0010f72f34eaf0746b1967c1526d87f219f19166603c4fe05514f25e0d5281",
+      "git_blob_sha": "3a1d7bb8cd022ccc7d1800ab11986e211457fb55"
+    },
+    {
+      "path": "vision/PARKING_CLOSED_LOOP.md",
+      "sha256": "a3be752548b2398e085ef0bbf51e00cf112ffb6e0ec17577151981fde60daa3d",
+      "git_blob_sha": "4ec598c07edb1868ea1ee267cfc0e19d5c3800d0"
+    },
+    {
+      "path": "vision/PARKING_PATH.md",
+      "sha256": "2412f262a82ba2069b98af1cfb254b4e5e7b1fa61fa4d9f3c7001302651ff9d3",
+      "git_blob_sha": "5a04c4c4de03218da1228a3921f18887656bd233"
+    },
+    {
+      "path": "vision/PARKING_PAYMENT.md",
+      "sha256": "10ecee748659117a5ed0627bd7e8588576bca3f4af8e86be04628cbe5c2eb59a",
+      "git_blob_sha": "80a11958f3458c0c8042cbf74c9cefc739eab40a"
+    },
+    {
+      "path": "vision/RACE_2026.md",
+      "sha256": "0b942ed371e9d0b3a3a8925149dbd7303bb408887f18f71c33588f9623acb45b",
+      "git_blob_sha": "35a8f011427679bf23e5b8f4785838431bd5794b"
+    },
+    {
+      "path": "vision/RACE_FLOW.md",
+      "sha256": "d3b9d75d2bd7a07f9cdbae2da16381e870360efd5e6f0f87785d65489c060fd4",
+      "git_blob_sha": "fe0d9ec3a1c2508f8877560f41e175c5699157e5"
+    },
+    {
+      "path": "vision/README.md",
+      "sha256": "73a36287423f62d59abadf51a4d8045c70a6ef205fb4be5422f3260dbb686f71",
+      "git_blob_sha": "2fb8964dc18f3bedb6f4249beca922069bbbad84"
+    },
+    {
+      "path": "vision/REFERENCE_AUDIT.md",
+      "sha256": "23735c0f6de411ad744f70a47194317fd2070e8be9c80e90b8fa52fa65bc92d0",
+      "git_blob_sha": "d6fd6c22267693cefd6e47f29bb6f7190a6c1829"
+    },
+    {
+      "path": "vision/STEERING_BENCH.md",
+      "sha256": "cb266ab2b648bae0e29f35f144c8054624a35eb9f01d85b3901ac88a5561d6e5",
+      "git_blob_sha": "a08b037cd283091ff421039cd8087a5330472690"
+    },
+    {
+      "path": "vision/STEERING_PWM.md",
+      "sha256": "4a7a9e60cd8c7007ecd12e7f963f0c589c3085ff3ff3a4165b560afa27b34695",
+      "git_blob_sha": "38b76f963ceac1e4e1376610900df9bcdea4df2c"
+    },
+    {
+      "path": "vision/TRAFFIC_LIGHT_CAPTURE.md",
+      "sha256": "6732748cf7e07c07d965fc38b7e8a6eafb40c69f0b21aa12ef65a406ba9b13b4",
+      "git_blob_sha": "8c6d8ba3a4f1c9396c5c979d2f202b594b9a997f"
+    },
+    {
+      "path": "vision/TRAFFIC_RED_1S_350MS.md",
+      "sha256": "e2791f9cca2fffe56c348b8fa3da9898f32f61716adf1dae769a79a246834292",
+      "git_blob_sha": "457d26526b05a7c8ba684b595faa6f0fc9763632"
+    },
+    {
+      "path": "vision/TRAFFIC_SIGNAL.md",
+      "sha256": "e6a7b658b4980f6b35dd545888371152953d05d799c67218bbaad98e678ed5cc",
+      "git_blob_sha": "59755025674dc476abef9a2fc00abdad0aa0f3af"
+    },
+    {
+      "path": "vision/VALIDATION.md",
+      "sha256": "c06f4da67868c226828c90269a72632654294172a555f9dd99b469d567b81b0b",
+      "git_blob_sha": "f1042af0403a126b67a30a4cc9b8b8429f135106"
+    },
+    {
+      "path": "vision/VISION_LEGACY.md",
+      "sha256": "1894fc2c8e8f767b2ccaf81e5afd3060ded98188f2e35190169e2b6c53410980",
+      "git_blob_sha": "0e8adf2d7c22418dfb79557fcd7ef3cd82611e5e"
+    },
+    {
+      "path": "vision/configs/autonomy-pi5.json",
+      "sha256": "91237717362ae98f380d104970e4d49b720a9678e68316ea634e4d137e39ba5e",
+      "git_blob_sha": "3df2a558d0c4754a28f886c7b74aab551caf1c04"
+    },
+    {
+      "path": "vision/configs/bench-calibration.json",
+      "sha256": "388c84e3489533c6ffbb7c3246d9fcfe62a02f4db59e707bf79646c6bb20e06b",
+      "git_blob_sha": "b65d1542bddb77d8f670f1c119fb701f9d900a7d"
+    },
+    {
+      "path": "vision/configs/brake-parking.json",
+      "sha256": "67b4b7f7d92c9064b1d972b4c1508925c74fc3df2d47a59cecccdfeec2583685",
+      "git_blob_sha": "9687c974ecbd3daf65633fb6f605810a37d22bd5"
+    },
+    {
+      "path": "vision/configs/cameras.json",
+      "sha256": "0111449c17d9567db7d10b0a25c60f2aa510b7c4923e8854b80d4f091fca95c9",
+      "git_blob_sha": "97236d8de957e2d203bf5a14a209c80de04717d4"
+    },
+    {
+      "path": "vision/configs/cone-ground-template.json",
+      "sha256": "1253eb6e662401462eb72a3a8313f452b25ca9dd5d5f927f6514399c1651dedc",
+      "git_blob_sha": "1c59e4cadfce79cc525ca30ed112e14ccf2f6f5a"
+    },
+    {
+      "path": "vision/configs/cone-legacy-ground-candidate.json",
+      "sha256": "6d1f30c3b6265ce53c5928440343828edb4275a07fd7bb6194dc2bf512a5d119",
+      "git_blob_sha": "c60d4dbc7103d9e86c2748f9e69897e6f6ebb220"
+    },
+    {
+      "path": "vision/configs/cone-primary-ground-reference.json",
+      "sha256": "146f73cceefcfe29a9d5394433c67adc2686a4ed9c12aa3a7eec2bae787e70af",
+      "git_blob_sha": "d8ce5feed2cbc0c75325834d22a1df0ac4cf7c1a"
+    },
+    {
+      "path": "vision/configs/cone-trial.json",
+      "sha256": "4d3a218852e353c218572c267f594a5e59ffac6c8b8a22537e745b07f1ff4285",
+      "git_blob_sha": "346902f506fe248d1dfefccdadbb516f067e1893"
+    },
+    {
+      "path": "vision/configs/crosswalk-3s.json",
+      "sha256": "08a59b00e2475ccd35c96c2eca4532c72b207c78d49ddf16608890035814f555",
+      "git_blob_sha": "9fa4052bbc70c02adfe5027672a8b10f135f5078"
+    },
+    {
+      "path": "vision/configs/crosswalk-baseline-20261009.json",
+      "sha256": "ea11a108aedd3e14316ab8082bc9c83aa18df187fe2b0414386caa34cfa46f6b",
+      "git_blob_sha": "1d6df4e2d7ee5785117c089e315aed48f218cd66"
+    },
+    {
+      "path": "vision/configs/crosswalk-distance-calibration.json",
+      "sha256": "ae54d3452829f97afd33344646976ff928574082c5683502280ead57ace33fd7",
+      "git_blob_sha": "6b72b5cbf0cf9a5a3a3e5e15896f326c732711c1"
+    },
+    {
+      "path": "vision/configs/crosswalk-vision.json",
+      "sha256": "1108663f62b331526714186a2993c8dc50e005367e258d77d3758572b886c1a9",
+      "git_blob_sha": "7fc01916237ce276272f04e71c4856b2e3a4d889"
+    },
+    {
+      "path": "vision/configs/dataset.example.yaml",
+      "sha256": "773570f5125d3baae82ef0b8aaff5c2888180b3b3b72bdf5175112c70e697c8f",
+      "git_blob_sha": "95da4b60b8abafabb083d2750996be9f8dfc58f6"
+    },
+    {
+      "path": "vision/configs/default.json",
+      "sha256": "08d303973ce99e493f188be07f2b09198fe2d00e16e71e05c5fa44e5a2831fcf",
+      "git_blob_sha": "aefbc1fe674c7700ad6c0e618c8ddf9b9823cc65"
+    },
+    {
+      "path": "vision/configs/gimbal-observation-pi5.json",
+      "sha256": "a5cf5cb4448399cbb33f3726a5f47f5689c375785c93943f7b6e36bc8145dd69",
+      "git_blob_sha": "6a6590329c7e38fb173eb40354ab6544c72b1968"
+    },
+    {
+      "path": "vision/configs/gimbal.json",
+      "sha256": "bbab1aac3349e8808274b23a33dfc38c550a495a7a84b138eaffd22f5e068aef",
+      "git_blob_sha": "afd348ed3e0f7297af80f08226bc54a4795bac6c"
+    },
+    {
+      "path": "vision/configs/model-source.json",
+      "sha256": "e17eb5a7aa7f41c4f8ac9261d82c51ab96fdbd516e7cbe4dc86411ba81fa5cfc",
+      "git_blob_sha": "0af51556e1a7fe593e64931d250e47a3cdf04ad9"
+    },
+    {
+      "path": "vision/configs/parking-bay.json",
+      "sha256": "46c7c31c4374ab49513c5ff95681f1d3f54fe1eb72cae5d1614f39e337aad1f9",
+      "git_blob_sha": "88610e79ed0a76e6ddbb7d8a997a1ecee9d895c0"
+    },
+    {
+      "path": "vision/configs/parking-feedback.json",
+      "sha256": "f9097194bac398da1c9ddd418789abd3c853549cb1bfdf7a7cbba0503a492e59",
+      "git_blob_sha": "4f8f821660e74a2888933743fe7d471fc7e4a6de"
+    },
+    {
+      "path": "vision/configs/pi-control.json",
+      "sha256": "011d46345b135cd9def6349ae7711e048abb4635628b1397884d9aade36413dc",
+      "git_blob_sha": "6bdee5f029762cd54f7751b66558d10c7848e770"
+    },
+    {
+      "path": "vision/configs/pwm-overlay.example.txt",
+      "sha256": "f8fede1a0674dea1f2ba334bfa1b585f05b61223d56fb544ad0405636d432063",
+      "git_blob_sha": "072a9a2a0d7fcbe4cd839a046914a460133dc4f1"
+    },
+    {
+      "path": "vision/configs/race-2026.json",
+      "sha256": "c91f42d467cff8750acef02f3808f86bd119b4af8d4b9d367a2401e234873729",
+      "git_blob_sha": "abf72d2704ba472040ff293560547de22484842c"
+    },
+    {
+      "path": "vision/configs/race-flow.json",
+      "sha256": "2ee68e613d84352e75f1cf96f0f9f2e4de261af7f7059809cc7d060a542a5c20",
+      "git_blob_sha": "6f106df8239bad23a9d7ae5145f34fc988708df5"
+    },
+    {
+      "path": "vision/configs/race-upgrade-source.json",
+      "sha256": "c85f549fdad3ee3b86eedddc8d646545c2da353fc70417953f0e07f80290a110",
+      "git_blob_sha": "fbad0f6e369435a4bc022ade55fc545eb5dbf1e4"
+    },
+    {
+      "path": "vision/configs/traffic-driving.json",
+      "sha256": "545e4cbd80874c5177963c4f03d08fd87130968a659135436326340b05613802",
+      "git_blob_sha": "9ce4b32b89c21e6dcae801f9b03a1c7d89893e25"
+    },
+    {
+      "path": "vision/configs/traffic-signal.json",
+      "sha256": "f632948d92efaf4aa4c8f2401f90fd0e0aa4512574abd74f5152954875b35ec1",
+      "git_blob_sha": "9a86b2ccf6d9cc23a82e799b22397f9f1ccf1d36"
+    },
+    {
+      "path": "vision/configs/vehicle-geometry-measurements-20261025.json",
+      "sha256": "f4d0f63fa0b6532958f15924da3bdc8365967b0f206e10e7d2a401354f0d19da",
+      "git_blob_sha": "a3cf5386081fdffc466250cf3bdac0ed9988599a"
+    },
+    {
+      "path": "vision/connect-car.ps1",
+      "sha256": "5896552ee8cafedbbfa36806e1107cc29f9decc6f1e22713f64c8ba9a13f5485",
+      "git_blob_sha": "8d4acd127de641b07f3e91ddcd7ecc267a2f48f2"
+    },
+    {
+      "path": "vision/deployment/boot-test-checks.json",
+      "sha256": "4bd4fab32a17d28b46876e241ac99adf2e9f924a7bc087f8dbfc620e27c569cb",
+      "git_blob_sha": "0409356b4450d3b5f7f5022e457fd0a42f6c1000"
+    },
+    {
+      "path": "vision/deployment/boot-test-template.json",
+      "sha256": "f630e99ffed2921f9ad44f11c879e7e0b483c4c19a4cf17d18c3a21969a9690c",
+      "git_blob_sha": "239afbdf5d081b8027fe48d4704fc94dac30fe5a"
+    },
+    {
+      "path": "vision/deployment/smartcar-boot-test.service",
+      "sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d",
+      "git_blob_sha": "1aef0e1ca8db33a320c83e0603385b3177ab4fb9"
+    },
+    {
+      "path": "vision/deployment/smartcar-diagnostics.conf",
+      "sha256": "2b12f4396caf73e1913f2505b31aa4902d4e98490a3bb846707e6b1be0cea482",
+      "git_blob_sha": "7226c792c15bf3fcc1ddd190f38f7262d08e522e"
+    },
+    {
+      "path": "vision/deployment/smartcar-preview.service",
+      "sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d",
+      "git_blob_sha": "1aef0e1ca8db33a320c83e0603385b3177ab4fb9"
+    },
+    {
+      "path": "vision/deployment/steering-reference-20261013.json",
+      "sha256": "6b917545e2bc3c2437541bb8e3bb255c8f0e3be6630bc245bf19700f136db896",
+      "git_blob_sha": "d093c2f3080191ba0cfd21afc6a28ff3638ec68d"
+    },
+    {
+      "path": "vision/pyproject.toml",
+      "sha256": "1e7d9bdf4d2ba7051f42dcc9a50548d411d0b529642791080ee42efdcd4d45b5",
+      "git_blob_sha": "438e6116dbd24660e30ef0e7f06dcf043d24e4b3"
+    },
+    {
+      "path": "vision/requirements-camera.txt",
+      "sha256": "74c527cde6bcd269223efc9fd1c661e926cd69495b42dc39082c4260fc3a7839",
+      "git_blob_sha": "0e6f4c9a28963f42d0cbc680918cfe6626d46dec"
+    },
+    {
+      "path": "vision/requirements-export.txt",
+      "sha256": "c759042cbb778460f6450c0c1a6dff9cfed103b35e24035b1278e82f9364dcfe",
+      "git_blob_sha": "6c5fc12898d2c6c4046c6f82235a95d825e964cd"
+    },
+    {
+      "path": "vision/requirements-lock-windows-py312.txt",
+      "sha256": "c602517ef3e5873e371a923e798d09d65a8cf25967e7a4bac17b9feb308c87b2",
+      "git_blob_sha": "e9cd5d20ba67b6909e06d3c9060d1d22a0b89147"
+    },
+    {
+      "path": "vision/requirements-yolo.txt",
+      "sha256": "54c498a94e731e8acfc1a34af9a892aa2742d54f5ea0acce4bf74d855a34a81f",
+      "git_blob_sha": "54c7c4b049d13ec10e0b1d6dba0fec729cb60af8"
+    },
+    {
+      "path": "vision/requirements.txt",
+      "sha256": "5383214086fe9d74c9613ae7e4e9b7efb8b1ecc7126b20c4ccd78685a9bfeec6",
+      "git_blob_sha": "6ead361ec7cff5f41bc4856c4a90ac88eda4ee47"
+    },
+    {
+      "path": "vision/run-console.ps1",
+      "sha256": "785a1c29bc0aedad31594fb5b320d09b5d89158a7b5d5f44d17631ace6009fc2",
+      "git_blob_sha": "f48055947eb42f2dc3dd037f1ff632fd74fc8551"
+    },
+    {
+      "path": "vision/run-crosswalk.cmd",
+      "sha256": "2691e455a4f7a2d5a1c82dcf45f2298dd9bf657f4620656ac30d41f451325b42",
+      "git_blob_sha": "45a00e165dd6510fbf13b9e6ba2b3992302bda27"
+    },
+    {
+      "path": "vision/run-crosswalk.ps1",
+      "sha256": "9e3438a5a65a93b18b6f849284ab3c00d2e0a06df2cf0c5c8f281c3c69358204",
+      "git_blob_sha": "f6b13a534191488823fbe58acea5f434813133db"
+    },
+    {
+      "path": "vision/run-demo.ps1",
+      "sha256": "442e048795cb91c8d2a627076b61f18b11059e99a186d4aca9e869e2e371d3c5",
+      "git_blob_sha": "be7a21701da67452183ae18630816b744bcc4e84"
+    },
+    {
+      "path": "vision/run-traffic-capture.ps1",
+      "sha256": "89b093f45f8334e57a0832414975df8ec488f19d8ed10a206865f8af83d0f25c",
+      "git_blob_sha": "83944ebc8454e98e059bd96ee613af62729230d8"
+    },
+    {
+      "path": "vision/src/carvision/__init__.py",
+      "sha256": "d5fbce997ed9bcd239447a63a0ad121e5810b5a8dfcfffca5c56fb73e6e27177",
+      "git_blob_sha": "afad1ec722644cf7ddde4a26192b68ac27ca285c"
+    },
+    {
+      "path": "vision/src/carvision/__main__.py",
+      "sha256": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+      "git_blob_sha": "eb53e2f31b2f703ad32ef64b8a41faa3e7d18e08"
+    },
+    {
+      "path": "vision/src/carvision/announcement_backend.py",
+      "sha256": "01edeb05c92b227487054505d26315d2de1b2af8e44706012688f90f4f353b22",
+      "git_blob_sha": "b6b8ae008d56ab6887769579769025dc59257a7a"
+    },
+    {
+      "path": "vision/src/carvision/application.py",
+      "sha256": "50d7f0d1c10c02af67008aa5a85a23baf6f9def11a5118a67e2dcd66b38a5409",
+      "git_blob_sha": "4d7d331dee94ed6e66a8e4a27954b4f9e15f83f1"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_audio.py",
+      "sha256": "a88cefadd6a08d21808b32dd07ff3f25373918cfdd5ad541ec17dbb50dd396ca",
+      "git_blob_sha": "3b176d0040d7410ad5f4abf669e2aeea0354b8a7"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_feed.py",
+      "sha256": "7394dd1087a5df9a9009e4fb7cc82035fa5ae8fe2f4287be7b410b54414bcc98",
+      "git_blob_sha": "18f3ffcfdfb0b4a1820bda75c66b1dd16b01be13"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_geometry.py",
+      "sha256": "7fffff2197480be2b1a27c58fb9a6cfca8be012591e2bb51911aa60c1c7ccd2e",
+      "git_blob_sha": "94c818105710990b839248cd184a291129e3025c"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_motion.py",
+      "sha256": "3b77d574305813cbc4af081547b143cf1a8f788ad77ad906e1ec037a10c4cba7",
+      "git_blob_sha": "19ac99a8b54ca2b9ba805d9690007af035b94ba7"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_observation.py",
+      "sha256": "c26e63931f964b0253f353c87a7924f5682a2157b11eb3f9eb1fbddfd3063cc6",
+      "git_blob_sha": "d2113b7c45b9d5fc0feb4b75ad7c06753c52f330"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_profile.py",
+      "sha256": "315371299d31ab9b7bd3b9b67409788373fa3ba309499b1d8990511de5bc5089",
+      "git_blob_sha": "d7fb8995929a10dd4385b7bc6a56ebcbc84f6d78"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_runtime.py",
+      "sha256": "b62653380bec8263a6af0a618086bc7c97284188461f721857d3cd664f9d49ed",
+      "git_blob_sha": "fc0e4df10556dd18b87d54c0e2e7a1102d5d800b"
+    },
+    {
+      "path": "vision/src/carvision/boot_test.py",
+      "sha256": "59a8e8d6013f7c72c472e95d1ee349a7017283a9bdcc56866ed944e062af0dc9",
+      "git_blob_sha": "65516cff8a5d9ea50e135fc3225b44c03d991493"
+    },
+    {
+      "path": "vision/src/carvision/brake_controls.py",
+      "sha256": "a70e62bc24c8ade801207fc4a88c51535b9b18e4e3eaf412416c14258d88061e",
+      "git_blob_sha": "ae3ba005806da4fc9a04098f30e4965cb1c130b2"
+    },
+    {
+      "path": "vision/src/carvision/brake_output.py",
+      "sha256": "1b5960526b3a2b7804e3282a666b7dd58d911028886346e857344f5fbd536671",
+      "git_blob_sha": "2271d7d2fe1c747bfb91ab57d96f527b69c49891"
+    },
+    {
+      "path": "vision/src/carvision/brake_parking.py",
+      "sha256": "886ab5d1d8ded13540616320fb7a8695879cc4bdb142e3bcf8061308d724e920",
+      "git_blob_sha": "fbdfa0f5e7f183e0dd06780595e6bcedc3207e60"
+    },
+    {
+      "path": "vision/src/carvision/brake_runtime.py",
+      "sha256": "eb8dd2406d3ed5014ae51aec2bc90b95964aefea0370240fd1664bbf4278f9d0",
+      "git_blob_sha": "89675123786570b5dd463bc794b0064fb0f53ea5"
+    },
+    {
+      "path": "vision/src/carvision/brake_timing.py",
+      "sha256": "e6952d65a6f3c0fcf896cb59455a0c8a9de820d3c6ffbaaacc125b69792a94c1",
+      "git_blob_sha": "45822be86c657b3c35b4af0252aa12acd5e73c1d"
+    },
+    {
+      "path": "vision/src/carvision/brake_trial.py",
+      "sha256": "824bb740bffafea710508048ad19ce39222169500418df7f4c907431bb9e51bd",
+      "git_blob_sha": "9ba15ae11ca73fff13f6e269cb631456e2bf1c87"
+    },
+    {
+      "path": "vision/src/carvision/camera_assistance.py",
+      "sha256": "4ce18dabe1a8e06f8623cce9f95e34d013bf240ad8cb0777acf4a00bc17dae47",
+      "git_blob_sha": "2d1cfd12d7ed69058baf90b20952e4f6f4e34c28"
+    },
+    {
+      "path": "vision/src/carvision/cameras.py",
+      "sha256": "c9f3a90727c81bfec8b2a17ac8d79beeb4f559f8ec13080862c3ae8b6b997997",
+      "git_blob_sha": "2d8509719759b3f683bc724f85175a686d454d28"
+    },
+    {
+      "path": "vision/src/carvision/classic_detection.py",
+      "sha256": "73d75b20f513cb386b1ad805ce33c632871aa16988025e4e69da3446d079470d",
+      "git_blob_sha": "c5a1d6f602e66aafe20ff8ad64161f0600f1b5c0"
+    },
+    {
+      "path": "vision/src/carvision/cli.py",
+      "sha256": "294a64041ee31c7e0536f4cee1116ffed04d445198f52bb275664a8bb26c1925",
+      "git_blob_sha": "364434f01926539f1fee67dcdb3076313936cd37"
+    },
+    {
+      "path": "vision/src/carvision/competition_page.py",
+      "sha256": "e6ef8d1a4e75a5b9eec8e908ac004481a06877ea1295f3a2f6a66a2c2bcfdee6",
+      "git_blob_sha": "ad8d991ee2c20b85624b4e8fbb73cc57f76797bc"
+    },
+    {
+      "path": "vision/src/carvision/cone_boundaries.py",
+      "sha256": "6218f771aac72d26c764972d464b10fef0098e98a5ccdfbed927b4ad35819e50",
+      "git_blob_sha": "0b5cc8ce34a516fedfa57ed24a3b45dab7a79dd0"
+    },
+    {
+      "path": "vision/src/carvision/cone_continuous.py",
+      "sha256": "2102deafcb0cb96f21ddaf5b1d6f6418d0849e48c0f9066c832eaf1cae593eef",
+      "git_blob_sha": "cd773c34844f375cb89ad1cbd18568eae3e75efe"
+    },
+    {
+      "path": "vision/src/carvision/cone_controls.py",
+      "sha256": "670d70d64410345e224b5ce0554fba8360f6a6cecfc73108fdb19980d37b6c92",
+      "git_blob_sha": "888c1cec1f4d8812ad9a9451c10e428194fb580e"
+    },
+    {
+      "path": "vision/src/carvision/cone_corridor.py",
+      "sha256": "0358963d4357625dcb5db468cf7eab5c66e111f810e25c98c469594e16f67633",
+      "git_blob_sha": "6cf704fa8a570b9f00ed92b134e881141214aab2"
+    },
+    {
+      "path": "vision/src/carvision/cone_evidence.py",
+      "sha256": "09cfc06ead4653d25dfdf05fe4ac29c722113474491096d17bd69d767975c082",
+      "git_blob_sha": "fd34a4440a21ef22651f4f8081ad32ed10d3b209"
+    },
+    {
+      "path": "vision/src/carvision/cone_execution.py",
+      "sha256": "1266aceb7dd4e5eaef38c01c5bce71be9d73c9b3e3b8e8ebff6c6ac38fe550d0",
+      "git_blob_sha": "73f0b0931b1b8366c3c32b6b061e1697893fc95e"
+    },
+    {
+      "path": "vision/src/carvision/cone_guidance.py",
+      "sha256": "f47a27a99e68b34ad74a6cecc8dfa93e19615b708250378520b040aee59636ab",
+      "git_blob_sha": "ee57c398c556b5f46f315704fa570722b168d92d"
+    },
+    {
+      "path": "vision/src/carvision/cone_low_speed.py",
+      "sha256": "ff20131bb9cc8fc7f6599f0e9c750cdf177b2275df0f13e14dbce2915da28358",
+      "git_blob_sha": "ed1bf9268f0b31e0d2385897f2e9b53fbf23e83c"
+    },
+    {
+      "path": "vision/src/carvision/cone_maneuver.py",
+      "sha256": "c2ab1cd47e93cd2df3e3d67a2c509bd2ac41c9b1384ef74c427dee19b807af18",
+      "git_blob_sha": "222ae157bde98e5db01e574961ae88c473c0aa8c"
+    },
+    {
+      "path": "vision/src/carvision/cone_mission.py",
+      "sha256": "31277f0f723f41df8cd72f1025efd48763f25dd1e045da1563906332976c2b16",
+      "git_blob_sha": "2da1ca0da5bcb7d408393bebebb9948aea9ee496"
+    },
+    {
+      "path": "vision/src/carvision/cone_navigation.py",
+      "sha256": "a0544d6833da9aa9b0dab6faf59ad7fdb82714a10dd6a445aa8d05d9831727c9",
+      "git_blob_sha": "49d98013671189be5e9d3a7f5cf08ea4e5544f83"
+    },
+    {
+      "path": "vision/src/carvision/cone_observer.py",
+      "sha256": "890c58b3abcfbc0573ded30cd22441fa87d9e96973911cea8d18360579a74cbd",
+      "git_blob_sha": "e25b3a1eb47677697a27be9bc75c047bd7b2dc8e"
+    },
+    {
+      "path": "vision/src/carvision/cone_passage.py",
+      "sha256": "e85a0415624be3912bd447d4f0ae6cb4180952ccd2beecace0cdb46927008c64",
+      "git_blob_sha": "68f84adadba089d2920be4142d6b805e1e23d3c1"
+    },
+    {
+      "path": "vision/src/carvision/cone_planning.py",
+      "sha256": "547c4bdcb955ef9225dc4c40e7dc5f05f563bcfb68ced0e9c6ed46d08c00dcdb",
+      "git_blob_sha": "90287fbdf6182953d3707145b527831e7261ee93"
+    },
+    {
+      "path": "vision/src/carvision/cone_response.py",
+      "sha256": "d17dae248cfa4a5c36bf7384d6be5c95b9fd7641967cc8c283aceb02975298d2",
+      "git_blob_sha": "5dbcabdffbb47bbf0ad6991fedd3282e44a1d543"
+    },
+    {
+      "path": "vision/src/carvision/cone_road.py",
+      "sha256": "3246edd54589adb549ce11070598da934fd01834363cf06029b5f60a34319a25",
+      "git_blob_sha": "0d3de088bfedc6b102f80c39b0130312b4999e5a"
+    },
+    {
+      "path": "vision/src/carvision/cone_route.py",
+      "sha256": "cc121a73caeaa446f02510cb1f2a3e2cc198ff8cb2b168e151c8a92c6d26cd34",
+      "git_blob_sha": "95bdea23e46ea655c0c1a3a01bb5a10af32d4770"
+    },
+    {
+      "path": "vision/src/carvision/cone_shapes.py",
+      "sha256": "d1e69ebeca028171fc9de4ce268ca5a97336623f1e1f183af8c315f78e76fdfe",
+      "git_blob_sha": "2e962a07eaa2b3f457ae4e57182fe3d9983db0ec"
+    },
+    {
+      "path": "vision/src/carvision/cone_short_output.py",
+      "sha256": "6cfc9952413b3ee9231f04e9c9ba1a537a0dc4df233ea4f5364028ce1fbee4ba",
+      "git_blob_sha": "f42966c7386a8546db4d5dc8487be229f4be125e"
+    },
+    {
+      "path": "vision/src/carvision/cone_short_trial.py",
+      "sha256": "0b632f5e6f6923eb29ac191ecb50fe4c23c7c40a241dd0eac07283d5876ebc06",
+      "git_blob_sha": "bedd73e937298e7000970e39da4ab6679e075559"
+    },
+    {
+      "path": "vision/src/carvision/cone_slalom.py",
+      "sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14",
+      "git_blob_sha": "149ca27a7238f4e4d848d21115627e45774035ea"
+    },
+    {
+      "path": "vision/src/carvision/cone_trial_output.py",
+      "sha256": "4fb68ead3e666175e2f08233a2299fc24e4b553d832bce43c5bebac16e8de3ba",
+      "git_blob_sha": "e3f0d6a06c7a0d2e38034595002eb9fb6e40afbd"
+    },
+    {
+      "path": "vision/src/carvision/cone_vision.py",
+      "sha256": "4d074fed5723126b9bb5ee1243c5faa3dda2f7858456bb541e54184bc4d0ebbf",
+      "git_blob_sha": "26ca0708e7426e2debe87852af220ee4646ac9eb"
+    },
+    {
+      "path": "vision/src/carvision/config.py",
+      "sha256": "d632cfd8603bb788180970d5577acb972c35b937c62d293939102067a9521b35",
+      "git_blob_sha": "db6cc18437fe10012f7c432831144e710919205c"
+    },
+    {
+      "path": "vision/src/carvision/console_layout.py",
+      "sha256": "4c0d298da81aed44c4d317e0846faea2b3ba5c09b0516fd71f9f740b562b0a8f",
+      "git_blob_sha": "d7be778962704fae39ead8972c08267d78c752cc"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk.py",
+      "sha256": "6788a6780fa3b7f28962757838a502ecfa1afcb9e4323238faba2444db6d846c",
+      "git_blob_sha": "a844e93ec4027699e25cb7d2946961dfb9967eb9"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk_calibration.py",
+      "sha256": "39cccd3d45c48e5269d0b0e62b8da9dbba10f5d62c31d8fee9cafcd3b93a8930",
+      "git_blob_sha": "1fdaa58186238bd65254eb3237fcc0383008b951"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk_lab.py",
+      "sha256": "2de20a44dacbaebd6a73d0dc0e00b551b9231ea9e7ffd8bbd8caf5d0523003cb",
+      "git_blob_sha": "38c1c4b4e946d8a2b82a1aa664ef6dd9050d90e7"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk_observation.py",
+      "sha256": "5209e023069301429d8139c42076e6544b7f55a2075ac178cd9a62e77e9ebc66",
+      "git_blob_sha": "4685099cd14b8db6c9eb0e399e02be0f34e7aef0"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk_trial.py",
+      "sha256": "3404781db64195f767d5a5051a1d8f010e8ceedd41e286390d953b8e844a6e78",
+      "git_blob_sha": "b8ce1c83a7aed6ca3643480a99ba3d5aba9ee5b0"
+    },
+    {
+      "path": "vision/src/carvision/dataset.py",
+      "sha256": "c8e683206cd9deef9a5f7384faef471e7a6bbde38ef9668646d2130ca0308fdc",
+      "git_blob_sha": "83d4f06345a78a2eee393f74b7dc01e1cc93be66"
+    },
+    {
+      "path": "vision/src/carvision/debug_page.py",
+      "sha256": "c5cc90102c28e4546a8a40e39bd5cdb63a3804245f78bc42c01286989135c019",
+      "git_blob_sha": "0d5fa88c76930a52e2232a61212e6ae94698878c"
+    },
+    {
+      "path": "vision/src/carvision/demo.py",
+      "sha256": "df942365f15deedee65c38dfd36ea093c6c52f7842457b89650b26b6687a842c",
+      "git_blob_sha": "2529649dde6a9808df45b34e255121bcd2f0c942"
+    },
+    {
+      "path": "vision/src/carvision/departure.py",
+      "sha256": "2b8facb3e9d2635aec2b5c8b217c54747c5fe91df1e0ffffc2f52e4eed4e8b33",
+      "git_blob_sha": "5090f9ec9012006b511f2b7560ea80c7165beb09"
+    },
+    {
+      "path": "vision/src/carvision/departure_controls.py",
+      "sha256": "fd0cb597180d0613de339279499052a1211de47589f78c2f985b1537386339ff",
+      "git_blob_sha": "ed24c26eba37c612d0e1078d5aaedb11406f8831"
+    },
+    {
+      "path": "vision/src/carvision/departure_trial.py",
+      "sha256": "8b68e7aa133053f1cacaba2dd628ef6e60a29dc8ab04465e2b89ea92287d31f3",
+      "git_blob_sha": "785395dcfbce8b66cac28b24bfe68cc3780bbc9b"
+    },
+    {
+      "path": "vision/src/carvision/detection.py",
+      "sha256": "c4d1d8ebb793854bf914e6bdab3302cfcd27b32e074cd6b8edfb2858263ee3da",
+      "git_blob_sha": "acffdfed7bef5972c0e31d043344eb1025c25f34"
+    },
+    {
+      "path": "vision/src/carvision/display.py",
+      "sha256": "a64ca80b42b4f0180864bb09b73c45661348aa181f0dd18583a050cbcac5a4cc",
+      "git_blob_sha": "7500ed76588adc864aa83c96060da0ee62fcfbbb"
+    },
+    {
+      "path": "vision/src/carvision/esc_load_probe.py",
+      "sha256": "da328515e74cdf504f3135e89ae7ccf0760d62284f879f24cf182e7e999e5b69",
+      "git_blob_sha": "aade0b5d3b66a07291fb05724727610b511c6891"
+    },
+    {
+      "path": "vision/src/carvision/esc_wave.py",
+      "sha256": "76fc13c37f2dca1126cd5283e5c0172b73e82e3b9a56a4490a0e0f689dd4fdf9",
+      "git_blob_sha": "96527aee9be22beb8a52ac23968d68e8caeb3934"
+    },
+    {
+      "path": "vision/src/carvision/feedback_parking.py",
+      "sha256": "50c19eb47f835e183745c747e135b9513ab5fd4b571cf62aefda3b9f3fd807c0",
+      "git_blob_sha": "35ae804ac12b844609891101ea5815eaf5e9a96b"
+    },
+    {
+      "path": "vision/src/carvision/gamepad_controls.py",
+      "sha256": "4ecf2dd48a13b42ddbeb265da9cfe0630ca317e526f343536e51cdef2e2077cf",
+      "git_blob_sha": "f47d6a69e921f65ce745aeaadd1144e45f72356e"
+    },
+    {
+      "path": "vision/src/carvision/gimbal.py",
+      "sha256": "b0192dbc8446e2e42b22c732ab39f82d2d4942d9665fa5616ea9ab07922b6fc5",
+      "git_blob_sha": "74b3c8fa5bf155a81f69c3ec740d1be386778a2f"
+    },
+    {
+      "path": "vision/src/carvision/gimbal_bench.py",
+      "sha256": "31f2dff8029c4bffeca1ae0873df88101b970139468e38fa3192097a46da8dbb",
+      "git_blob_sha": "9d69a07fc5c112f98f919b69bba5f1bcf6dc411b"
+    },
+    {
+      "path": "vision/src/carvision/ground_odometry.py",
+      "sha256": "7f53f7deaebd191e90899c71a56ac310edfdc566d9737513c048d720cb6ba384",
+      "git_blob_sha": "684f92a63b4e901d906ff9df9586224f0878f122"
+    },
+    {
+      "path": "vision/src/carvision/handoff.py",
+      "sha256": "c26ed71f83d7792a6e4c365b0a7d33597412e7f4882dac3afbf7c3a0cbd74537",
+      "git_blob_sha": "a2b8a546986a949abca1b967d605bf680f4b3bad"
+    },
+    {
+      "path": "vision/src/carvision/lane.py",
+      "sha256": "d4c84e55a290a061ef2a3854d2d8174a7684b830815cebd00e00f09bd5036a25",
+      "git_blob_sha": "6b887da54af471aae54da420ed70a6ceb99f9272"
+    },
+    {
+      "path": "vision/src/carvision/lane_following.py",
+      "sha256": "8bde32280ad116b5f0409d1a3e91a2963d191af2f95a88e845f2f74748ec89ef",
+      "git_blob_sha": "93affcfe6390e326147378328d8be246fdfe42e7"
+    },
+    {
+      "path": "vision/src/carvision/manual_controls.py",
+      "sha256": "00e57876e0660a23fbbc5ee0f0739659659803101215108a4a2d681a05f00219",
+      "git_blob_sha": "d4fb19516f2f041e3b863f02b9dca730fbfc6de6"
+    },
+    {
+      "path": "vision/src/carvision/manual_drive.py",
+      "sha256": "98c5e746ea2bf1afd90429184e78624c609447548579e238ad9322dd4809febb",
+      "git_blob_sha": "d4181f98546c4a3ee6bdb7e894e0f789f69b4775"
+    },
+    {
+      "path": "vision/src/carvision/manual_hardware.py",
+      "sha256": "1c5f08622cda6ce21b7d79049c65e16c2012300d53a480ccb21854c274b09974",
+      "git_blob_sha": "baae51c21e764a72e31214cf8fdca944f5458a96"
+    },
+    {
+      "path": "vision/src/carvision/manual_service.py",
+      "sha256": "3d7bda9e77ffdeabe13b318f0a6243bfd2128cac6f41e2ebac2adedd8c68fd26",
+      "git_blob_sha": "edc2ba05bd5e6e56c57eaf44911c067958235ffc"
+    },
+    {
+      "path": "vision/src/carvision/manual_speed.py",
+      "sha256": "9be8f1ff48440614644874bb3a4af8b29eaf1e843e873d86557792f40aab4a0c",
+      "git_blob_sha": "33401f4572ddbe93e0c311e2b264ae28e44fbfce"
+    },
+    {
+      "path": "vision/src/carvision/manual_steering.py",
+      "sha256": "336466f33e7352709ea75d1df3fc95e4777201a6b5a25ba84e3f22a1a5f2b6ce",
+      "git_blob_sha": "ebeecaad34126d156a831e1186d1eca38fe39859"
+    },
+    {
+      "path": "vision/src/carvision/network_guard.py",
+      "sha256": "5dcfa6e6086bf96563f5d05138040e34917c0b2e466a742b4f9b1c0e6dbaebfc",
+      "git_blob_sha": "c39bb81b02792f930a607c15a958dd1d88c073e3"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay.py",
+      "sha256": "117892ab101b5c4dee04ad9bad072c20ce8dea335ffe96b386712ed3b559c411",
+      "git_blob_sha": "bfeea87af3fe6829c7c99c144639d8e3ce2ede71"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_console.py",
+      "sha256": "4572962a53a1f432bfdfa9753c4acaaf6cb8774e044e86e1fb6380ed2e32ee6d",
+      "git_blob_sha": "518b329ab17ee25a1dd7c3793779024c78fad5a5"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_controls.py",
+      "sha256": "5c458b8fefbea5e29373671f5ba97ae74879e020cbe12ee9249b8692e6dc9f11",
+      "git_blob_sha": "9bde09c2e0e26b5972429a8e39f4a7b4cfc3819d"
+    },
+    {
+      "path": "vision/src/carvision/parking_control.py",
+      "sha256": "5d01264a6c841d5fe606d682a6cb9738cc2bc44c63f1a06f815aaf424db7c7e2",
+      "git_blob_sha": "12dbaccddb77081ca246734abe7fc1bf9124085e"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry.py",
+      "sha256": "0608739e159bf6ed1c170f81397c8b8c8fcd38bc9979390faf987211b0155446",
+      "git_blob_sha": "33e8d7c63a0c4cfb6826f95fe5cdcc6f16612327"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry_run.py",
+      "sha256": "a61756938c02fd59edb5fed669b452b4007bec2adf71d1668e66585f92effd46",
+      "git_blob_sha": "5595602c6084441544bf34891fe9680a630fe3c2"
+    },
+    {
+      "path": "vision/src/carvision/parking_far_tracker.py",
+      "sha256": "948530d3b0e72cf6792cfc3698d2de40a7cb45b15cc413f1e82196ed052f55ca",
+      "git_blob_sha": "ff9ff92d3b2d21f606e0b2d8dd346733632dc14b"
+    },
+    {
+      "path": "vision/src/carvision/parking_feedback.py",
+      "sha256": "cc18eb53780f6a3d49a55c70fe17163bce41be7a4412bf6f64d2834fd045fca1",
+      "git_blob_sha": "492dcf7c06c1fdde94e0f54c6d705b01f9d1850c"
+    },
+    {
+      "path": "vision/src/carvision/parking_guidance.py",
+      "sha256": "1faa663cc46b5dacb0cc47472180e75c8ae43624313165494a7a30983bbf3b5c",
+      "git_blob_sha": "edf0ea4053ea65f71699e6e94f917e4c46dd8422"
+    },
+    {
+      "path": "vision/src/carvision/parking_log.py",
+      "sha256": "f2bdb2e3d3bfd1e1381d2145eaedee92e461a8b512bde359e53f34862389105e",
+      "git_blob_sha": "54efb3c97b74a9c526095f1422b501f1b9f31086"
+    },
+    {
+      "path": "vision/src/carvision/parking_mission.py",
+      "sha256": "47d10f246172996772fea177ac71edf1e467d30522bdab096dad174e898e25d8",
+      "git_blob_sha": "df7f3d499b834c6c8a76e63996ff8958ae718999"
+    },
+    {
+      "path": "vision/src/carvision/parking_path.py",
+      "sha256": "209adfc0ea19cab76f9c9bff85594bdbc09a152751cb8e569a3f3b74bd5e08c5",
+      "git_blob_sha": "92ee6e30f3a72793358dbde31132c3c8e60b8cb6"
+    },
+    {
+      "path": "vision/src/carvision/parking_payment.py",
+      "sha256": "749ea6d64f3ed966f0574851662e8a97ce748502f8649c77d3e77c26a326f34d",
+      "git_blob_sha": "53c34cbbbe8962c1033342ed5c1cec3d6c8a1ec2"
+    },
+    {
+      "path": "vision/src/carvision/parking_speech.py",
+      "sha256": "4ef77f2e16c528bc4e7b97eb49016df74dc5519e4ffc796a9933cd44f39cb142",
+      "git_blob_sha": "80a7380662e4c04a04f244aca6d2e04c52d0f541"
+    },
+    {
+      "path": "vision/src/carvision/parking_task.py",
+      "sha256": "de0eb7bd792e8062f741f41637bf29257d92a3b4dfa52c9260fdb73715ed143a",
+      "git_blob_sha": "d44f970f1d71dfc3378612d8b2274de5dab083d2"
+    },
+    {
+      "path": "vision/src/carvision/parking_visual.py",
+      "sha256": "3ceb5d8e499d8f431219634a5f99f32f49aebf92996e9bb9b892d9b7c4fdd689",
+      "git_blob_sha": "f41d1a4e2b45f86060ed02aa48d17a621d8f8a84"
+    },
+    {
+      "path": "vision/src/carvision/payment_console.py",
+      "sha256": "6200d54bdf36e7fa67e08c98dea2493bf61763b666f4b942291cdf08d4dd4b84",
+      "git_blob_sha": "0489d0a625e39f86be252bc74d4a1d99819bcbe2"
+    },
+    {
+      "path": "vision/src/carvision/payment_controls.py",
+      "sha256": "0b52de34df3b291ed021e4e33322c534e5db6688b08de7f9aee25d69b2343987",
+      "git_blob_sha": "6208f87162f0b77d1bab0477f7ae95a4d5283cb9"
+    },
+    {
+      "path": "vision/src/carvision/pi5_pwm.py",
+      "sha256": "3bca4118beda2a649876731c6626e169769785884a91e64cb457bfc6526bb232",
+      "git_blob_sha": "21a9b9966f1cfc0fd9ddccbadc075b07e4e0c3cb"
+    },
+    {
+      "path": "vision/src/carvision/pi_control.py",
+      "sha256": "6953374f8d394496c601c376a75337da661693fdbeb5992fb755370ba3e7c34a",
+      "git_blob_sha": "b6a88a9cefb9220799408d21d31bba9190b51939"
+    },
+    {
+      "path": "vision/src/carvision/pi_runtime.py",
+      "sha256": "b62f9cb66d47e9c6b5e7fc6c74dc835961a55ad24f269e25b109f3069a7151c9",
+      "git_blob_sha": "bc504a1cc5a791b9b0a8f42a6bff56a279de5547"
+    },
+    {
+      "path": "vision/src/carvision/pi_runtime_bridge.py",
+      "sha256": "8f4865b019168df4fd7302548c1ecd6c1511649cb3aa8902d3e33a2487a1d15a",
+      "git_blob_sha": "122070724089d1e748c1b8abea5d6ace77ead0c1"
+    },
+    {
+      "path": "vision/src/carvision/pipeline.py",
+      "sha256": "c1dd1a2e73cfa049453921ecbc54579d321554e8bf1b21ed743e0b31a032e4e8",
+      "git_blob_sha": "5e86826f5f03fe17006462c641b9a0c7753fe988"
+    },
+    {
+      "path": "vision/src/carvision/plan_b_console.py",
+      "sha256": "399267c61f9572ed058af70f53262fd4ad36dbc6b451cfc58b64e11bab53e8ca",
+      "git_blob_sha": "418303effbd802fdfedd77d2c65f08bda56e0349"
+    },
+    {
+      "path": "vision/src/carvision/plan_b_controls.py",
+      "sha256": "00df6e6ed56a4479429b9075562645e2cdbeeeee12573268c6a43863898c0406",
+      "git_blob_sha": "89ca6e422a71c79161a2de6bd9cccc6ae0cbf731"
+    },
+    {
+      "path": "vision/src/carvision/race.py",
+      "sha256": "58b94dff9d60101568333dc31202dadd77933000aee81a714e91555e899431dd",
+      "git_blob_sha": "56cdf01737dfbbaf17154ed1efab0e13b6611ac6"
+    },
+    {
+      "path": "vision/src/carvision/race_executor_bridge.py",
+      "sha256": "db1782846d41c3d73825c83586d7dce37712fffe2aa66f8b20351cf047c4f050",
+      "git_blob_sha": "5ac5b258b0463b2ed1c515e1f87b0fd9d3124da1"
+    },
+    {
+      "path": "vision/src/carvision/race_flow.py",
+      "sha256": "31484b25c363cb5bdef0ffe3562eefe8ae417e6014c900dc276da3b73a363c72",
+      "git_blob_sha": "03a9ea8c4232a214b31a7afe6624441b9c600820"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_camera.py",
+      "sha256": "14d6f29c9ca1778016428c849c794fc850b131c12959aa4a77bd00008d41f6a5",
+      "git_blob_sha": "1587259986b4e79f3bf5fa9b9c77206268eea9b4"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_console.py",
+      "sha256": "aab05724893edbf0dd1b4b392fad65ffbe5597ebe20a49c4d5491b353cf965be",
+      "git_blob_sha": "164c5f14ae6bd62794fd05387f84c25e7759d3b0"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_controls.py",
+      "sha256": "04a42972432f4ae6c58d8bcafea1a89dcbea5e7a01804a231a2139ba180e8322",
+      "git_blob_sha": "e368ee32737b6b809ea2f29e89f61860806ea129"
+    },
+    {
+      "path": "vision/src/carvision/race_monitor.py",
+      "sha256": "0d6749a65aaf027608b3835268fae4f11c89844e98e7fc257e8a770333bd6630",
+      "git_blob_sha": "6680cf93544094659a207f021213799657061c7f"
+    },
+    {
+      "path": "vision/src/carvision/race_workflows.py",
+      "sha256": "dccc6e225247255977eeb4be8560b37cecefbabb6a50d242c12976999612944c",
+      "git_blob_sha": "fbbc7d86f3b8035470ac7a415123254ff552975d"
+    },
+    {
+      "path": "vision/src/carvision/rasadapter5.py",
+      "sha256": "f4e93c457fd55af8dedba0ac25732cb078dcef1c9f94f85f3f1b9be9ae05063f",
+      "git_blob_sha": "442ec10ca6a95575cdf6c226c9df029c8c0e8356"
+    },
+    {
+      "path": "vision/src/carvision/rasadapter5_executor.py",
+      "sha256": "faab04fb77d71bb58cdfabcb2db1f5bf6aacf6ff50796b8557674edddbe7d055",
+      "git_blob_sha": "7e8d3035c3cf6717a52fe14f86f07d093bf53f74"
+    },
+    {
+      "path": "vision/src/carvision/results.py",
+      "sha256": "e4974ec91555443e9279baf0741a1b3d831b761a89fe7a4a546e0ab5c509215f",
+      "git_blob_sha": "f466920e931492fcbfca6b9950b5e0b38e009d09"
+    },
+    {
+      "path": "vision/src/carvision/shared_executor.py",
+      "sha256": "b4956594b7d0837c167a5785976ccf534377f576f020771ea21ad98b75173204",
+      "git_blob_sha": "8d842c3541004460acfbe648f6d9d94d0602936e"
+    },
+    {
+      "path": "vision/src/carvision/sources.py",
+      "sha256": "8eae1f91dac83d8744de2546a31d962bb0826a07b39ba586b53231cf6a30ba33",
+      "git_blob_sha": "95be5a5a06a6efc050feb59c317adb023d5b568c"
+    },
+    {
+      "path": "vision/src/carvision/steering.py",
+      "sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7",
+      "git_blob_sha": "5e3523256b81bf9e5cedd16f62e37fc671615faa"
+    },
+    {
+      "path": "vision/src/carvision/steering_bench.py",
+      "sha256": "180bdbf3e1f190a1cb5a7bea6b388135d3634a186657d2f59b0a4f07e59b0e58",
+      "git_blob_sha": "465a1d2e0d3424ece499f75fa1246e329967794f"
+    },
+    {
+      "path": "vision/src/carvision/steering_calibrate.py",
+      "sha256": "98c3d61f7456fc6980dadf218fc163db6f94ccd832acdc96855f0c2b86d7e637",
+      "git_blob_sha": "4947e914b1cfe036e46643a00d87c37bc886c9b1"
+    },
+    {
+      "path": "vision/src/carvision/steering_limits.py",
+      "sha256": "ecf0b102661e7fe6c851eb1c26c14e9ba9c9673cc1907a90436787b1b0712c12",
+      "git_blob_sha": "d86b223497c31b7a8a3b4daab72695409476b4b9"
+    },
+    {
+      "path": "vision/src/carvision/steering_pwm_controls.py",
+      "sha256": "ecf2bb186ded5cfbf079a8358833e18318c5461823a4c47b7738c9d10af583e0",
+      "git_blob_sha": "bbbd63e08ca91a5b2188950748a358355ed2cfe8"
+    },
+    {
+      "path": "vision/src/carvision/temporal.py",
+      "sha256": "19d9335b9726c980dd5fb17e661725d2d55ad4dd9e3b76a9cabbe8877894c879",
+      "git_blob_sha": "33b6005df6850b4f5a6cd7792d86d9102826e7ea"
+    },
+    {
+      "path": "vision/src/carvision/traffic_capture.py",
+      "sha256": "c0d89635c97815ccac8d9ceccdd210cc66f32350f75e3ac1f95fbfb52bc8f1d6",
+      "git_blob_sha": "ebdce0a2f61dfa446aec0063f8665a25f645bd4b"
+    },
+    {
+      "path": "vision/src/carvision/traffic_capture_server.py",
+      "sha256": "416b18dda0ae289b94ac3a0e401b73b07deee83dc8559b773f8d29c30c90249a",
+      "git_blob_sha": "8e5fd5ebd4b79a2a73ca1b6c3ca5d6f1b7ed79ce"
+    },
+    {
+      "path": "vision/src/carvision/traffic_controls.py",
+      "sha256": "f8a8320261b68b8a155efaacb0ab4de997ba70b7dde9fa2579c62ddc5faf9ae0",
+      "git_blob_sha": "7fc388f4e554013c20e111c1fdf9b5f40c9e3f4d"
+    },
+    {
+      "path": "vision/src/carvision/traffic_driving.py",
+      "sha256": "dfd120dac0908c720e8ab14ea619c9b5992918cab54f6c0c06e9a85116a05e7c",
+      "git_blob_sha": "0c765efebe9adde475888231bb7f93de60e4738c"
+    },
+    {
+      "path": "vision/src/carvision/traffic_lamps.py",
+      "sha256": "9f1d315e9ba6401944d0abadc17b16a7f1436cf5695e6ebf7d311d7ee31f2f1e",
+      "git_blob_sha": "421ce37692d5a02fa8327db1ab81f27940d58ba3"
+    },
+    {
+      "path": "vision/src/carvision/traffic_preview.py",
+      "sha256": "66939625f72740329b606e4f1ae019046c65c5cd7618c9e46596f5d7852de8d5",
+      "git_blob_sha": "d735edbf4d9fc2a693c126a18e6f3c6c437d09ac"
+    },
+    {
+      "path": "vision/src/carvision/traffic_signal.py",
+      "sha256": "6b9fb67e00ae51e9a9b1ba01dca086d48a67ce23c76b7689effbd88b6e939d4c",
+      "git_blob_sha": "ffc8f0b227a2d30ee424f25d7689fabd2d0fa8c5"
+    },
+    {
+      "path": "vision/src/carvision/traffic_signal_evaluation.py",
+      "sha256": "93a54bdde1700f085f44fabf99f7af7b5afd1426b7d77dc46ce0379e8d0938d7",
+      "git_blob_sha": "053f22dc6fb36d97d74c63498b76c6855d03b28d"
+    },
+    {
+      "path": "vision/src/carvision/traffic_tracking.py",
+      "sha256": "9bdef826f748f9396ad99b714f27b9f4a163a5e48d8cdf968411ef1798bd2124",
+      "git_blob_sha": "3770e710e8d651acd9a5500d743352a0c0a0cabb"
+    },
+    {
+      "path": "vision/src/carvision/traffic_trial.py",
+      "sha256": "89d8e99a04ba9358f1f17e8de53d77c86315d5a03e49d7136190df1dc30dd6d0",
+      "git_blob_sha": "e313211cb221772a1bfc34017ee2cce7908926c8"
+    },
+    {
+      "path": "vision/src/carvision/traffic_voting.py",
+      "sha256": "85c8e25c3b7d1d645b7baecee4bad68522d4bfd16a1b2ebe7a8e24105e262ab5",
+      "git_blob_sha": "76c578eb0af08e7651bb668f85157404a14226f3"
+    },
+    {
+      "path": "vision/src/carvision/web_preview.py",
+      "sha256": "d4d3f2ab16c0568574649825d2c3ab4c3e788f597fbe052f1da47b780c3ce05e",
+      "git_blob_sha": "7afd6ca32ee867f81d57441102b70d885d043e08"
+    },
+    {
+      "path": "vision/src/carvision/worker_client.py",
+      "sha256": "a9a2fc77e4e832bd5d74f3fbe4c03bd36d2079d8c44603d857c3e5469eb9d506",
+      "git_blob_sha": "f745f0dc53aaf07ebf3687d66fc54cea64719dcf"
+    },
+    {
+      "path": "vision/src/carvision/workflows.py",
+      "sha256": "ff4f899f9c982c19c4842884d6427824631d0f4ca4b0892e58c616a379766f9f",
+      "git_blob_sha": "83f4900898de89f35269abe88f1a3924671d4dd3"
+    },
+    {
+      "path": "vision/tests/cone_mission_fixture.py",
+      "sha256": "8c104883c99a71e47969a8b107430f9f16043bcc14b2ed0f351d21e48276b7db",
+      "git_blob_sha": "95d1b32ef2e97c56778e5382535928e7e41de759"
+    },
+    {
+      "path": "vision/tests/fixtures/blue-board-close.jpg",
+      "sha256": "864b0fc527aeec0e9a6532014b093a9ff5235362073b8bfc7be0f3d4c865737d",
+      "git_blob_sha": "f927f0822da538435b248ded607dbb8f04fbace8"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-continuity-20261013.json",
+      "sha256": "3c9664a6ed0822412b4ed98d5eda61fc5efeefdce74ae1d9695b9e96229e3bd0",
+      "git_blob_sha": "1fb87cab65a90401758a70b7cec8560273ea74e6"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-left-with-small-background-patch.jpg",
+      "sha256": "4da176e81f3f8c12a935629aa6f00683e01d47b3df44f1f4bc0e6de17026c32b",
+      "git_blob_sha": "d418a6089b38eb43cc9adc8ae80d2b63836a8cc8"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-primary-a.jpg",
+      "sha256": "426f874ad2568c7a8ea641a8608e95ec4e7734ee7b72f268bae1d35b5f650302",
+      "git_blob_sha": "65434372b3eadef5f2bc0054fe23e17904a1a818"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-primary-b.jpg",
+      "sha256": "e7ff7cb3113699686e82a9db453bb43d38b0bfb7b6484ab6abdbb5c97c05ff20",
+      "git_blob_sha": "4770c005642ad3a57056acd15ddf01ef234081ab"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-primary-a.jpg",
+      "sha256": "282c2dcdad3ec42fc649fc7b721c0c56f398f25c738e6a7cec7c2af2c55efb95",
+      "git_blob_sha": "993cfbfb1f62f8917bad7fc7f8de3d96364520c0"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-primary-b.jpg",
+      "sha256": "34f967040553d869781d43895f03fb48b9e074af0b9d8ff8add6ba1a9236f1de",
+      "git_blob_sha": "827af5c23f42da05c5d69f2d87b1a0fbd664316e"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-secondary-a.jpg",
+      "sha256": "ef97fc4be9ca6169dff6eefed279f2f9165f4a3ab000e2be250dd03d01308ccf",
+      "git_blob_sha": "9759285f8e1d0b9ef398b8f28efc952095b8ab7e"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-removed-secondary-b.jpg",
+      "sha256": "4c0d62528e236646e8890ab60ba1f7fe37e09412be403511cba7f4b5c3cc0ee1",
+      "git_blob_sha": "a8fb57fc5d7ead1c3cf99255a0c9fb5f3e3c73cb"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-response-699701-navigation.json",
+      "sha256": "eaf0dd73aea5e0acfcbc21f2e6b194655467fe1b85f994158e13f1378cf293da",
+      "git_blob_sha": "29ec3f5a997197fc154969d584e79cf7079a0d83"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-reflection-a.jpg",
+      "sha256": "2dabe222500d2bc7372cb5d0d73795777ed55fcaca4a59ba0cf6616f751229a5",
+      "git_blob_sha": "4236378b93e6f6acab43ed8bba9ecba5774e0693"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-reflection-b.jpg",
+      "sha256": "07511d863e221e247e1b15da0ad0c88a7a738a8e738973536afcc1f913d290be",
+      "git_blob_sha": "fe2b12654e483342368dca679cc38b278640e40c"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-right-rounded-tip.jpg",
+      "sha256": "44c4e57efb2ead4f7178a51e7dcd7563b54fe518e3e39e975634802ea6714230",
+      "git_blob_sha": "799e4f2b2b14b2b77b7b2aa323fa57b9c4457d8a"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-secondary-a.jpg",
+      "sha256": "f9bac6065b01693142539c3823b3ff82050a98cf359c2a76984d0510979215f0",
+      "git_blob_sha": "17f970aeb00faa645a92221cdab196ea62763e0d"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-secondary-b.jpg",
+      "sha256": "a0b045b34f79ab52b17b771079158ec3fb18f2dbfb044daa8deb821bf02b8d36",
+      "git_blob_sha": "d5972e676bcfc811b1b5fa1c0ec9d35bb0242e3e"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-track-glare-primary.jpg",
+      "sha256": "d00de2f8414fdcec48b7d0142edafc8260780b00d077eab89ca41194e4d4679b",
+      "git_blob_sha": "6aac155057084e37030eaee4afb6fa83aa7092c8"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-track-glare-secondary.jpg",
+      "sha256": "e1855562c653f892c232c8f9858d0876e4b7b09be13bb71694bf608b695b25c0",
+      "git_blob_sha": "34cfddc90ba0d07899d7ba573aefe76d138655d4"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-track-short-secondary.jpg",
+      "sha256": "947803c6236f7fe68d27e2730ff2cdd79dcba9ef11b037a0bbb2006783bfcd31",
+      "git_blob_sha": "c01ebe7cc9ab289583872ee7f59beea5461f78dd"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-front.jpg",
+      "sha256": "ac8d4145eff6363fb2485732acc9e436dbb7b48a59bee8defa23a2bf4677601c",
+      "git_blob_sha": "dcf36bde6df211769fc0e1d54278577c5cf4bb5c"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-oblique.jpg",
+      "sha256": "769b82d35d8bcb4fc820de23c7ed01d173797f23b89f3c61669ba4c0dc1d8798",
+      "git_blob_sha": "149251df85a8e337d33880b61408efb2408a51b5"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-side.jpg",
+      "sha256": "e82eab3efc123b3ae4bb597a848e44e07f0af67c106dd17a4a8d3540e7ad82d6",
+      "git_blob_sha": "9cdd4577ff1663da7a16c72a11d741e41b5b3c60"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-user-top.jpg",
+      "sha256": "d718273b214f49a851c8703cd63a207dad2f54ba34b112e657b2a83ff4b9434a",
+      "git_blob_sha": "9a4dce0f7388128d001d779149173697dba62707"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-white-mask-20261012.png",
+      "sha256": "85bd74cdb09b9e9ad4c4c33f9ea4fe8d209af179ed4ccdefaa919eed085d2080",
+      "git_blob_sha": "1bb33c4742d20e910e2147cb0dcdf1832fc5cb49"
+    },
+    {
+      "path": "vision/tests/fixtures/configs/README.md",
+      "sha256": "d31734aa1e88f6e2263f86c719fa28a91d97312e847422e1de1268004048ba55",
+      "git_blob_sha": "da4885c488a924ff488c3b32eb5007e2450f1c34"
+    },
+    {
+      "path": "vision/tests/fixtures/configs/brake-parking-field-20261026.json",
+      "sha256": "39ed49329ad5bab224ea3705dc60742b3ca6beb288dba5b94f91499988543006",
+      "git_blob_sha": "87bbcba9cbaccfc63b3db60c9bcf4b502de59e83"
+    },
+    {
+      "path": "vision/tests/fixtures/configs/cone-trial-field-20261026.json",
+      "sha256": "2a226e585c7bfa7c015061600a6e0cbd5fb2ac433d4325fb29a1b169d8def672",
+      "git_blob_sha": "33c05dd55a129bd97aa4351e879d7cede6193c6c"
+    },
+    {
+      "path": "vision/tests/fixtures/configs/crosswalk-distance-field-20261026.json",
+      "sha256": "5d95942cbbe56a8f42fa5868812cfa48c7802880a27e37fefc17108746eef154",
+      "git_blob_sha": "4060dc32265f3b2021209c59b5c24b9b8ee14f4e"
+    },
+    {
+      "path": "vision/tests/fixtures/configs/crosswalk-reference-field-20261026.json",
+      "sha256": "0cf2b76aa66f58a70c9ec6b8e4dadea4377e627bfc28d0ea89726d4d917bb8c3",
+      "git_blob_sha": "624ae499436466449f8cdf8e237d2755b2d75a3e"
+    },
+    {
+      "path": "vision/tests/fixtures/configs/departure-field-20261026.json",
+      "sha256": "9a2a505ef656a4d661e87179f6c54591e11d80de49d4981977083d6cabbe15a8",
+      "git_blob_sha": "bdc1df848b7ba2d19ae2c34b2bb7d5a52f7fad84"
+    },
+    {
+      "path": "vision/tests/fixtures/configs/parking-bay-field-20261026.json",
+      "sha256": "5cf9a2ac937765a5ef8b9c3e61166121885ee15186ecab135feba62feefd1ce3",
+      "git_blob_sha": "8e73f025c2505fb9dec069b4c2615470fac88678"
+    },
+    {
+      "path": "vision/tests/fixtures/configs/traffic-driving-field-20261026.json",
+      "sha256": "c5fc7563d01c7410994602819666a79566a55702c7d84931ce841489840a4759",
+      "git_blob_sha": "31a9740350e69c8f5193e95f817e7b7da27b2e8b"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-background-primary.jpg",
+      "sha256": "dcfe1cbc721acfb23d850d69c654865d3502e94f4de703f2e8c588c4bf0c16dc",
+      "git_blob_sha": "8ef188f70fe4e76f283209aaac36f02ea0a4f85f"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-clipped-primary-20261009.jpg",
+      "sha256": "4f57618e09d7d67e25601125fe812b4c1089b4506332128c73d81e5757e66d23",
+      "git_blob_sha": "3bfe0cfc16410b96ba35a78442e6fc4b84590090"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-clipped-secondary-20261009.jpg",
+      "sha256": "b8b27e471cf2444434febe8b74220c3941653b77642154cb001264156807c9cb",
+      "git_blob_sha": "c78aed2f411d245931902df95f5aee07a8856da6"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-distant-secondary-20261009.jpg",
+      "sha256": "95e508bc3fbae5ac444e117ba2dec74cc675be16b383c01a58bd56df3daf095c",
+      "git_blob_sha": "f70177d1689ec7c98d4bc73c9738379f660957cb"
+    },
+    {
+      "path": "vision/tests/fixtures/crosswalk-papers-secondary.jpg",
+      "sha256": "e1a4b41a6c88d9538e0fbdac412e18a5128fbcc46d24c6dd6ebd6272af3f1ad2",
+      "git_blob_sha": "ea10e690bf963beee68e538b1cf2bf5b0760162e"
+    },
+    {
+      "path": "vision/tests/fixtures/departure-quality-dropout-20261024.json",
+      "sha256": "e0d18516e6cf2c41885198e97ebe17ae8729c5fb536c590e29c80a07368eadec",
+      "git_blob_sha": "e1f6d087dc064dd60205b1b376539011a17dfbdf"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-border-clipped-left-board-20261013.jpg",
+      "sha256": "bf8d2f160e742803191b50b69a11eb28c0489b827da64af59e5d9fac2ebeb9fe",
+      "git_blob_sha": "2437984f5f7e45800f45dbd83ede10b2aea60a7f"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-boundary-failures-20261020.json",
+      "sha256": "84ffdca436c65f2c74aa4af49ef2b51551a5aa3144b2ac6b28c4f9285b48d493",
+      "git_blob_sha": "2750e09963ebdb913838fe66d37670047fd6c60a"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-boundary-loss-20261013.json",
+      "sha256": "b77e751877647edd8aeaaa2979b1d53fa2bca0d2c84c1f1e33880cc566d3c93e",
+      "git_blob_sha": "e0484e464a6cecc3bac5343531ecd95c8148f545"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-boundary-recovery-20261020.json",
+      "sha256": "2f5968d35940609f2b0aeee644dfeadabf9d5c0654199d403f7e72150b2d902c",
+      "git_blob_sha": "a04385ceb322a0a2e93c505faae4c85e5df94386"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-overshoot-loss-20261013.json",
+      "sha256": "148b314802ef49d47443c286e2b1c637cbbb099f55f1a10a58205c3947bd1974",
+      "git_blob_sha": "2ca8257ec957e2de990991ec3cc67167ffcfdd96"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-pale-green-left-board-20261013.jpg",
+      "sha256": "3604e3355033a7f2f1fc52060a953fd916fab028fccdcb3eafb68f9602d24d9f",
+      "git_blob_sha": "bab1caa56221b9cd687790619be31c10d3b41e7d"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-washed-right-board-20261013.jpg",
+      "sha256": "b4b1b0095245430cef03b3afb9542ac00e9a6c835ce9ff9d4b9581a62354c721",
+      "git_blob_sha": "65fa6a6acb814ec29275bf3e1ff556bd13a4757a"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-white-mask-20261013.png",
+      "sha256": "d3a3d7c97e54242f73e113d652fce8dfe3ef802fd0b12c989fb48036e4b72e77",
+      "git_blob_sha": "6f64f2c1fb739eb1fecb18461803372b3b5245e6"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-all-off.jpg",
+      "sha256": "d590d0d143a5c2dfbb84c4f9713f17e519dcffda80cd9c3c511c84f42ef48118",
+      "git_blob_sha": "d9b250f830ca91a776b7fd53bca5fc0cef74bd1f"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-background-primary.jpg",
+      "sha256": "705da6bbca5cad67b1d6d2898a1612548af74a4fe70bfaad8af947247a19e937",
+      "git_blob_sha": "c0322de4ad4e1e5e3329b491062b0050a465b5f1"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-green-overexposed.jpg",
+      "sha256": "9ec8fa7f533500d8221ca0e7d4692e7e5ee3b15a59c923f1a1f176be975e3174",
+      "git_blob_sha": "9013f80b8b8475d82b24b8b394386075f96e2bd7"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-red-overexposed.jpg",
+      "sha256": "8d104f0438e1ec91c7d6d6c7626384741a77459eaf75b69229b163c289d21936",
+      "git_blob_sha": "a07c1402a04b059a6a9cba6451451f52a35bf0c7"
+    },
+    {
+      "path": "vision/tests/fixtures/traffic-yellow-overexposed.jpg",
+      "sha256": "b6c656fac276744a4c0d261abe89b1669406fa3f117eebc8a88b984e0acb2bc4",
+      "git_blob_sha": "e4237fe9a4956378ed1cc2b5ff4f7a274adbd630"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-dark-20261026-primary-0.jpg",
+      "sha256": "fb707bf364d24e25ddfc693c1c5b05ff85b3774eb9c5533673edffab819b4c89",
+      "git_blob_sha": "8b3d8ba53a920cf50e1d9f3311ec3cc3492c3360"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-dark-20261026-primary-1.jpg",
+      "sha256": "c5198d8a6087dc79fd6a2da126132822d2e2791bbbad1f3144e900ddc95ba391",
+      "git_blob_sha": "66da2cc70a79a3891d87b8ff53d650e56abee6f7"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-dark-20261026-primary-2.jpg",
+      "sha256": "94305c7432aeee55a2e25df18139dde9718cb3d5ce3035d07b14f7b6a6c893bc",
+      "git_blob_sha": "2265719a20fd519b28e32c1073368adbffab015c"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-dark-20261026-secondary-0.jpg",
+      "sha256": "71004a8afa68b38d98b940373508d47ec60ffdbe81a5afc0e795c96f9484c15f",
+      "git_blob_sha": "f8efad4ee0b66c84d0c2dcca247392ebb5e262f8"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-dark-20261026-secondary-1.jpg",
+      "sha256": "d5986d8f892c79b677aa606cbff56f657421eb4f4c87e110c4c0285c4734c5df",
+      "git_blob_sha": "47068f89ffa6ebb1e9f19c34b15eb8ddb425d620"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-dark-20261026-secondary-2.jpg",
+      "sha256": "c17abb37afecf64792ad0789c9426edc38aba77d0be74fcdaf8fe03b2421a731",
+      "git_blob_sha": "db5f9773e4e1fe0b2fb80dff70d35c074c1ccea3"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-primary-0.jpg",
+      "sha256": "342e18ad8cfb50b0907375414e1bbcefb5eb088757811b7cd56ff893a47fd939",
+      "git_blob_sha": "dc86037e9d7399e17d615aae9b7d4e9714b70fd8"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-primary-12.jpg",
+      "sha256": "7a057dee56c4b06b56474610081ed1f3cb0ead6c4b8b5a5eee59a427f31403ee",
+      "git_blob_sha": "a9104e7338892c374dd179d589f0f2031e2715d6"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-primary-16.jpg",
+      "sha256": "64b646343b3b567541b01753c848b88a73984eb2bdbe384421779a2febf1c35a",
+      "git_blob_sha": "74b4059e300dae498ff9e74a93d338290bca7b80"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-primary-20.jpg",
+      "sha256": "71065b15b6b518037d8a749752ecfa7bd4de7389af1a75b32e0f9f8a81405bd5",
+      "git_blob_sha": "a90ee083ded93aad6be9f16073de3aadaff22428"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-primary-24.jpg",
+      "sha256": "e5b5f4c7f588ae8d8aa7999d211ccbeffdefd88d3b343a0761138074d615c952",
+      "git_blob_sha": "175cdc5fe45d7a17f9d575002fa7adfad86db6ac"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-primary-4.jpg",
+      "sha256": "a10a2a3cfa54f55e330f10f67e3e5c6261efdf410d58ac6ab1633c88132379b6",
+      "git_blob_sha": "79795c112eb6f7239b61ba969b43f0091fcb3098"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-primary-8.jpg",
+      "sha256": "e25c60a171cdbc46e3e6b063b05f7d9bb94bb4c14e76bdf6f91984185c7b60a7",
+      "git_blob_sha": "879a6f0f276b6fb437f2e2f051284fe66d4e702a"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-secondary-0.jpg",
+      "sha256": "660b9839080eb1dea3bf8db569f6a3fb196e0806edd25190c8c4be40f1aa2bab",
+      "git_blob_sha": "75f5e16665acbac45a9db31f2c5b3aca93826446"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-secondary-12.jpg",
+      "sha256": "ec115bf3b939e02deb955985133e8bf6192e8f3c4f22b3d9694140d73f515591",
+      "git_blob_sha": "921b0b760da6bc519964ffb96115edf59d811d58"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-secondary-16.jpg",
+      "sha256": "6ebe29d614734155fcc3bf94fb5cdd3a1bf1a47bc1b6ecc8bbb5d7e8cd547f8d",
+      "git_blob_sha": "8a829523cc83fdf5e8d2149fe497e74e78e1a4a7"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-secondary-20.jpg",
+      "sha256": "97e88ac63c3e9d82fa4a9d855f81c7e26b720bd98416081cc3bb5ba3f87d3a57",
+      "git_blob_sha": "bee22cdbea72c9ae64ca33a5c7381c217a7ab50a"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-secondary-24.jpg",
+      "sha256": "92fa93b1b6a0aa5c04b4ab6df860887a5309cba3b930e0bbe8d949c5fd851536",
+      "git_blob_sha": "5bf52aeb7e16245331747c763a22c3fa0fe80150"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-secondary-4.jpg",
+      "sha256": "58095816db13ed86a47e93665dba3bb1a59a1c1bc6cb7990d103bba8328995cb",
+      "git_blob_sha": "d1ee2d510852c94847d1c2938050e04ed056ecc1"
+    },
+    {
+      "path": "vision/tests/fixtures/white-live-stability-20261026-secondary-8.jpg",
+      "sha256": "e41d7f0e78a1a1a30605a5262efd74999962bea87b7b5da1df9b8b0dcc823fb3",
+      "git_blob_sha": "e2d551d86a7c096e2aed5bbe4f04538a7de8cbb5"
+    },
+    {
+      "path": "vision/tests/flow_calibration_fixture.py",
+      "sha256": "4f73d650c646a81ac9b632732d29a3ffc53a325dd91812408dbdb15ba740097c",
+      "git_blob_sha": "38f2a8f6b0cdb93a4d1bd7924ab9904ecfa0fd08"
+    },
+    {
+      "path": "vision/tests/js/competition_page.cjs",
+      "sha256": "05347ec8fbcb53b0fa43fc81df828d74d9930459f70b283c42828a406304fb1f",
+      "git_blob_sha": "f10f45227248fd03d25376bb6ed9bea40e0d19f8"
+    },
+    {
+      "path": "vision/tests/js/competition_static.cjs",
+      "sha256": "be1893f5be071a56b34c598a24014404aaa6747532d8b3806fd9779194aea661",
+      "git_blob_sha": "17c0aea83a1a581841a2a5eb80dfc6e8bb9b46be"
+    },
+    {
+      "path": "vision/tests/js/debug_static.cjs",
+      "sha256": "36792744c244606e6c42e05c3b6eabb9b4f44ad36d16ff5be6b4ead29fe85d48",
+      "git_blob_sha": "466049d1211c1650a86b9988f2084cc828da6ec7"
+    },
+    {
+      "path": "vision/tests/js/gamepad_controls.cjs",
+      "sha256": "d2bc79641c68a6780ccea7c0ecbffdedbb9d1a926a99d804bbdc6384bb8cab2c",
+      "git_blob_sha": "ea82f1f9f4c124e56421e495cb710b2c2ad7fada"
+    },
+    {
+      "path": "vision/tests/js/manual_heartbeat.cjs",
+      "sha256": "d7bb721f74a8d75476d6ce7b8b23f904034b7f1732da3ead7024d4cfd09c757d",
+      "git_blob_sha": "6ab65ec4db83d0e057820773225a25fb2f45360c"
+    },
+    {
+      "path": "vision/tests/js/steering_pwm.cjs",
+      "sha256": "7f41dddba52a2909ff88916d810ace8324fd863cc67eb5faac3d94a1453e40ed",
+      "git_blob_sha": "9074f9c578680ec18fbbee1c8fa45026e043f65d"
+    },
+    {
+      "path": "vision/tests/smoke_yolo.py",
+      "sha256": "4eb21407a19aff3e373bb74f408993173652a10ac0874beaa590038276d65d08",
+      "git_blob_sha": "1b7c7b221e83d9e86d6a7db6fdb3e6d76b032814"
+    },
+    {
+      "path": "vision/tests/test_application_cleanup.py",
+      "sha256": "b4b229231accc13f5689bce978ad2263b85b8a1e236c2654c027606deb4003c6",
+      "git_blob_sha": "a8dc1a5e1350663ee8feb1dcda0dafa696904b07"
+    },
+    {
+      "path": "vision/tests/test_autonomy_stack.py",
+      "sha256": "f4bc3924bb4d534e89448945b7e37aaa0a26630427b93c1b18942a4e33fd7c3b",
+      "git_blob_sha": "588da14533d5d54e716a0e16872ead2bd241e820"
+    },
+    {
+      "path": "vision/tests/test_boot_preparation.py",
+      "sha256": "d8b6371cb384af9e30cd27194dcf03b6c3e49c8ba7ee1872e4679c69e9963639",
+      "git_blob_sha": "922595f03ed5ba28e64c386af84f570d95944312"
+    },
+    {
+      "path": "vision/tests/test_boot_test.py",
+      "sha256": "3e5dd1e6dba34557faf5e4c36f6ba74dd3d706951291a076d2e87f88f15a31b6",
+      "git_blob_sha": "7862ef5d7ff38cde0d34505e2252cc0a62608ac9"
+    },
+    {
+      "path": "vision/tests/test_boundary_steering_center.py",
+      "sha256": "a5077e2a535e8a967cb9e2ba84f33180c73942132b865949e4e6dc78e4b0df05",
+      "git_blob_sha": "50f54fdcc46c32645aeb7e07ab2fcdeb4d243305"
+    },
+    {
+      "path": "vision/tests/test_brake_cleanup.py",
+      "sha256": "c7d334aa92c0467edc42cc413e1241bac785bc109da999fffeec1f44889d4cee",
+      "git_blob_sha": "9bd3e07d28aeac49b72f485495e06b0968001c68"
+    },
+    {
+      "path": "vision/tests/test_brake_parking_program.py",
+      "sha256": "5116e95528b0bfc5d578b337db16748fb2618378182d9027c271011e3d7869f4",
+      "git_blob_sha": "90f2d35da9a1e7de8d53d1a4d85117f7b32085e3"
+    },
+    {
+      "path": "vision/tests/test_brake_timing.py",
+      "sha256": "b4aff78b85b3b1d2e12ae1abc6cc43a033434eb9dffd64d0226fc80d672af355",
+      "git_blob_sha": "3b8f70db823f10475cd23ce270ed3971178acd5f"
+    },
+    {
+      "path": "vision/tests/test_brake_trial.py",
+      "sha256": "2ba3b62d2282d36a2b2e35a48ecf997a2a1ae5e92650f486f5c76584e57bde4b",
+      "git_blob_sha": "c70ac05d27fdba0f264b74e2132f095cd74aff4d"
+    },
+    {
+      "path": "vision/tests/test_camera_assistance.py",
+      "sha256": "e9660e7f9ec307e3b2eb978f65b5b71267f215bf02acd3d6d274eea47b66df39",
+      "git_blob_sha": "14589132cc1f91b302662a41cf71dc89ee34d8ac"
+    },
+    {
+      "path": "vision/tests/test_cameras.py",
+      "sha256": "3d22be07bbff1b89dca62a6bc974c37a06524ecec9c83245d005981a679ff476",
+      "git_blob_sha": "2857065badecea55cd01c87039f45d5279936d0e"
+    },
+    {
+      "path": "vision/tests/test_classic_detection.py",
+      "sha256": "96e30d9c895656a23b59f3ab6edabb1470f964976d74c11d39e6d6f9748e34d9",
+      "git_blob_sha": "6f62f753219081505804cce0b741c63c4f1c7316"
+    },
+    {
+      "path": "vision/tests/test_competition_page.py",
+      "sha256": "68d65bb362e8cbd42d80cae006942a40dfd14d69228986795b0c84bae2bd1b07",
+      "git_blob_sha": "6983a38ab4ee2b74cf1f70529c23a9fd308ce6c8"
+    },
+    {
+      "path": "vision/tests/test_cone_assignment.py",
+      "sha256": "139e62e96ab5b6a1e700f9af918deff7a4045c8adcb2979c2244ee2859c7954d",
+      "git_blob_sha": "95654487072b46ffa08ab24885da10ddf0a49ee6"
+    },
+    {
+      "path": "vision/tests/test_cone_boundaries.py",
+      "sha256": "76660254f57d85721858ff98bf9a9ff597983ce62bc97aafea38dc934332af17",
+      "git_blob_sha": "907ea1f15646639894bbb28e9f3dfffaebb08a86"
+    },
+    {
+      "path": "vision/tests/test_cone_cancel_provenance.py",
+      "sha256": "8abe05695ed5798f51e7e4f73107d79a0ca80575009f536f6b502c3db70297a5",
+      "git_blob_sha": "4bc00ae99eabe57161b4588bd5fcdd04b62ee90a"
+    },
+    {
+      "path": "vision/tests/test_cone_contact_continue.py",
+      "sha256": "c8a5a8929f101259e0e96197ac2bbc28e17d53fb7c3d14a5e6a0d7dbee6ea299",
+      "git_blob_sha": "83dcac00a543836347882e2395fafae7c1085f9d"
+    },
+    {
+      "path": "vision/tests/test_cone_continuous.py",
+      "sha256": "e30b949cd658f926187fe2319f62da376ba4dc736b453c68845e173789f9d76c",
+      "git_blob_sha": "c1ede04705701e27bced3da38b8cd9355d49f3d3"
+    },
+    {
+      "path": "vision/tests/test_cone_debug_save.py",
+      "sha256": "4951a383bfb7cbc83353cec5d9a1a33065f403d54d3636901b27d353147880c6",
+      "git_blob_sha": "06a0c1fa5822d423cd20c23457f069abbf041731"
+    },
+    {
+      "path": "vision/tests/test_cone_guidance.py",
+      "sha256": "e26af84427b7194372c3abaea20556f4219a9892c67be1cbf4dea698b898ab12",
+      "git_blob_sha": "088318bf24572afdd8e1a3bf4716297b90326dfe"
+    },
+    {
+      "path": "vision/tests/test_cone_guidance_integration.py",
+      "sha256": "c481f0dd855ed8d0c7636dc4cd106d1af65d1f5794fe28156f7c19c258b04e15",
+      "git_blob_sha": "025c94842934c7bbe55eeb2af938e0bb3ddaf0bf"
+    },
+    {
+      "path": "vision/tests/test_cone_guidance_selection.py",
+      "sha256": "cac5babbc919f3e1cda78b77e1760a3c6f4286060156fd1dfa95c5e222cdcd13",
+      "git_blob_sha": "90bf14818e799b197823d7e36aef1f752ea8f519"
+    },
+    {
+      "path": "vision/tests/test_cone_guidance_wiring.py",
+      "sha256": "64de369bc8eba176874b48732d0a8a7078486312debd446d673ed440ee499c8d",
+      "git_blob_sha": "aae793490d7c8556ba5e3719b42d3ba320fadd7e"
+    },
+    {
+      "path": "vision/tests/test_cone_identity_recovery.py",
+      "sha256": "817f016e2c8467ae10ae79bfca0803e67e6bc0a839a56fc44ac4e960ca1c5669",
+      "git_blob_sha": "23e8d8576d461ed72c52e47529af28defe2b11bd"
+    },
+    {
+      "path": "vision/tests/test_cone_low_speed.py",
+      "sha256": "d13b29ff37cfea1581bed1fc2ec62f465ee1fa0f2da2b47cf66e676f6f8d0ddc",
+      "git_blob_sha": "5545bdfb27e947224d3682367026d29d2600da57"
+    },
+    {
+      "path": "vision/tests/test_cone_maneuver.py",
+      "sha256": "347c83804981249194cc35cd08fea7c3cdba0391fa8f4998c9aebe320820148a",
+      "git_blob_sha": "74ccfd1fc68718c3ed4c30ee1e92c2c5370db567"
+    },
+    {
+      "path": "vision/tests/test_cone_maneuver_integration.py",
+      "sha256": "acc36cf49a023220dc3bd770f0c715ec7165e58b2d59bfd4deba68088d64d5e0",
+      "git_blob_sha": "f94db6a7e5edf848d0a8ef20a11d772ec2251af7"
+    },
+    {
+      "path": "vision/tests/test_cone_mission.py",
+      "sha256": "b880a686b86953ab74de6d9c600189663c0806172ac959497435ed37bd1083d6",
+      "git_blob_sha": "e020b91e7792ab3ab5dd4f26d3b296c453a70f49"
+    },
+    {
+      "path": "vision/tests/test_cone_navigation.py",
+      "sha256": "9cd38d0261f3dfb83c93fb632d733cea5610a829b5393da212ea5aa2b9414de7",
+      "git_blob_sha": "ac3d81975127e37ff8487da1580adea8ae8a2915"
+    },
+    {
+      "path": "vision/tests/test_cone_observed_control.py",
+      "sha256": "d05b3f64e463bb91528b148d6e4656f7899a50ed3c0478f7a79d79d796245025",
+      "git_blob_sha": "0eb22736138857a856221f24fc99b655cfaaca1f"
+    },
+    {
+      "path": "vision/tests/test_cone_observed_corridor.py",
+      "sha256": "a77f36e875cffdbc4efc745c087265aea3a62b5bf68bb51f82e8f974918c5613",
+      "git_blob_sha": "c39d44d9bdf3854ff69ab51ee50ff02ba3d6ab17"
+    },
+    {
+      "path": "vision/tests/test_cone_observed_corridor_integration.py",
+      "sha256": "c5ac91fba19feed503599919b98e63d0b09b9680595e6d1f86ff62191fbbd568",
+      "git_blob_sha": "34ac9574b160f38c977e6f08e300e11b3a6bf62f"
+    },
+    {
+      "path": "vision/tests/test_cone_observer_save_refresh.py",
+      "sha256": "7fcf5280437ec10e3a2b9512b9a6dffe5683563208ca712bf9c73d7288811a15",
+      "git_blob_sha": "f3f9ebebb49b756f45ce0b4251c72356f44c299b"
+    },
+    {
+      "path": "vision/tests/test_cone_passage.py",
+      "sha256": "e49c7d62fa58a70aefbb26735613a9d6507e8e378e1c1ada46cc6d589380c09f",
+      "git_blob_sha": "fee7bdc0eee6131041d7cdca23328f5699dbc08b"
+    },
+    {
+      "path": "vision/tests/test_cone_passage_anchor.py",
+      "sha256": "e0fbe5ff70e43949302cf9e4f7d999467684359567b1518c5a2804e97edcba18",
+      "git_blob_sha": "9406337bde8395860e385b95a1ca5449152bca95"
+    },
+    {
+      "path": "vision/tests/test_cone_response.py",
+      "sha256": "c68c4e8d250551213c03156a8e75f0053d11d9b34c8a62f0fae6f453bb15d515",
+      "git_blob_sha": "13bc74ef39bb0f7c6948f57a6443cc79f3272e58"
+    },
+    {
+      "path": "vision/tests/test_cone_response_integration.py",
+      "sha256": "6c9cee56d269ac273045a0fe2eeeec541a35f03daf2b8ad760e6bf752c7ddfc1",
+      "git_blob_sha": "99301f83fb096215d3cef90cf64499a10b2501b9"
+    },
+    {
+      "path": "vision/tests/test_cone_route.py",
+      "sha256": "a951b5c6098e82609800922803e0596cd3f290fdab46958e52686a744253a1bf",
+      "git_blob_sha": "2159fedc9ef08aea8c8f85849eb25519aff0a8db"
+    },
+    {
+      "path": "vision/tests/test_cone_safety.py",
+      "sha256": "0c75b71a927ab61e758200699ccf551643d29a0da4f18a6ad7978b61e9e10597",
+      "git_blob_sha": "fe84d2f55be4641035e369e62427bc9471e5bb09"
+    },
+    {
+      "path": "vision/tests/test_cone_shapes.py",
+      "sha256": "4aafb338194ff10caeebca1dcdd2544dfc970143d4e3da51f180aa296686bb18",
+      "git_blob_sha": "2446a0b376224e1ba911904c152ab9a2a7aeeca8"
+    },
+    {
+      "path": "vision/tests/test_cone_short.py",
+      "sha256": "80fccb2a95860a597e5a8e5fd18e7acffbc394db9b2f19ea5441c767590710ad",
+      "git_blob_sha": "1ffc373ac1d97decfb0603df227039aa160a11ad"
+    },
+    {
+      "path": "vision/tests/test_cone_slalom.py",
+      "sha256": "96daaa4d8e699f52d5518f884fec69c3f765114d59eea9cd54303a0e7a9d4c61",
+      "git_blob_sha": "cfeda43cebff595eadf56ba6d88a20d545c82697"
+    },
+    {
+      "path": "vision/tests/test_cone_surface_colors.py",
+      "sha256": "16dedc0e588eb81004724533a62e3cdc7f2a7fc438d7bc5413735bb43bb95614",
+      "git_blob_sha": "b809aca1777663f869ecbce1158c0892252440c5"
+    },
+    {
+      "path": "vision/tests/test_cone_trial.py",
+      "sha256": "7f8221a6511b12d171b1d87772a2e0d64f0345decaefe79d5041f6b40d83bb8b",
+      "git_blob_sha": "21b3e59a85422a4bb27603698c743ecba6a9c704"
+    },
+    {
+      "path": "vision/tests/test_cone_trial_output.py",
+      "sha256": "7f17cc30511407b20022f98ea0a2671e12a39c30fe663b9330d35e65e81f3a96",
+      "git_blob_sha": "ac1c6f42d01b9a0c673d684ca32c1a3c9e70206a"
+    },
+    {
+      "path": "vision/tests/test_cone_turn_controller.py",
+      "sha256": "68bd9ed9e9d28a83cf31ea093ad836fcd491ce81a70f28a0db7f583678ce8586",
+      "git_blob_sha": "a98bf7409f0c922e1cd659a4ea511f3760f13f67"
+    },
+    {
+      "path": "vision/tests/test_cone_turn_corridor.py",
+      "sha256": "ebc0d69f1bc2840a8d62912d9098446c301e77a7859ef0b32173f3f947582ab3",
+      "git_blob_sha": "775e63bdcf2fe6fd84d89ec21d6627d8b0be66bb"
+    },
+    {
+      "path": "vision/tests/test_cone_turn_execution.py",
+      "sha256": "fccd1b8e84024f0d736087e3ba41872f3d1ea4119f5cad6dcef1a56b742ccab3",
+      "git_blob_sha": "d0a6a7b2cb37b030085786c1e15822fcf2507767"
+    },
+    {
+      "path": "vision/tests/test_cone_turn_output_contract.py",
+      "sha256": "c966e8cb23c77c041455a71cf6161e1299f8d680e1daf09ddad85687d28bc2cd",
+      "git_blob_sha": "2dec3ec98980523ab1ac98afedc89a30d41543d9"
+    },
+    {
+      "path": "vision/tests/test_cone_visual_targets.py",
+      "sha256": "e2ead0b370343c625011dc045971d7db49a5f1828588133e2ae822bcd480fdc1",
+      "git_blob_sha": "2649cc0083d6718236b793e616e1e605cdd5e7f0"
+    },
+    {
+      "path": "vision/tests/test_cone_white_fallback.py",
+      "sha256": "0877e4181d506bc42c8de6f152c927dacae737eabba3a7ef29be6035a979bdbf",
+      "git_blob_sha": "617f40a9b6f1b5acd221b9bcae5e45d28eedfe9e"
+    },
+    {
+      "path": "vision/tests/test_connect_car.ps1",
+      "sha256": "c37cfdd20c98f79584357dd525709c2626c8df7b9a9caef52c100ee1d4032d57",
+      "git_blob_sha": "3f0132495cee71a34945b49038dfc7b8faf92dd3"
+    },
+    {
+      "path": "vision/tests/test_console_contract.py",
+      "sha256": "8d92f94f1c70b46aa45582f0f832d6d68af85574fff9083a3ec6f0e9d2cb0cc0",
+      "git_blob_sha": "06df7fe07287e04a096b83525af6cd9813100dd0"
+    },
+    {
+      "path": "vision/tests/test_console_forward.py",
+      "sha256": "ea4b9371e4d7000e85f879317be174fb2d4246d771507b807663bdebd7586385",
+      "git_blob_sha": "f44ebea7ac909739bd02bb32569d7739c3d9ddc7"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_calibration.py",
+      "sha256": "393b7d1253bdf71d5677648edb9f9cc03fefcdce2652858ab12e12adc2b50796",
+      "git_blob_sha": "d27dac0d5e08af698b060b3fd299a9f4b3658d3f"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_first_stop.py",
+      "sha256": "269055981da416c3c13b975818cccc8281ed2b0dfc2dce21ff7b886b905afbd5",
+      "git_blob_sha": "1a3d47135229682c324409eadf9d579f770a394c"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_observation.py",
+      "sha256": "0718f533d8b6b1c1f8aca768e7a9fa2f5410b667fdc84ba47a247788a35814e8",
+      "git_blob_sha": "95ec0759d5eb0e005c4761af62a3a4231318af23"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_profile_integration.py",
+      "sha256": "015a7301cde94b7dcf2249b4818dab7477de9cf523cfa10d6cbd1f8e903d2de2",
+      "git_blob_sha": "9ff9515f08c4bf7a4fc65e7b497e411b190a0ec6"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_round_snapshot.py",
+      "sha256": "577ccdcbf4631285864ccf981067d1ede15664841d82bf480579096ef449c784",
+      "git_blob_sha": "4293bda09877bad230f19baab6e81bf645f0bd52"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_selection.py",
+      "sha256": "09c5cf56fb53d81635196ae7affea663b5d3cccbfd9b51c19322b8aa5bee85b9",
+      "git_blob_sha": "7c1f6f316271505bf7fe5c802625044845ed3112"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_stage.py",
+      "sha256": "a1d5f6a81c6530fbf0d944cdba1f611bd60edd3f84ec1be077be9f659736323a",
+      "git_blob_sha": "0af7c9a0bc1d97f7d533ec97c2281c9285de5c6f"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_timing.py",
+      "sha256": "b389fea98f4291938a8b7b50a4e1db753c92b4d75c056523c50ee44aa0dde388",
+      "git_blob_sha": "6b4be6fd4ddfdad9ce1c32e24bd49d9b073128ef"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_trial.py",
+      "sha256": "2e11615a9f227b1b4f8a2e9c02490fb892cd201e877ce7352f681419d644b27e",
+      "git_blob_sha": "466009dfe9de3bdec90216ae608e799b8ac5d85a"
+    },
+    {
+      "path": "vision/tests/test_current_steering_profile.py",
+      "sha256": "f29afdaf90e41d71eca8e15ad778920da85740807455ff9205cf8f1f53443216",
+      "git_blob_sha": "66dbbffd3a973cc91520e92031f778b9b20cabe8"
+    },
+    {
+      "path": "vision/tests/test_debug_scene_controls.py",
+      "sha256": "74956a0c1e828379833d5719b195b96936d31d4bcab9f532934e12e58b40ee6a",
+      "git_blob_sha": "684ae14550e051758083092dbb021fc1605f3e01"
+    },
+    {
+      "path": "vision/tests/test_debug_static_page.py",
+      "sha256": "9963026199fedde7a93eca5f5986bdb6d57a947626543b8a5f23e71095c327f8",
+      "git_blob_sha": "f5796e5f3d75f9bdc1b675c2c5e138e28c256c00"
+    },
+    {
+      "path": "vision/tests/test_deferred_drive.py",
+      "sha256": "2835445c44e2f421fe754cd7374a27aacc5edd6e0b06cd8fe80d0124331c2671",
+      "git_blob_sha": "68bce5599f57ffb81aa7ea669afcd6ca84e1b7c5"
+    },
+    {
+      "path": "vision/tests/test_departure.py",
+      "sha256": "205372c3375e4d443771726b7744f36ce1ed81a3c24c53375cb8fcc3aa31e5f6",
+      "git_blob_sha": "c6e1f00a447ca3b9da15ba56886518ab78108df3"
+    },
+    {
+      "path": "vision/tests/test_departure_board50.py",
+      "sha256": "d1b9af20280b0436dfc889e067ce5036f5a7fba5df45a236b8cc45d39dbbe4c6",
+      "git_blob_sha": "842e5832cafcf46ed8e964ea00d1a21503582366"
+    },
+    {
+      "path": "vision/tests/test_departure_offline.py",
+      "sha256": "e227d23c6e8ea5620b33d242f3e4c78d108aa9c64734d70ce9b6630a7dbb6273",
+      "git_blob_sha": "c702e628baa0bdb6553bfbbb13853fb65e782de2"
+    },
+    {
+      "path": "vision/tests/test_departure_quality_recovery.py",
+      "sha256": "9a826d25aa97e828b44a792404baf76fd766ed4e450bbbbba0341552fa11711e",
+      "git_blob_sha": "b8e56047c5821339e0b20f6146ef2cec3ea11674"
+    },
+    {
+      "path": "vision/tests/test_departure_to_crosswalk.py",
+      "sha256": "a1e62240ed9f9ccf4e0576a3be6eb7b1846d6b6244ddeeeabe67784dae784c55",
+      "git_blob_sha": "8b05b1057a3576efe1e587b55840e64e28ae88c6"
+    },
+    {
+      "path": "vision/tests/test_desktop_launcher_recovery.py",
+      "sha256": "b42fb1f4d3aae3e015a497dfa621dd4d20aee7dfa4f25514843b8749030d4d5b",
+      "git_blob_sha": "c38bf746fe1fc76f076aae68b6f1c992a7b9b7ae"
+    },
+    {
+      "path": "vision/tests/test_desktop_mode_launcher.py",
+      "sha256": "1111a7c54c7b683cd4bdbf0947c183fa2ee156725dc1d350cd9e82d019a02069",
+      "git_blob_sha": "ab7cdb456c2bf110fdf3f8486189236d7c3acf64"
+    },
+    {
+      "path": "vision/tests/test_direct_reverse.py",
+      "sha256": "b656527922a1ffb8828ff9a66c269948714933db0d7b6bfa07de6e9a66748892",
+      "git_blob_sha": "295472252ac9e180eed3abd7e29829a11f56ddb0"
+    },
+    {
+      "path": "vision/tests/test_edge_pd_live_integration.py",
+      "sha256": "44714808e89af91fc48d638d5122e32f3aebb17da263302ea73b5f2a06c4f180",
+      "git_blob_sha": "4b21b261bda5e1ab087395ea8089f3fb5b02277b"
+    },
+    {
+      "path": "vision/tests/test_esc_bench_wrapper.py",
+      "sha256": "ddc6f4b0c2ba364411db377f86099bd6da58811665a425be7778c5a8200f17cf",
+      "git_blob_sha": "f5c4771b80e94abf25108de19bebbc6bb11960f4"
+    },
+    {
+      "path": "vision/tests/test_esc_continuity_review.py",
+      "sha256": "6de008514890c0b056bc4829701e4a25e34f10769695712e7bbed7b727d9ce78",
+      "git_blob_sha": "9a29cf85e46fbdcf0203ddbe3a390ca620d8fff5"
+    },
+    {
+      "path": "vision/tests/test_esc_wave.py",
+      "sha256": "274eef6c5c9bb70bb48efff1cf919c33324d587e4043767ed9704db9fa63ca6b",
+      "git_blob_sha": "710d92a34974e39ce39f47ea6001c2bc96abc194"
+    },
+    {
+      "path": "vision/tests/test_feedback_parking.py",
+      "sha256": "6a9df503162874c5b116d52ef824a140fc4f52d8831418217aa5b61f48e17020",
+      "git_blob_sha": "45cfa665f1429d1d380438eb737337a741c1ab71"
+    },
+    {
+      "path": "vision/tests/test_gamepad_controls.py",
+      "sha256": "4a6dd8b70926656ad8a5fd871629fbdf5485b19dab42175d1b20fa258f51ab5b",
+      "git_blob_sha": "197b8f1b7b72196941d5715b7fc709f092619d83"
+    },
+    {
+      "path": "vision/tests/test_gimbal.py",
+      "sha256": "ca12321dfa3ec33b2837324d6991fd628742ef9c2ae0a54c62d486c2ce83d878",
+      "git_blob_sha": "5d15ddbd8453bc4fa7f879cfef13173cc50e69e6"
+    },
+    {
+      "path": "vision/tests/test_gimbal_bench.py",
+      "sha256": "55cc1dac2c481ec9b6b6aa92c8524e95afa82ed526fc913d116f5b3d48ead33d",
+      "git_blob_sha": "06e62f64ff58080b4aba950d1ad1ed057ca3cd5d"
+    },
+    {
+      "path": "vision/tests/test_ground_continuous_drive.py",
+      "sha256": "22b8a58de8520c315ce667c51fea64715d74aac47b29c4a2275860eb24fa21bc",
+      "git_blob_sha": "df2427f88f54cc49f6ddffee2501a9d34c620f0a"
+    },
+    {
+      "path": "vision/tests/test_ground_held_drive.py",
+      "sha256": "f43106c3e1c74556899a51306f10911c5590a1defebc4d180b146160d1a61670",
+      "git_blob_sha": "3406dc19105ad0c2784e44970e01e3ffc6f16d6c"
+    },
+    {
+      "path": "vision/tests/test_ground_odometry.py",
+      "sha256": "e379160f8860fca19e3c834df4cd4a66bc4bea4f0eda1e7d6b5f392e193ee980",
+      "git_blob_sha": "03a56fdf169ab457a987c303b252bbd5b1f0de7c"
+    },
+    {
+      "path": "vision/tests/test_image_pd.py",
+      "sha256": "bc54ba7bf09cd2ec4116468b825d71d8984b012359f4faa5b8745dad4817314b",
+      "git_blob_sha": "17eb24cb56ae89359197380ee034798044852fbc"
+    },
+    {
+      "path": "vision/tests/test_lane_following.py",
+      "sha256": "4a8ecd4d6f132402641855a37f145cbd85389c82f4828108c86161627e72b0d0",
+      "git_blob_sha": "c33938c798de567fa5720a824c01f69a13f40a52"
+    },
+    {
+      "path": "vision/tests/test_lane_mission_integration.py",
+      "sha256": "ae4bc828187b5284585d82e5ee86ffefa63cd37b758d48d077c132c423aacf50",
+      "git_blob_sha": "b1882b5e836fc260f24f39674bd07dcc98f1ae42"
+    },
+    {
+      "path": "vision/tests/test_lane_source_priority.py",
+      "sha256": "f6d7011741b976f1598ebec306680395edbef0fd3bafefbbb500b327017cb0bd",
+      "git_blob_sha": "fe4478241d115afca77daa0c47e54427613fe8dc"
+    },
+    {
+      "path": "vision/tests/test_lane_stop_resume.py",
+      "sha256": "52af2f4ce566abea9f30ebb76409d18420ef030820942fa1a415332ed1fca8fb",
+      "git_blob_sha": "66f04fdb799eff3db9dac97d6919fb6ffb64d360"
+    },
+    {
+      "path": "vision/tests/test_manual_drive.py",
+      "sha256": "aaea4f56d581373817fc2760e63d7e882b38ca9c02f2bb75480024fea0adffee",
+      "git_blob_sha": "d969711c48c12a905c254f0687580102e3a9b77c"
+    },
+    {
+      "path": "vision/tests/test_manual_heartbeat.py",
+      "sha256": "1183b343292a29e3b4ca4787fc2a139f4dafb81008f2a53a785c34eed9f51d6d",
+      "git_blob_sha": "9eb7c9e0e27afc0d925ca100dea6d0a77e551db8"
+    },
+    {
+      "path": "vision/tests/test_manual_service.py",
+      "sha256": "85a41d417fe14388acee4ce69666a12622a3da2d451daa746afd4eaa33128915",
+      "git_blob_sha": "55d98779117b9974d1ccc480f47c8614661a79a3"
+    },
+    {
+      "path": "vision/tests/test_network_guard.py",
+      "sha256": "6a82cf2a5d5282d877bf97b97ee08595481b0d090f3427158d1d481e804db039",
+      "git_blob_sha": "70cc3741760aa5756c3e31eed69e97d8a46a7c89"
+    },
+    {
+      "path": "vision/tests/test_parking_bay.py",
+      "sha256": "469a4a1c6bdf11da4a88abfd2a4173dbc79f829345fcd89b2ae3eafc3e56b64a",
+      "git_blob_sha": "a8bb7a0faf00d6191a27702a54ddc9ede6f76dbe"
+    },
+    {
+      "path": "vision/tests/test_parking_blue_surface.py",
+      "sha256": "2e18966c0cac7e7091ba7f86f20a0d90f9785a0ad47accb5e9a4e35b69c8eecc",
+      "git_blob_sha": "88838dcc5aa84ff47c9ae8b508d93d6d8a01c7aa"
+    },
+    {
+      "path": "vision/tests/test_parking_boundary_guard.py",
+      "sha256": "0012ca047210ceb101f36435dc2e228399cd19d6e71c009a427a13da0bfa629a",
+      "git_blob_sha": "91f7f66ceb8c942629dfc61875e32b922bd4fdff"
+    },
+    {
+      "path": "vision/tests/test_parking_boundary_recovery.py",
+      "sha256": "4fffec0d28d002b9c735f85ae1997d86b05a479cb9cb546e3dcc0af1c6209ee5",
+      "git_blob_sha": "70940e78b32210744d73571ca36e883bc71307fb"
+    },
+    {
+      "path": "vision/tests/test_parking_boundary_search.py",
+      "sha256": "88c727c3fefdf421ae32949b6efd338d0a5a243b10744cc7355f83b802f6b293",
+      "git_blob_sha": "a165d9f983b89040ada6121e3ccbd7a93a1756cb"
+    },
+    {
+      "path": "vision/tests/test_parking_control_cadence.py",
+      "sha256": "bc09956e3aaa1b8e03cfe8b3b259e8c5858c63d174d98fe30d03bebb67c026ac",
+      "git_blob_sha": "5d1975c41607d1a5c223c8c928c191f7d9f8b745"
+    },
+    {
+      "path": "vision/tests/test_parking_direction_hint.py",
+      "sha256": "2b4986878761aad773914a0e5d80da5ef5baa73686537859d46f4e4f5a64ee38",
+      "git_blob_sha": "5a054af772198498fde61b905bbce534eb012199"
+    },
+    {
+      "path": "vision/tests/test_parking_entry.py",
+      "sha256": "abe3f562c0824546d34b642494d62d306b314c9be2cf4a20d8b41cbc7ce2b3c0",
+      "git_blob_sha": "73130f06918bd88724893fe5ada004a80d54fc11"
+    },
+    {
+      "path": "vision/tests/test_parking_entry_run.py",
+      "sha256": "6236ac236b2c57c2d2397180b09d95222e479cb627eb91ce6c591e75af55f0b3",
+      "git_blob_sha": "451d0663a4a22abb03e50322fda8c3f68f5b5825"
+    },
+    {
+      "path": "vision/tests/test_parking_far_tracker.py",
+      "sha256": "548862890f867402c2deaad76f409758bed3e33c53171063eb890646838070a6",
+      "git_blob_sha": "9a9ce1b72f5e69273768f8e2c0566c4e5a51d742"
+    },
+    {
+      "path": "vision/tests/test_parking_guidance.py",
+      "sha256": "b1a95fd8d668df27362920585ef318c15ece4bb31bd426caa6a7076e6a245c8e",
+      "git_blob_sha": "4f7f3e3ef4202dc8bdb5373774f651ff028e7b43"
+    },
+    {
+      "path": "vision/tests/test_parking_path.py",
+      "sha256": "ce76baf268673c4d151248e116d3a2e7037c0930261952a48b9f63dc187d5671",
+      "git_blob_sha": "719bf036fd384fa87f85136c21531808b82bd062"
+    },
+    {
+      "path": "vision/tests/test_parking_payment.py",
+      "sha256": "1679f97980b86f77e4dd4c91b292ce46e897ff2a9242ea2fd7ebe0e80eeaa07d",
+      "git_blob_sha": "72db67688b6caf8553536c4dc9bcf216421b060c"
+    },
+    {
+      "path": "vision/tests/test_parking_speech.py",
+      "sha256": "9fff2d7c6a6f5aff99a0bcdbdd9c0de32c0894e9941758e9536896557f108334",
+      "git_blob_sha": "0aa0e541a7d4c2b211e850e49970f4cea3ca1fe9"
+    },
+    {
+      "path": "vision/tests/test_parking_task.py",
+      "sha256": "d962684f3fe196d4e937d1a81fea524fb341fc7dd92d1d7243abac1e7b6f95ad",
+      "git_blob_sha": "b6d79c9fbeb1d94878ee25ca2fa34a6db943d2ef"
+    },
+    {
+      "path": "vision/tests/test_parking_visual_fixes.py",
+      "sha256": "437ef3cf52bf6377278f2b2d909d06a2fa25d9e60c78a0cd633089beec53325b",
+      "git_blob_sha": "d05c4b61de811b20989c82027d2518426254cf48"
+    },
+    {
+      "path": "vision/tests/test_parking_washed_board.py",
+      "sha256": "ac28e5246158b0a24d7b5d97ff60bdce69c7b606585f3f54fcc517d75b5b2fd4",
+      "git_blob_sha": "34714a0c61bfc9e9a49e1bb5af80f7b43540bd18"
+    },
+    {
+      "path": "vision/tests/test_pc_launcher.py",
+      "sha256": "e8fee3117bf9ceb9d461ae79c0ef2a7641629a5c4f5669bd4c7a85ae129dd2a7",
+      "git_blob_sha": "ebb3630c369c007de30cf3d4cfb294c12fecbe28"
+    },
+    {
+      "path": "vision/tests/test_perception.py",
+      "sha256": "865c85c6481622dc200f2f2f9339371f99be651111f3d732198350e1421857f4",
+      "git_blob_sha": "45b25b85cf5f5b1a1e2d4a3b54b7f8ad7d9039ff"
+    },
+    {
+      "path": "vision/tests/test_pi5_gimbal_reference_guard.py",
+      "sha256": "9f33b62b7864711940b4ecc74fb029266c40001f1d920a0308e7fe49f3db217f",
+      "git_blob_sha": "252b31dbf916839569fcc8e8b89f20e84b151dc0"
+    },
+    {
+      "path": "vision/tests/test_pi5_pwm.py",
+      "sha256": "a902c0d2c592909130b01cb2628b5abacf993e5ae1ef2f0522f94d172ff18659",
+      "git_blob_sha": "3e885d47df331aa8d3399b70ede44a4911f0a2d8"
+    },
+    {
+      "path": "vision/tests/test_pi_control.py",
+      "sha256": "e89c09302fbbd1a0efb45ce4857455ac88408fd8bd3881704b6a7c3e3e054aff",
+      "git_blob_sha": "4748a02f0fc800dc1d1d722c637ea0f7703a2d04"
+    },
+    {
+      "path": "vision/tests/test_pi_runtime_bridge.py",
+      "sha256": "369f18499bfd265e8ae187157b8dd593c9d2d0620a63816677c0a4f711da93a4",
+      "git_blob_sha": "aafc22ab4668b68af453c899fae14784269d8865"
+    },
+    {
+      "path": "vision/tests/test_pi_runtime_bridge_entrypoint.py",
+      "sha256": "116270e264e4498b8df2248b2369bf15ef5fc9c4c9552ed091976edcb3dc0f12",
+      "git_blob_sha": "a23188a8ba7dfe45fe047a590ae758e1982ceb7c"
+    },
+    {
+      "path": "vision/tests/test_race.py",
+      "sha256": "4bc14abbf41c2c83d7dc614cb2c16be47613b94f798b9a3dcb2c23648a624195",
+      "git_blob_sha": "8efe493c19b970adf0623b3d3f1d6b8ed3a72112"
+    },
+    {
+      "path": "vision/tests/test_race_camera_efficiency.py",
+      "sha256": "82e0fde7be3e65b72aef26873d6e3528829d836ac240ecb332eeeb5d6a8f70c4",
+      "git_blob_sha": "3456800de5fe6ed2202b7b360711cf0d58b767bf"
+    },
+    {
+      "path": "vision/tests/test_race_executor_bridge.py",
+      "sha256": "e501e6fdd3c695334c330a210fe031d7f0563f6c24aa2b5aa9fa93a7ba1d6c00",
+      "git_blob_sha": "cec17af9649f84ca7d1ef2acc0a7c2d47a3cb65b"
+    },
+    {
+      "path": "vision/tests/test_race_flow.py",
+      "sha256": "39b3ea75c1b2e8a2ab98c9c8241bda7049506a9af6fcbb885a1d158fb4a58a6e",
+      "git_blob_sha": "b03928ec3b25ef8e0f78cd34eea3908da553c47b"
+    },
+    {
+      "path": "vision/tests/test_race_prefix_stop.py",
+      "sha256": "b86a9f7095532d54cea819c99b1d660d68e4a251b20fdc79b370001586d171a7",
+      "git_blob_sha": "296d1db56154ed1f1367008d9486a24f51c638a7"
+    },
+    {
+      "path": "vision/tests/test_race_start_readiness.py",
+      "sha256": "6eaca1b5b8a8561eca7dda1a61a7b2906940e011d9d49e066c7734c85d31b74e",
+      "git_blob_sha": "7e21ed100feafdda73bf7dd3963f70097d0df4c9"
+    },
+    {
+      "path": "vision/tests/test_raised_held_drive.py",
+      "sha256": "f2a94a8723572899f5eb88a284ff65e434c48f7c3b02b0757350f6d4654353fb",
+      "git_blob_sha": "826750bb0bd0966b15fde1305bd93b10045914e9"
+    },
+    {
+      "path": "vision/tests/test_rasadapter5.py",
+      "sha256": "9bd4ee77e0ab1f85e480a1392572a9f3391317189819a5f1fb7ef3e75e234e99",
+      "git_blob_sha": "88e186086625aa01b77ece36c94c295af5993a2d"
+    },
+    {
+      "path": "vision/tests/test_rasadapter5_executor.py",
+      "sha256": "bfcd681d976194058a9a91eee790d30174da7026cb1cb310b4fe0967cd96b7a9",
+      "git_blob_sha": "1dace729e3f19f0540fb64153b4c48218e096cad"
+    },
+    {
+      "path": "vision/tests/test_real_handoff_owner.py",
+      "sha256": "fc6e274bc2f3b44c3877cb3cbf38a48e12f96f6f9989bb2bd39ec00a79e34122",
+      "git_blob_sha": "dee1405dbeba9879cba276def90ce2d1e817b3f3"
+    },
+    {
+      "path": "vision/tests/test_repeatable_drive.py",
+      "sha256": "4ab03b0fbac3eff2408ef43e53e6c98c2ddc3c06fa65762bbdec1ded55b26e64",
+      "git_blob_sha": "28c54fc1b16c873967ee19e89be4a29a66a7330c"
+    },
+    {
+      "path": "vision/tests/test_reverse_trim.py",
+      "sha256": "2588ae2faeb8d1ebc3567979be158c520165f800e406e16b3a348aa90ed34329",
+      "git_blob_sha": "0e456fa5dc8f1c9eadbfea81119e87c49cefcba1"
+    },
+    {
+      "path": "vision/tests/test_shared_executor.py",
+      "sha256": "e2eb93979802a99cea1ab05518b653743acdaa7ce37c881de56aaa5c2391c30e",
+      "git_blob_sha": "2437e085b83b7d5e46779357ba80ee2e95060107"
+    },
+    {
+      "path": "vision/tests/test_startup_settling.py",
+      "sha256": "fde3d90dd6f79c173548e718b3a51e6cb21abf1082710dcc384810bd044274e0",
+      "git_blob_sha": "4d913710778b0292ee72c0a67c318025b1846d7b"
+    },
+    {
+      "path": "vision/tests/test_steering_bench.py",
+      "sha256": "f4fd18f1b3aa7bbbc997dc338e8219dd0b470f4c75a101946de63e8b2e84c326",
+      "git_blob_sha": "a0afd7393e5abe8fe2e388868d72ba83fceebf52"
+    },
+    {
+      "path": "vision/tests/test_steering_calibrate.py",
+      "sha256": "2b0da9532a96aa94af1fba093d5af59ee910d94056c98dcda334f8497fc63fa8",
+      "git_blob_sha": "ab1d02c1a8f048aa191938104d51f7c793eca3a3"
+    },
+    {
+      "path": "vision/tests/test_steering_pwm.py",
+      "sha256": "405123f14b164a517b5c3351b00d1342df5b1896222ede0d29bee97ecb1f83db",
+      "git_blob_sha": "256526e75b5c990831a63187aaf570fea0a91428"
+    },
+    {
+      "path": "vision/tests/test_straight_steering_hold.py",
+      "sha256": "d7dd7fdddb33e7f0d585716a5f23f12a718322e819b7d8cc9ab05b90e1448569",
+      "git_blob_sha": "a6df4195960fd9c86284492790ae83aaa1a73369"
+    },
+    {
+      "path": "vision/tests/test_symmetric_manual_steering.py",
+      "sha256": "522a0c27a73aef50877401f2910b8ea036013a2e8a3e11917aa26a59c98e022f",
+      "git_blob_sha": "c040639898c81533e0c327b4159527eda771f025"
+    },
+    {
+      "path": "vision/tests/test_traffic_approach_speed.py",
+      "sha256": "434d60075213017b3efbe294775453825effce2ae5c91673d48cdb362c53a453",
+      "git_blob_sha": "ee3ce60da9e132b596685d35e8863a9f751eecc6"
+    },
+    {
+      "path": "vision/tests/test_traffic_capture.py",
+      "sha256": "51de03b659dc06a2c610173f0ed508aa964ed3e02098d65a2057026a990c49b6",
+      "git_blob_sha": "41d3314d4055b8b1bb41d7685d0530e971e35546"
+    },
+    {
+      "path": "vision/tests/test_traffic_current_gate.py",
+      "sha256": "1991846e24f134b6b2da12b4ed0f301ff95dd9d340ea2f22a65b71e1118d9a32",
+      "git_blob_sha": "f1f94f3f36590befb492832bef10c88bd86c5b6e"
+    },
+    {
+      "path": "vision/tests/test_traffic_current_signal_ui.py",
+      "sha256": "16ec8217eef0a13f90054789cf1f2aa92c7286f54572008af7206bc1a2fb2a27",
+      "git_blob_sha": "f6e2da4a03e78924e9713f0ee3c8892200d6bcec"
+    },
+    {
+      "path": "vision/tests/test_traffic_driving.py",
+      "sha256": "61679cac5b60183b7ddb83deb6f362c3b40b29494d1bcd762873cbe5aaa08718",
+      "git_blob_sha": "949f105dbf6e2b6167fb7a8ac2e3fb9b511ea810"
+    },
+    {
+      "path": "vision/tests/test_traffic_early_stop.py",
+      "sha256": "fef85b53d905cb094e7c02f6b0145a5d79be5054308e4d0742155f42e446076c",
+      "git_blob_sha": "43cfb6bbeab9f8d75bc004d14345790ad78e391c"
+    },
+    {
+      "path": "vision/tests/test_traffic_fast_red.py",
+      "sha256": "b451cfb8e81a6604411a2aef75824b83ae4b7a0760a2a594e46f01d07a3f48d0",
+      "git_blob_sha": "cc852f8845e31b9d7c01a1b976777e606c8cfe65"
+    },
+    {
+      "path": "vision/tests/test_traffic_fast_red_safety.py",
+      "sha256": "4d9ee04e2f1259c268977ba1ea7b9303d26e7be112f3197df805f0459022e150",
+      "git_blob_sha": "152136c6f65bcf3d754c472b67d9c60bc6440bff"
+    },
+    {
+      "path": "vision/tests/test_traffic_fixture_selection.py",
+      "sha256": "bfee81b11c16caf8698980f414628884cd5451b5f4cef75a6c075f022b54e8c2",
+      "git_blob_sha": "55bb0f1a09087840fc659d61a11a875dbb3787f2"
+    },
+    {
+      "path": "vision/tests/test_traffic_gate_trigger.py",
+      "sha256": "470e6b6d59f5b1b8e134baadda082578b930ea45df2f7b87de49b046c3ed63e8",
+      "git_blob_sha": "db9b7fd45fc2ed0fe1ebdf9ceb1b3307b67b2a51"
+    },
+    {
+      "path": "vision/tests/test_traffic_lamps.py",
+      "sha256": "2d2f6c2d7fe8d3cef7980308f170be1c2bb94c91a0564abd561edea254b0352c",
+      "git_blob_sha": "b01f088f2af12007d258cc6eeb11e360a7da6bfa"
+    },
+    {
+      "path": "vision/tests/test_traffic_red_1s.py",
+      "sha256": "67f3c86c235f541ab6b8cd858e0fc689f95e82bceba4ab94f107d23155e6a430",
+      "git_blob_sha": "d9b5095474a461bb8f6eb5d50321f60623964121"
+    },
+    {
+      "path": "vision/tests/test_traffic_signal.py",
+      "sha256": "81f2df1e62773ef2420c4ab72e922148b0f97bc37d593bdaa6351db37b51a9b3",
+      "git_blob_sha": "2e05baeb7fa9ee6841e0f6e7c7dc948624386b7e"
+    },
+    {
+      "path": "vision/tests/test_traffic_tracking.py",
+      "sha256": "0e4629e8dd908620d1ec63a15eb961abcbb79422934b65718042aa80077fb6f5",
+      "git_blob_sha": "498bd4094b08060a35687c888d6c1b07471c631a"
+    },
+    {
+      "path": "vision/tests/test_traffic_trial.py",
+      "sha256": "1fcb45679166286a8274b5f56a5f590c121003c7ca5982350be657fd8ddfef91",
+      "git_blob_sha": "434c130bc9f5c3594e7f5272eef8ce271e067f0d"
+    },
+    {
+      "path": "vision/tests/test_traffic_voting.py",
+      "sha256": "0a99a20bb29ea29ae1d60b84abe97a2cc5100ebab3601fc1906e455708034e64",
+      "git_blob_sha": "482f07b20f1c680f9e999b8b6c8371b2358c3621"
+    },
+    {
+      "path": "vision/tests/test_uart_target_steering.py",
+      "sha256": "8870e96ac766dfdaae74c93cdc07b8b221a834782df9ebc21e39e7dc7523f73c",
+      "git_blob_sha": "59b4b41d76f7675e61d89d7b358eadf036555f47"
+    },
+    {
+      "path": "vision/tests/test_vehicle_application.py",
+      "sha256": "b690a98738b2c79d86cebaeb8fcd02b03d0c6651a9eb31f1561a29d987712274",
+      "git_blob_sha": "b396720a445cf79349ad2e4d1becae7341d8d689"
+    },
+    {
+      "path": "vision/tests/test_vehicle_geometry_measurements.py",
+      "sha256": "47d21e20f8db9d8a40709879bbd009a463eefc0b8937001140f814910c406c24",
+      "git_blob_sha": "dad950c1567110614afa32f57ff5399b56542ef7"
+    },
+    {
+      "path": "vision/tests/test_web_preview.py",
+      "sha256": "dd608e49729dd68401ccc59c41e0d448bde71381345e46a4e334a81948aced09",
+      "git_blob_sha": "627a2d1221374e3cc85206196c937d68d666c8f8"
+    },
+    {
+      "path": "vision/tests/test_white_context_history.py",
+      "sha256": "499347d02bc61ef8447f26e24fded6368dcde899b1499b9a541bcf3bfb9171da",
+      "git_blob_sha": "7d7b3c7c9711ec957132393edcfc91c3f811309e"
+    },
+    {
+      "path": "vision/tests/test_white_detection_integration.py",
+      "sha256": "66284219bdc0cb7e6ba035d480f740eef50e3a54a663629b5e1c0952f48ce150",
+      "git_blob_sha": "71e69935f37ed26359ae23f6ddeeae6498eea916"
+    },
+    {
+      "path": "vision/tests/test_white_row_tracking.py",
+      "sha256": "9380cda86ad01108334064bf46c4e71b6ca46f2206caa32e8e90034be33681f9",
+      "git_blob_sha": "b81b6ec5d002c7af7addbb71b34f94c940e46a22"
+    },
+    {
+      "path": "vision/tests/test_worker_endpoint.py",
+      "sha256": "25e2bcb6a0eba2be5244600558ed0eec1724e9c35ada1d7117aee73a531406d8",
+      "git_blob_sha": "de121b7ff42561804e5a2145749e1fa4ba445f1a"
+    },
+    {
+      "path": "vision/tests/test_workflows.py",
+      "sha256": "8a17e98d8322904e50908f76c8600b8c989433a5d633e5ed6fb90ce2b4dbb560",
+      "git_blob_sha": "2fc0e7a924b0837f48f01d02f04a6d5fca590f57"
+    },
+    {
+      "path": "vision/tests/traffic_controls_replay.cjs",
+      "sha256": "5a9885f95ee42581b9abee968d03f04453ad0fc902b8d6ba8b06092967cadd0c",
+      "git_blob_sha": "a52d5f46086267d232b2d0856a6fd7093b3f99ca"
+    },
+    {
+      "path": "vision/tools/bench_original_esc.py",
+      "sha256": "9e876f88fe4eec3d98a260ac393609b0daaff4a3fe394aa917f32cc33f9e075c",
+      "git_blob_sha": "6a4a13ca352fc56598475db07c89955011f890f9"
+    },
+    {
+      "path": "vision/tools/bench_pi5_gimbal.py",
+      "sha256": "0532d35e107d50a42b753cbceaee6169c7120ce87ce1bdb1e5fb0b50732f0896",
+      "git_blob_sha": "7b5b489dc06592c5d763e1a2598a2c01da5a206e"
+    },
+    {
+      "path": "vision/tools/bench_pi5_neutral.py",
+      "sha256": "67ba50dcff77e5e80e1914a39202a693e14518eb11957daf8393dac23c063fc0",
+      "git_blob_sha": "f6088ed4829470c6427a7f7db2ede89638a50419"
+    },
+    {
+      "path": "vision/tools/brake_parking.py",
+      "sha256": "c295ce88b4c33bd187e42d3956bf3f08b8a7e2361ad81903868ddd5f5eb5a363",
+      "git_blob_sha": "a4e4591ee5f7b7a6dae5dc4c28081fe2c454b8ea"
+    },
+    {
+      "path": "vision/tools/build_autonomy_delivery.py",
+      "sha256": "5f58ac16e3c4ddc54f8f73cc8d04302c9924ec7a9320353fcc116b1145ec6558",
+      "git_blob_sha": "5d1b1ec063c1edd3d6a387722ceb7e5bdb4ca1b7"
+    },
+    {
+      "path": "vision/tools/build_delivery.py",
+      "sha256": "4ab117c0f2dd6f33300fa5de81f25e33c5e74dc105f140f58a60b4d2c5f4de1f",
+      "git_blob_sha": "d6667b3ab80f7f528dae6af93da6183f2201b8e2"
+    },
+    {
+      "path": "vision/tools/build_gimbal_driver.sh",
+      "sha256": "3844779b3b3027a53d1078b58cee6a7dadf923679ad981d73bae4ba5f9edcd52",
+      "git_blob_sha": "4ff1bd3d3fad2d181829b3519ee0f68e32894afe"
+    },
+    {
+      "path": "vision/tools/capture_crosswalk_reference.py",
+      "sha256": "1c1906708457d68ffca27e01630605b0d3365506578351cc0c7d2f32e8339928",
+      "git_blob_sha": "6a0fd0f46da83b018c7ecc442afaa156ce4c2360"
+    },
+    {
+      "path": "vision/tools/check_parking_feedback.py",
+      "sha256": "f02424b49983c031b291bf49ea7f534749f2ff60d51134957d57c77653705874",
+      "git_blob_sha": "5e6428a4bf2ea6af496843180ca228497033c99d"
+    },
+    {
+      "path": "vision/tools/cone_trial.py",
+      "sha256": "36c9687ee30222cee50ad9a829e61ecc644de854ae322c5cd221fc97e36e2a94",
+      "git_blob_sha": "137bdb95a001627c08e994cb65d8bce4b080f9ab"
+    },
+    {
+      "path": "vision/tools/connection_helpers.ps1",
+      "sha256": "48d06cfa2a673a5e45a0f352b2f4ed12bef86923bfec56ea44d9cffd2356cebd",
+      "git_blob_sha": "8c54afe80c30813fa0d6288ca97cbc3ce9d0643d"
+    },
+    {
+      "path": "vision/tools/console_forward.py",
+      "sha256": "50308f3fb0d9e61aee2299e15b6240892a9fc7d0730e7eaf0a236e2235d47b5c",
+      "git_blob_sha": "10bd1d976a356cc4f7d1442b9388265d523e8f31"
+    },
+    {
+      "path": "vision/tools/crosswalk_lab.py",
+      "sha256": "4f18cf7373e2d0ffb257a3824d8394027131fe495cc03711971bffcef56170d6",
+      "git_blob_sha": "bdafb055ac8570182af3495e992c03be8f5bcf0d"
+    },
+    {
+      "path": "vision/tools/departure_offline.py",
+      "sha256": "bad11c03cbd92f0be58c4a22c4424bac2e16557deedfad5192868ac41354cc86",
+      "git_blob_sha": "ce8db05b0379f2369717bb646d1c6034be54f654"
+    },
+    {
+      "path": "vision/tools/deploy_autonomy_pi5.py",
+      "sha256": "4b125fc901e85ed65d8160ea1e190b6b360d4394b5124d658e11ed9b7b0c3798",
+      "git_blob_sha": "6ffee4157118e0e8cbb170dc280ca7b3b1a1844b"
+    },
+    {
+      "path": "vision/tools/deploy_brake_trial.py",
+      "sha256": "cb6b0ba8e10ee58a605cd932d216c05b54ccfaa3abfa24fc010c3e1841ed1bbb",
+      "git_blob_sha": "dd77eeff1abb1f02d2b68d1e2ffa06c70c23196d"
+    },
+    {
+      "path": "vision/tools/deploy_cone_trial.py",
+      "sha256": "afb3fb804e8b620c953c0963e1cb76c1f0f7ac3ebeb087ab277b2f927ba5549d",
+      "git_blob_sha": "4852b67df09e6e03ede0d2862dec676aec49280e"
+    },
+    {
+      "path": "vision/tools/deploy_departure_trial.py",
+      "sha256": "ae4a80a7c376971ebfa101630796ea9a84b7601522fda7394564cc5e01863723",
+      "git_blob_sha": "2c2a74065dd60e7296ef15d3dcb2d6951cd5f9c5"
+    },
+    {
+      "path": "vision/tools/deploy_parking_bay.py",
+      "sha256": "ac35f512b32d0df1db482cc213e4d647a61be97a5e40054e73289a0f51654aee",
+      "git_blob_sha": "402407b46c1aea7e1da33ff45d666b24c2547175"
+    },
+    {
+      "path": "vision/tools/deploy_parking_payment.py",
+      "sha256": "5434d605b94c0b87716e2a509827226be5fd28c2fd5afaebd407d69307c28bbc",
+      "git_blob_sha": "b54e57185873523d48da79faa3625ea7608da642"
+    },
+    {
+      "path": "vision/tools/deploy_race_flow.py",
+      "sha256": "827cd647919553006c6726473729a466ae9dea26ec6841b09485001310a30d8e",
+      "git_blob_sha": "1b9a8e5d03163c68acf09ae66a73f90f1bb5baed"
+    },
+    {
+      "path": "vision/tools/deploy_traffic_trial.py",
+      "sha256": "82b57afaf9ccc7496098e72a612dad7c4c40ebf8bbfe0a4b776852c4ba84cccb",
+      "git_blob_sha": "963a456863c084c39b85ef1d4f9b1318d5249f92"
+    },
+    {
+      "path": "vision/tools/esc_continuity_review.py",
+      "sha256": "f98f9dc1fffb002c03069a60552f41b073dd2a05d79955cf1352248b6a3565e0",
+      "git_blob_sha": "9a257cb68d3e3ad66bb84973f52ad5ad2e44484a"
+    },
+    {
+      "path": "vision/tools/install_pi.sh",
+      "sha256": "ef2338a91e3384e1863c8fa2102e047598bd02beb6ba6640590f98bb1a3016b4",
+      "git_blob_sha": "f0b09a31674a02f77e8257c520df16dffb019203"
+    },
+    {
+      "path": "vision/tools/manage_pi_preview.py",
+      "sha256": "d1b44e4ee8be69a6b5737a428f29d4a9a49b57e919dbdc098b26d3fe7d92104d",
+      "git_blob_sha": "7b2a09a9456ab96a94465c422f51fc89beb75d57"
+    },
+    {
+      "path": "vision/tools/parking_bay.py",
+      "sha256": "1eb972f2206ca5ddb4c33afbf25a33247b8bbf5ef29c2db453c0c18c5c2a3465",
+      "git_blob_sha": "627714510f8cb058e6d371e88aa6b6e4af4463e3"
+    },
+    {
+      "path": "vision/tools/probe_5g_module.py",
+      "sha256": "6007a031773a41fab225b5751166529b406c55b0a8b3a1e23b5b4737dec0a56a",
+      "git_blob_sha": "a373c2c288708bbc4da89569706a48068a77af21"
+    },
+    {
+      "path": "vision/tools/probe_camera.py",
+      "sha256": "c918704389a21a96dbb373b59f470f707e4efc22738f092be7c8588355170b58",
+      "git_blob_sha": "1f1d7104cb0e29aa47b2229ad8e13ddf9b49c2e2"
+    },
+    {
+      "path": "vision/tools/probe_gimbal_driver.py",
+      "sha256": "a0939808bada702b5f33bc32a384c6ca455d187439f7102e831766914e222ad4",
+      "git_blob_sha": "6c076155154d58ec56ca90fed0930f88f19d57af"
+    },
+    {
+      "path": "vision/tools/probe_rasadapter5.py",
+      "sha256": "004d8215717233f015e9740a5270b71b6eb07664b2fe4df9f2836efe6d6360f1",
+      "git_blob_sha": "d0c8db1965eb52d9691c103d514a72ba58ac5ff5"
+    },
+    {
+      "path": "vision/tools/probe_tts_module.py",
+      "sha256": "20ad268ac58688e318172d9964945ec2a821f031a4a1df951ed414df26640538",
+      "git_blob_sha": "7ca66ae5d4ff07d72183d56fb4ec4855f851345d"
+    },
+    {
+      "path": "vision/tools/probe_voice_module.py",
+      "sha256": "1ab86e9c393be6c133f920e5c3f2c33cc7ecb62b7142ae178c925eb7b9b3d525",
+      "git_blob_sha": "42b8def70a379ebb856755fa21e3500a5b0b03a8"
+    },
+    {
+      "path": "vision/tools/race_flow.py",
+      "sha256": "08d09421331f947e4a15f12e975b37f6ebf4ea64a397cd11becd53c138330551",
+      "git_blob_sha": "cf1b15e97e38f1b3d49783d11ba5d22f45f0c972"
+    },
+    {
+      "path": "vision/tools/run_debug.py",
+      "sha256": "8106a93a9f66e60f7095a13d93772ace76d01e39fd2bf412d2e3207fa9a0ec74",
+      "git_blob_sha": "3d8589bb42f8fc8ac590f8bfe11ac47f53fc3859"
+    },
+    {
+      "path": "vision/tools/run_race.py",
+      "sha256": "cdb7f3abcc9a75e2f78250a1107827d28c955c1274e92259acd8957381cedc7d",
+      "git_blob_sha": "4f7f31a0dd9ec8f99a1ecba1d55bc422c9c41412"
+    },
+    {
+      "path": "vision/tools/serve_bench_drive.py",
+      "sha256": "f22b962f8d5c5c1fdff66a68248a25b261e29befbc3c683dfbea184c690232ad",
+      "git_blob_sha": "bb43f7067a6948d1a92322d0935ddf689090af8b"
+    },
+    {
+      "path": "vision/tools/serve_boot_test.py",
+      "sha256": "a0030554ebcb869c8a80b7614d53c928a08e03a583d75ccd3dfeb73e7166c642",
+      "git_blob_sha": "fd9e477b0124fb1f7e2a5882e38f4ea61591970c"
+    },
+    {
+      "path": "vision/tools/serve_crosswalk_trial.py",
+      "sha256": "3b7d655c4097c4c70cc93645cb4cadfebf360d4a078ed390bda5c6a9552ba56b",
+      "git_blob_sha": "2ae9e2e1a26941fa0e82140a44694e787ba86202"
+    },
+    {
+      "path": "vision/tools/serve_parking_payment.py",
+      "sha256": "bbe2ef091603d23040534caf6e4ead8ef96cbd5c00078c4a4ebdf9d4f67e6885",
+      "git_blob_sha": "519931aac4a7904f5a887332e400f2e0fb2ee0ca"
+    },
+    {
+      "path": "vision/tools/serve_plan_b.py",
+      "sha256": "5f39e03be680a53bb0643d2cd5578d7a4f86f9a596ef9eb06c963a5b3dc67cd6",
+      "git_blob_sha": "fee967752dbf395c6f47bbbdb12d69ff59c4445d"
+    },
+    {
+      "path": "vision/tools/serve_race_flow.py",
+      "sha256": "2a1e535e98dd93cc600f6bf5c802a70efeaaa37a78d02e675fcf26acd48b7f1d",
+      "git_blob_sha": "6150e4b711d20422c1540037ff28f50c6a4783fa"
+    },
+    {
+      "path": "vision/tools/speak_parking.py",
+      "sha256": "c6c473a056db24522aa798b3312eaa8dbeade9355fa84f7d821d98c47abc9392",
+      "git_blob_sha": "2b68af96fa6f6af8157a0614dcf562f744d1115f"
+    },
+    {
+      "path": "vision/tools/traffic_capture.py",
+      "sha256": "f31d6462e46b9c635aab641a5155e3247b3eadfb785f69d3f8e2efd32140cbc9",
+      "git_blob_sha": "c68d2d2002ae151bf581615fbe0580d27b98212b"
+    },
+    {
+      "path": "vision/tools/traffic_signal.py",
+      "sha256": "3970c3333e7d47ebccee884e0c4109b11c7c34ace6b182bd020cd90add9a5eda",
+      "git_blob_sha": "d309b1963bca4988475ee263b8bfbba99d25e26d"
+    },
+    {
+      "path": "vision/tools/watch_remote_crosswalk.py",
+      "sha256": "741d3e5920672e9e7141fb7ba6e8c0c0b27c311ff6281c92399f351eb5e9a8dc",
+      "git_blob_sha": "b6da56d47ddedbb4b8915cb2691b3dddc354e667"
+    },
+    {
+      "path": "vision/web/competition/app.js",
+      "sha256": "8fd0857b4ef8e6e4b491dbe87160a2310931af4e40729b1db5cf3ea169616f2a",
+      "git_blob_sha": "9a6d6d28871049f5d1c2633a4b2bca7f8449644c"
+    },
+    {
+      "path": "vision/web/competition/index.html",
+      "sha256": "9f3e9d35eddd8a49f11e2c804720e0bc3b283487eba005aa348dea48193a9a6c",
+      "git_blob_sha": "2cf5d95952f2f8023bf9a5ecef38bc160b4a8457"
+    },
+    {
+      "path": "vision/web/competition/style.css",
+      "sha256": "8335fbc79222efd91ab36523e749436ec2080ef65fd26701858e078ba16491a4",
+      "git_blob_sha": "d3cb7d409412328d9a55467cced3492a52b95c80"
+    },
+    {
+      "path": "vision/web/traffic_capture.html",
+      "sha256": "8f6fa2f89d5da81c874d00ca9624a7a886041a41bdb8c7f1214aff6551ea8fc9",
+      "git_blob_sha": "476dd38744a939cbb420c084a62d29f5def9d0aa"
+    }
+  ]
+}

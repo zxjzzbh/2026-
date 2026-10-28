@@ -38,6 +38,13 @@ async function setup(initial={}){
   const p=await setup(state);p.input(1700);assert.equal(p.requests.length,0);assert.equal(p.el('pwm-slider').disabled,true);
  }
  const bad=await setup();bad.input(1751);assert.equal(bad.requests.length,0);assert.equal(bad.errors(),1);
+ const wide=await setup({steering_center_us:1610,steering_pwm_min_us:1350,steering_pwm_max_us:1870});
+ assert.equal(wide.el('pwm-slider').min,1350);assert.equal(wide.el('pwm-number').max,1870);
+ wide.input(1350);wide.reply();await flush();assert.equal(wide.requests.at(-1).body.pulse_us,1350);
+ const wideLeft=await setup({steering_center_us:1610,steering_pwm_min_us:1350,steering_pwm_max_us:1870});
+ wideLeft.input(1870);wideLeft.reply();await flush();assert.equal(wideLeft.requests.at(-1).body.pulse_us,1870);
+ const wideBad=await setup({steering_pwm_min_us:1350,steering_pwm_max_us:1870});
+ wideBad.input(1349);wideBad.input(1871);assert.equal(wideBad.requests.length,0);assert.equal(wideBad.errors(),2);
  bad.setOther(true);bad.input(1700);assert.equal(bad.requests.length,0);
  const fault=await setup();fault.input(1700);fault.reply();await flush();
  fault.pending.shift().reject(new Error('offline'));await flush();assert.equal(fault.api.isActive(),false);assert.equal(fault.stops(),1);

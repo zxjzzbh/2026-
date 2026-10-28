@@ -4,7 +4,8 @@ The lease is checked by the hardware worker, independently of HTTP/video work.
 Every motor stage is finite and followed by queued neutral by the backend.
 """
 
-from .steering import LEFT_US, RIGHT_US
+from .manual_speed import (forward_pulse, reverse_pulse, DEFAULT_FORWARD_PERCENT,
+                           DEFAULT_REVERSE_PERCENT, ENDPOINT_SOURCE)
 
 import hashlib
 import json
@@ -14,6 +15,10 @@ import secrets
 import socket
 import threading
 import time
+from .manual_steering import manual_endpoints, manual_target
+
+
+CONTINUOUS_STARTUP_SETTLING_S = 3.0
 
 
 class DriveError(ValueError):
@@ -109,13 +114,26 @@ class ManualDrive:
         self.raised_held = raised_held
         self.ground_held = ground_held
         self.ground_continuous = ground_continuous
+        self.reverse_start_mode = getattr(self.backend, 'reverse_start_mode', 'legacy_double_pulse')
+        if self.reverse_start_mode not in ('legacy_double_pulse', 'direct_after_neutral'):
+            raise ValueError('unknown ESC reverse startup mode')
+        if self.reverse_start_mode == 'direct_after_neutral' and not ground_continuous:
+            raise ValueError('direct reverse requires the identified continuous car profile')
+        self.last_traction_direction = None
+        self.neutral_since = clock()
         if ground_continuous:
             # Operator-requested cellular tolerance; hardware output segments
             # and the independent worker watchdog keep their shorter limits.
             self.lease_s = self.continuous_lease_s
         self.motion_hold_max_s = 3.0 if raised_held else float(ground_hold_s) if ground_held and not ground_continuous else None
         self.continuous_simulation = continuous_simulation
+        self.forward_speed_adjustable = (ground_continuous
+            and getattr(self.backend, 'manual_forward_speed_adjustable', False) is True)
         self.speed_percent = 20 if continuous_simulation else 100
+        self.reverse_speed_percent = DEFAULT_REVERSE_PERCENT
+        if self.forward_speed_adjustable:
+            self.speed_percent = DEFAULT_FORWARD_PERCENT
+        self.speed_sequence = -1
         self.clock, self.settling_s = clock, settling_s
         self.session_s, self.preparation_s = session_s, preparation_s
         self.session_started = preparation_s is None
@@ -132,6 +150,16 @@ class ManualDrive:
         self.stage_end = None
         self.reverse_cancelled = False
         self.steering_center_us = getattr(self.backend, 'steering_center_us', 1650)
+        self.manual_steering_span_us = getattr(self.backend, 'manual_steering_span_us', 0)
+        self.steering_left_us, self.steering_right_us = manual_endpoints(
+            self.steering_center_us, self.manual_steering_span_us)
+        self.manual_steering_gain_percent = (getattr(self.backend, 'manual_steering_gain_percent', 100)
+                                             if ground_continuous else 100)
+        manual_target(self.steering_center_us, self.steering_left_us, self.manual_steering_gain_percent)
+        self.reverse_trim_us = getattr(self.backend, 'reverse_steering_trim_us', 0)
+        if (type(self.reverse_trim_us) is not int or abs(self.reverse_trim_us) > 30
+                or not 1550 <= self.steering_center_us+self.reverse_trim_us <= 1750):
+            raise ValueError('invalid bounded reverse steering trim')
         self.steering_us = self.steering_center_us
         self.pwm_target = self.pwm_requested = None
         self.pwm_output_started = False
@@ -144,9 +172,11 @@ class ManualDrive:
         self.event_sink({'event': name, 'monotonic_s': self.clock(), **values})
 
     def _neutral(self, reason, *, latch=True):
-        self.reverse_cancelled = (self.motor == 'reverse' and self.stage in ('brake', 'neutral_gap')
+        self.reverse_cancelled = (self.motor == 'reverse' and self.stage in ('brake', 'neutral_gap', 'steering_align')
                                   and reason in ('松键或停车请求', '按键已松开'))
         self.backend.neutral()
+        if self.pulse != 1500 or self.neutral_since is None:
+            self.neutral_since = self.clock()
         self.pulse, self.motor, self.turn, self.stage = 1500, 'stop', 'center', None
         self.started = None
         self.stage_end = None
@@ -213,23 +243,64 @@ class ManualDrive:
                 self._command(payload)
             elif action == 'steering_pwm':
                 self._steering_pwm(payload)
+            elif action == 'reverse_trim':
+                self._reverse_trim(payload)
             elif action == 'speed':
-                if not self.continuous_simulation:
+                if not (self.continuous_simulation or self.forward_speed_adjustable):
                     raise DriveError('speed adjustment is unavailable in fixed bench trials')
+                if self.forward_speed_adjustable and self.mode != 'enabled':
+                    raise DriveError('先启用持续遥控，再调整前进油门；急停不会由调速解除')
                 client = self._client(payload.get('client'))
                 if self.owner is not None and client != self.owner:
                     raise DriveError('speed control owned by another page')
-                speed = payload.get('speed_percent')
+                speed = payload.get('speed_percent', self.speed_percent)
+                reverse_speed = payload.get('reverse_speed_percent', self.reverse_speed_percent)
                 if type(speed) is not int or not 0 <= speed <= 100:
                     raise DriveError('speed must be an integer from 0 to 100')
+                if type(reverse_speed) is not int or not 0 <= reverse_speed <= 100:
+                    raise DriveError('reverse speed must be an integer from 0 to 100')
+                if self.forward_speed_adjustable:
+                    seq = payload.get('speed_sequence')
+                    if type(seq) is not int or seq <= self.speed_sequence:
+                        raise DriveError('调速请求过期或重复，请刷新当前设置')
+                    self.speed_sequence = seq
                 self.speed_percent = speed
-                if speed == 0:
+                self.reverse_speed_percent = reverse_speed
+                if (speed == 0 and (not self.forward_speed_adjustable or self.motor != 'reverse')
+                        or self.forward_speed_adjustable and self.motor == 'reverse' and reverse_speed == 0):
                     self._neutral('速度已设为零，请松开方向键', latch=True)
                     self.expires = None
-                self.event('speed_changed', speed_percent=speed)
+                self.event('speed_changed', speed_percent=speed, reverse_speed_percent=reverse_speed,
+                           endpoint_source=ENDPOINT_SOURCE if self.forward_speed_adjustable else None)
             else:
                 raise DriveError('unknown control action')
             return self.status()
+
+    @property
+    def reverse_trim_available(self):
+        return (((self.ground_continuous and self.reverse_start_mode == 'direct_after_neutral') or self.continuous_simulation)
+                and getattr(self.backend, 'steering_available', True)
+                and getattr(self.backend, 'motor_available', True)
+                and getattr(self.backend, 'reverse_available', True))
+
+    def _reverse_trim(self, payload):
+        if not self.reverse_trim_available or self.mode != 'enabled':
+            raise DriveError('请先启用遥控，再停车设置倒车补偿')
+        if self._client(payload.get('client')) != self.owner:
+            raise DriveError('倒车补偿由当前驾驶页面设置')
+        if (self.motor != 'stop' or self.pulse != 1500 or self.turn != 'center'
+                or self.started is not None or self.pwm_target is not None):
+            raise DriveError('请松开方向与扳机，停车后再设置')
+        seq, offset = payload.get('sequence'), payload.get('offset_us')
+        if type(seq) is not int or seq <= self.sequence:
+            raise DriveError('old or invalid command sequence')
+        if (type(offset) is not int or not -30 <= offset <= 30
+                or not 1550 <= self.steering_center_us+offset <= 1750):
+            raise DriveError('倒车补偿须为 -30 到 +30 μs 的整数')
+        self.sequence, self.reverse_trim_us = seq, offset
+        self.event('reverse_trim_changed', offset_us=offset,
+                   forward_center_us=self.steering_center_us,
+                   reverse_center_us=self.steering_center_us+offset, persisted=False)
 
     @property
     def steering_pwm_available(self):
@@ -249,8 +320,8 @@ class ManualDrive:
         seq, pulse = payload.get('sequence'), payload.get('pulse_us')
         if type(seq) is not int or seq <= self.sequence:
             raise DriveError('old or invalid command sequence')
-        if type(pulse) is not int or not 1550 <= pulse <= 1750:
-            raise DriveError('S3 PWM must be an integer from 1550 to 1750 us')
+        if type(pulse) is not int or not self.steering_right_us <= pulse <= self.steering_left_us:
+            raise DriveError(f'S3 PWM must be an integer from {self.steering_right_us} to {self.steering_left_us} us')
         if self.motor != 'stop' or self.pulse != 1500 or self.started is not None and self.turn != 'pwm':
             raise DriveError('release other controls before PWM tuning')
         self.sequence, self.expires = seq, self.clock() + self.lease_s
@@ -331,6 +402,32 @@ class ManualDrive:
                        input_source=self.last_input_source)
 
     def _reverse_tick(self, now):
+        if self.reverse_start_mode == 'direct_after_neutral':
+            if self.stage in (None, 'neutral_gap', 'steering_align'):
+                # This car has been observed reversing on the first 1300-us
+                # pulse. Do not mislabel it as a brake then interrupt it.
+                # Following forward traction, retain the existing 1.2-second
+                # neutral separation, counting time already spent at neutral.
+                if self.last_traction_direction == 'forward':
+                    if self.neutral_since is None:
+                        self.backend.neutral()
+                        self.pulse, self.neutral_since = 1500, self.clock()
+                    ready_at = self.neutral_since + 1.2
+                    if now < ready_at:
+                        if self.stage != 'neutral_gap':
+                            self.event('motor_stage', pulse_us=1500, duration_s=0,
+                                       stage='neutral_gap', reason='forward_reverse_changeover')
+                        self.stage, self.stage_end = 'neutral_gap', ready_at
+                        return
+                if (self.turn == 'center' and getattr(self.backend, 'steering_available', True)
+                        and (self.steering_us != self.steering_center_us+self.reverse_trim_us
+                             or now-self.last_steering_change < getattr(self.backend, 'steering_settle_s', .2))):
+                    # Finish the existing bounded return-to-center ramp before
+                    # starting straight reverse; do not alter calibrated PWM.
+                    self.stage, self.stage_end = 'steering_align', None
+                    return
+            self._renewed_motion(now, 'reverse')
+            return
         if not (self.continuous_simulation or self.ground_held) and now-self.started >= 3.0:
             self._neutral('倒车短测期限已到，请松开全部方向键后再按')
             return
@@ -366,12 +463,19 @@ class ManualDrive:
             if remaining < .02:
                 self._neutral('本次按住行驶时间已到，请松开方向键')
                 return
-            pulse = 1575 if direction == 'forward' else 1300
-            if self.stage != direction or self.stage_end is None or now >= self.stage_end:
+            pulse = ((forward_pulse(self.speed_percent) if self.forward_speed_adjustable else 1575)
+                     if direction == 'forward' else
+                     (reverse_pulse(self.reverse_speed_percent) if self.forward_speed_adjustable else 1300))
+            if pulse == 1500:
+                self._neutral('前进油门已设为零，请松开方向键')
+                return
+            if self.stage != direction or pulse != self.pulse or self.stage_end is None or now >= self.stage_end:
                 # Only fresh direction messages renew motion. Guardian checks
                 # alone cannot renew this short motor segment.
                 duration = min(.2, remaining)
                 self.backend.motion(pulse, duration)
+                self.last_traction_direction = direction
+                self.neutral_since = None
                 self.pulse, self.stage, self.stage_end = pulse, direction, now+.06
                 self.event('motor_stage', pulse_us=pulse, duration_s=duration,
                            stage=direction, raised_held=self.raised_held, ground_held=self.ground_held)
@@ -418,7 +522,10 @@ class ManualDrive:
                     elapsed = now - self.started
                     if self.motion_hold_max_s is not None and elapsed >= self.motion_hold_max_s:
                         self._neutral('本次按住行驶时间已到，请松开方向键')
-                    elif self.continuous_simulation and self.speed_percent == 0:
+                    elif (self.continuous_simulation and self.speed_percent == 0
+                          or self.forward_speed_adjustable and
+                          (self.motor == 'forward' and self.speed_percent == 0
+                           or self.motor == 'reverse' and self.reverse_speed_percent == 0)):
                         self._neutral('速度已设为零，请松开方向键')
                     elif self.motor == 'reverse':
                         self._reverse_tick(now)
@@ -441,8 +548,13 @@ class ManualDrive:
                                 self.backend.motion(pulse, duration)
                             self.pulse, self.stage = pulse, stage
                             self.event('motor_stage', pulse_us=pulse, duration_s=duration, stage=stage)
-                target = {'center': self.steering_center_us, 'left': LEFT_US, 'right': RIGHT_US}[
+                center = (self.steering_center_us+self.reverse_trim_us
+                          if self.mode == 'enabled' and not self.blocked
+                          and self.motor == 'reverse' and self.started is not None
+                          else self.steering_center_us)
+                target = {'center': center, 'left': self.steering_left_us, 'right': self.steering_right_us}[
                     self.turn if self.mode == 'enabled' and not self.blocked and self.turn != 'pwm' else 'center']
+                target = manual_target(center, target, self.manual_steering_gain_percent)
                 pwm_active = self.mode == 'enabled' and not self.blocked and self.pwm_target is not None
                 if pwm_active:
                     target = self.pwm_target
@@ -479,9 +591,23 @@ class ManualDrive:
                     'ground_held_trial': self.ground_held,
                     'ground_continuous_trial': self.ground_continuous,
                     'motion_hold_max_s': self.motion_hold_max_s,
-                    'speed_adjustable': self.continuous_simulation,
+                    'speed_adjustable': self.continuous_simulation or self.forward_speed_adjustable,
+                    'forward_speed_adjustable': self.forward_speed_adjustable,
+                    'manual_speed_adjustable': self.forward_speed_adjustable,
+                    'speed_controls_forward_only': False,
+                    'reverse_speed_percent': self.reverse_speed_percent,
+                    'last_speed_sequence': self.speed_sequence,
+                    'selected_forward_pulse_us': forward_pulse(self.speed_percent) if self.forward_speed_adjustable else None,
+                    'selected_reverse_pulse_us': reverse_pulse(self.reverse_speed_percent) if self.forward_speed_adjustable else None,
+                    'forward_speed_min_us': 1500 if self.forward_speed_adjustable else None,
+                    'forward_speed_max_us': 2000 if self.forward_speed_adjustable else None,
+                    'reverse_speed_min_us': 1000 if self.forward_speed_adjustable else None,
+                    'manual_speed_endpoint_source': ENDPOINT_SOURCE if self.forward_speed_adjustable else None,
+                    'speed_mapping_field_verified': False,
                     'speed_percent': self.speed_percent,
-                    'active_speed_percent': self.speed_percent if self.pulse != 1500 else 0,
+                    'active_speed_percent': (self.reverse_speed_percent if self.forward_speed_adjustable
+                                             and self.motor == 'reverse' else self.speed_percent)
+                                            if self.pulse != 1500 else 0,
                     'motor_direction': self.motor,
                     'steering_direction': self.turn,
                     'real_output_paused_reason': getattr(self.backend, 'real_output_paused_reason', ''),
@@ -496,6 +622,7 @@ class ManualDrive:
                     'test_session_s': self.session_s,
                     'parking_protection_trial': getattr(self.backend, 'parking_protection_trial', False),
                     'reverse_available': getattr(self.backend, 'reverse_available', True),
+                    'reverse_start_mode': self.reverse_start_mode,
                     'motor_pulse_us': self.pulse if getattr(self.backend, 'motor_available', True) else None,
                     'motor_stage': self.stage,
                     'reverse_wait_remaining_s': max(0, self.stage_end-self.clock())
@@ -505,15 +632,27 @@ class ManualDrive:
                     'reverse_cancelled': self.reverse_cancelled,
                     'steering_pulse_us': self.steering_us,
                     'steering_center_us': self.steering_center_us,
+                    'reverse_trim_available': self.reverse_trim_available,
+                    'reverse_trim_us': self.reverse_trim_us,
+                    'reverse_steering_center_us': self.steering_center_us+self.reverse_trim_us,
                     'steering_single_target': getattr(self.backend, 'steering_single_target', False),
                     'steering_pwm_available': self.steering_pwm_available,
                     'steering_pwm_active': self.pwm_target is not None and self.mode == 'enabled' and not self.blocked,
                     'steering_pwm_requested_us': self.pwm_requested,
-                    'steering_pwm_min_us': 1550, 'steering_pwm_max_us': 1750,
+                    'steering_pwm_min_us': self.steering_right_us, 'steering_pwm_max_us': self.steering_left_us,
+                    'steering_left_us': self.steering_left_us, 'steering_right_us': self.steering_right_us,
+                    'manual_steering_span_us': self.manual_steering_span_us,
+                    'manual_steering_gain_percent': self.manual_steering_gain_percent,
+                    'manual_steering_left_target_us': manual_target(self.steering_center_us, self.steering_left_us,
+                                                                   self.manual_steering_gain_percent),
+                    'manual_steering_right_target_us': manual_target(self.steering_center_us, self.steering_right_us,
+                                                                    self.manual_steering_gain_percent),
+                    'manual_endpoints_field_verified': False if self.manual_steering_span_us else None,
                     'steering_pwm_trial_s': 2.0,
                     'last_command_sequence': self.sequence, 'last_input_source': self.last_input_source,
                     'lease_ms': round(self.lease_s * 1000), 'release_required': self.blocked,
                     'ready_in_s': max(0, self.ready_at - self.clock()) if self.mode == 'settling' else 0,
+                    'startup_settling_s': self.settling_s,
                     'session_phase': 'test' if self.session_started else 'preparing',
                     'session_remaining_s': max(0, self.deadline-self.clock()) if self.deadline is not None else None}
 

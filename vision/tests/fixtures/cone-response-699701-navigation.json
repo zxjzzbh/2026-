@@ -1,0 +1,5181 @@
+{
+  "description": "Navigation-only excerpts of actual stationary-prefix and driving decisions; no raw camera tracks were recorded. Original navigation fields are retained unchanged. Pixel proxy is built only at test time and is explicitly not detector replay.",
+  "sessions": {
+    "699": {
+      "source_session": "cone-drive-1792936995493309530",
+      "raw_tracks_recorded": false,
+      "first_logged_driving_s": 9288.186498168,
+      "settings": {
+        "schema_version": 1,
+        "camera": "secondary",
+        "aux_camera": "primary",
+        "image_size": [
+          480,
+          360
+        ],
+        "target_count": 2,
+        "blue_hsv_lower": [
+          100,
+          110,
+          50
+        ],
+        "blue_hsv_upper": [
+          135,
+          255,
+          255
+        ],
+        "confirm_frames": 3,
+        "confirm_s": 0.15,
+        "track_timeout_s": 0.6,
+        "max_frame_age_s": 0.25,
+        "scene": {
+          "surface": "indoor_white_line_track",
+          "boundary_policy": "whole_vehicle_inside_white_inner_edges",
+          "red_ground_min_fraction": 0.15,
+          "blue_only_obstacles_reported": true,
+          "white_v_min": 255
+        },
+        "geometry": {
+          "measured": false,
+          "lane_width_m": 1.25,
+          "vehicle_width_m": 0.3,
+          "vehicle_length_m": 0.42,
+          "rear_axle_to_front_m": 0.335,
+          "rear_overhang_m": 0.085,
+          "cone_height_m": 0.08,
+          "cone_base_width_m": 0.075,
+          "clearance_m": null,
+          "measured_geometry": {
+            "source_record": "vision/configs/vehicle-geometry-measurements-20261025.json",
+            "source": "human_user_measurements_2026-10-25",
+            "front_axle_to_front_m": 0.09,
+            "rear_axle_to_rear_m": 0.07,
+            "overall_length_m": 0.42,
+            "overall_width_m": 0.3,
+            "wheelbase_m": 0.245,
+            "wheel_track_m": 0.24,
+            "tyre_contact_width_m": 0.05,
+            "tyre_contact_length_m": 0.035,
+            "axle_and_overhang_length_m": 0.405,
+            "length_discrepancy_m": 0.015,
+            "effective_front_extent_m": 0.335,
+            "effective_rear_extent_m": 0.085,
+            "effective_rear_extent_is_measured": false,
+            "notes": "The reported rear overhang is 0.07 m. Runtime rear_overhang_m stays at the conservative envelope max(0.07, 0.42 - 0.335) = 0.085 m to cover the full reported 0.42 m length. The 0.015 m discrepancy is unresolved. Dimensions do not verify clearance, ground projection, motion or pose."
+          }
+        },
+        "ground": {
+          "verified": false,
+          "detector_verified": false,
+          "image_size": [
+            480,
+            360
+          ],
+          "pose_us": [
+            1600,
+            1150
+          ],
+          "homography": [
+            [
+              -0.001719914438483979,
+              0.00016533935234815564,
+              0.3639539214583493
+            ],
+            [
+              -9.487806934345525e-05,
+              -0.0007147609050347506,
+              -0.37016768184374077
+            ],
+            [
+              -0.00019889022326163343,
+              -0.0050630492532325235,
+              1.0
+            ]
+          ],
+          "valid_polygon_px": [
+            [
+              156.83043015302692,
+              339.8921501998256
+            ],
+            [
+              333.37466201283524,
+              336.3141605394761
+            ],
+            [
+              326.8497023809524,
+              246.8407738095238
+            ],
+            [
+              146.44681818181817,
+              252.5222727272727
+            ]
+          ],
+          "independent_check_rms_m": 0.014248798066974693,
+          "independent_check_max_error_m": 0.02114873755797878,
+          "coordinate_frame": "rear_axle_x_right_y_forward",
+          "max_error_m": 0.03,
+          "historical_verified": true,
+          "current_pose_verified": false,
+          "reuse_source": {
+            "commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+            "path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+            "pose_us": [
+              1600,
+              1150
+            ],
+            "source_repeat_error_m": 0.02157725555847742
+          },
+          "calibration_evidence": {
+            "image_size": [
+              480,
+              360
+            ],
+            "pose_us": [
+              1600,
+              1150
+            ],
+            "points": [
+              {
+                "pixel": [
+                  156.83043015302692,
+                  339.8921501998256
+                ],
+                "ground_m": [
+                  -0.2,
+                  0.835
+                ]
+              },
+              {
+                "pixel": [
+                  333.37466201283524,
+                  336.3141605394761
+                ],
+                "ground_m": [
+                  0.2,
+                  0.835
+                ]
+              },
+              {
+                "pixel": [
+                  326.8497023809524,
+                  246.8407738095238
+                ],
+                "ground_m": [
+                  0.5,
+                  1.835
+                ]
+              },
+              {
+                "pixel": [
+                  146.44681818181817,
+                  252.5222727272727
+                ],
+                "ground_m": [
+                  -0.5,
+                  1.835
+                ]
+              }
+            ],
+            "check_points": [
+              {
+                "pixel": [
+                  242.78308317302827,
+                  297.3570108163748
+                ],
+                "ground_m": [
+                  0,
+                  1.085
+                ]
+              },
+              {
+                "pixel": [
+                  239.1779891304348,
+                  259.4071557971015
+                ],
+                "ground_m": [
+                  0,
+                  1.585
+                ]
+              },
+              {
+                "pixel": [
+                  262.6210166177908,
+                  274.5902737047898
+                ],
+                "ground_m": [
+                  0.1,
+                  1.335
+                ]
+              }
+            ],
+            "valid_polygon_px": [
+              [
+                156.83043015302692,
+                339.8921501998256
+              ],
+              [
+                333.37466201283524,
+                336.3141605394761
+              ],
+              [
+                326.8497023809524,
+                246.8407738095238
+              ],
+              [
+                146.44681818181817,
+                252.5222727272727
+              ]
+            ],
+            "camera": "secondary",
+            "measured_fixed_camera": false,
+            "accepted_error_m": 0.03,
+            "candidate_only": true,
+            "source_commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+            "source_path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+            "source_pose_us": [
+              1600,
+              1150
+            ],
+            "source_repeat_error_m": 0.02157725555847742,
+            "rear_axle_origin_adjustment_m": -0.0050000000000000044,
+            "notes": "Historical data only: assumes unchanged fixed camera and pure uncropped resize. Current pose and lane-edge coverage must be checked. This polygon does not cover both edges of the 1.23m lane. Not enabled for driving."
+          }
+        },
+        "motion": {
+          "verified": false,
+          "minimum_turn_radius_m": null,
+          "maximum_tracking_error_m": null,
+          "braking_distance_m": null,
+          "pose_feedback_verified": false
+        },
+        "notes": "2026-10-25 human measurements update body width to 0.30 m and overall length to 0.42 m; measured rear overhang 0.07 m is recorded separately from the conservative runtime 0.085 m rear envelope. Rear-axle-to-front extent is 0.245 + 0.09 = 0.335 m. See geometry.measured_geometry and its source record for wheel/tyre measurements and the unresolved 0.015 m length discrepancy. Existing lane, cone and camera settings are preserved. Clearance, ground/motion/pose validation remain incomplete; geometry.measured is not promoted.",
+        "driving": {
+          "forward_us": 1600,
+          "max_run_s": 30,
+          "max_speed_mps": 0.2,
+          "lookahead_m": 0.4,
+          "brake_pulse_s": 0.12,
+          "brake_release_s": 0.1,
+          "actuator_lease_s": 0.2,
+          "steering_radius_right_cm": null,
+          "steering_radius_left_cm": null,
+          "visual_error_bound_m": null,
+          "visual_verified_distance_m": null,
+          "fixed_camera_confirmed": false,
+          "steering_verified": false,
+          "odometry_verified": false,
+          "steering_radius_1350_cm": null,
+          "steering_radius_1870_cm": null,
+          "steering_radius_1570_cm": null,
+          "steering_radius_1650_cm": null
+        },
+        "low_speed_test": {
+          "drive_mode": "continuous",
+          "settle_s": 0.55,
+          "max_run_s": null,
+          "reaction_horizon_s": 0.25,
+          "left_us": 1870,
+          "right_us": 1350,
+          "steering_gain": 1.0,
+          "turn_margin_m": 0.03,
+          "reported_braking_m": 0.17,
+          "stopping_budget_m": 0.27,
+          "reported_turn_radius_m": 12.03,
+          "reported_displacement_m": 0.63,
+          "reported_drive_s": 1.5,
+          "estimate_verified": false,
+          "tail_powered_limit_s": 1.0,
+          "clearance_m": 0.05,
+          "boundary_soft_fraction": 0.06,
+          "boundary_release_fraction": 0.04,
+          "boundary_hard_margin_m": 0.03,
+          "manual_stop_only": true
+        }
+      },
+      "records": [
+        {
+          "now_s": 9287.889581181,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9287.76970242,
+            "frame_id": 2317,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 37,
+              "support_rows": 13,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                203.0,
+                257.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9287.76970242,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3117513144198203,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3500325308856726,
+            "ego_far_fraction": 0.2601219384999211,
+            "heading_error": 0.0899105923857515,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.2601219384999211,
+              0.3500325308856726
+            ],
+            "lane_bounds_px": [
+              [
+                195.06683582112737,
+                333.6928494344433
+              ],
+              [
+                107.9981073476248,
+                474.5912934545673
+              ]
+            ],
+            "lane_rows": [
+              203.0,
+              257.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "neutral",
+            "esc_us": 1500,
+            "steering_us": 1610,
+            "phase": "arming",
+            "reason": "3 秒中位初始化",
+            "experimental": true,
+            "fresh_control": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "boundary_observed": true,
+            "cone_contact_stop_enabled": false,
+            "manual_stop_only": true,
+            "tail_clearance_verified": false
+          }
+        },
+        {
+          "now_s": 9287.986796369,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9287.839498338,
+            "frame_id": 2318,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 28,
+              "support_rows": 14,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                203.0,
+                257.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 3,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9287.839498338,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.31111312279514847,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3493719835631473,
+            "ego_far_fraction": 0.2566302507134561,
+            "heading_error": 0.09274173284969123,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.2566302507134561,
+              0.3493719835631473
+            ],
+            "lane_bounds_px": [
+              [
+                195.61543739569498,
+                333.9898718761216
+              ],
+              [
+                107.64240234911313,
+                475.9468222532057
+              ]
+            ],
+            "lane_rows": [
+              203.0,
+              257.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "neutral",
+            "esc_us": 1500,
+            "steering_us": 1610,
+            "phase": "arming",
+            "reason": "3 秒中位初始化",
+            "experimental": true,
+            "fresh_control": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "boundary_observed": true,
+            "cone_contact_stop_enabled": false,
+            "manual_stop_only": true,
+            "tail_clearance_verified": false
+          }
+        },
+        {
+          "now_s": 9288.087470555,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9287.970322181,
+            "frame_id": 2319,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 28,
+              "support_rows": 14,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                203.0,
+                257.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 3,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9287.970322181,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.31252965205645,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3506947334881636,
+            "ego_far_fraction": 0.26068532667556843,
+            "heading_error": 0.09000940681259517,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.26068532667556843,
+              0.3506947334881636
+            ],
+            "lane_bounds_px": [
+              [
+                194.9448431390312,
+                333.7392299621056
+              ],
+              [
+                107.43351563325581,
+                474.94440229780975
+              ]
+            ],
+            "lane_rows": [
+              203.0,
+              257.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "neutral",
+            "esc_us": 1500,
+            "steering_us": 1610,
+            "phase": "arming",
+            "reason": "3 秒中位初始化",
+            "experimental": true,
+            "fresh_control": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "boundary_observed": true,
+            "cone_contact_stop_enabled": false,
+            "manual_stop_only": true,
+            "tail_clearance_verified": false
+          }
+        },
+        {
+          "now_s": 9288.186498168,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9288.037812378,
+            "frame_id": 2320,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 34,
+              "support_rows": 13,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                203.0,
+                257.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9288.037812378,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.31186379722857027,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.350378583819687,
+            "ego_far_fraction": 0.25768777938196474,
+            "heading_error": 0.09269080443772226,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.25768777938196474,
+              0.350378583819687
+            ],
+            "lane_bounds_px": [
+              [
+                195.4961539308992,
+                333.76561072584605
+              ],
+              [
+                107.62091794770078,
+                474.9285562610339
+              ]
+            ],
+            "lane_rows": [
+              203.0,
+              257.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1580",
+            "esc_us": 1580,
+            "steering_us": 1551,
+            "phase": "driving",
+            "reason": "新鲜双线循迹，按偏移与方向共同纠正",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "lane_follow",
+            "requested_steering_us": 1474,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.09269080443772226,
+            "lateral_error": 0.149621416180313,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1580,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9288.282031043,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9288.170130164,
+            "frame_id": 2321,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-215",
+                "fraction": 0.538882851892948,
+                "half_width": 0.03,
+                "image_fraction": 0.5989583333333334,
+                "half_image_width": 0.014583333333333334,
+                "y_fraction": 0.6388888888888888,
+                "near": false,
+                "bbox_xyxy": [
+                  281,
+                  217,
+                  295,
+                  237
+                ],
+                "image_close": false,
+                "other_close": false,
+                "exit_band": false,
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 35,
+              "support_rows": 14,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                203.0,
+                257.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 3,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9288.170130164,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3112238152851235,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3497564637933412,
+            "ego_far_fraction": 0.257518072308923,
+            "heading_error": 0.0922383914844182,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.257518072308923,
+              0.3497564637933412
+            ],
+            "lane_bounds_px": [
+              [
+                195.46674657244898,
+                333.94151968861513
+              ],
+              [
+                107.87359491518225,
+                475.1121350634812
+              ]
+            ],
+            "lane_rows": [
+              203.0,
+              257.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1580",
+            "esc_us": 1580,
+            "steering_us": 1608,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1610,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.0922383914844182,
+            "lateral_error": -0.07577817844886897,
+            "small_target_limited": true,
+            "fresh_control": true,
+            "forward_limit_us": 1580,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9288.381715063,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9288.237725713,
+            "frame_id": 2322,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-215",
+                "fraction": 0.5382994981227309,
+                "half_width": 0.03,
+                "image_fraction": 0.5989583333333334,
+                "half_image_width": 0.014583333333333334,
+                "y_fraction": 0.6388888888888888,
+                "near": false,
+                "bbox_xyxy": [
+                  281,
+                  217,
+                  295,
+                  236
+                ],
+                "image_close": false,
+                "other_close": false,
+                "exit_band": false,
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 25,
+              "support_rows": 13,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                203.0,
+                257.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9288.237725713,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3113558012345448,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.35019680869006486,
+            "ego_far_fraction": 0.2582134291439353,
+            "heading_error": 0.09198337954612956,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.2582134291439353,
+              0.35019680869006486
+            ],
+            "lane_bounds_px": [
+              [
+                195.37241680338695,
+                333.8396008065175
+              ],
+              [
+                108.08179668409576,
+                474.2640354133962
+              ]
+            ],
+            "lane_rows": [
+              203.0,
+              257.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1580",
+            "esc_us": 1580,
+            "steering_us": 1610,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1610,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.09198337954612956,
+            "lateral_error": -0.07680187711580977,
+            "small_target_limited": true,
+            "fresh_control": true,
+            "forward_limit_us": 1580,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9288.476818624,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9288.371524294,
+            "frame_id": 2323,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 22,
+              "support_rows": 13,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                209.0,
+                260.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 1,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9288.371524294,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.31676319623510923,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.35018133107011185,
+            "ego_far_fraction": 0.26908955614104896,
+            "heading_error": 0.08109177492906289,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.26908955614104896,
+              0.35018133107011185
+            ],
+            "lane_bounds_px": [
+              [
+                191.367345020277,
+                341.2652178406539
+              ],
+              [
+                108.15567349361947,
+                474.96669433691227
+              ]
+            ],
+            "lane_rows": [
+              209.0,
+              260.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1580",
+            "esc_us": 1580,
+            "steering_us": 1627,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1627,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.08109177492906289,
+            "lateral_error": -0.07678639949585675,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1580,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        }
+      ]
+    },
+    "701": {
+      "source_session": "cone-drive-1792937011409570212",
+      "raw_tracks_recorded": false,
+      "first_logged_driving_s": 9300.090332466,
+      "settings": {
+        "schema_version": 1,
+        "camera": "secondary",
+        "aux_camera": "primary",
+        "image_size": [
+          480,
+          360
+        ],
+        "target_count": 2,
+        "blue_hsv_lower": [
+          100,
+          110,
+          50
+        ],
+        "blue_hsv_upper": [
+          135,
+          255,
+          255
+        ],
+        "confirm_frames": 3,
+        "confirm_s": 0.15,
+        "track_timeout_s": 0.6,
+        "max_frame_age_s": 0.25,
+        "scene": {
+          "surface": "indoor_white_line_track",
+          "boundary_policy": "whole_vehicle_inside_white_inner_edges",
+          "red_ground_min_fraction": 0.15,
+          "blue_only_obstacles_reported": true,
+          "white_v_min": 255
+        },
+        "geometry": {
+          "measured": false,
+          "lane_width_m": 1.25,
+          "vehicle_width_m": 0.3,
+          "vehicle_length_m": 0.42,
+          "rear_axle_to_front_m": 0.335,
+          "rear_overhang_m": 0.085,
+          "cone_height_m": 0.08,
+          "cone_base_width_m": 0.075,
+          "clearance_m": null,
+          "measured_geometry": {
+            "source_record": "vision/configs/vehicle-geometry-measurements-20261025.json",
+            "source": "human_user_measurements_2026-10-25",
+            "front_axle_to_front_m": 0.09,
+            "rear_axle_to_rear_m": 0.07,
+            "overall_length_m": 0.42,
+            "overall_width_m": 0.3,
+            "wheelbase_m": 0.245,
+            "wheel_track_m": 0.24,
+            "tyre_contact_width_m": 0.05,
+            "tyre_contact_length_m": 0.035,
+            "axle_and_overhang_length_m": 0.405,
+            "length_discrepancy_m": 0.015,
+            "effective_front_extent_m": 0.335,
+            "effective_rear_extent_m": 0.085,
+            "effective_rear_extent_is_measured": false,
+            "notes": "The reported rear overhang is 0.07 m. Runtime rear_overhang_m stays at the conservative envelope max(0.07, 0.42 - 0.335) = 0.085 m to cover the full reported 0.42 m length. The 0.015 m discrepancy is unresolved. Dimensions do not verify clearance, ground projection, motion or pose."
+          }
+        },
+        "ground": {
+          "verified": false,
+          "detector_verified": false,
+          "image_size": [
+            480,
+            360
+          ],
+          "pose_us": [
+            1600,
+            1150
+          ],
+          "homography": [
+            [
+              -0.001719914438483979,
+              0.00016533935234815564,
+              0.3639539214583493
+            ],
+            [
+              -9.487806934345525e-05,
+              -0.0007147609050347506,
+              -0.37016768184374077
+            ],
+            [
+              -0.00019889022326163343,
+              -0.0050630492532325235,
+              1.0
+            ]
+          ],
+          "valid_polygon_px": [
+            [
+              156.83043015302692,
+              339.8921501998256
+            ],
+            [
+              333.37466201283524,
+              336.3141605394761
+            ],
+            [
+              326.8497023809524,
+              246.8407738095238
+            ],
+            [
+              146.44681818181817,
+              252.5222727272727
+            ]
+          ],
+          "independent_check_rms_m": 0.014248798066974693,
+          "independent_check_max_error_m": 0.02114873755797878,
+          "coordinate_frame": "rear_axle_x_right_y_forward",
+          "max_error_m": 0.03,
+          "historical_verified": true,
+          "current_pose_verified": false,
+          "reuse_source": {
+            "commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+            "path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+            "pose_us": [
+              1600,
+              1150
+            ],
+            "source_repeat_error_m": 0.02157725555847742
+          },
+          "calibration_evidence": {
+            "image_size": [
+              480,
+              360
+            ],
+            "pose_us": [
+              1600,
+              1150
+            ],
+            "points": [
+              {
+                "pixel": [
+                  156.83043015302692,
+                  339.8921501998256
+                ],
+                "ground_m": [
+                  -0.2,
+                  0.835
+                ]
+              },
+              {
+                "pixel": [
+                  333.37466201283524,
+                  336.3141605394761
+                ],
+                "ground_m": [
+                  0.2,
+                  0.835
+                ]
+              },
+              {
+                "pixel": [
+                  326.8497023809524,
+                  246.8407738095238
+                ],
+                "ground_m": [
+                  0.5,
+                  1.835
+                ]
+              },
+              {
+                "pixel": [
+                  146.44681818181817,
+                  252.5222727272727
+                ],
+                "ground_m": [
+                  -0.5,
+                  1.835
+                ]
+              }
+            ],
+            "check_points": [
+              {
+                "pixel": [
+                  242.78308317302827,
+                  297.3570108163748
+                ],
+                "ground_m": [
+                  0,
+                  1.085
+                ]
+              },
+              {
+                "pixel": [
+                  239.1779891304348,
+                  259.4071557971015
+                ],
+                "ground_m": [
+                  0,
+                  1.585
+                ]
+              },
+              {
+                "pixel": [
+                  262.6210166177908,
+                  274.5902737047898
+                ],
+                "ground_m": [
+                  0.1,
+                  1.335
+                ]
+              }
+            ],
+            "valid_polygon_px": [
+              [
+                156.83043015302692,
+                339.8921501998256
+              ],
+              [
+                333.37466201283524,
+                336.3141605394761
+              ],
+              [
+                326.8497023809524,
+                246.8407738095238
+              ],
+              [
+                146.44681818181817,
+                252.5222727272727
+              ]
+            ],
+            "camera": "secondary",
+            "measured_fixed_camera": false,
+            "accepted_error_m": 0.03,
+            "candidate_only": true,
+            "source_commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+            "source_path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+            "source_pose_us": [
+              1600,
+              1150
+            ],
+            "source_repeat_error_m": 0.02157725555847742,
+            "rear_axle_origin_adjustment_m": -0.0050000000000000044,
+            "notes": "Historical data only: assumes unchanged fixed camera and pure uncropped resize. Current pose and lane-edge coverage must be checked. This polygon does not cover both edges of the 1.23m lane. Not enabled for driving."
+          }
+        },
+        "motion": {
+          "verified": false,
+          "minimum_turn_radius_m": null,
+          "maximum_tracking_error_m": null,
+          "braking_distance_m": null,
+          "pose_feedback_verified": false
+        },
+        "notes": "2026-10-25 human measurements update body width to 0.30 m and overall length to 0.42 m; measured rear overhang 0.07 m is recorded separately from the conservative runtime 0.085 m rear envelope. Rear-axle-to-front extent is 0.245 + 0.09 = 0.335 m. See geometry.measured_geometry and its source record for wheel/tyre measurements and the unresolved 0.015 m length discrepancy. Existing lane, cone and camera settings are preserved. Clearance, ground/motion/pose validation remain incomplete; geometry.measured is not promoted.",
+        "driving": {
+          "forward_us": 1600,
+          "max_run_s": 30,
+          "max_speed_mps": 0.2,
+          "lookahead_m": 0.4,
+          "brake_pulse_s": 0.12,
+          "brake_release_s": 0.1,
+          "actuator_lease_s": 0.2,
+          "steering_radius_right_cm": null,
+          "steering_radius_left_cm": null,
+          "visual_error_bound_m": null,
+          "visual_verified_distance_m": null,
+          "fixed_camera_confirmed": false,
+          "steering_verified": false,
+          "odometry_verified": false,
+          "steering_radius_1350_cm": null,
+          "steering_radius_1870_cm": null,
+          "steering_radius_1570_cm": null,
+          "steering_radius_1650_cm": null
+        },
+        "low_speed_test": {
+          "drive_mode": "continuous",
+          "settle_s": 0.55,
+          "max_run_s": null,
+          "reaction_horizon_s": 0.25,
+          "left_us": 1870,
+          "right_us": 1350,
+          "steering_gain": 1.0,
+          "turn_margin_m": 0.03,
+          "reported_braking_m": 0.17,
+          "stopping_budget_m": 0.27,
+          "reported_turn_radius_m": 12.03,
+          "reported_displacement_m": 0.63,
+          "reported_drive_s": 1.5,
+          "estimate_verified": false,
+          "tail_powered_limit_s": 1.0,
+          "clearance_m": 0.05,
+          "boundary_soft_fraction": 0.06,
+          "boundary_release_fraction": 0.04,
+          "boundary_hard_margin_m": 0.03,
+          "manual_stop_only": true
+        }
+      },
+      "records": [
+        {
+          "now_s": 9299.758324591,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9299.638283222,
+            "frame_id": 2436,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5291314880764798,
+                "half_width": 0.03,
+                "image_fraction": 0.5989583333333334,
+                "half_image_width": 0.016666666666666666,
+                "y_fraction": 0.6694444444444444,
+                "near": false,
+                "bbox_xyxy": [
+                  280,
+                  224,
+                  296,
+                  246
+                ],
+                "image_close": false,
+                "other_close": true,
+                "exit_band": false,
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 23,
+              "support_rows": 15,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                209.0,
+                260.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 1,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9299.638283222,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3328883516480299,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3619752914014025,
+            "ego_far_fraction": 0.293229183713422,
+            "heading_error": 0.0687461076879805,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.293229183713422,
+              0.3619752914014025
+            ],
+            "lane_bounds_px": [
+              [
+                186.44023343762234,
+                340.80093885299357
+              ],
+              [
+                101.24230286819636,
+                475.20081708458815
+              ]
+            ],
+            "lane_rows": [
+              209.0,
+              260.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "neutral",
+            "esc_us": 1500,
+            "steering_us": 1610,
+            "phase": "arming",
+            "reason": "3 秒中位初始化",
+            "experimental": true,
+            "fresh_control": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "boundary_observed": true,
+            "cone_contact_stop_enabled": false,
+            "manual_stop_only": true,
+            "tail_clearance_verified": false
+          }
+        },
+        {
+          "now_s": 9299.87506813,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9299.770222487,
+            "frame_id": 2437,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 26,
+              "support_rows": 13,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                209.0,
+                260.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9299.770222487,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3317865962235995,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.35986437081403794,
+            "ego_far_fraction": 0.29260177784217084,
+            "heading_error": 0.0672625929718671,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.29260177784217084,
+              0.35986437081403794
+            ],
+            "lane_bounds_px": [
+              [
+                186.63472240523305,
+                340.6617246030001
+              ],
+              [
+                101.7862532205379,
+                476.4268198823632
+              ]
+            ],
+            "lane_rows": [
+              209.0,
+              260.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "neutral",
+            "esc_us": 1500,
+            "steering_us": 1610,
+            "phase": "arming",
+            "reason": "3 秒中位初始化",
+            "experimental": true,
+            "fresh_control": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "boundary_observed": true,
+            "cone_contact_stop_enabled": false,
+            "manual_stop_only": true,
+            "tail_clearance_verified": false
+          }
+        },
+        {
+          "now_s": 9299.987003063,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9299.83999107,
+            "frame_id": 2438,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5340260892283717,
+                "half_width": 0.03,
+                "image_fraction": 0.5989583333333334,
+                "half_image_width": 0.016666666666666666,
+                "y_fraction": 0.6638888888888889,
+                "near": false,
+                "bbox_xyxy": [
+                  280,
+                  224,
+                  296,
+                  246
+                ],
+                "image_close": false,
+                "other_close": true,
+                "exit_band": false,
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 108,
+              "support_rows": 19,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                206.0,
+                260.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9299.83999107,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3266491358247461,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3598557535574673,
+            "ego_far_fraction": 0.27995391291335164,
+            "heading_error": 0.07990184064411565,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.27995391291335164,
+              0.3598557535574673
+            ],
+            "lane_bounds_px": [
+              [
+                191.84962406015148,
+                333.1774436090211
+              ],
+              [
+                103.42857142857082,
+                473.51428571428573
+              ]
+            ],
+            "lane_rows": [
+              206.0,
+              260.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "neutral",
+            "esc_us": 1500,
+            "steering_us": 1610,
+            "phase": "arming",
+            "reason": "3 秒中位初始化",
+            "experimental": true,
+            "fresh_control": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "boundary_observed": true,
+            "cone_contact_stop_enabled": false,
+            "manual_stop_only": true,
+            "tail_clearance_verified": false
+          }
+        },
+        {
+          "now_s": 9300.090332466,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9299.973855223,
+            "frame_id": 2439,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5316394730582343,
+                "half_width": 0.03,
+                "image_fraction": 0.6010416666666667,
+                "half_image_width": 0.016666666666666666,
+                "y_fraction": 0.6722222222222223,
+                "near": false,
+                "bbox_xyxy": [
+                  281,
+                  224,
+                  297,
+                  246
+                ],
+                "image_close": false,
+                "other_close": true,
+                "exit_band": false,
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 22,
+              "support_rows": 12,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                209.0,
+                260.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 4,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9299.973855223,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.33327069637587753,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.36251694938606677,
+            "ego_far_fraction": 0.29245543464185736,
+            "heading_error": 0.07006151474420941,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.29245543464185736,
+              0.36251694938606677
+            ],
+            "lane_bounds_px": [
+              [
+                186.5209664445352,
+                341.01401149529653
+              ],
+              [
+                101.01368657716694,
+                475.04408343494987
+              ]
+            ],
+            "lane_rows": [
+              209.0,
+              260.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1580",
+            "esc_us": 1580,
+            "steering_us": 1643,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1643,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.07006151474420941,
+            "lateral_error": -0.09578204287630826,
+            "small_target_limited": true,
+            "fresh_control": true,
+            "forward_limit_us": 1580,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9300.194554369,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9300.102263048,
+            "frame_id": 2440,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5312524541111918,
+                "half_width": 0.03,
+                "image_fraction": 0.5989583333333334,
+                "half_image_width": 0.016666666666666666,
+                "y_fraction": 0.6666666666666666,
+                "near": false,
+                "bbox_xyxy": [
+                  280,
+                  224,
+                  296,
+                  247
+                ],
+                "image_close": false,
+                "other_close": true,
+                "exit_band": false,
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 25,
+              "support_rows": 15,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                209.0,
+                257.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 1,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9300.102263048,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.33135753832950027,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.36007474987660815,
+            "ego_far_fraction": 0.2912950348851163,
+            "heading_error": 0.06877971499149182,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.2912950348851163,
+              0.36007474987660815
+            ],
+            "lane_bounds_px": [
+              [
+                186.55719630251076,
+                341.54130304945215
+              ],
+              [
+                104.66943196395778,
+                470.28300572117405
+              ]
+            ],
+            "lane_rows": [
+              209.0,
+              257.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "search",
+            "esc_us": 1600,
+            "steering_us": 1642,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1642,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.06877971499149182,
+            "lateral_error": -0.09372686231389216,
+            "small_target_limited": true,
+            "fresh_control": true,
+            "forward_limit_us": 1600,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9300.290716779,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9300.174277295,
+            "frame_id": 2441,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5329201867247794,
+                "half_width": 0.03,
+                "image_fraction": 0.5989583333333334,
+                "half_image_width": 0.016666666666666666,
+                "y_fraction": 0.6638888888888889,
+                "near": false,
+                "bbox_xyxy": [
+                  280,
+                  224,
+                  296,
+                  246
+                ],
+                "image_close": false,
+                "other_close": true,
+                "exit_band": false,
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 24,
+              "support_rows": 13,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                209.0,
+                260.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9300.174277295,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.33265157315832367,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3612847356375081,
+            "ego_far_fraction": 0.293784786816184,
+            "heading_error": 0.06749994882132415,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.293784786816184,
+              0.3612847356375081
+            ],
+            "lane_bounds_px": [
+              [
+                186.36712107604848,
+                340.68476461120275
+              ],
+              [
+                101.47936170719879,
+                475.49650106425617
+              ]
+            ],
+            "lane_rows": [
+              209.0,
+              260.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "search",
+            "esc_us": 1600,
+            "steering_us": 1642,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1642,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.06749994882132415,
+            "lateral_error": -0.09326911546120459,
+            "small_target_limited": true,
+            "fresh_control": true,
+            "forward_limit_us": 1600,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9300.390181742,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9300.302230676,
+            "frame_id": 2442,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 33,
+              "support_rows": 15,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                218.0,
+                272.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 3,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9300.302230676,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3393057993321332,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.36591902539656324,
+            "ego_far_fraction": 0.30424198719854184,
+            "heading_error": 0.061677038198021394,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.30424198719854184,
+              0.36591902539656324
+            ],
+            "lane_bounds_px": [
+              [
+                186.57694092510764,
+                337.7445933430792
+              ],
+              [
+                98.95748783981412,
+                478.282243594151
+              ]
+            ],
+            "lane_rows": [
+              218.0,
+              272.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "search",
+            "esc_us": 1600,
+            "steering_us": 1649,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1649,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.061677038198021394,
+            "lateral_error": -0.0979034052202597,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1600,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9300.508482279,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9300.438817956,
+            "frame_id": 2444,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5356221821332962,
+                "half_width": 0.03,
+                "image_fraction": 0.6020833333333333,
+                "half_image_width": 0.017708333333333333,
+                "y_fraction": 0.6916666666666667,
+                "near": false,
+                "bbox_xyxy": [
+                  281,
+                  233,
+                  298,
+                  257
+                ],
+                "image_close": false,
+                "other_close": true,
+                "exit_band": false,
+                "reference_distance_m": 1.4739306457023693
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "candidate_count": 3,
+              "support_rows": 19,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "max_candidates": 12,
+              "fit_residual_limit_px": 5.76,
+              "short_span_checked": false,
+              "fit_max_residual_px": 2.1939849624067165,
+              "common_span_px": 54.0,
+              "reason": "observed_curve_pair",
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9300.438817956,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3317901579601467,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3635446065293054,
+            "ego_far_fraction": 0.28659729154688396,
+            "heading_error": 0.07694731498242147,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.28659729154688396,
+              0.3635446065293054
+            ],
+            "lane_bounds_px": [
+              [
+                192.2947368421061,
+                330.8060150375933
+              ],
+              [
+                103.65263157894691,
+                470.9533834586466
+              ]
+            ],
+            "lane_rows": [
+              212.0,
+              266.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1580",
+            "esc_us": 1580,
+            "steering_us": 1636,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1636,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.07694731498242147,
+            "lateral_error": -0.0928269909444851,
+            "small_target_limited": true,
+            "fresh_control": true,
+            "forward_limit_us": 1580,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9300.65965449,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9300.570260574,
+            "frame_id": 2445,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.541239358339598,
+                "half_width": 0.03,
+                "image_fraction": 0.60625,
+                "half_image_width": 0.017708333333333333,
+                "y_fraction": 0.6972222222222222,
+                "near": true,
+                "bbox_xyxy": [
+                  283,
+                  234,
+                  300,
+                  257
+                ],
+                "image_close": false,
+                "other_close": true,
+                "exit_band": false,
+                "reference_distance_m": 1.420941412061123
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 37,
+              "support_rows": 13,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                215.0,
+                263.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9300.570260574,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.34387648563129586,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3706392000949554,
+            "ego_far_fraction": 0.3088906395318829,
+            "heading_error": 0.061748560563072485,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.3088906395318829,
+              0.3706392000949554
+            ],
+            "lane_bounds_px": [
+              [
+                184.41590396494212,
+                339.37102680989057
+              ],
+              [
+                101.47178332147138,
+                466.84775705866525
+              ]
+            ],
+            "lane_rows": [
+              215.0,
+              263.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "search",
+            "esc_us": 1600,
+            "steering_us": 1647,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1647,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.061748560563072485,
+            "lateral_error": -0.09430440830383319,
+            "small_target_limited": true,
+            "fresh_control": true,
+            "forward_limit_us": 1600,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9300.770445442,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9300.638273417,
+            "frame_id": 2446,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5312901280477735,
+                "half_width": 0.03,
+                "image_fraction": 0.6083333333333333,
+                "half_image_width": 0.019791666666666666,
+                "y_fraction": 0.7027777777777777,
+                "near": true,
+                "bbox_xyxy": [
+                  283,
+                  234,
+                  302,
+                  260
+                ],
+                "image_close": true,
+                "other_close": true,
+                "exit_band": false,
+                "reference_distance_m": 1.371961078602675
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 25,
+              "support_rows": 12,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                212.0,
+                263.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 0,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9300.638273417,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3404620816396123,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3672375649041052,
+            "ego_far_fraction": 0.3079313843262691,
+            "heading_error": 0.0593061805778361,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.3079313843262691,
+              0.3672375649041052
+            ],
+            "lane_bounds_px": [
+              [
+                184.8168108579796,
+                338.01614540085257
+              ],
+              [
+                100.14012632994451,
+                472.5266376801811
+              ]
+            ],
+            "lane_rows": [
+              212.0,
+              263.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "search",
+            "esc_us": 1600,
+            "steering_us": 1653,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1653,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.0593061805778361,
+            "lateral_error": -0.10085200340480749,
+            "small_target_limited": true,
+            "fresh_control": true,
+            "forward_limit_us": 1600,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9300.884075169,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9300.770574146,
+            "frame_id": 2447,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5282411452804855,
+                "half_width": 0.035516689021463106,
+                "image_fraction": 0.6135416666666667,
+                "half_image_width": 0.026041666666666668,
+                "y_fraction": 0.7222222222222222,
+                "near": true,
+                "bbox_xyxy": [
+                  283,
+                  240,
+                  308,
+                  266
+                ],
+                "image_close": true,
+                "other_close": true,
+                "exit_band": false,
+                "reference_distance_m": 1.2223335849917971
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 71,
+              "support_rows": 19,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                212.0,
+                266.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 4,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9300.770574146,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3369871296705547,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3671494062736501,
+            "ego_far_fraction": 0.29704519968705906,
+            "heading_error": 0.07010420658659106,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.29704519968705906,
+              0.3671494062736501
+            ],
+            "lane_bounds_px": [
+              [
+                186.86315789473747,
+                338.78796992481136
+              ],
+              [
+                98.50526315789443,
+                476.21954887218044
+              ]
+            ],
+            "lane_rows": [
+              212.0,
+              266.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1580",
+            "esc_us": 1580,
+            "steering_us": 1652,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1652,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.07010420658659106,
+            "lateral_error": -0.10932951656310352,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1580,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9300.993000049,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9300.838847489,
+            "frame_id": 2448,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5308687867110143,
+                "half_width": 0.03,
+                "image_fraction": 0.621875,
+                "half_image_width": 0.022916666666666665,
+                "y_fraction": 0.7416666666666667,
+                "near": true,
+                "bbox_xyxy": [
+                  288,
+                  247,
+                  310,
+                  276
+                ],
+                "image_close": true,
+                "other_close": true,
+                "exit_band": true,
+                "reference_distance_m": 1.098185351116213
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "candidate_count": 3,
+              "support_rows": 18,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "max_candidates": 12,
+              "fit_residual_limit_px": 5.76,
+              "short_span_checked": false,
+              "fit_max_residual_px": 3.859649122806786,
+              "common_span_px": 51.0,
+              "reason": "observed_curve_pair",
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9300.838847489,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.33410620816730424,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3640427435457113,
+            "ego_far_fraction": 0.2947074893515894,
+            "heading_error": 0.0693352541941219,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.2947074893515894,
+              0.3640427435457113
+            ],
+            "lane_bounds_px": [
+              [
+                187.21052631578937,
+                340.1403508771932
+              ],
+              [
+                104.82456140350854,
+                468.40350877192975
+              ]
+            ],
+            "lane_rows": [
+              215.0,
+              266.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "search",
+            "esc_us": 1600,
+            "steering_us": 1642,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1642,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.0693352541941219,
+            "lateral_error": -0.0980785233831728,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1600,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9301.10113717,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9301.038719858,
+            "frame_id": 2450,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5308687867110143,
+                "half_width": 0.03,
+                "image_fraction": 0.64375,
+                "half_image_width": 0.030208333333333334,
+                "y_fraction": 0.7861111111111111,
+                "near": true,
+                "bbox_xyxy": [
+                  295,
+                  256,
+                  324,
+                  291
+                ],
+                "image_close": false,
+                "other_close": false,
+                "exit_band": true,
+                "reference_distance_m": null,
+                "near_field_continuation": true,
+                "position_source": "last_valid_ground_observation"
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 64,
+              "support_rows": 18,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                212.0,
+                263.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 0,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9301.038719858,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3369303880676237,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3647432190686294,
+            "ego_far_fraction": 0.300069633166581,
+            "heading_error": 0.06467358590204841,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.300069633166581,
+              0.3647432190686294
+            ],
+            "lane_bounds_px": [
+              [
+                184.62280701754366,
+                342.48245614035113
+              ],
+              [
+                101.65789473684191,
+                472.42982456140317
+              ]
+            ],
+            "lane_rows": [
+              212.0,
+              263.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "search",
+            "esc_us": 1600,
+            "steering_us": 1647,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1647,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.06467358590204841,
+            "lateral_error": -0.09877899890609088,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1600,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9301.2703329,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9301.170273957,
+            "frame_id": 2451,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5308687867110143,
+                "half_width": 0.03,
+                "image_fraction": 0.6708333333333333,
+                "half_image_width": 0.03854166666666667,
+                "y_fraction": 0.8555555555555555,
+                "near": true,
+                "bbox_xyxy": [
+                  304,
+                  272,
+                  341,
+                  317
+                ],
+                "image_close": false,
+                "other_close": false,
+                "exit_band": true,
+                "reference_distance_m": null,
+                "near_field_continuation": true,
+                "position_source": "last_valid_ground_observation"
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路当前单侧白线已匹配，短时预测走廊宽度",
+            "line_state": "single",
+            "boundary_observed": false,
+            "prediction_age_s": 0.22622467700057314,
+            "boundary_uncertainty_fraction": 0.1181279216625683,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 71,
+              "support_rows": 18,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                200.0,
+                266.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 1,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": true,
+            "line_age_s": 0.22622467700057314,
+            "line_observed_s": 9301.038719858,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3291738744039007,
+            "half_envelope": 0.32303248821104413,
+            "ego_near_fraction": 0.35443134759038614,
+            "ego_far_fraction": 0.2922999966432883,
+            "heading_error": 0.06213135094709782,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.2922999966432883,
+              0.35443134759038614
+            ],
+            "lane_bounds_px": [
+              [
+                185.8493191129224,
+                343.70896823572986
+              ],
+              [
+                105.48124722493299,
+                476.2531770494943
+              ]
+            ],
+            "lane_rows": [
+              212.0,
+              263.0
+            ],
+            "guard": "single_observed_edge_width_prediction",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": "right",
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": []
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1546,
+            "phase": "driving",
+            "reason": "白线预警，降低油门向右纠偏",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": "right",
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1539,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": false,
+            "line_state": "single",
+            "paired_stable": false,
+            "heading_error": 0.06213135094709782,
+            "lateral_error": -0.08846712742784762,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9301.36029189,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9301.239118059,
+            "frame_id": 2452,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-255",
+                "fraction": 0.5308687867110143,
+                "half_width": 0.03,
+                "image_fraction": 0.690625,
+                "half_image_width": 0.041666666666666664,
+                "y_fraction": 0.9,
+                "near": true,
+                "bbox_xyxy": [
+                  312,
+                  284,
+                  352,
+                  336
+                ],
+                "image_close": false,
+                "other_close": false,
+                "exit_band": true,
+                "reference_distance_m": null,
+                "near_field_continuation": true,
+                "position_source": "last_valid_ground_observation"
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "candidate_count": 2,
+              "support_rows": 13,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "max_candidates": 12,
+              "fit_residual_limit_px": 5.76,
+              "short_span_checked": true,
+              "fit_max_residual_px": 1.41758241758248,
+              "common_span_px": 36.0,
+              "reason": "observed_curve_pair",
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9301.239118059,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3411659797815292,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.35912163536077935,
+            "ego_far_fraction": 0.31734656104879616,
+            "heading_error": 0.041775074311983185,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.31734656104879616,
+              0.35912163536077935
+            ],
+            "lane_bounds_px": [
+              [
+                169.35164835164846,
+                370.3736263736264
+              ],
+              [
+                111.65934065934073,
+                459.5824175824175
+              ]
+            ],
+            "lane_rows": [
+              224.0,
+              260.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1600,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1653,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": false,
+            "heading_error": 0.041775074311983185,
+            "lateral_error": -0.09315741519824083,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9301.469677455,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9301.370323399,
+            "frame_id": 2453,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [],
+            "uncertain": [
+              "secondary-265"
+            ],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 21,
+              "support_rows": 14,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": true,
+              "observed_y_range": [
+                227.0,
+                266.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9301.370323399,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3456476422912526,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3639370327236946,
+            "ego_far_fraction": 0.32256281965465256,
+            "heading_error": 0.04137421306904204,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.32256281965465256,
+              0.3639370327236946
+            ],
+            "lane_bounds_px": [
+              [
+                163.2428571428572,
+                380.84642857142893
+              ],
+              [
+                100.7571428571427,
+                475.61785714285736
+              ]
+            ],
+            "lane_rows": [
+              227.0,
+              266.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [
+              {
+                "id": "secondary-265",
+                "fraction": 0.27190146409643884,
+                "half_width": 0.03,
+                "image_fraction": 0.465625,
+                "half_image_width": 0.0125,
+                "y_fraction": 0.625,
+                "near": false,
+                "bbox_xyxy": [
+                  218,
+                  215,
+                  230,
+                  230
+                ],
+                "image_close": false,
+                "other_close": false,
+                "exit_band": false,
+                "reference_distance_m": null,
+                "provisional": true
+              }
+            ],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1657,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1657,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": false,
+            "heading_error": 0.04137421306904204,
+            "lateral_error": -0.09797281256115609,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9301.56295983,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9301.438306336,
+            "frame_id": 2454,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [],
+            "uncertain": [
+              "secondary-265"
+            ],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 20,
+              "support_rows": 13,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": true,
+              "observed_y_range": [
+                227.0,
+                263.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9301.438306336,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.344850938836099,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.36407410032870535,
+            "ego_far_fraction": 0.32117732957738787,
+            "heading_error": 0.04289677075131748,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.32117732957738787,
+              0.36407410032870535
+            ],
+            "lane_bounds_px": [
+              [
+                160.6923076923079,
+                387.1758241758239
+              ],
+              [
+                102.01098901098919,
+                472.4945054945051
+              ]
+            ],
+            "lane_rows": [
+              227.0,
+              263.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [
+              {
+                "id": "secondary-265",
+                "fraction": 0.2648712781172797,
+                "half_width": 0.03,
+                "image_fraction": 0.4635416666666667,
+                "half_image_width": 0.0125,
+                "y_fraction": 0.6222222222222222,
+                "near": false,
+                "bbox_xyxy": [
+                  217,
+                  214,
+                  229,
+                  230
+                ],
+                "image_close": false,
+                "other_close": false,
+                "exit_band": false,
+                "reference_distance_m": null,
+                "provisional": true
+              }
+            ],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "search",
+            "esc_us": 1600,
+            "steering_us": 1656,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1656,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.04289677075131748,
+            "lateral_error": -0.09810988016616684,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1600,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9301.66427918,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9301.570313009,
+            "frame_id": 2455,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-265",
+                "fraction": 0.26845765456797194,
+                "half_width": 0.03,
+                "image_fraction": 0.4479166666666667,
+                "half_image_width": 0.013541666666666667,
+                "y_fraction": 0.6388888888888888,
+                "near": false,
+                "bbox_xyxy": [
+                  209,
+                  218,
+                  222,
+                  237
+                ],
+                "image_close": false,
+                "other_close": false,
+                "exit_band": false,
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 15,
+              "support_rows": 12,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": true,
+              "observed_y_range": [
+                233.0,
+                266.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9301.570313009,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.3662212245860221,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.38051642569290217,
+            "ego_far_fraction": 0.3506177148995762,
+            "heading_error": 0.029898710793325955,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.3506177148995762,
+              0.38051642569290217
+            ],
+            "lane_bounds_px": [
+              [
+                146.43406593406593,
+                396.2115384615383
+              ],
+              [
+                91.89560439560435,
+                473.71153846153834
+              ]
+            ],
+            "lane_rows": [
+              233.0,
+              266.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1580",
+            "esc_us": 1580,
+            "steering_us": 1675,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "avoiding",
+            "requested_steering_us": 1675,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": false,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": true,
+            "heading_error": 0.029898710793325955,
+            "lateral_error": -0.11455220553036366,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1580,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9301.779654442,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9301.641832757,
+            "frame_id": 2456,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-265",
+                "image_fraction": 0.4395833333333333,
+                "half_image_width": 0.013541666666666667,
+                "bbox_xyxy": [
+                  205,
+                  224,
+                  218,
+                  241
+                ],
+                "y_fraction": 0.6527777777777778,
+                "near": true,
+                "near_field_continuation": false,
+                "provisional": false,
+                "position_source": "current_image_only",
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [
+              "secondary-267",
+              "secondary-256"
+            ],
+            "reason": "第二路白线未恢复，保持低速图像引导",
+            "line_state": "missing",
+            "boundary_observed": false,
+            "prediction_age_s": null,
+            "boundary_uncertainty_fraction": null,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 77,
+              "support_rows": 21,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                200.0,
+                269.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 1,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "boundary_failure_reason": "白线透视宽度变化异常；当前单边身份不唯一或未匹配",
+            "line_held": false,
+            "line_missing": true,
+            "guard": "image_only_boundary_unknown",
+            "source_camera": "secondary",
+            "line_sources": []
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1690,
+            "phase": "driving",
+            "reason": "白线退化，在1秒总预算内降低油门并限制转向",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1690,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": false,
+            "line_state": "missing",
+            "paired_stable": false,
+            "heading_error": 0.0,
+            "lateral_error": -0.22395833333333337,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9301.889212247,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9301.770328766,
+            "frame_id": 2457,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-265",
+                "fraction": 0.27214628204975666,
+                "half_width": 0.03,
+                "image_fraction": 0.43333333333333335,
+                "half_image_width": 0.015625,
+                "y_fraction": 0.675,
+                "near": false,
+                "bbox_xyxy": [
+                  201,
+                  230,
+                  216,
+                  252
+                ],
+                "image_close": false,
+                "other_close": true,
+                "exit_band": false,
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 14,
+              "support_rows": 13,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": true,
+              "observed_y_range": [
+                233.0,
+                272.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 2,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9301.770328766,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.37503972790311163,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3884681040509698,
+            "ego_far_fraction": 0.36119504777245975,
+            "heading_error": 0.027273056278510066,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.36119504777245975,
+              0.3884681040509698
+            ],
+            "lane_bounds_px": [
+              [
+                146.25465838509285,
+                389.21428571428646
+              ],
+              [
+                86.1976284584978,
+                476.3506493506497
+              ]
+            ],
+            "lane_rows": [
+              233.0,
+              272.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1678,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1678,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": false,
+            "heading_error": 0.027273056278510066,
+            "lateral_error": -0.12250388388843131,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9302.008515358,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9301.838786294,
+            "frame_id": 2458,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-265",
+                "image_fraction": 0.43125,
+                "half_image_width": 0.017708333333333333,
+                "bbox_xyxy": [
+                  199,
+                  231,
+                  216,
+                  256
+                ],
+                "y_fraction": 0.6916666666666667,
+                "near": true,
+                "near_field_continuation": false,
+                "provisional": false,
+                "position_source": "current_image_only",
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [
+              "secondary-267"
+            ],
+            "reason": "第二路白线未恢复，保持低速图像引导",
+            "line_state": "missing",
+            "boundary_observed": false,
+            "prediction_age_s": null,
+            "boundary_uncertainty_fraction": null,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 98,
+              "support_rows": 19,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                200.0,
+                269.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 0,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "boundary_failure_reason": "白线透视宽度变化异常；当前单边身份不唯一或未匹配",
+            "line_held": false,
+            "line_missing": true,
+            "guard": "image_only_boundary_unknown",
+            "source_camera": "secondary",
+            "line_sources": []
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1690,
+            "phase": "driving",
+            "reason": "白线退化，在1秒总预算内降低油门并限制转向",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1690,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": false,
+            "line_state": "missing",
+            "paired_stable": false,
+            "heading_error": 0.0,
+            "lateral_error": -0.23645833333333333,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9302.111670039,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9301.974494778,
+            "frame_id": 2459,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-265",
+                "image_fraction": 0.43020833333333336,
+                "half_image_width": 0.022916666666666665,
+                "bbox_xyxy": [
+                  196,
+                  240,
+                  218,
+                  267
+                ],
+                "y_fraction": 0.7194444444444444,
+                "near": true,
+                "near_field_continuation": false,
+                "provisional": false,
+                "position_source": "current_image_only",
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [
+              "secondary-267"
+            ],
+            "reason": "第二路白线未恢复，保持低速图像引导",
+            "line_state": "missing",
+            "boundary_observed": false,
+            "prediction_age_s": null,
+            "boundary_uncertainty_fraction": null,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 67,
+              "support_rows": 19,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                203.0,
+                266.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 0,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "boundary_failure_reason": "白线透视宽度变化异常；单边恢复超过 0.25 秒",
+            "line_held": false,
+            "line_missing": true,
+            "guard": "image_only_boundary_unknown",
+            "source_camera": "secondary",
+            "line_sources": []
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1690,
+            "phase": "driving",
+            "reason": "白线退化，在1秒总预算内降低油门并限制转向",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1690,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": false,
+            "line_state": "missing",
+            "paired_stable": false,
+            "heading_error": 0.0,
+            "lateral_error": -0.2427083333333333,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9302.222554509,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9302.102603362,
+            "frame_id": 2460,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-265",
+                "fraction": 0.26106822542578567,
+                "half_width": 0.03003726277455252,
+                "image_fraction": 0.4395833333333333,
+                "half_image_width": 0.026041666666666668,
+                "y_fraction": 0.7611111111111111,
+                "near": true,
+                "bbox_xyxy": [
+                  199,
+                  250,
+                  224,
+                  282
+                ],
+                "image_close": true,
+                "other_close": true,
+                "exit_band": true,
+                "reference_distance_m": 1.0302726289191584
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "candidate_count": 3,
+              "support_rows": 15,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "max_candidates": 12,
+              "fit_residual_limit_px": 5.76,
+              "short_span_checked": true,
+              "fit_max_residual_px": 1.9705882352941444,
+              "common_span_px": 42.0,
+              "reason": "observed_curve_pair",
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9302.102603362,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.2809898506813517,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.3159508706873667,
+            "ego_far_fraction": 0.23569043853913524,
+            "heading_error": 0.08026043214823148,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.23569043853913524,
+              0.3159508706873667
+            ],
+            "lane_bounds_px": [
+              [
+                191.02941176470586,
+                366.0499999999999
+              ],
+              [
+                127.82941176470581,
+                471.1999999999999
+              ]
+            ],
+            "lane_rows": [
+              215.0,
+              257.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1623,
+            "phase": "driving",
+            "reason": "锁定绕行侧，跟随锥桶边缘目标",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1610,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": false,
+            "heading_error": 0.08026043214823148,
+            "lateral_error": -0.0499866505248282,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9302.333769794,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9302.172546815,
+            "frame_id": 2461,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-265",
+                "image_fraction": 0.446875,
+                "half_image_width": 0.029166666666666667,
+                "bbox_xyxy": [
+                  201,
+                  256,
+                  229,
+                  291
+                ],
+                "y_fraction": 0.7833333333333333,
+                "near": true,
+                "near_field_continuation": true,
+                "provisional": false,
+                "position_source": "current_image_only",
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [
+              "secondary-267"
+            ],
+            "reason": "第二路白线未恢复，保持低速图像引导",
+            "line_state": "missing",
+            "boundary_observed": false,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 74,
+              "support_rows": 17,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                203.0,
+                257.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 1,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9302.172546815,
+            "base_half_envelope": 0.20490456654847583,
+            "half_envelope": 0.20490456654847583,
+            "boundary_position_source": "nearest_observed_row",
+            "guard": "image_only_boundary_unknown",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": null,
+            "uncertain_cones": [],
+            "boundary_failure_reason": "白线相交",
+            "line_missing": true,
+            "source_camera": "secondary",
+            "line_sources": []
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1610,
+            "phase": "driving",
+            "reason": "白线退化，在1秒总预算内降低油门并限制转向",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1610,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": false,
+            "line_state": "missing",
+            "paired_stable": false,
+            "heading_error": 0.0,
+            "lateral_error": 0.0,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9302.43903764,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9302.30529032,
+            "frame_id": 2462,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-265",
+                "fraction": 0.26106822542578567,
+                "half_width": 0.03003726277455252,
+                "image_fraction": 0.45625,
+                "half_image_width": 0.034375,
+                "y_fraction": 0.8527777777777777,
+                "near": true,
+                "bbox_xyxy": [
+                  203,
+                  272,
+                  236,
+                  317
+                ],
+                "image_close": false,
+                "other_close": false,
+                "exit_band": true,
+                "reference_distance_m": null,
+                "near_field_continuation": true,
+                "position_source": "last_valid_ground_observation"
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线已确认，可进行低速试验",
+            "line_state": "paired",
+            "boundary_observed": true,
+            "prediction_age_s": 0.0,
+            "boundary_uncertainty_fraction": 0.0,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "paired_candidates": 67,
+              "support_rows": 14,
+              "roi_top": 0.38,
+              "white_v_min": 180,
+              "white_s_max": 70,
+              "hypothesis_policy": "sampled",
+              "reason": "observed_adaptive_inner_edges",
+              "short_span_checked": false,
+              "observed_y_range": [
+                206.0,
+                251.0
+              ],
+              "fallback_detector": "adaptive_paired_rows",
+              "candidate_count": 0,
+              "max_candidates": 12,
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 180,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": true,
+                  "white_lines_detected": true,
+                  "reason": "white_inner_edges_on_indoor_track"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "white_inner_edges_on_indoor_track"
+            },
+            "line_held": false,
+            "line_age_s": 0.0,
+            "line_observed_s": 9302.30529032,
+            "base_half_envelope": 0.20490456654847583,
+            "ego_fraction": 0.18147589502639547,
+            "half_envelope": 0.20490456654847583,
+            "ego_near_fraction": 0.24924813297975665,
+            "ego_far_fraction": 0.09417030064690926,
+            "heading_error": 0.1550778323328474,
+            "boundary_position_source": "nearest_observed_row",
+            "ego_range": [
+              0.09417030064690926,
+              0.24924813297975665
+            ],
+            "lane_bounds_px": [
+              [
+                218.36442582946182,
+                356.9481855419897
+              ],
+              [
+                155.67237669529288,
+                476.91240589154074
+              ]
+            ],
+            "lane_rows": [
+              206.0,
+              251.0
+            ],
+            "guard": "fresh_white_lines_and_image_envelope",
+            "metric_boundary_verified": false,
+            "boundary_margin_warning": false,
+            "boundary_outside_frames": 0,
+            "boundary_correction": "right",
+            "uncertain_cones": [],
+            "source_camera": "secondary",
+            "line_sources": [
+              "secondary"
+            ]
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1547,
+            "phase": "driving",
+            "reason": "白线预警，降低油门向右纠偏",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": "right",
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1534,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": true,
+            "line_state": "paired",
+            "paired_stable": false,
+            "heading_error": 0.1550778323328474,
+            "lateral_error": 0.016716087182781864,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        },
+        {
+          "now_s": 9302.553079718,
+          "navigation": {
+            "experimental": true,
+            "captured_s": 9302.438349122,
+            "frame_id": 2463,
+            "ready": true,
+            "action": "visual_trial_ready",
+            "phase": "test_observation",
+            "hardware_output": false,
+            "field_verified": false,
+            "cones": [
+              {
+                "id": "secondary-265",
+                "image_fraction": 0.4625,
+                "half_image_width": 0.04479166666666667,
+                "bbox_xyxy": [
+                  201,
+                  300,
+                  244,
+                  360
+                ],
+                "y_fraction": 0.9666666666666667,
+                "near": true,
+                "near_field_continuation": true,
+                "provisional": false,
+                "position_source": "current_image_only",
+                "reference_distance_m": null
+              }
+            ],
+            "uncertain": [],
+            "reason": "第二路白线未恢复，保持低速图像引导",
+            "line_state": "missing",
+            "boundary_observed": false,
+            "prediction_age_s": null,
+            "boundary_uncertainty_fraction": null,
+            "boundary_diagnostics": {
+              "detector": "turn_aware_curves",
+              "candidate_count": 1,
+              "support_rows": 0,
+              "roi_top": 0.38,
+              "white_v_min": 200,
+              "white_s_max": 70,
+              "max_candidates": 12,
+              "fit_residual_limit_px": 5.76,
+              "reason": "no_supported_curve_pair",
+              "configured_white_v_min": 255,
+              "effective_white_v_min": 200,
+              "threshold_fallback_used": true,
+              "threshold_attempts": [
+                {
+                  "white_v_min": 255,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 220,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 200,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                },
+                {
+                  "white_v_min": 180,
+                  "valid": false,
+                  "white_lines_detected": false,
+                  "reason": "no_supported_curve_pair"
+                }
+              ],
+              "max_threshold_attempts": 4,
+              "road_reason": "no_supported_curve_pair"
+            },
+            "boundary_failure_reason": "当前双边白线未确认；当前单边身份不唯一或未匹配",
+            "line_held": false,
+            "line_missing": true,
+            "guard": "image_only_boundary_unknown",
+            "source_camera": "secondary",
+            "line_sources": []
+          },
+          "original_intent": {
+            "action": "cone_1570",
+            "esc_us": 1570,
+            "steering_us": 1610,
+            "phase": "driving",
+            "reason": "白线退化，在1秒总预算内降低油门并限制转向",
+            "experimental": true,
+            "manual_stop_only": true,
+            "boundary_correction": null,
+            "best_effort_route": false,
+            "steering_phase": "limited_recovery",
+            "requested_steering_us": 1610,
+            "steering_policy": "locked_cone_edge_pd",
+            "line_search": true,
+            "boundary_observed": false,
+            "line_state": "missing",
+            "paired_stable": false,
+            "heading_error": 0.0,
+            "lateral_error": 0.0,
+            "small_target_limited": false,
+            "fresh_control": true,
+            "forward_limit_us": 1570,
+            "lane_return_confirmed": false,
+            "cone_contact_stop_enabled": false,
+            "tail_clearance_verified": false,
+            "pass_evidence_kind": "image_sequence_estimate"
+          }
+        }
+      ]
+    }
+  }
+}

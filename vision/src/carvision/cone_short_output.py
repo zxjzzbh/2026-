@@ -8,7 +8,8 @@ import sys
 import time
 
 from .brake_parking import numeric
-from .steering import LEFT_US as STEERING_LEFT_US, CENTER_US as STEERING_CENTER_US, RIGHT_US as STEERING_RIGHT_US
+from .brake_timing import CROSSWALK_BRAKE_PULSE_S, brake_cleanup_window_s
+from .steering_limits import STEERING_LEFT_US, STEERING_CENTER_US, STEERING_RIGHT_US
 from .brake_output import write_parking_pulse,verify_neutral_readback
 
 MODES={'turn_1350':STEERING_RIGHT_US,'turn_1870':STEERING_LEFT_US,'brake':STEERING_CENTER_US}
@@ -33,6 +34,11 @@ class ShortGuard:
         self.ever_forward=False;self.emergency_start=self.emergency_until=None
         self._output(1500,1610)
 
+    @property
+    def brake_pulse_s(self):
+        # Keep fixed-turn calibration tests at their existing duration.
+        return CROSSWALK_BRAKE_PULSE_S if self.mode=='brake' else .12
+
     def _output(self,esc,steer):
         if steer not in MODES.values() or esc not in (1500,1400,self.forward_us):raise ValueError('invalid short-test output')
         # Remove drive first when braking/neutral; establish steering first
@@ -53,7 +59,7 @@ class ShortGuard:
         elif self.ever_forward and old_phase not in ('ready','complete'):
             self.emergency_start=max(now,(self.last_brake_end or -1e9)+.1)
             if self.emergency_start<=now:
-                self._output(1400,self.steering_us);self.emergency_until=now+.12;self.emergency_start=None
+                self._output(1400,self.steering_us);self.emergency_until=now+self.brake_pulse_s;self.emergency_start=None
         else:self._output(1500,1610)
 
     def tick(self,now):
@@ -64,7 +70,7 @@ class ShortGuard:
         if not self.fault and now-self.opened_s>=180:self.abort('短测会话超过 3 分钟',now)
         if self.fault:
             if self.emergency_start is not None and now>=self.emergency_start:
-                self._output(1400,self.steering_us);self.emergency_until=now+.12;self.emergency_start=None
+                self._output(1400,self.steering_us);self.emergency_until=now+self.brake_pulse_s;self.emergency_start=None
             if self.emergency_until is not None and now>=self.emergency_until:
                 self.emergency_until=None;self._output(1500,1610)
             return
@@ -75,12 +81,12 @@ class ShortGuard:
             self.drive_started_s=now;self.ever_forward=True
             self._phase('driving',now,self.duration_s,self.forward_us,steer)
         elif self.phase=='driving':
-            self.brake_started_s=now;self.brake_count=1;self._phase('braking',now,.12,1400,steer)
+            self.brake_started_s=now;self.brake_count=1;self._phase('braking',now,self.brake_pulse_s,1400,steer)
         elif self.phase=='braking':
             self.last_brake_end=now
             self._phase('releasing' if self.brake_count<3 else 'settling',now,.1 if self.brake_count<3 else .5,1500,steer)
         elif self.phase=='releasing':
-            self.brake_count+=1;self._phase('braking',now,.12,1400,steer)
+            self.brake_count+=1;self._phase('braking',now,self.brake_pulse_s,1400,steer)
         elif self.phase=='settling':self._phase('complete',now,None,1500,1610)
 
     def accept(self,message,now):
@@ -105,6 +111,7 @@ class ShortGuard:
         return {'phase':self.phase,'reason':self.reason,'round':self.round,'mode':self.mode,
             'esc_us':self.esc_us,'steering_us':self.steering_us,'forward_us':self.forward_us,'duration_s':self.duration_s,
             'remaining_s':max(0,self.deadline-now) if self.deadline else 0.,'brake_count':self.brake_count,
+            'brake_pulse_s':self.brake_pulse_s,
             'drive_started_s':self.drive_started_s,'brake_started_s':self.brake_started_s,'source_time_s':now,
             'fault':self.fault,'physical_stop_verified':False}
 
@@ -137,7 +144,7 @@ def _worker(pipe,port):
     finally:
         if guard:
             try:
-                guard.abort('worker ending',time.monotonic());end=time.monotonic()+.4
+                guard.abort('worker ending',time.monotonic());end=time.monotonic()+max(.4,brake_cleanup_window_s(guard.brake_pulse_s,.1))
                 while (guard.emergency_start is not None or guard.emergency_until is not None) and time.monotonic()<end:
                     guard.tick(time.monotonic());time.sleep(.005)
                 guard._output(1500,1610)

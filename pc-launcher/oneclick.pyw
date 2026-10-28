@@ -11,7 +11,7 @@ import time
 import urllib.request
 import webbrowser
 
-HOST = os.environ.get('SMARTCAR_HOST', '').strip()
+HOST = '100.124.156.117'
 CAR_PORT = 8080
 LOCAL_PORT = 18080
 OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -137,13 +137,6 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='read-only connectivity check; no browser or control action')
     args = parser.parse_args()
-    if not HOST:
-        message = '请先设置 SMARTCAR_HOST 为已授权访问的树莓派地址，见 pc-launcher/使用说明.txt。'
-        if args.check:
-            parser.error(message)
-        from tkinter import messagebox
-        messagebox.showerror('智能车连接配置', message)
-        return
     if args.check:
         state = car_status()
         print(json.dumps({'connected': True, 'boot_test_installed': state.get('boot_test') is True,

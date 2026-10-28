@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-13",
+  "center_us": 1610,
+  "left_us": 1870,
+  "right_us": 1350,
+  "symmetric_span_us": 260,
+  "operator_statement": "现在的角度就可以了，把左边也弄到对称的脉冲，中位还是1610us，右侧是1350，左侧是1870，把这些数值同步到所有的参数里",
+  "right_raised_observation_accepted": true,
+  "left_1870_physically_tested": false,
+  "actual_wheel_angles_measured": false,
+  "loaded_turning_radii_verified": false,
+  "right_probe": "run/s3-repeat-1350-20261013-000723/result.json",
+  "right_probe_return_center_us": 1610,
+  "motor_enabled_during_probe": false,
+  "supersedes": {
+    "left_us": 1770,
+    "center_us": 1610,
+    "right_us": 1430
+  },
+  "scope": "Current UART S3 manual, PWM tuning, cone, parking guard, autonomous configuration and output limits. Historical calibration records and non-S3 outputs are unchanged.",
+  "unchanged": "Throttle, leases, stop logic, fine lane correction, reverse center trim, verified flags."
+}

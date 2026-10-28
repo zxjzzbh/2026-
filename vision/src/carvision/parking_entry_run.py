@@ -79,10 +79,12 @@ class ParkingEntryRun:
 
     def status(self, base, now):
         ready = self.active and self.phase == 'ready'
-        metric=(self.s or {}).get('controller_mode')=='metric_path'
+        metric=(self.s or {}).get('controller_mode','metric_path')=='metric_path'
         return {
-            'program': 'metric-parking-entry-v1' if metric else 'experimental-parking-entry-v1',
-            'controller_mode': (self.s or {}).get('controller_mode','visual_trial'),
+            'program': 'metric-parking-entry-v1' if metric else 'legacy-visual-parking-diagnostic',
+            'controller_mode': (self.s or {}).get('controller_mode','metric_path'),
+            'diagnostic_only':not metric,'formal_task':metric,
+            'completion_authorizes_payment':metric and bool((self.intent or {}).get('payment_ready')),
             'active': self.active, 'phase': self.phase, 'reason': self.reason,
             'owner_client': self.owner, 'run_token': self.token,
             'can_prepare': not self.active and parking_base_idle(base),
@@ -101,12 +103,12 @@ class ParkingEntryRun:
             'visual_retarget_enabled': not metric and self.controller is not None,
             'forward_us': (self.s or {}).get('forward_us', 1575),
             'steering_gain': (self.s or {}).get('steering_gain', 1.25),
-            'logic_revision':'parking_closed_loop_v2',
+            'logic_revision':'metric_parking_v1' if metric else 'parking_closed_loop_v3',
             'slow_forward_us':((self.s or {}).get('brake') or {}).get('pwm',{}).get('creep_us'),
             'steering_limits_us': [RIGHT_US, LEFT_US],
             'hardware_output': bool(self.actuator and getattr(self.actuator, 'run', False)),
             'intent': copy.deepcopy(self.intent),
-            'field_verified': False, 'actual_pose_not_verified': True,
+            'field_verified': False, 'actual_pose_not_verified': (self.intent or {}).get('actual_pose_not_verified',True),
             'parking_zone_verified': False,
             'completion_basis': ('实测位姿下整车外廓入位并连续停稳；实车验收仍独立记录' if metric else
                                  '视觉入位与光流停稳估计；不代表四轮物理入位验证'),
@@ -123,9 +125,14 @@ class ParkingEntryRun:
         client = payload.get('client')
         if not isinstance(client, str) or not 1 <= len(client) <= 128:
             raise ValueError('页面身份无效')
+        mode=payload.get('controller_mode','metric_path')
+        if mode not in ('visual_trial','metric_path'):
+            raise ValueError('未知停车入位模式')
         side = payload.get('selected_slot')
-        if side not in ('left', 'right'):
+        if mode=='visual_trial' and side not in ('left', 'right'):
             raise ValueError('停车侧应为当前选出的 left 或 right')
+        if mode=='metric_path' and side not in (None,'left','right'):
+            raise ValueError('停车方向格式无效')
         forward = payload.get('forward_us', 1575)
         if type(forward) is not int or not 1501 <= forward <= 1625:
             raise ValueError('停车前进油门仅允许 1501–1625 μs 整数')
@@ -133,9 +140,6 @@ class ParkingEntryRun:
         if type(gain) not in (int, float) or not math.isfinite(gain) or not 1 <= gain <= 3:
             raise ValueError('停车转向增益仅允许 1.0–3.0')
         parking, brake, cone = map(copy.deepcopy, (parking_settings, brake_settings, cone_settings))
-        mode=payload.get('controller_mode','visual_trial')
-        if mode not in ('visual_trial','metric_path'):
-            raise ValueError('未知停车入位模式')
         if parking.get('camera') != 'secondary' or parking.get('image_size') != [480, 360]:
             raise ValueError('停车使用第二路 480×360 实际画面')
         brake.update(arming_s=3., brake_pulse_s=.12, brake_release_s=.1, actuator_lease_s=.2)
@@ -169,7 +173,8 @@ class ParkingEntryRun:
         self.owner, self.token = client, secrets.token_hex(16)
         self.sequence, self.lease_until, self.prepared_s = -1, now + .5, now
         self.active, self.phase = True, 'preparing'
-        self.reason = '等待第二路新鲜停车画面；准备期间仅保持中位'
+        self.reason = ('等待米制停车反馈；准备期间仅保持中位' if mode=='metric_path' else
+                       '历史视觉诊断：等待第二路画面；结果不能证明正式入位或授权付款')
         self.controller = self.sample = self.intent = self.execution = None
         self.last_control_frame = None
         self.folder = self.log = self.last_record = None
@@ -325,10 +330,14 @@ class ParkingEntryRun:
                 self.log.close()
             if self.folder:
                 try:
+                    metric=(self.s or {}).get('controller_mode')=='metric_path'
                     summary = {'phase': phase, 'reason': reason, 'field_verified': False,
+                               'controller_mode':(self.s or {}).get('controller_mode'),
+                               'diagnostic_only':not metric,'formal_task':metric,
+                               'completion_authorizes_payment':metric and phase=='done' and bool((self.intent or {}).get('payment_ready')),
                                'final_selected_side':getattr(self.controller,'side',(self.s or {}).get('selected_slot')),
                                'retarget_count':getattr(self.controller,'retarget_count',0),
-                               'actual_pose_not_verified': True, 'parking_zone_verified': False,
+                               'actual_pose_not_verified': (self.intent or {}).get('actual_pose_not_verified',True), 'parking_zone_verified': False,
                                'failure_sample': self.sample if phase == 'fault' else None,
                                'last_requested_intent': self.intent}
                     (self.folder / 'summary.json').write_text(

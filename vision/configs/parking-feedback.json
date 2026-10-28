@@ -26,17 +26,7 @@
     "braking_deceleration_lower_bound_mps2": null,
     "brake_response_upper_bound_s": null,
     "brake_evidence": null,
-    "esc_model_source": "user-confirmed 2026-10-09",
-    "mode_labels_from_user_photo": {
-      "left": "F/B/R",
-      "center": "F/R",
-      "right": "F/B"
-    },
-    "battery_selector_labels_from_user_photo": [
-      "LiPo",
-      "NiMH"
-    ],
-    "mode_position_photo_assessment": "appears centered at F/R; physical confirmation pending"
+    "esc_model_source": "user-confirmed 2026-10-09"
   },
   "note": "Speed values are engineering goals, not measured ESC mappings. No brake PWM is guessed; actual actuator binding remains unavailable until verified."
 }

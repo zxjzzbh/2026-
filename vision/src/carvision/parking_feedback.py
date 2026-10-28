@@ -42,7 +42,7 @@ class ParkingWorldFeed:
         elif self.map is not None and 0<=t-self.map_at<=2.:
             # Only a short near-field occlusion with valid odometry is allowed.
             # New ambiguous blue in the near driving corridor prevents reuse.
-            if any(r.get('visible') and (r.get('clipped') or r.get('kind')=='unresolved_blue')
+            if any(r.get('visible') and (r.get('clipped') or r.get('kind') in ('unresolved_blue','unresolved_red'))
                    and r['bbox_xyxy'][3]>.8*image.shape[0] for r in row['tracks']):return None
             slots=copy.deepcopy(self.map)
         if slots is None:return None

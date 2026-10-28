@@ -41,8 +41,10 @@ def validate_settings(s):
     if not isinstance(scene,dict):raise ValueError('scene')
     if type(scene.get('white_v_min',200)) is not int or not 0<=scene.get('white_v_min',200)<=255:
         raise ValueError('白线亮度阈值必须为 0–255 的整数')
-    if scene.get('surface','red_running_track') not in ('red_running_track','indoor_white_line_track'):
+    if scene.get('surface','red_running_track') not in ('red_running_track','blue_running_track','indoor_white_line_track'):
         raise ValueError('unsupported cone track surface')
+    if 'obstacle_color' in scene and scene['obstacle_color'] not in ('red','blue'):
+        raise ValueError('obstacle_color must be red or blue')
     if scene.get('boundary_policy','whole_vehicle_inside_white_inner_edges')!='whole_vehicle_inside_white_inner_edges':
         raise ValueError('vehicle must stay inside white inner edges')
     if not numeric(scene.get('red_ground_min_fraction',.15)) or not 0<scene.get('red_ground_min_fraction',.15)<=1:

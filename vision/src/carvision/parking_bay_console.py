@@ -15,7 +15,7 @@ from .cone_planning import load_settings as load_cones
 from .cone_navigation import reuse_legacy_ground
 from .parking_entry_run import ParkingEntryRun
 from .parking_feedback import ParkingFrameFeedback
-from .parking_control import parking_blockers
+from .parking_control import parking_blockers, parking_readiness
 from .parking_far_tracker import ParkingFarTracker
 from .cone_road import ConeRoadContext
 
@@ -95,6 +95,7 @@ class ParkingBayDrive:
         self.road=None
         self.metric_feedback=None
         self.metric_missing=None
+        self.metric_readiness=None
 
     def status(self):
         with self.lock:
@@ -111,10 +112,14 @@ class ParkingBayDrive:
             if self.metric_missing is None:
                 try:
                     parking,_,cones=self._entry_settings()
-                    self.metric_missing=parking_blockers({'parking':parking,'cones':cones})
+                    self.metric_readiness=parking_readiness({'parking':parking,'cones':cones})
+                    self.metric_missing=self.metric_readiness['missing']
                 except (OSError,ValueError,KeyError,TypeError) as exc:
                     self.metric_missing=[str(exc)]
+                    self.metric_readiness={'ready':False,'missing':list(self.metric_missing),'groups':[],
+                                           'configuration_error':str(exc),'hardware_output_enabled':False}
             entry['metric_missing']=list(self.metric_missing)
+            entry['metric_readiness']=copy.deepcopy(self.metric_readiness)
             s['parking_trial']=entry;s['parking_trial_status_s']=self.clock()
             if entry['active']:
                 s['hardware_output']=entry['hardware_output']

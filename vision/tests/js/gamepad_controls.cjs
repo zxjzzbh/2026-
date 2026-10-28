@@ -8,7 +8,7 @@ function pad(){return {index:0,id:'mock standard USB pad',connected:true,mapping
 function setup(){
  const arm={checked:false,disabled:false},info={textContent:''},actions=[];
  let device=pad(),pads=[device],now=0;
- const state={allowed:true,stale:false,focused:true,otherInput:false,
+ const state={allowed:true,ready:true,stale:false,focused:true,otherInput:false,
   capabilities:{forward:true,reverse:true,left:true,right:true}};
  const context={};vm.createContext(context);vm.runInContext(payload.component,context);
  const controls=context.createUSBGamepadControls({arm,info,getPads:()=>pads,now:()=>now,state:()=>state,
@@ -16,40 +16,47 @@ function setup(){
   directions:directions=>actions.push({type:'directions',directions:Array.from(directions)})});
  function sample(ms=50){now+=ms;controls.sample();}
  function button(index,value){device.buttons[index]={value,pressed:value>0.5};}
- function armNeutral(){arm.checked=true;arm.onchange();sample();}
- function forward(){button(5,1);button(7,1);sample();}
+ function armNeutral(){sample();button(5,1);sample();button(5,0);sample();}
+ function forward(){button(7,1);sample();}
  return {arm,info,actions,state,controls,sample,button,armNeutral,forward,
   get device(){return device;},set device(v){device=v;pads=[v];},set pads(v){pads=v;}};
 }
 let count=0;
 function check(name,run){run();count++;}
 
-check('default detection never commands',()=>{const h=setup();h.button(5,1);h.button(7,1);h.sample();assert.equal(h.actions.length,0);assert.equal(h.controls.armed,false);});
-check('arming held inputs requires neutral',()=>{const h=setup();h.button(5,1);h.button(7,1);h.armNeutral();h.sample();assert.equal(h.actions.length,0);h.button(5,0);h.button(7,0);h.sample();h.forward();assert.deepEqual(h.actions[0].directions,['forward']);});
-check('forward and simultaneous steering is one chord',()=>{const h=setup();h.armNeutral();h.device.axes[0]=-.7;h.forward();assert.deepEqual(h.actions[0].directions,['forward','left']);});
-check('reverse maps LT',()=>{const h=setup();h.armNeutral();h.button(5,1);h.button(6,.8);h.sample();assert.deepEqual(h.actions[0].directions,['reverse']);});
+
+check('default detection never commands',()=>{const h=setup();h.button(7,1);h.sample();assert.equal(h.actions.length,0);assert.equal(h.controls.armed,false);});
+check('RB press toggles on, hold and release do not toggle',()=>{const h=setup();h.sample();h.button(5,1);h.sample();assert.equal(h.controls.armed,true);h.sample();h.button(5,0);h.sample();assert.equal(h.controls.armed,true);h.forward();assert.deepEqual(h.actions.at(-1).directions,['forward']);});
+check('second RB press stops and toggles off',()=>{const h=setup();h.armNeutral();h.forward();h.button(5,1);h.sample();assert.equal(h.controls.armed,false);assert.equal(h.actions.at(-1).reason,'gamepad_toggle_off');h.sample();assert.equal(h.actions.length,2);});
+check('held RT cannot arm through RB',()=>{const h=setup();h.sample();h.button(7,1);h.button(5,1);h.sample();assert.equal(h.controls.armed,false);assert.equal(h.actions.length,0);h.button(7,0);h.button(5,0);h.sample();h.button(5,1);h.sample();assert.equal(h.controls.armed,true);});
+check('first connection with held RB never arms',()=>{const h=setup();h.button(5,1);h.sample();h.sample();assert.equal(h.controls.armed,false);});
+check('forward and steering is one chord',()=>{const h=setup();h.armNeutral();h.device.axes[0]=-.7;h.forward();assert.deepEqual(h.actions.at(-1).directions,['forward','left']);});
+check('RT forward and LT reverse do not require held RB',()=>{const h=setup();h.armNeutral();h.button(6,.8);h.sample();assert.deepEqual(h.actions.at(-1).directions,['reverse']);assert.equal(h.device.buttons[5].value,0);});
 check('holding a direction emits no new direction transition',()=>{const h=setup();h.armNeutral();h.forward();for(let i=0;i<10;i++)h.sample();assert.equal(h.actions.length,1);});
-check('RB release stops and requires neutral',()=>{const h=setup();h.armNeutral();h.forward();h.button(5,0);h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_deadman_release');h.button(5,1);h.sample();assert.equal(h.actions.length,2);h.button(5,0);h.button(7,0);h.sample();h.forward();assert.equal(h.actions.length,3);});
-check('trigger release stops chord',()=>{const h=setup();h.armNeutral();h.forward();h.button(7,0);h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_release');h.button(7,1);h.sample();assert.equal(h.actions.length,2);});
-check('steering release stops entire short trial',()=>{const h=setup();h.armNeutral();h.device.axes[0]=.7;h.forward();h.device.axes[0]=0;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_release');});
-check('B emergency latches once while held',()=>{const h=setup();h.armNeutral();h.forward();h.button(1,1);h.sample();h.sample();assert.equal(h.actions.length,2);assert.equal(h.actions[1].emergency,true);assert.equal(h.actions[1].reason,'gamepad_emergency');});
-check('external space stop cannot restart held pad',()=>{const h=setup();h.armNeutral();h.forward();h.controls.requireNeutral();h.sample();h.sample();assert.equal(h.actions.length,1);});
-check('disable and reenable with held inputs cannot start',()=>{const h=setup();h.armNeutral();h.forward();h.state.allowed=false;h.sample();h.state.allowed=true;h.sample();assert.equal(h.actions.length,1);});
-check('USB disconnect stops and disarms',()=>{const h=setup();h.armNeutral();h.forward();h.pads=[];h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_disconnected');assert.equal(h.arm.checked,false);});
-check('USB reconnect does not autoarm',()=>{const h=setup();h.armNeutral();h.forward();h.pads=[];h.sample();h.device=pad();h.button(5,1);h.button(7,1);h.sample();assert.equal(h.actions.length,2);assert.equal(h.arm.checked,false);});
-check('same index with changed device id stops',()=>{const h=setup();h.armNeutral();h.forward();h.device.id='replacement';h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_device_changed');assert.equal(h.arm.checked,false);});
-check('two controllers cannot silently change selection',()=>{const h=setup();h.armNeutral();h.forward();h.pads=[h.device,{...pad(),index:1}];h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_disconnected');});
-check('loss of focus stops without held-input restart',()=>{const h=setup();h.armNeutral();h.forward();h.state.focused=false;h.sample();h.state.focused=true;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_focus_lost');assert.equal(h.actions.length,2);});
-check('sampling gap stops and requires neutral',()=>{const h=setup();h.armNeutral();h.forward();h.sample(250);h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_poll_gap');assert.equal(h.actions.length,2);});
-check('conflicting triggers stop',()=>{const h=setup();h.armNeutral();h.forward();h.button(6,1);h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_conflict');});
-check('unknown mapping is refused',()=>{const h=setup();h.device.mapping='';h.armNeutral();h.forward();assert.equal(h.actions.length,0);assert.equal(h.arm.checked,false);});
-check('NaN input while active stops',()=>{const h=setup();h.armNeutral();h.forward();h.device.axes[0]=NaN;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_invalid');});
-check('invalid button value while active stops',()=>{const h=setup();h.armNeutral();h.forward();h.device.buttons[7].value=2;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_invalid');});
-check('missing axes cannot leave heartbeat input active',()=>{const h=setup();h.armNeutral();h.forward();h.device.axes=null;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_invalid');assert.equal(h.arm.checked,false);});
-check('throwing input reader stops instead of abandoning the interval',()=>{const h=setup();h.armNeutral();h.forward();Object.defineProperty(h.device,'axes',{get(){throw new Error('mock device failure');}});h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_read_failure');assert.equal(h.arm.checked,false);});
-check('dead zone blocks drift',()=>{const h=setup();h.armNeutral();h.device.axes[0]=.2;h.button(5,1);h.sample();assert.equal(h.actions.length,0);h.device.axes[0]=.3;h.sample();assert.deepEqual(h.actions[0].directions,['right']);h.device.axes[0]=.2;h.sample();assert.equal(h.actions.length,1);h.device.axes[0]=.1;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_release');});
-check('unavailable reverse never submitted',()=>{const h=setup();h.armNeutral();h.state.capabilities.reverse=false;h.button(5,1);h.button(6,1);h.sample();assert.equal(h.actions.length,0);h.button(6,0);h.button(7,1);h.sample();assert.equal(h.actions.length,0);});
-check('unchecked midmotion stops',()=>{const h=setup();h.armNeutral();h.forward();h.arm.checked=false;h.arm.onchange();assert.equal(h.actions.at(-1).reason,'gamepad_disarmed');});
+check('steering release while RT held continues forward',()=>{const h=setup();h.armNeutral();h.device.axes[0]=.7;h.forward();h.device.axes[0]=0;h.sample();assert.deepEqual(h.actions.at(-1),{type:'directions',directions:['forward']});assert.equal(h.controls.armed,true);});
+check('left to right while driving changes steering without stop',()=>{const h=setup();h.armNeutral();h.device.axes[0]=-.7;h.forward();h.device.axes[0]=.7;h.sample();assert.deepEqual(h.actions.at(-1).directions,['forward','right']);assert.equal(h.actions.some(x=>x.type==='stop'),false);});
+check('trigger release while steering preserves steering',()=>{const h=setup();h.armNeutral();h.device.axes[0]=.7;h.forward();h.button(7,0);h.sample();assert.deepEqual(h.actions.at(-1).directions,['right']);});
+check('full release stops but preserves RB ownership',()=>{const h=setup();h.armNeutral();h.forward();h.button(7,0);h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_release');assert.equal(h.controls.armed,true);h.sample();h.forward();assert.deepEqual(h.actions.at(-1).directions,['forward']);});
+check('pending stop reply does not toggle the mode',()=>{const h=setup();h.armNeutral();h.forward();h.button(7,0);h.sample();h.state.allowed=false;h.sample();assert.equal(h.controls.armed,true);h.state.allowed=true;h.sample();h.forward();assert.deepEqual(h.actions.at(-1).directions,['forward']);});
+check('B emergency latches once and disarms',()=>{const h=setup();h.armNeutral();h.forward();h.button(1,1);h.sample();h.sample();assert.equal(h.actions.length,2);assert.equal(h.actions[1].emergency,true);assert.equal(h.controls.armed,false);});
+check('B also works while RB ownership is off',()=>{const h=setup();h.sample();h.button(1,1);h.sample();assert.equal(h.actions.at(-1).emergency,true);});
+check('external stop cannot restart held pad',()=>{const h=setup();h.armNeutral();h.forward();h.controls.requireNeutral();h.sample();h.sample();assert.equal(h.actions.length,1);});
+check('disable and reenable cannot restore ownership',()=>{const h=setup();h.armNeutral();h.forward();h.state.allowed=h.state.ready=false;h.sample();h.state.allowed=h.state.ready=true;h.sample();assert.equal(h.controls.armed,false);assert.equal(h.actions.length,2);});
+check('disconnect stops and disarms',()=>{const h=setup();h.armNeutral();h.forward();h.pads=[];h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_disconnected');assert.equal(h.controls.armed,false);});
+check('reconnect with held RB and RT cannot autoarm',()=>{const h=setup();h.armNeutral();h.forward();h.pads=[];h.sample();h.device=pad();h.button(5,1);h.button(7,1);h.sample();assert.equal(h.actions.length,2);assert.equal(h.controls.armed,false);});
+check('replacement device stops',()=>{const h=setup();h.armNeutral();h.forward();h.device.id='replacement';h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_device_changed');assert.equal(h.controls.armed,false);});
+check('multiple devices stop',()=>{const h=setup();h.armNeutral();h.forward();h.pads=[h.device,{...pad(),index:1}];h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_disconnected');});
+check('loss of focus disarms without restarting held input',()=>{const h=setup();h.armNeutral();h.forward();h.state.focused=false;h.sample();h.state.focused=true;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_focus_lost');assert.equal(h.controls.armed,false);});
+check('sampling gap stops and disarms',()=>{const h=setup();h.armNeutral();h.forward();h.sample(250);h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_poll_gap');assert.equal(h.controls.armed,false);});
+check('conflicting triggers stop until neutral',()=>{const h=setup();h.armNeutral();h.forward();h.button(6,1);h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_conflict');h.button(6,0);h.sample();assert.equal(h.actions.length,2);});
+check('unknown mapping is refused',()=>{const h=setup();h.device.mapping='';h.armNeutral();h.forward();assert.equal(h.actions.length,0);assert.equal(h.controls.armed,false);});
+check('NaN input stops',()=>{const h=setup();h.armNeutral();h.forward();h.device.axes[0]=NaN;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_invalid');});
+check('invalid button stops',()=>{const h=setup();h.armNeutral();h.forward();h.device.buttons[7].value=2;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_invalid');});
+check('missing axes stops',()=>{const h=setup();h.armNeutral();h.forward();h.device.axes=null;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_invalid');});
+check('throwing getter stops',()=>{const h=setup();h.armNeutral();h.forward();Object.defineProperty(h.device,'axes',{get(){throw new Error('mock failure');}});h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_read_failure');});
+check('dead zone and hysteresis avoid drift',()=>{const h=setup();h.armNeutral();h.device.axes[0]=.2;h.sample();assert.equal(h.actions.length,0);h.device.axes[0]=.3;h.sample();assert.deepEqual(h.actions[0].directions,['right']);h.device.axes[0]=.2;h.sample();assert.equal(h.actions.length,1);h.device.axes[0]=.1;h.sample();assert.equal(h.actions.at(-1).reason,'gamepad_release');});
+check('unavailable reverse never submitted',()=>{const h=setup();h.armNeutral();h.state.capabilities.reverse=false;h.button(6,1);h.sample();assert.equal(h.actions.length,0);});
+check('checkbox and RB share one ownership state',()=>{const h=setup();h.armNeutral();h.forward();h.arm.checked=false;h.arm.onchange();assert.equal(h.actions.at(-1).reason,'gamepad_toggle_off');assert.equal(h.controls.armed,false);});
 
 // Integration check executes the delivered dashboard script with mock DOM and
 // HTTP responses. No browser, network, controller or vehicle is used.
@@ -85,8 +92,8 @@ async function integration(){
  const flush=()=>new Promise(resolve=>setImmediate(resolve));await flush();
  const tick=async()=>{now+=50;intervals[50]();await flush();};
  function button(index,value){device.buttons[index]={value,pressed:value>0.5};}
- const arm=el('gamepad-arm');arm.checked=true;arm.onchange();await tick();
- button(5,1);button(7,1);await tick();
+ const arm=el('gamepad-arm');await tick();button(5,1);await tick();button(5,0);await tick();
+ button(7,1);await tick();
  const motion=requests.filter(r=>r.url.endsWith('/command')&&r.body.motor==='forward');
  assert.equal(motion.length,1);assert.equal(motion[0].body.input_source,'gamepad');
  assert.equal(requests[0].body.motor,'stop');assert.equal(requests[0].body.steering,'center');count++;

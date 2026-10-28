@@ -1,17 +1,17 @@
 """Concise cone task panel; calibration data and replay APIs stay in files."""
 
 HTML = '''<section class="drive-panel" id="cone-test">
-<h3>锥桶持续绕行 · 手动结束</h3><p id="cone-state" role="status">等待识别服务</p>
+<h3>锥桶持续绕行 · 场地测试</h3><p id="cone-state" role="status">等待识别服务</p>
 <div class="cone-actions"><button id="cone-observe" type="button">开始识别</button><button id="cone-stop" type="button">停止识别</button></div>
-<label>场地<select id="cone-surface"><option value="red_running_track">红色跑道</option><option value="indoor_white_line_track">室内白线赛道</option></select></label><button id="cone-save-surface" type="button">保存场地</button>
+<label>场地<select id="cone-surface"><option value="red_running_track">红色跑道（蓝桶）</option><option value="blue_running_track">蓝色跑道（红桶）</option><option value="indoor_white_line_track">室内白线赛道</option></select></label><button id="cone-save-surface" type="button">保存场地</button>
 <div class="cone-viewer"><img id="cone-preview" alt="真实双摄锥桶识别画面" width="960" height="360" hidden><span id="cone-placeholder">开始识别后显示实际画面</span></div><p id="cone-cameras"></p>
 <div id="cone-low-speed-section">
 <div class="cone-settings"><label>白线亮度（0–255）<input id="cone-white-v" type="number" min="0" max="255" step="1" value="200"></label><button id="cone-white-save" type="button">应用亮度</button></div><p id="cone-white-status"></p>
 <div class="cone-settings"><label>前进油门（μs）<input id="cone-test-forward" type="number" min="1501" max="1625" step="1" value="1600"></label><span>持续运行，不按时间或通过数量自动结束</span></div>
 <div class="cone-settings"><label>左转端点（μs）<input id="cone-test-left" type="number" min="1650" max="1870" step="5" value="1870"></label><label>右转端点（μs）<input id="cone-test-right" type="number" min="1350" max="1570" step="5" value="1350"></label></div>
-<div class="cone-settings"><label>转向增益<input id="cone-test-steering-gain" type="number" min="1" max="3" step="0.1" value="1.0"></label><span>1.0 为本版目标跟随基准；越大，同样偏差下转向越明显。下次准备生效。</span></div>
+<div class="cone-settings"><label>转向增益<input id="cone-test-steering-gain" type="number" min="1" max="3" step="0.1" value="1.5"></label><span>1.5 为本版试验起点；越大，同样偏差下转向越明显。下次准备生效。</span></div>
 <p id="cone-test-steering-state">右 1350 · 中位 1610 · 左 1870</p>
-<p>持续低速绕桶，由你手动停止。同一锥桶保持已选绕行侧，跟随桶边目标修正转向。白线预警、目标漏检、通过两桶都不自动刹停；断流、失联和硬件故障保护保留。</p>
+<p>单项测试可持续绕行，也可手动结束。同一锥桶保持已选绕行侧；锥桶碰撞停车已关闭，未确认绕行间隙时按白线内目标继续。白线恢复总时限1秒，单边预测最多0.25秒。越界、断流、失联或硬件故障时停止。</p>
 <p id="cone-test-line-state"></p>
 <div class="cone-actions"><button id="cone-test-prepare" type="button">准备（电调关闭、F/B）</button><button id="cone-test-start" type="button" disabled>开始绕桶测试</button></div>
 <button id="cone-test-stop" type="button">停止／急停并结束</button>
@@ -42,9 +42,9 @@ function renderCone(s){
  el('cone-test-start').disabled=stale||coneBusy||!coneDriveOwned||!a.can_request_start||!oldTrial;
  for(const id of ['cone-test-forward','cone-test-left','cone-test-right','cone-test-steering-gain'])el(id).disabled=locked;
  el('cone-test-steering-state').textContent=a.steering_limits_us?('本轮：右 '+a.steering_limits_us[0]+' · 中位 1610 · 左 '+a.steering_limits_us[1]):'右 1350 · 中位 1610 · 左 1870；参数在下次准备生效';
- if(oldTrial)el('cone-test-progress').textContent=(a.reason||'')+' · 已过 '+(trial.passed_count??trial.operator_confirmed_count??0)+' 个（视觉估计） · 持续运行，由你停止'+(trial.steering_gain!=null?' · 本轮转向增益 '+trial.steering_gain:'')+(trial.best_effort_route?' · 当前间隙未明确，正在尝试避让':'');
+ if(oldTrial)el('cone-test-progress').textContent=(a.reason||'')+' · 已过 '+(trial.passed_count??trial.operator_confirmed_count??0)+' 个（视觉估计） · 单项持续测试，越界或失联停止'+(trial.steering_gain!=null?' · 本轮转向增益 '+trial.steering_gain:'')+(trial.best_effort_route?' · 当前间隙未明确，按白线内目标继续':'');
  const nav=c.latest?.navigation;
- el('cone-test-line-state').textContent=nav?.experimental?('白线：'+(nav.line_sources?.length?nav.line_sources.map(x=>x==='primary'?'第一路':'第二路').join('、'):(nav.line_missing?'未确认，低速前进搜索':nav.line_held?'沿用最近边界，持续前进':'相机未就绪'))+(nav.reason?' · '+nav.reason:'')):'';
+ el('cone-test-line-state').textContent=nav?.experimental?('白线：'+(nav.line_sources?.length?nav.line_sources.map(x=>x==='primary'?'第一路':'第二路').join('、'):(nav.line_missing?'未确认，恢复总时限1秒，仍不明确则停止':nav.line_held?'单边预测最多0.25秒，白线恢复总时限1秒':'相机未就绪'))+(nav.reason?' · '+nav.reason:'')):'';
  const fresh=coneActive&&c.frame_age_s!=null&&c.frame_age_s>=0&&c.frame_age_s<=.25;
  el('cone-cameras').textContent=fresh?Object.entries(c.latest?.cameras||{}).map(([name,v])=>{
   const bd=v.road_context?.boundary_diagnostics,visible=(v.tracks||[]).filter(t=>t.visible&&t.confirmed&&t.kind==='cone_candidate');

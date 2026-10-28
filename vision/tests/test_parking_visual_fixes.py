@@ -82,7 +82,10 @@ def test_boundary_recovery_waits_for_brake_release_and_stopped_feedback():
     assert step(controller,36,white=False,empty=True)['esc_us']==1400
     assert step(controller,37,moving=True)['esc_us']<=1500
     assert step(controller,38,moving=True)['esc_us']==1500
-    resumed=step(controller,39,moving=False)
+    for i in (39,40):
+        pending=step(controller,i,moving=False)
+        assert pending['esc_us']==1500 and pending['phase']=='boundary_wait'
+    resumed=step(controller,41,moving=False)
     assert resumed['esc_us']==1550 and resumed['phase']=='approach'
     assert resumed['steering_us']==1610
 

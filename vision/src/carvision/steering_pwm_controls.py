@@ -4,9 +4,9 @@ HTML = '''<section id="pwm-panel" class="pwm-panel" aria-labelledby="pwm-title">
 <h3 id="pwm-title">S3 转向 PWM 试调</h3>
 <p id="pwm-note" role="status">正在读取转向测试状态……</p>
 <label for="pwm-slider">目标脉宽 <output id="pwm-wanted">—</output></label>
-<input id="pwm-slider" type="range" min="1550" max="1750" step="1" value="1650" disabled>
+<input id="pwm-slider" type="range" min="1350" max="1870" step="1" value="1610" disabled>
 <div class="pwm-steps"><button data-pwm-step="-5" disabled>−5</button><button data-pwm-step="-1" disabled>−1</button>
-<input id="pwm-number" type="number" min="1550" max="1750" step="1" value="1650" aria-label="S3 目标脉宽，微秒" disabled>
+<input id="pwm-number" type="number" min="1350" max="1870" step="1" value="1610" aria-label="S3 目标脉宽，微秒" disabled>
 <button data-pwm-step="1" disabled>+1</button><button data-pwm-step="5" disabled>+5</button></div>
 <p class="pwm-values">已下发：<strong id="pwm-applied">—</strong> · 原中位：<span id="pwm-center">—</span></p>
 <nav class="pwm-actions"><button id="pwm-try" disabled>试调当前值</button><button id="pwm-stop" disabled>停止试调并回正</button></nav>
@@ -27,15 +27,21 @@ STYLE = '''<style>
 
 SCRIPT = r'''
 function createSteeringPWMControls({el,request,status,render,stop,onError}){
- let snapshot=null,active=false,starting=false,busy=false,due=false,epoch=0,timer=null,initialized=false,wanted=1650;
+ let snapshot=null,active=false,starting=false,busy=false,due=false,epoch=0,timer=null,initialized=false,wanted=1610;
  const steps=Array.from(document.querySelectorAll('[data-pwm-step]'));
  const inputs=[el('pwm-slider'),el('pwm-number'),el('pwm-try'),...steps];
+ function limits(){
+  const lo=snapshot?.steering_pwm_min_us,hi=snapshot?.steering_pwm_max_us;
+  return Number.isInteger(lo)&&Number.isInteger(hi)&&lo>=1350&&hi<=1870&&lo<hi?[lo,hi]:[1550,1750];
+ }
  function cancel(){active=false;starting=false;due=false;epoch++;if(timer!==null)clearTimeout(timer);timer=null;}
  function available(){return snapshot?.steering_pwm_available===true&&snapshot?.motor_available===false;}
  function ready(){return available()&&snapshot.mode==='enabled'&&status().allowed&&!status().otherInput;}
  function displayWanted(){el('pwm-slider').value=wanted;el('pwm-number').value=wanted;el('pwm-wanted').textContent=wanted+' μs';}
  function update(s){
   snapshot=s;
+  const [lo,hi]=limits();
+  for(const id of ['pwm-slider','pwm-number']){el(id).min=lo;el(id).max=hi;}
   el('pwm-panel').hidden=!available()&&s.test_mode!=='steering_pwm';
   if(!initialized&&available()){wanted=s.steering_center_us;initialized=true;displayWanted();}
   if(active&&(!available()||s.mode!=='enabled'||s.controls_paused||s.worker_available===false||(!starting&&s.release_required)))cancel();
@@ -58,7 +64,8 @@ function createSteeringPWMControls({el,request,status,render,stop,onError}){
  }
  async function tune(value){
   const pulse=Number(value);
-  if(!Number.isInteger(pulse)||pulse<1550||pulse>1750){displayWanted();onError(new Error('请输入 1550–1750 范围内的整数微秒值'));return;}
+  const [lo,hi]=limits();
+  if(!Number.isInteger(pulse)||pulse<lo||pulse>hi){displayWanted();onError(new Error('请输入 '+lo+'–'+hi+' 范围内的整数微秒值'));return;}
   if(!ready())return;
   wanted=pulse;displayWanted();
   if(active){due=true;flush();return;}
@@ -76,7 +83,7 @@ function createSteeringPWMControls({el,request,status,render,stop,onError}){
  }
  el('pwm-slider').oninput=e=>tune(e.target.value);
  el('pwm-number').onchange=e=>tune(e.target.value);
- steps.forEach(b=>b.onclick=()=>tune(Math.max(1550,Math.min(1750,wanted+Number(b.dataset.pwmStep)))));
+ steps.forEach(b=>b.onclick=()=>{const [lo,hi]=limits();tune(Math.max(lo,Math.min(hi,wanted+Number(b.dataset.pwmStep))));});
  el('pwm-try').onclick=()=>tune(wanted);
  el('pwm-stop').onclick=()=>stop();
  setInterval(()=>{if(active&&!starting)flush();},70);

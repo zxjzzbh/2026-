@@ -8,7 +8,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from .departure import CAMERAS,MAX_AGE_S,PHRASE,DEFAULT_MIN_BLUE_PERCENT,DepartureSequence,detect_board,validate_blue_percent
+from .departure import (CAMERAS,MAX_AGE_S,PHRASE,DEFAULT_MIN_BLUE_PERCENT,
+                        DEFAULT_CLEAR_CONFIRM_S,DepartureSequence,detect_board,
+                        validate_blue_percent)
 from .payment_console import outputs_released
 from .parking_speech import ParkingSpeech
 
@@ -22,7 +24,7 @@ class DepartureTrialDrive:
         self.observations={};self.preview=None;self.preview_at=None;self.folder=None
         self.started=None;self.owner=None;self.last_ids={};self.frame_images={};self.last_logged=None
         self.phase='idle';self.reason='发车测试只识别挡板并播报，不驱动车辆'
-        self.settings={'min_blue_percent':DEFAULT_MIN_BLUE_PERCENT,'clear_confirm_s':1.}
+        self.settings={'min_blue_percent':DEFAULT_MIN_BLUE_PERCENT,'clear_confirm_s':DEFAULT_CLEAR_CONFIRM_S}
         self.settings_path=self.root/'vision/configs/departure.local.json';self.settings_error=None
         if self.settings_path.exists():
             try:self.settings=self._parameters(json.loads(self.settings_path.read_text(encoding='utf-8')))
@@ -62,6 +64,7 @@ class DepartureTrialDrive:
                 'forward_output_enabled':False,'board_dimensions_cm':{'width':40,'height':50},
                 'clear_confirm_s':self.sequence.clear_s,'min_blue_percent':self.active_settings['min_blue_percent'],'clear_elapsed_s':self.sequence.clear_elapsed,
                 'board_seen_cameras':list(self.sequence.seen_cameras),'observations':dict(self.observations),
+                'diagnostics':self.sequence.diagnostics(),
                 'frame_age_s':age,'speech':self.speech.status() if self.speech else None,
                 'record_directory':str(self.folder) if self.folder else None}
             s['departure_status_s']=self.clock()
@@ -165,6 +168,7 @@ class DepartureTrialDrive:
                     key=tuple((c,r.get('frame_id'),r['state']) for c,r in rows.items())
                     if key!=self.last_observation_key:
                         sample={'monotonic_s':self.clock(),'phase':self.phase,'reason':self.reason,'observations':rows,
+                                'diagnostics':self.sequence.diagnostics(),
                                 'clear_elapsed_s':self.sequence.clear_elapsed,'settings':self.active_settings}
                         with (self.folder/'observations.jsonl').open('a',encoding='utf-8') as f:f.write(json.dumps(sample,ensure_ascii=False,allow_nan=False)+'\n')
                         self.last_observation_key=key

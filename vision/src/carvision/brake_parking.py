@@ -6,13 +6,18 @@ speed/braking calibration. No hardware is opened by this module.
 """
 
 from .steering import from_offset
+from .brake_timing import CROSSWALK_BRAKE_PULSE_S, MAX_BRAKE_PULSE_S
 import json
+import copy
 import math
 from collections import deque
 from pathlib import Path
 
 import cv2
 import numpy as np
+
+from .crosswalk_calibration import (load_profile, validate_profile, reference_y,
+                                   estimate_distance, IMAGE_FEATURE_NEAR)
 
 
 def numeric(v):
@@ -38,7 +43,7 @@ def load_settings(path):
         raise ValueError('PWM configuration outside this program envelope')
     for key in ['brake_pulse_s','brake_release_s','stop_confirm_s','hold_s','max_frame_age_s','max_approach_s','brake_timeout_s','actuator_lease_s','arming_s','no_progress_s']:
         if not numeric(s.get(key)) or s[key]<=0:raise ValueError('invalid '+key)
-    if (s['brake_pulse_s']>.3 or s['max_frame_age_s']>.25 or s['hold_s']>30
+    if (s['brake_pulse_s']>MAX_BRAKE_PULSE_S or s['max_frame_age_s']>.25 or s['hold_s']>30
             or s['actuator_lease_s']>.25 or not 1<=s['arming_s']<=12 or s['no_progress_s']>5):
         raise ValueError('brake pulse/feedback/hold limits exceeded')
     if type(s.get('max_brake_pulses')) is not int or not 1<=s['max_brake_pulses']<=3:
@@ -61,6 +66,56 @@ def brake_trigger_reference(settings):
     measured=any(distance==r['distance_m'] for r in refs)
     return {'distance_m':distance,'far_edge_y_normalized':y,'measured':measured,
             'source':'existing_measured_point' if measured else 'linear_interpolation_of_existing_points'}
+
+
+def crosswalk_distance_limits(settings):
+    profile=settings.get('crosswalk_calibration')
+    if profile is None:return [settings['references'][-1]['distance_m']*100,settings['references'][0]['distance_m']*100]
+    return [v*100 for v in validate_profile(profile,require_ready=True)['overlap_range_m']]
+
+
+def crosswalk_trigger_reference(settings):
+    """Explicit crosswalk lookup; shared parking retains its legacy references."""
+    profile=settings.get('crosswalk_calibration')
+    if profile is None:return brake_trigger_reference(settings)
+    profile=validate_profile(profile,require_ready=True)
+    if profile['image_feature']!=IMAGE_FEATURE_NEAR:raise ValueError('当前双摄程序需要近边标定')
+    distance=settings.get('crosswalk_distance_trigger_m',profile['overlap_range_m'][0])
+    if not numeric(distance) or not profile['overlap_range_m'][0]<=distance<=profile['overlap_range_m'][1]:
+        raise ValueError('刹车触发距离超出本次两路共同实测范围')
+    references={cam:reference_y(profile,cam,distance) for cam in ('primary','secondary')}
+    return {'distance_m':distance,'camera':'dual','calibration_id':profile['profile_id'],
+            'image_feature':IMAGE_FEATURE_NEAR,'camera_references':references,
+            'measured':all(r['measured'] for r in references.values()),
+            'source':'current_camera_near_edge_calibration','physical_stop_verified':False}
+
+
+def crosswalk_calibrated_settings(settings,root):
+    """Freeze the deployed crosswalk table without replacing parking's old table."""
+    settings=copy.deepcopy(settings);configs=Path(root)/'vision/configs'
+    profile=load_profile(configs/'crosswalk-distance-calibration.json')
+    if profile is None:
+        if settings.get('crosswalk_calibration') is not None:
+            raise ValueError('已加载的斑马线标定文件缺失，请恢复后重新准备')
+        return settings
+    profile=validate_profile(profile,require_ready=True)
+    settings['crosswalk_calibration']=profile
+    # Keep the parking/legacy profile unchanged; tune current crosswalk stops.
+    settings['brake_pulse_s']=CROSSWALK_BRAKE_PULSE_S
+    # Distance-camera latency is separate from the actuator/control deadline.
+    # Shared parking and legacy braking keep their existing 250ms settings.
+    settings['crosswalk_max_frame_age_s']=.5
+    saved_path=configs/'crosswalk-distance.local.json'
+    distance=profile['overlap_range_m'][0]
+    if saved_path.exists():
+        saved=json.loads(saved_path.read_text(encoding='utf-8-sig'))
+        if (not isinstance(saved,dict) or type(saved.get('schema_version')) is not int
+                or saved['schema_version']!=1 or saved.get('calibration_id')!=profile['profile_id']):
+            raise ValueError('已保存刹车触发点与当前斑马线标定版本不一致')
+        distance=saved['brake_trigger_distance_m']
+    settings['crosswalk_distance_trigger_m']=distance
+    crosswalk_trigger_reference(settings)
+    return settings
 
 
 class GroundMotionEstimate:
@@ -102,10 +157,21 @@ fresh frame IDs alone are not evidence that the vehicle is stationary.
 
 class BrakeParkingController:
     def __init__(self,settings,path_mode='straight',*,first_detection_stop=False,
-                 image_brake_y=None,image_creep_y=None):
+                 image_brake_y=None,image_creep_y=None,crosswalk=False):
         if path_mode not in ('straight','lane'):raise ValueError('invalid path mode')
         self.s,self.path_mode=settings,path_mode
         self.brake_reference=brake_trigger_reference(settings)
+        self.crosswalk_profile=None
+        self.source_camera=None
+        self.distance_disagreement=None
+        if crosswalk and settings.get('crosswalk_calibration') is not None:
+            if image_brake_y is not None or image_creep_y is not None:raise ValueError('停车图像参考不能混入双摄斑马线标定')
+            self.crosswalk_profile=validate_profile(settings['crosswalk_calibration'],require_ready=True)
+            self.brake_reference=crosswalk_trigger_reference(settings)
+        self.frame_age_limit_s=(settings.get('crosswalk_max_frame_age_s',settings['max_frame_age_s'])
+                                if self.crosswalk_profile is not None else settings['max_frame_age_s'])
+        if not numeric(self.frame_age_limit_s) or not 0<self.frame_age_limit_s<=.5:
+            raise ValueError('停车画面期限无效')
         self.image_reference=image_brake_y is not None
         if self.image_reference:
             if not numeric(image_brake_y) or not .3<=image_brake_y<=.95:
@@ -142,7 +208,11 @@ class BrakeParkingController:
         return {'schema_version':1,'phase':self.phase,'action':action,'esc_us':pulse,
                 'steering_us':p['steering_center_us'],'reason':self.reason,
                 'events':events or [],'brake_pulses':self.brake_count,
+                'brake_pulse_s':self.s['brake_pulse_s'],
                 'brake_trigger':self.brake_reference,
+                'calibration_id':self.crosswalk_profile['profile_id'] if self.crosswalk_profile else None,
+                'source_camera':self.source_camera,
+                'distance_disagreement':copy.deepcopy(self.distance_disagreement),
                 'distance_estimate_m':self.distance,'closing_speed_estimate_mps':self.speed,
                 'hold_remaining_s':None if self.hold_since is None else max(0,self._hold_seconds()-(self.last_t-self.hold_since)),
                 'stop_stage':'first_detection' if self.preliminary_stop else 'original_operation',
@@ -165,6 +235,34 @@ class BrakeParkingController:
                 ts=np.array([v[0]-recent[0][0] for v in recent]);ds=np.array([v[1] for v in recent])
                 self.speed=float(-np.polyfit(ts,ds,1)[0])
 
+    def _calibrated_observation(self,sample,t):
+        profile=self.crosswalk_profile;camera=sample.get('source_camera')
+        if sample.get('calibration_id')!=profile['profile_id'] or camera not in ('primary','secondary'):
+            raise ValueError('斑马线画面与当前双摄标定版本或来源不一致')
+        if sample.get('image_feature',IMAGE_FEATURE_NEAR)!=IMAGE_FEATURE_NEAR:
+            raise ValueError('斑马线输入必须使用当前近边坐标')
+        if camera!=self.source_camera or sample.get('source_changed') is True:
+            self.metric_history.clear();self.speed=None
+        self.source_camera=camera
+        self.distance_disagreement=copy.deepcopy(sample.get('distance_disagreement'))
+        y=sample.get('near_edge_y_normalized') if sample.get('candidate') is True else None
+        clipped=sample.get('near_limit_reached') is True and sample.get('candidate') is True
+        if sample.get('candidate') is True and not clipped and (not numeric(y) or not 0<y<1):
+            raise ValueError('斑马线近边坐标失效')
+        self.distance=self.speed=None
+        refs=profile['cameras'][camera]['references'];ys=[r['near_edge_y_normalized'] for r in refs]
+        if not clipped and numeric(y) and min(ys)<=y<=max(ys):
+            self.distance=estimate_distance(profile,camera,y)['distance_m']
+            self.metric_history.append((t,self.distance))
+            recent=[v for v in self.metric_history if t-v[0]<=.6]
+            if len(recent)>=3 and recent[-1][0]-recent[0][0]>=.15:
+                ts=np.array([v[0]-recent[0][0] for v in recent]);ds=np.array([v[1] for v in recent])
+                self.speed=float(-np.polyfit(ts,ds,1)[0])
+        brake_y=self.brake_reference['camera_references'][camera]['near_edge_y_normalized']
+        creep_distance=max(profile['overlap_range_m'][0],min(.5,profile['overlap_range_m'][1]))
+        creep_y=reference_y(profile,camera,creep_distance)['near_edge_y_normalized']
+        return y,(clipped or numeric(y) and y>=brake_y),(clipped or numeric(y) and y>=creep_y)
+
     def step(self,sample,now):
         if self.phase in ('done','fault'):return self.output()
         if not numeric(now) or self.last_t is not None and not 0<now-self.last_t<=.25:
@@ -172,7 +270,7 @@ class BrakeParkingController:
         if self.started is None:self.started=now
         self.last_t=now
         t,frame_id=sample.get('captured_s'),sample.get('frame_id')
-        if (sample.get('fresh') is not True or not numeric(t) or not 0<=now-t<=self.s['max_frame_age_s']
+        if (sample.get('fresh') is not True or not numeric(t) or not 0<=now-t<=self.frame_age_limit_s
                 or type(frame_id) is not int or self.last_frame is not None and frame_id<=self.last_frame
                 or self.last_capture is not None and t<=self.last_capture):
             return self.fault('画面过期或重复')
@@ -182,25 +280,31 @@ class BrakeParkingController:
             if not numeric(speed) or not numeric(age) or not 0<=age<=.25:
                 return self.fault('指定的速度反馈失效')
         self.last_frame,self.last_capture=frame_id,t
-        y=sample.get('far_edge_y_normalized') if sample.get('candidate') is True else None
-        if numeric(y):self.seen_at=now
-        if not self.image_reference:self._estimate_distance(y,t)
-        brake_y=self.brake_reference['far_edge_y_normalized']
+        if self.crosswalk_profile:
+            try:y,brake_reached,creep_reached=self._calibrated_observation(sample,t)
+            except (ValueError,KeyError,TypeError) as exc:return self.fault(str(exc))
+        else:
+            y=sample.get('far_edge_y_normalized') if sample.get('candidate') is True else None
+            brake_reached=numeric(y) and y>=self.brake_reference['far_edge_y_normalized']
+            creep_y=self.image_creep_y if self.image_creep_y is not None else self.s['references'][1]['far_edge_y_normalized']
+            creep_reached=numeric(y) and y>=creep_y
+        if numeric(y) or self.crosswalk_profile and brake_reached:self.seen_at=now
+        if not self.image_reference and not self.crosswalk_profile:self._estimate_distance(y,t)
         # If coasting already reaches the calibrated stop reference, retain the
         # stop and perform the original hold rather than driving over the line.
-        if self.preliminary_stop and numeric(y) and y>=brake_y:
+        if self.preliminary_stop and brake_reached:
             self.preliminary_stop=False;self.hold_since=None
             self.reason='首次制动已到原停车参考，直接完成原有停车操作'
         if self.phase in ('search','approach','creep'):
             if now-self.started>self.s['max_approach_s']:return self.fault('接近时限已到')
             if self.seen_at is not None and now-self.seen_at>.25:return self.fault('已见斑马线持续丢失')
-            creep_y=self.image_creep_y if self.image_creep_y is not None else self.s['references'][1]['far_edge_y_normalized']
             first_seen=(self.first_detection_stop and not self.first_detection_handled
                         and sample.get('candidate') is True)
             if first_seen:self.first_detection_handled=True
-            if numeric(y) and y>=brake_y:
+            if brake_reached:
                 self.phase='brake_pulse'
-                self.reason=('实际远线到达停车图像停止参考，发出有限 F/B 制动请求' if self.image_reference else
+                self.reason=('新标定近边到达刹车触发点，发出有限 F/B 制动请求' if self.crosswalk_profile else
+                    '实际远线到达停车图像停止参考，发出有限 F/B 制动请求' if self.image_reference else
                     f"到达约 {self.brake_reference['distance_m']*100:g} cm 刹车触发参考，发出 F/B 制动请求")
                 self.brake_started=now;self.pulse_until=now+self.s['brake_pulse_s'];self.brake_count=1
                 return self.output('brake')
@@ -216,9 +320,10 @@ class BrakeParkingController:
                     return self.fault('持续前进指令但未观察到移动；检查电调解锁、供电与起步输出')
             else:
                 self.no_progress_since=None
-            if self.phase=='creep' or numeric(y) and y>=creep_y:
+            if self.phase=='creep' or creep_reached:
                 self.phase='creep'
-                self.reason=('原 50 cm 区域内降低输出接近' if self.s['pwm']['creep_us']<self.s['pwm']['search_us']
+                self.reason=('当前双摄近边已进入减速区域' if self.crosswalk_profile else
+                             '原 50 cm 区域内降低输出接近' if self.s['pwm']['creep_us']<self.s['pwm']['search_us']
                              else '已进入原 50 cm 区域，保持已知起步档接近')
                 result=self.output('creep')
             else:

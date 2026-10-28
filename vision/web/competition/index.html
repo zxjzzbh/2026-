@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>启航队 · 比赛操作台</title>
+  <link rel="stylesheet" href="/competition/assets/style.css">
+  <script id="control-bootstrap" type="application/json">__COMPETITION_BOOTSTRAP__</script>
+  <script defer src="/competition/assets/app.js"></script>
+</head>
+<body>
+  <header><div><span class="eyebrow">山东大学 · 启航队</span><h1>比赛操作台</h1></div>
+    <div class="header-actions"><a id="debug-back" href="/debug" hidden>返回单项调试</a><span id="connection" role="status">正在连接</span><button id="emergency" class="danger">急停 · 空格 / Esc</button></div></header>
+  <main>
+    <p id="message" role="alert" aria-live="polite"></p>
+    <section class="card" id="manual-section">
+      <div class="section-heading"><span class="number">01</span><div><h2>5G 遥控</h2><p id="manual-help">遥控到切换区，停稳后切入自主驾驶。</p></div></div>
+      <div class="manual-grid"><div class="cameras">
+        <figure><figcaption>第一路 <span id="camera-primary-state">等待画面</span></figcaption><img id="camera-primary" alt="第一路相机实时画面" hidden></figure>
+        <figure><figcaption>第二路 <span id="camera-secondary-state">等待画面</span></figcaption><img id="camera-secondary" alt="第二路相机实时画面" hidden></figure>
+      </div><div class="manual-panel">
+        <p id="manual-state">等待车辆状态</p><button id="prepare-manual" disabled>电调已关闭 · 准备遥控</button>
+        <button id="reset-manual" class="secondary" hidden disabled>电调已关闭 · 重置</button>
+        <div class="manual-speed"><label for="forward-speed-slider">前进油门（%）</label><div class="speed-inputs"><input id="forward-speed-slider" type="range" min="0" max="100" step="1" value="0" disabled><input id="forward-speed-number" type="number" min="0" max="100" step="1" value="0" aria-label="前进油门百分比" disabled></div><p id="forward-speed-state" class="muted">等待读取已保存档位；打开网页不会修改油门。</p></div>
+        <div class="direction-pad"><button data-direction="forward" aria-label="前进">W ↑</button><button data-direction="left" aria-label="左转">A ←</button><button id="manual-stop" class="secondary">停车</button><button data-direction="right" aria-label="右转">D →</button><button data-direction="reverse" aria-label="倒车">S ↓</button></div>
+        <p class="muted">按住方向键或屏幕按钮行驶，松开停车。失焦、离开本页及连接中断会停止本页控制。</p>
+        <label class="gamepad"><input id="gamepad-enable" type="checkbox">使用 USB 手柄</label><p id="gamepad-state" class="muted">启用后，先将摇杆和扳机回中位。</p>
+      </div></div>
+    </section>
+    <section class="card" id="auto-section">
+      <div class="section-heading"><span class="number">02</span><div><h2>自主驾驶</h2><p>一个按钮完成遥控释放与自动控制接管。</p></div></div>
+      <div class="switch-actions"><button id="enter-auto" disabled>已在切换区停稳 · 切入自主驾驶（F/B）</button><button id="exit-auto" class="secondary" disabled>结束自主驾驶</button></div>
+      <p id="handoff-state" role="status"></p>
+      <ol class="progress" id="progress"><li data-stage="handoff arming wait_board">接管 / 发车</li><li data-stage="crosswalk">斑马线</li><li data-stage="traffic">红绿灯</li><li data-stage="cones">两桶避障</li><li data-stage="parking_search parking_entry">停车入位</li><li data-stage="payment complete">付款</li></ol>
+      <div class="auto-grid"><div><h3 id="race-stage">尚未启动</h3><p id="race-reason"></p><p id="race-output" class="muted"></p>
+        <details id="readiness-details" open><summary id="readiness-title">检查自主驾驶条件</summary><ul id="readiness-missing"></ul></details>
+        <p class="muted">红灯 1 秒投票，绿灯 2 秒投票，制动请求 350 ms；现场位置和停车结果仍需实车验收。</p></div>
+        <figure><figcaption>当前任务识别 <span id="camera-auto-state">启动后显示</span></figcaption><img id="camera-auto" alt="当前自主任务的实际识别画面" hidden></figure></div>
+    </section>
+    <section class="card" id="payment-section">
+      <div class="section-heading"><span class="number">03</span><div><h2>停车付款 · ¥0.01</h2><p>入位停稳后开始 30 秒计时，在微信完成支付。</p></div></div>
+      <p id="payment-state">等待正确入位和停稳确认</p><strong id="payment-time">尚未开始</strong>
+      <button id="scan-payment" class="secondary" disabled>识别付款码</button><p id="payment-scan-state"></p><div id="payment-candidates"></div>
+      <img id="payment-code" alt="相机识别的真实付款码" hidden>
+      <button id="report-paid" disabled>我已实际支付 0.01 元 · 记录结果</button><p id="payment-receipt" role="status"></p>
+      <p class="muted">核对收款方和金额，并向裁判展示微信成功页。按钮只记录付款声明，不自动核验到账。</p>
+    </section>
+  </main>
+</body>
+</html>

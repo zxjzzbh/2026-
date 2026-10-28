@@ -162,7 +162,9 @@ def test_console_run_closes_actuator_on_completion_or_page_loss(trial, lose_page
     w.phase, w.arm_until = 'arming', .1
     w._work()
     assert writes[-1]['action'] == 'close' and not w.busy
-    assert any(row['action'] == 'search' for row in writes)
+    # Detection is already true in the first control frame: stop immediately.
+    assert any(row['action'] == 'brake' for row in writes)
+    assert w.controller.first_detection_stop
     assert w.phase == ('fault' if lose_page else 'complete')
     assert w.speech.count == (0 if lose_page else 1)
     report = json.loads((w.folder/'summary.json').read_text(encoding='utf-8'))

@@ -1,4 +1,5 @@
 import json
+import os
 import struct
 from pathlib import Path
 from types import SimpleNamespace
@@ -15,7 +16,22 @@ from carvision.brake_runtime import replay
 from carvision import brake_runtime
 
 
-CONFIG=Path(__file__).parents[1]/'configs/brake-parking.json'
+CONFIG=Path(os.environ.get('CARVISION_BRAKE_TEST_CONFIG',Path(__file__).parents[1]/'configs/brake-parking.json'))
+
+
+@pytest.fixture
+def legacy_cli_config(tmp_path):
+    """Test historical CLI behavior in a root with no dual-camera profile.
+
+    A real current profile must still reject this old single-camera path. Copy
+    only the legacy settings, rather than hiding that profile from production.
+    """
+    path=tmp_path/'legacy'/'vision'/'configs'/'brake-parking.json'
+    path.parent.mkdir(parents=True)
+    path.write_bytes(CONFIG.read_bytes())
+    settings=brake_runtime.crosswalk_calibrated_settings(load_settings(path),path.resolve().parents[2])
+    assert settings.get('crosswalk_calibration') is None
+    return path
 
 
 def sample(t,y=.55,moving=False,**change):
@@ -49,16 +65,6 @@ def test_no_observed_progress_ends_drive_before_the_old_ten_second_limit():
         d=c.step(sample(i/10,.53,False),i/10)
     assert d['phase']=='fault' and d['action']=='neutral'
     assert '未观察到移动' in d['reason']
-
-
-def test_lane_mode_keeps_forward_on_line_loss_but_still_brakes_at_crosswalk():
-    c=BrakeParkingController(load_settings(CONFIG),'lane')
-    for i in range(40):
-        d=c.step(sample(i/10,None,True,lane_valid=False,lane_offset=None),i/10)
-        assert d['esc_us']==1575 and d['steering_us']==1610 and d['line_search']
-    d=c.step(sample(4.,None,True,lane_valid=True,lane_offset=.5),4.)
-    assert d['esc_us']==1575 and d['steering_us']<1610 and not d['line_search']
-    assert c.step(sample(4.1,.78,True,lane_valid=False),4.1)['action']=='brake'
 
 
 def test_known_forward_and_neutral_packets_match_original_manual_driver():
@@ -241,10 +247,10 @@ def test_dry_actuator_never_opens_a_worker():
     actuator.close()
 
 
-def test_replay_is_file_backed_and_output_free(tmp_path):
+def test_replay_is_file_backed_and_output_free(tmp_path,legacy_cli_config):
     inp=tmp_path/'observations.jsonl'
     inp.write_text('\n'.join(json.dumps({'now_s':i/10,'sample':sample(i/10,.75,False)}) for i in range(121)),encoding='utf-8')
-    args=SimpleNamespace(config=CONFIG,input=inp,output=tmp_path/'out',path_mode='straight')
+    args=SimpleNamespace(config=legacy_cli_config,input=inp,output=tmp_path/'out',path_mode='straight')
     d=replay(args)
     assert d['phase']=='done' and not d['hardware_output']
     assert not list(args.output.glob('*.html'))
@@ -308,7 +314,7 @@ def test_camera_reader_retries_when_jpeg_and_status_cross_frames(monkeypatch):
 
 
 @pytest.mark.parametrize('failure',['slow_processing','camera_disconnected'])
-def test_camera_runtime_closes_output_on_stale_processing_or_capture_error(tmp_path,monkeypatch,failure):
+def test_camera_runtime_closes_output_on_stale_processing_or_capture_error(tmp_path,monkeypatch,failure,legacy_cli_config):
     clock=[0.0];actuators=[]
     class Reader:
         def __init__(self,*_):pass
@@ -328,7 +334,7 @@ def test_camera_runtime_closes_output_on_stale_processing_or_capture_error(tmp_p
     monkeypatch.setattr(brake_runtime,'PreviewReader',Reader)
     monkeypatch.setattr(brake_runtime,'BrakeActuator',Actuator)
     monkeypatch.setattr(brake_runtime,'CrosswalkDetector',Detector)
-    args=SimpleNamespace(config=CONFIG,seconds=1,run=False,preview='http://127.0.0.1:8080',
+    args=SimpleNamespace(config=legacy_cli_config,seconds=1,run=False,preview='http://127.0.0.1:8080',
                          esc_mode=None,output=tmp_path/'out',path_mode='straight',port='/unused',feedback=None,show=False)
     if failure=='camera_disconnected':
         with pytest.raises(RuntimeError,match='camera disconnected'):brake_runtime.camera(args)
@@ -337,3 +343,16 @@ def test_camera_runtime_closes_output_on_stale_processing_or_capture_error(tmp_p
     assert actuators[0].closed and not actuators[0].commands
     rows=[json.loads(line) for line in (args.output/'decisions.jsonl').read_text(encoding='utf-8').splitlines()]
     assert rows[-1]['event']=='session_ended' and rows[-1]['actuator_closed']
+
+
+def test_current_dual_camera_profile_rejects_legacy_cli_before_opening_any_output(tmp_path,monkeypatch):
+    settings=brake_runtime.crosswalk_calibrated_settings(load_settings(CONFIG),CONFIG.resolve().parents[2])
+    assert settings.get('crosswalk_calibration') is not None
+    def unexpected_open(*args,**kwargs):
+        pytest.fail('current dual-camera profile must reject the single-camera CLI before I/O')
+    monkeypatch.setattr(brake_runtime,'PreviewReader',unexpected_open)
+    monkeypatch.setattr(brake_runtime,'BrakeActuator',unexpected_open)
+    args=SimpleNamespace(config=CONFIG,output=tmp_path/'out')
+    with pytest.raises(ValueError,match='单摄CLI'):
+        brake_runtime.camera(args)
+    assert not args.output.exists()

@@ -212,7 +212,9 @@ def test_observation_has_no_actuator_and_settings_cannot_change_motion(tmp_path)
 
 def test_observer_initialization_failure_exits_cleanly(tmp_path,monkeypatch):
     drive=ConeObserverDrive(Driver(),{},CONFIG,tmp_path)
-    def fail(*a):raise ValueError('reader unavailable')
+    def fail(*a,**kwargs):
+        assert kwargs['turn_aware'] is True
+        raise ValueError('reader unavailable')
     monkeypatch.setattr('carvision.cone_observer.ConeCamera',fail)
     drive.observing=True;drive._work()
     assert not drive.observing and drive.reason=='reader unavailable'
@@ -380,13 +382,14 @@ def test_missing_white_edge_or_wrong_surface_does_not_claim_valid_track(settings
     assert not context['valid']
 
 
-def test_actual_known_dimensions_are_preloaded_and_boundary_width_is_enforced(settings,measured):
-    # Deployment preserves the car's base/local configs. Validate repository
-    # defaults against the supplied source sample, not an older live base file.
-    source=os.environ.get('CARVISION_REPOSITORY_CONE_CONFIG')
-    g=(load_settings(source) if source else settings)['geometry']
-    assert (g['lane_width_m'],g['vehicle_width_m'],g['vehicle_length_m'],g['cone_height_m'],g['cone_base_width_m'])==(1.23,.295,.42,.08,.075)
-    assert g['rear_axle_to_front_m']==.335 and g['rear_overhang_m']==.085 and not g['measured']
+def test_public_dimensions_keep_calibration_unverified_and_enforce_boundary_width(settings,measured):
+    # The provided body dimensions make the new schema loadable. They do not
+    # certify ground mapping, clearance or the effective vehicle envelope.
+    g=settings['geometry']
+    assert (g['lane_width_m'],g['vehicle_width_m'],g['vehicle_length_m'],g['cone_height_m'],g['cone_base_width_m'])==(1.23,.30,.42,.08,.075)
+    assert g['rear_axle_to_front_m']==.335 and g['rear_overhang_m']==.085
+    assert not g['measured'] and g['clearance_m'] is None
+    assert not settings['ground']['verified'] and settings['ground']['homography'] is None
     measured['geometry']['lane_width_m']=1.23
     result=ConeRoutePlanner(measured).plan([],lane_bounds=(-1,1),coverage_forward_m=5)
     assert result['action']=='stop' and result['reason']=='observed_corridor_exceeds_measured_lane_width'
@@ -430,5 +433,10 @@ def test_surface_setting_does_not_verify_calibration_or_open_actuator(tmp_path):
     with pytest.raises(ValueError):
         drive.request('cone_settings',{'scene_surface':'ignore_boundaries'})
     drive.observing=True
-    with pytest.raises(ValueError):
-        drive.request('cone_settings',{'scene_surface':'red_running_track'})
+    drive.latest={'old_scene':True};drive.preview=b'old';drive.updated=1.
+    drive.request('cone_settings',{'scene_surface':'red_running_track'})
+    assert drive.settings['scene']['surface']=='red_running_track'
+    assert drive.reset_reader and drive.latest is None and drive.preview is None and drive.updated is None
+    for key in ('geometry','ground','motion','driving'):
+        assert drive.settings[key]==before[key]
+    assert not base.calls

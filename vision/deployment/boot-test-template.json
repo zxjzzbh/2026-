@@ -1,5 +1,9 @@
 {
   "model": "Raspberry Pi 5 Model B Rev 1.0",
+  "operator_confirmation_scope": "esc_state_only",
+  "reverse_start_mode": "direct_after_neutral",
+  "single_pulse_reverse_observed_by_user": true,
+  "reverse_start_mode_evidence": "2026-10-09 operator confirms held LT first reverses, pauses about one second, then reverses again; logs show the forced 0.3s / 1.2s sequence. ESC model remains unconfirmed; continuous motion after this change requires a new field check.",
   "boot_id": null,
   "ground_short_requested_by_user": false,
   "wheels_on_ground_confirmed_by_user": false,
@@ -22,6 +26,8 @@
   "steering_backend": "rasadapter5a_uart",
   "steering_channel": 3,
   "steering_center_us": 1610,
+  "reverse_steering_trim_us": 30,
+  "reverse_steering_trim_calibrated": true,
   "steering_boundary_center_trial_requested_by_user": false,
   "steering_reference_previous_us": 1615,
   "steering_reference_source": "operator requests a 1610 us steering center trial on 2026-10-08; previous reference 1615 us; low-speed straight driving validation pending",
@@ -48,5 +54,18 @@
   "reverse_revalidation_prepared": true,
   "current_boot_reverse_reverified": false,
   "current_boot_keyboard_stop_reverified": false,
-  "steering_pwm_support_requested_by_user": true
+  "steering_pwm_support_requested_by_user": true,
+  "reverse_steering_trim_confirmation": {
+    "confirmed_at": "2026-10-09T18:24:40+08:00",
+    "operator_statement": "现在基本走直了 可以了",
+    "forward_center_us": 1610,
+    "reverse_center_us": 1640,
+    "offset_us": 30,
+    "scope": "operator-confirmed approximately straight manual reverse on the current car",
+    "actual_wheel_angle_measured": false
+  },
+  "manual_steering_span_us": 260,
+  "manual_endpoints_field_verified": false,
+  "manual_endpoints_source": "2026-10-13: operator accepted raised-wheel 1350 us right and explicitly requested left 1870 / center 1610 / right 1350 us across current modes. Left 1870 has not been physically tested. Actual angles and loaded radii remain unmeasured; span=260 is pulse symmetry only. Legacy span=180 selects the current profile.",
+  "steering_reference_profile": "operator-requested-20261013-1870-1610-1350"
 }

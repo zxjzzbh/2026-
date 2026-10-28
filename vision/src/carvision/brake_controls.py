@@ -2,7 +2,7 @@
 
 HTML = '''<section class="drive-panel" id="crosswalk-test">
 <h3>斑马线测试 · F/B</h3>
-<p id="crosswalk-program-summary">使用第二路 H65，停稳等待 10 秒并播报。</p>
+<p id="crosswalk-program-summary">第二路 H65：首次识别立即制动，停稳短停 0.5 秒，再完成原有定点停车与播报。</p>
 <p id="crosswalk-test-state" role="status">正在读取状态</p>
 <div class="crosswalk-distance"><label for="crosswalk-distance">刹车触发距离（cm）</label>
 <input id="crosswalk-distance" type="number" min="25" max="65" step="1" value="55">
@@ -15,7 +15,7 @@ HTML = '''<section class="drive-panel" id="crosswalk-test">
 <button id="crosswalk-cancel" type="button">停止</button></div>
 <p id="crosswalk-intent"></p><p id="crosswalk-speech-state"></p>
 <p>首次：电调保持 F/B，关闭电调点“准备”；打开电调、确认静止且前方空旷后点“开始”。</p>
-<p>3 秒后前进；停稳后等待 10 秒并播报。完成后可直接开始下一轮。空格 / Esc 停止。</p>
+<p>3 秒后前进；首次识别短停 0.5 秒后继续接近，原停车点停稳后等待 10 秒并播报。每轮只短停一次；若已到停车参考则直接完成原停车。空格 / Esc 停止。</p>
 <details><summary>参数与播报说明</summary><p id="crosswalk-reference-state"></p>
 <p>距离保存后长期保留；行驶中修改用于下一轮。手动遥控会在准备时自动结束。</p>
 <p>播报：我是山东大学启航队的智能车，请为我加油</p>
@@ -25,7 +25,7 @@ HTML = '''<section class="drive-panel" id="crosswalk-test">
 SCRIPT = '''
 function renderBrake(s){
  const t=s.crosswalk_trial||{};
- if(t.brake_trigger)el('crosswalk-program-summary').textContent='第二路 H65 · 约 '+Math.round(t.brake_trigger.distance_m*100)+' cm 刹车 · 停稳 '+t.hold_s+' 秒并播报';
+ if(t.brake_trigger)el('crosswalk-program-summary').textContent=(t.calibration_id?'主副摄新标定已加载':'第二路 H65')+' · 首次识别制动短停 0.5 秒 · 再到约 '+Math.round(t.brake_trigger.distance_m*100)+' cm 开始刹车 · 停稳 '+t.hold_s+' 秒并播报';
  if(s.control_session_id&&s.control_session_id!==pageSession){expiredPage();return true;}
  const owned=t.owner_client===client;
  brakeActive=!!t.active;
@@ -38,17 +38,23 @@ function renderBrake(s){
  el('crosswalk-start').disabled=stale||!owned||!t.can_start||brakeSaveBusy;
  el('crosswalk-start').textContent=t.phase==='complete'?'开始下一轮':'开始';
  el('crosswalk-path-mode').disabled=!!t.active&&!['ready','complete'].includes(t.phase);
- el('crosswalk-distance').disabled=stale||brakeSaveBusy||t.active&&!owned;
+ el('crosswalk-distance').disabled=stale||brakeSaveBusy||t.active&&!owned||t.can_save_distance===false;
  el('crosswalk-save-distance').disabled=el('crosswalk-distance').disabled;
+ const limits=t.distance_limits_cm||[25,65];
+ el('crosswalk-distance').min=limits[0];el('crosswalk-distance').max=limits[1];
  if(t.brake_trigger&&!brakeSettingsDirty&&document.activeElement!==el('crosswalk-distance'))el('crosswalk-distance').value=Math.round(t.brake_trigger.distance_m*100);
  if(!brakeSettingsDirty&&!brakeSaveBusy){
   const next=Math.round((t.brake_trigger?.distance_m||0)*100),current=Math.round((t.running_brake_trigger?.distance_m||0)*100);
   el('crosswalk-settings-state').textContent=t.settings_error||(t.active&&!['ready','complete','preparing'].includes(t.phase)&&next!==current?
-   '本轮保持 '+current+' cm；已保存 '+next+' cm，下轮生效。':'已保存 '+next+' cm · 可改 25–65 cm，数值越大越早刹车。');
+   '本轮保持 '+current+' cm；已保存 '+next+' cm，下轮生效。':'已保存 '+next+' cm · 可改 '+limits[0]+'–'+limits[1]+' cm，数值越大越早刹车。触发距离不是最终停车距离。');
  }
  const p=t.intent;
  el('crosswalk-intent').textContent=t.phase==='arming'?'中位初始化：'+Math.ceil(t.arming_remaining_s)+' 秒':
-  p?('阶段 '+p.phase+' · 输出 '+p.esc_us+' μs'+(p.hold_remaining_s!=null?' · 等待 '+p.hold_remaining_s.toFixed(1)+' 秒':'')):'';
+  p?('阶段 '+p.phase+' · 输出 '+p.esc_us+' μs'+(p.distance_estimate_m!=null?' · 当前测距 '+(p.distance_estimate_m*100).toFixed(1)+' cm':'')+(p.hold_remaining_s!=null?' · 等待 '+p.hold_remaining_s.toFixed(1)+' 秒':'')):'';
+ if(!t.active&&t.calibration_id){
+  const o=t.distance_observation;
+  el('crosswalk-intent').textContent=o?.state==='ok'?(o.distance_estimate_m!=null?'新标定测距 '+(o.distance_estimate_m*100).toFixed(1)+' cm':o.candidate?'人行道在实测范围之外，未外推距离':'新标定测距已就绪，等待横排人行道'):'等待新的测距画面';
+ }
  el('crosswalk-speech-state').textContent=({sending:'正在发送播报',command_sent:'已发送：'+(t.speech?.text||t.speech_text||''),failed:'语音发送失败',cancelled:'语音请求已结束'})[t.speech?.state]||'';
  if(!t.active)return false;
  lastStatus=s;held.clear();heartbeatDue=false;needsRelease=true;allowed=false;

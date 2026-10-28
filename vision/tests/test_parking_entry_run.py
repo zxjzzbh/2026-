@@ -24,7 +24,7 @@ def base():
 
 def preparation(**changes):
     return {'setup_token': 'page-setup', 'client': 'page', 'esc_off': True,
-            'fb_mode_confirmed': True, 'selected_slot': 'right', **changes}
+            'fb_mode_confirmed': True, 'selected_slot': 'right', 'controller_mode':'visual_trial', **changes}
 
 
 def command(run, sequence, **changes):

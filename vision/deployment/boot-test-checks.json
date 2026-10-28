@@ -1,33 +1,133 @@
 {
-  "scope": "public-source-sync-20261009",
+  "scope": "/home/pi/smartcar-race-20261002/run/violet-update-20261009-181036",
   "files": [
     {
-      "path": "vision/src/carvision/manual_drive.py",
-      "sha256": "0aea86f4fda6445df1e8831efae5856a80868be51d6196f4ca8d12c3c9af05bb"
+      "path": "README.md",
+      "sha256": "5b9111ce77b7ff925ae9a11d9fc7f8bae2a3ae164af082a3c045d2fbe64973b5"
     },
     {
-      "path": "vision/src/carvision/pi5_pwm.py",
-      "sha256": "b4454f4cbd04aff163e6a56bc4d8889f7a56710a4a18ad8a0235f967524e151c"
+      "path": "pc-launcher/oneclick.pyw",
+      "sha256": "81afcfe935602002d660f7af613d64dc7c874fa499213bfd07371fd01367c4f5"
     },
     {
-      "path": "vision/src/carvision/manual_hardware.py",
-      "sha256": "1753e5efa848c5333ccafe15e02d236eb6125a68fefe11a932c2599208ae69f3"
+      "path": "pc-launcher/start.cmd",
+      "sha256": "1152627272e9aabaff4deec97fad56e3a60878aabffd61d931860ea09d0ddbf4"
     },
     {
-      "path": "vision/tools/serve_bench_drive.py",
-      "sha256": "048b29b993374ed403b4cf979552bd38556333fb6170107af677bc39da091f4b"
+      "path": "pc-launcher/使用说明.txt",
+      "sha256": "44715ab15d3ade805ae6a4ee5a451d98d9c2b2224295dc623d7f2c4c50ebd356"
     },
     {
-      "path": "vision/tests/test_raised_held_drive.py",
-      "sha256": "f2a94a8723572899f5eb88a284ff65e434c48f7c3b02b0757350f6d4654353fb"
+      "path": "vision/BOOT_TEST.md",
+      "sha256": "e049f1503eb2f14916fbf6d4c9bb4adc1745df2e6da83aebb3d9976e14e7f478"
     },
     {
       "path": "vision/MANUAL_BENCH.md",
-      "sha256": "e97f84e350b5e28e2c864f312b4676ea9f822edd7be39e690868ecebcb6b4052"
+      "sha256": "a09a4baee259498fe56ad4eb54ec9c6b8d1f2027a193891411f1de4cac01e53b"
+    },
+    {
+      "path": "vision/STEERING_PWM.md",
+      "sha256": "06ea657d7b2ee6cfe67c5662072464df958dbfb0f00f4a94b08ce7939daaf2dd"
+    },
+    {
+      "path": "vision/deployment/boot-test-template.json",
+      "sha256": "95bda6c325a93727ba1a404da85454ad34ed20d5aaac19682c4f3278b247d4e6"
+    },
+    {
+      "path": "vision/deployment/smartcar-boot-test.service",
+      "sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d"
+    },
+    {
+      "path": "vision/deployment/smartcar-preview.service",
+      "sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d"
+    },
+    {
+      "path": "vision/src/carvision/boot_test.py",
+      "sha256": "59a8e8d6013f7c72c472e95d1ee349a7017283a9bdcc56866ed944e062af0dc9"
+    },
+    {
+      "path": "vision/src/carvision/console_layout.py",
+      "sha256": "d3f799d8194ccad4b8c2a3ac311fde28e9279e9bc38a5d1c11c29cc8cff3239f"
+    },
+    {
+      "path": "vision/src/carvision/gamepad_controls.py",
+      "sha256": "c036b700656939fd1a202eb8737df078414780785518fc2e47447825a9e04b63"
     },
     {
       "path": "vision/src/carvision/manual_controls.py",
-      "sha256": "db322dd2b7dde16fb19e2b933fe5c44082056ef00d6242170a1a093e88094d33"
+      "sha256": "00e57876e0660a23fbbc5ee0f0739659659803101215108a4a2d681a05f00219"
+    },
+    {
+      "path": "vision/src/carvision/manual_drive.py",
+      "sha256": "af0fdac6b183e4ce4369cd8558c060e1d6daceccfcf5617e407db6c9c5524e5f"
+    },
+    {
+      "path": "vision/src/carvision/manual_hardware.py",
+      "sha256": "1c5f08622cda6ce21b7d79049c65e16c2012300d53a480ccb21854c274b09974"
+    },
+    {
+      "path": "vision/src/carvision/network_guard.py",
+      "sha256": "5dcfa6e6086bf96563f5d05138040e34917c0b2e466a742b4f9b1c0e6dbaebfc"
+    },
+    {
+      "path": "vision/src/carvision/pi5_pwm.py",
+      "sha256": "f50e165b06d212503622d1b18a6c95bf5bf2267abe7c2dc8461b27b9f97f8286"
+    },
+    {
+      "path": "vision/src/carvision/steering_pwm_controls.py",
+      "sha256": "ecf2bb186ded5cfbf079a8358833e18318c5461823a4c47b7738c9d10af583e0"
+    },
+    {
+      "path": "vision/src/carvision/web_preview.py",
+      "sha256": "b34447c4ed30794898d62370acbf2e56ee5a469faeb49da6a0b214e9770e8867"
+    },
+    {
+      "path": "vision/tests/js/gamepad_controls.cjs",
+      "sha256": "1928300a2ccd03d8b04efe38f2b65cc940d4d94d28cc5350b446f0efacbfced0"
+    },
+    {
+      "path": "vision/tests/js/manual_heartbeat.cjs",
+      "sha256": "900388cf38f5b21a20d5fbfe8f4d88c747e81e7a09817cfbb5804c8642a9576f"
+    },
+    {
+      "path": "vision/tests/js/steering_pwm.cjs",
+      "sha256": "7f41dddba52a2909ff88916d810ace8324fd863cc67eb5faac3d94a1453e40ed"
+    },
+    {
+      "path": "vision/tests/test_boot_preparation.py",
+      "sha256": "d8b6371cb384af9e30cd27194dcf03b6c3e49c8ba7ee1872e4679c69e9963639"
+    },
+    {
+      "path": "vision/tests/test_boot_test.py",
+      "sha256": "3e5dd1e6dba34557faf5e4c36f6ba74dd3d706951291a076d2e87f88f15a31b6"
+    },
+    {
+      "path": "vision/tests/test_boundary_steering_center.py",
+      "sha256": "a5077e2a535e8a967cb9e2ba84f33180c73942132b865949e4e6dc78e4b0df05"
+    },
+    {
+      "path": "vision/tests/test_console_contract.py",
+      "sha256": "8d92f94f1c70b46aa45582f0f832d6d68af85574fff9083a3ec6f0e9d2cb0cc0"
+    },
+    {
+      "path": "vision/tests/test_deferred_drive.py",
+      "sha256": "2835445c44e2f421fe754cd7374a27aacc5edd6e0b06cd8fe80d0124331c2671"
+    },
+    {
+      "path": "vision/tests/test_direct_reverse.py",
+      "sha256": "83c55767aab6a873044eb989a2683b0f41036f55b8e070701abdf5a4437b4ffb"
+    },
+    {
+      "path": "vision/tests/test_gamepad_controls.py",
+      "sha256": "fef47a95e1f868a62e70d8022968af4df522c349232eb9d1889108884d805c08"
+    },
+    {
+      "path": "vision/tests/test_ground_continuous_drive.py",
+      "sha256": "22b8a58de8520c315ce667c51fea64715d74aac47b29c4a2275860eb24fa21bc"
+    },
+    {
+      "path": "vision/tests/test_ground_held_drive.py",
+      "sha256": "f43106c3e1c74556899a51306f10911c5590a1defebc4d180b146160d1a61670"
     },
     {
       "path": "vision/tests/test_manual_drive.py",
@@ -38,145 +138,1258 @@
       "sha256": "1183b343292a29e3b4ca4787fc2a139f4dafb81008f2a53a785c34eed9f51d6d"
     },
     {
-      "path": "vision/tests/js/manual_heartbeat.cjs",
-      "sha256": "d1b30cf9b37129accee45e911ea5fb3ba2e4c575e996e5155f430a39faa077d2"
+      "path": "vision/tests/test_network_guard.py",
+      "sha256": "6a82cf2a5d5282d877bf97b97ee08595481b0d090f3427158d1d481e804db039"
     },
     {
-      "path": "vision/tests/test_ground_held_drive.py",
-      "sha256": "f43106c3e1c74556899a51306f10911c5590a1defebc4d180b146160d1a61670"
+      "path": "vision/tests/test_pc_launcher.py",
+      "sha256": "e8fee3117bf9ceb9d461ae79c0ef2a7641629a5c4f5669bd4c7a85ae129dd2a7"
     },
     {
-      "path": "vision/tests/test_uart_target_steering.py",
-      "sha256": "8870e96ac766dfdaae74c93cdc07b8b221a834782df9ebc21e39e7dc7523f73c"
-    },
-    {
-      "path": "vision/src/carvision/web_preview.py",
-      "sha256": "ecb9121a30b8e68f7c40d0a22b59cb045c4cc7bd504a92e81c61ebe220656334"
-    },
-    {
-      "path": "vision/tests/test_web_preview.py",
-      "sha256": "dd608e49729dd68401ccc59c41e0d448bde71381345e46a4e334a81948aced09"
-    },
-    {
-      "path": "vision/tests/test_deferred_drive.py",
-      "sha256": "2835445c44e2f421fe754cd7374a27aacc5edd6e0b06cd8fe80d0124331c2671"
-    },
-    {
-      "path": "vision/tests/test_straight_steering_hold.py",
-      "sha256": "d7dd7fdddb33e7f0d585716a5f23f12a718322e819b7d8cc9ab05b90e1448569"
+      "path": "vision/tests/test_raised_held_drive.py",
+      "sha256": "f2a94a8723572899f5eb88a284ff65e434c48f7c3b02b0757350f6d4654353fb"
     },
     {
       "path": "vision/tests/test_repeatable_drive.py",
       "sha256": "4ab03b0fbac3eff2408ef43e53e6c98c2ddc3c06fa65762bbdec1ded55b26e64"
     },
     {
-      "path": "vision/tests/test_worker_endpoint.py",
-      "sha256": "25e2bcb6a0eba2be5244600558ed0eec1724e9c35ada1d7117aee73a531406d8"
+      "path": "vision/tests/test_reverse_trim.py",
+      "sha256": "2588ae2faeb8d1ebc3567979be158c520165f800e406e16b3a348aa90ed34329"
     },
     {
-      "path": "vision/src/carvision/boot_test.py",
-      "sha256": "90a72491a35b2838e23e2ff6fac7346103e3bc8d612d34df1020f90f6976d6e4"
-    },
-    {
-      "path": "vision/tools/serve_boot_test.py",
-      "sha256": "a5bee236249b0f4f4507691ebf88882e1088e1d803522607e6893cf545400917"
-    },
-    {
-      "path": "vision/tests/test_boot_test.py",
-      "sha256": "e9eb875e64f421b8eb08b2f7d78884c6558e209e77b91a9df28494aeb8c73926"
-    },
-    {
-      "path": "vision/tests/test_boot_preparation.py",
-      "sha256": "dab16e897f5a00f5571afc2a5e800f6e6c86cf9947e375e0e1b606f99cc111d6"
-    },
-    {
-      "path": "vision/tests/test_pc_launcher.py",
-      "sha256": "7822c4fbea320534bf62d547ae6612c01b587ae123c6670237ab1672a0017cd8"
-    },
-    {
-      "path": "vision/deployment/smartcar-preview.service",
-      "sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d"
-    },
-    {
-      "path": "vision/deployment/smartcar-boot-test.service",
-      "sha256": "177ec367db59684673c0b9ed8b89b88af2ff3a61a65f50238b3b3516859e372d"
-    },
-    {
-      "path": "vision/BOOT_TEST.md",
-      "sha256": "bb99436ab4fe6f439c23c6de82a5eb57bfa2cc50ebc4a062587ff6462eb50f48"
-    },
-    {
-      "path": "README.md",
-      "sha256": "ac114b82cd451ea86a06f633de06e176201df3529ebdb46760607fccf4579770"
-    },
-    {
-      "path": "pc-launcher/oneclick.pyw",
-      "sha256": "8523a22292726c930974b21ec41e6862d38dc43d5f4e6fb948e36e81630b041a"
-    },
-    {
-      "path": "pc-launcher/start.cmd",
-      "sha256": "1152627272e9aabaff4deec97fad56e3a60878aabffd61d931860ea09d0ddbf4"
-    },
-    {
-      "path": "pc-launcher/使用说明.txt",
-      "sha256": "78d62e2808cc0fb14db35d5937c555c204ed0ea8332371507e9542c97e184bda"
-    },
-    {
-      "path": "vision/deployment/boot-test-template.json",
-      "sha256": "c04afd42bf2b5db90e4a33b061fc2f5327a6ad7a61a7818e0b57d098ca4c7896"
-    },
-    {
-      "path": "vision/tests/test_ground_continuous_drive.py",
-      "sha256": "b42fb10fd42f3ee6a50da0854baa30a05fc258bb7e04da888a357fd0f8114ef2"
-    },
-    {
-      "path": "vision/src/carvision/steering_pwm_controls.py",
-      "sha256": "a91bf4140e1b8df54991f310b4dc7ed6551d8810145312b9536d54f4a260e64a"
+      "path": "vision/tests/test_startup_settling.py",
+      "sha256": "fde3d90dd6f79c173548e718b3a51e6cb21abf1082710dcc384810bd044274e0"
     },
     {
       "path": "vision/tests/test_steering_pwm.py",
       "sha256": "405123f14b164a517b5c3351b00d1342df5b1896222ede0d29bee97ecb1f83db"
     },
     {
-      "path": "vision/tests/js/steering_pwm.cjs",
-      "sha256": "cff3c26742a4edcc1251ed8cb429428e2f8de6120ba5e635640185ddae852758"
+      "path": "vision/tests/test_straight_steering_hold.py",
+      "sha256": "d7dd7fdddb33e7f0d585716a5f23f12a718322e819b7d8cc9ab05b90e1448569"
     },
     {
-      "path": "vision/STEERING_PWM.md",
-      "sha256": "4a7a9e60cd8c7007ecd12e7f963f0c589c3085ff3ff3a4165b560afa27b34695"
+      "path": "vision/tests/test_uart_target_steering.py",
+      "sha256": "8870e96ac766dfdaae74c93cdc07b8b221a834782df9ebc21e39e7dc7523f73c"
     },
     {
-      "path": "vision/tests/test_boundary_steering_center.py",
-      "sha256": "a5077e2a535e8a967cb9e2ba84f33180c73942132b865949e4e6dc78e4b0df05"
+      "path": "vision/tests/test_web_preview.py",
+      "sha256": "dd608e49729dd68401ccc59c41e0d448bde71381345e46a4e334a81948aced09"
     },
     {
-      "path": "vision/src/carvision/network_guard.py",
-      "sha256": "5dcfa6e6086bf96563f5d05138040e34917c0b2e466a742b4f9b1c0e6dbaebfc"
+      "path": "vision/tests/test_worker_endpoint.py",
+      "sha256": "25e2bcb6a0eba2be5244600558ed0eec1724e9c35ada1d7117aee73a531406d8"
     },
     {
-      "path": "vision/tests/test_network_guard.py",
-      "sha256": "6a82cf2a5d5282d877bf97b97ee08595481b0d090f3427158d1d481e804db039"
+      "path": "vision/tools/serve_bench_drive.py",
+      "sha256": "f5d9f8cfa592bbfbf3ce6eede03a444a3a76a74a69706e9c491a4fc78421b8f1"
+    },
+    {
+      "path": "vision/tools/serve_boot_test.py",
+      "sha256": "4a3d36d2a0aa4bea2168fd584c3901fe7eafe4c087df4b59a340275fe45f1f7a"
+    },
+    {
+      "path": "vision/tests/test_symmetric_manual_steering.py",
+      "sha256": "522a0c27a73aef50877401f2910b8ea036013a2e8a3e11917aa26a59c98e022f"
+    },
+    {
+      "path": "vision/src/carvision/manual_steering.py",
+      "sha256": "336466f33e7352709ea75d1df3fc95e4777201a6b5a25ba84e3f22a1a5f2b6ce"
+    },
+    {
+      "path": "vision/src/carvision/rasadapter5.py",
+      "sha256": "471ef41607e660c5930112cc484cfb19fa08c434455114ef4c7ff77bd0820c38"
+    },
+    {
+      "path": "vision/configs/autonomy-pi5.json",
+      "sha256": "9112d60b64480dc3109d2ed5e2e8e595eaaf6d6a83d5856068fc44255e723310"
+    },
+    {
+      "path": "vision/tests/test_autonomy_stack.py",
+      "sha256": "42bd7e75a7d8103e9eeea173c94f4c55d8a4889422456e0bcca5893e028ed377"
+    },
+    {
+      "path": "vision/tests/test_cone_low_speed.py",
+      "sha256": "d13b29ff37cfea1581bed1fc2ec62f465ee1fa0f2da2b47cf66e676f6f8d0ddc"
+    },
+    {
+      "path": "vision/tests/test_cone_navigation.py",
+      "sha256": "9cd38d0261f3dfb83c93fb632d733cea5610a829b5393da212ea5aa2b9414de7"
+    },
+    {
+      "path": "vision/tests/test_cone_short.py",
+      "sha256": "80fccb2a95860a597e5a8e5fd18e7acffbc394db9b2f19ea5441c767590710ad"
+    },
+    {
+      "path": "vision/tests/test_cone_slalom.py",
+      "sha256": "bd1284f9f3f110d446f5e6c248ae7e1eaab5d91e6ca8d132608fd33bafb5c5e1"
+    },
+    {
+      "path": "vision/tests/test_cone_trial_output.py",
+      "sha256": "7f17cc30511407b20022f98ea0a2671e12a39c30fe663b9330d35e65e81f3a96"
+    },
+    {
+      "path": "vision/tests/test_current_steering_profile.py",
+      "sha256": "9d0ad97f6b9bd38e86c4305de12145da938a101f7a7b2557588f972b22b65dd2"
+    },
+    {
+      "path": "vision/tests/test_rasadapter5_executor.py",
+      "sha256": "bfcd681d976194058a9a91eee790d30174da7026cb1cb310b4fe0967cd96b7a9"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_motion.py",
+      "sha256": "3b77d574305813cbc4af081547b143cf1a8f788ad77ad906e1ec037a10c4cba7"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_profile.py",
+      "sha256": "315371299d31ab9b7bd3b9b67409788373fa3ba309499b1d8990511de5bc5089"
+    },
+    {
+      "path": "vision/src/carvision/brake_output.py",
+      "sha256": "1b5960526b3a2b7804e3282a666b7dd58d911028886346e857344f5fbd536671"
+    },
+    {
+      "path": "vision/src/carvision/cone_controls.py",
+      "sha256": "670d70d64410345e224b5ce0554fba8360f6a6cecfc73108fdb19980d37b6c92"
+    },
+    {
+      "path": "vision/src/carvision/cone_low_speed.py",
+      "sha256": "ff20131bb9cc8fc7f6599f0e9c750cdf177b2275df0f13e14dbce2915da28358"
+    },
+    {
+      "path": "vision/src/carvision/cone_navigation.py",
+      "sha256": "a0544d6833da9aa9b0dab6faf59ad7fdb82714a10dd6a445aa8d05d9831727c9"
+    },
+    {
+      "path": "vision/src/carvision/cone_observer.py",
+      "sha256": "7ee3b16d936394d168e89ff667c458136d566fb187cd8a17249111ac4e8b699f"
+    },
+    {
+      "path": "vision/src/carvision/cone_planning.py",
+      "sha256": "547c4bdcb955ef9225dc4c40e7dc5f05f563bcfb68ced0e9c6ed46d08c00dcdb"
+    },
+    {
+      "path": "vision/src/carvision/cone_short_output.py",
+      "sha256": "6cfc9952413b3ee9231f04e9c9ba1a537a0dc4df233ea4f5364028ce1fbee4ba"
+    },
+    {
+      "path": "vision/src/carvision/cone_trial_output.py",
+      "sha256": "4fb68ead3e666175e2f08233a2299fc24e4b553d832bce43c5bebac16e8de3ba"
+    },
+    {
+      "path": "vision/src/carvision/rasadapter5_executor.py",
+      "sha256": "faab04fb77d71bb58cdfabcb2db1f5bf6aacf6ff50796b8557674edddbe7d055"
+    },
+    {
+      "path": "vision/src/carvision/steering_limits.py",
+      "sha256": "1766655dfa6e9a447be0e2b31e69b53fc583e55f60c5c070726eb8833a863d22"
+    },
+    {
+      "path": "vision/configs/cone-trial.json",
+      "sha256": "7e3ca66d0e5cd6acb2779561b61d2d931a101ffe281094fc35e423e9d2ecf7ee"
+    },
+    {
+      "path": "vision/configs/cone-trial.local.json",
+      "sha256": "0b047d199311660c95e284bbd98050b610b9d64b71aa9c34a7f9122cef74e12d"
+    },
+    {
+      "path": "vision/configs/pi-control.json",
+      "sha256": "90f6dabe50b88736b5c1ae620f9fe8b2cd772dbb5f0695e0102190c9568d2f10"
+    },
+    {
+      "path": "vision/deployment/steering-reference-20261013.json",
+      "sha256": "dbcc646a0dd00a3e1a2b3756fbc318aaba2713e2da09aa0483af254b63ec62bb"
+    },
+    {
+      "path": "vision/src/carvision/manual_speed.py",
+      "sha256": "9be8f1ff48440614644874bb3a4af8b29eaf1e843e873d86557792f40aab4a0c"
+    },
+    {
+      "path": "vision/src/carvision/plan_b_console.py",
+      "sha256": "399267c61f9572ed058af70f53262fd4ad36dbc6b451cfc58b64e11bab53e8ca"
+    },
+    {
+      "path": "vision/src/carvision/plan_b_controls.py",
+      "sha256": "00df6e6ed56a4479429b9075562645e2cdbeeeee12573268c6a43863898c0406"
+    },
+    {
+      "path": "vision/tools/serve_plan_b.py",
+      "sha256": "5f39e03be680a53bb0643d2cd5578d7a4f86f9a596ef9eb06c963a5b3dc67cd6"
+    },
+    {
+      "path": "vision/src/carvision/parking_log.py",
+      "sha256": "f2bdb2e3d3bfd1e1381d2145eaedee92e461a8b512bde359e53f34862389105e"
+    },
+    {
+      "path": "vision/src/carvision/steering.py",
+      "sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7"
+    },
+    {
+      "path": "vision/src/carvision/cone_continuous.py",
+      "sha256": "2102deafcb0cb96f21ddaf5b1d6f6418d0849e48c0f9066c832eaf1cae593eef"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry.py",
+      "sha256": "0608739e159bf6ed1c170f81397c8b8c8fcd38bc9979390faf987211b0155446"
+    },
+    {
+      "path": "vision/src/carvision/race_flow.py",
+      "sha256": "0c5037fafd523d767af81932a162b62b9be86c98f13986a6156bfd6931b9962b"
+    },
+    {
+      "path": "vision/tests/test_cone_continuous.py",
+      "sha256": "e30b949cd658f926187fe2319f62da376ba4dc736b453c68845e173789f9d76c"
+    },
+    {
+      "path": "vision/tests/test_parking_entry.py",
+      "sha256": "abe3f562c0824546d34b642494d62d306b314c9be2cf4a20d8b41cbc7ce2b3c0"
+    },
+    {
+      "path": "vision/tests/test_race_flow.py",
+      "sha256": "4700c632faaa06bcd947dd080ade8e09288e90b213dfcc605223e1bed73cad79"
+    },
+    {
+      "path": "vision/tests/test_image_pd.py",
+      "sha256": "bc54ba7bf09cd2ec4116468b825d71d8984b012359f4faa5b8745dad4817314b"
+    },
+    {
+      "path": "vision/tests/test_edge_pd_live_integration.py",
+      "sha256": "a5c1da8ca6129ec92ef5233066f9b81ea16f2c1b25fd60aabd80f981d0913f8c"
+    },
+    {
+      "path": "vision/ALGORITHM_EDGE_PD.md",
+      "sha256": "593090067b291fdcc40c15cdbb34b76e9dd2913055e48ddf221b3e11cc5c07a3"
+    },
+    {
+      "path": "vision/src/carvision/parking_visual.py",
+      "sha256": "3ceb5d8e499d8f431219634a5f99f32f49aebf92996e9bb9b892d9b7c4fdd689"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry_run.py",
+      "sha256": "99b07b00e9b56fa44e286fea82900bc98345a58b420c9e7cf7f16d6a54c9d5f5"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay.py",
+      "sha256": "117892ab101b5c4dee04ad9bad072c20ce8dea335ffe96b386712ed3b559c411"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_console.py",
+      "sha256": "94d8330def7e936a00730343200175a60f72b18fdfb4396193a8a45186203acb"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_controls.py",
+      "sha256": "5c458b8fefbea5e29373671f5ba97ae74879e020cbe12ee9249b8692e6dc9f11"
+    },
+    {
+      "path": "vision/src/carvision/brake_parking.py",
+      "sha256": "7e189a680abd53281ff7cd69ac522a3b84b73cdca69a3a7a97277e6aa301bfae"
+    },
+    {
+      "path": "vision/tests/test_parking_entry_run.py",
+      "sha256": "6236ac236b2c57c2d2397180b09d95222e479cb627eb91ce6c591e75af55f0b3"
+    },
+    {
+      "path": "vision/tests/test_parking_boundary_guard.py",
+      "sha256": "0012ca047210ceb101f36435dc2e228399cd19d6e71c009a427a13da0bfa629a"
+    },
+    {
+      "path": "vision/tests/test_parking_far_tracker.py",
+      "sha256": "a3f5e3672f65fb54487046c1e1be20a6ad6a822c50ba5550dff62f05f3a657c2"
+    },
+    {
+      "path": "vision/tests/test_parking_visual_fixes.py",
+      "sha256": "437ef3cf52bf6377278f2b2d909d06a2fa25d9e60c78a0cd633089beec53325b"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-boundary-failures-20261020.json",
+      "sha256": "84ffdca436c65f2c74aa4af49ef2b51551a5aa3144b2ac6b28c4f9285b48d493"
+    },
+    {
+      "path": "vision/tests/test_parking_boundary_recovery.py",
+      "sha256": "4fffec0d28d002b9c735f85ae1997d86b05a479cb9cb546e3dcc0af1c6209ee5"
+    },
+    {
+      "path": "vision/tests/fixtures/parking-boundary-recovery-20261020.json",
+      "sha256": "2f5968d35940609f2b0aeee644dfeadabf9d5c0654199d403f7e72150b2d902c"
+    },
+    {
+      "path": "vision/src/carvision/departure.py",
+      "sha256": "2b8facb3e9d2635aec2b5c8b217c54747c5fe91df1e0ffffc2f52e4eed4e8b33"
+    },
+    {
+      "path": "vision/src/carvision/departure_controls.py",
+      "sha256": "cb403c691023c3af61f48b5b6dba33a379c9dbb2a3c3c68bc7aa50d1c1ea97a2"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_controls.py",
+      "sha256": "1cca3d34fe68b6464400103fbd3677f42b0555f5645dcf2a2eeadb07cf85117b"
+    },
+    {
+      "path": "vision/src/carvision/competition_page.py",
+      "sha256": "354609956894222556436cfe6ee311a00af9f7cd96dce7555cbdbe7ade9d056d"
+    },
+    {
+      "path": "vision/tests/test_departure.py",
+      "sha256": "205372c3375e4d443771726b7744f36ce1ed81a3c24c53375cb8fcc3aa31e5f6"
+    },
+    {
+      "path": "vision/tests/test_departure_to_crosswalk.py",
+      "sha256": "a1e62240ed9f9ccf4e0576a3be6eb7b1846d6b6244ddeeeabe67784dae784c55"
+    },
+    {
+      "path": "vision/tests/js/competition_page.cjs",
+      "sha256": "05347ec8fbcb53b0fa43fc81df828d74d9930459f70b283c42828a406304fb1f"
+    },
+    {
+      "path": "vision/src/carvision/departure_trial.py",
+      "sha256": "8b68e7aa133053f1cacaba2dd628ef6e60a29dc8ab04465e2b89ea92287d31f3"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_camera.py",
+      "sha256": "14d6f29c9ca1778016428c849c794fc850b131c12959aa4a77bd00008d41f6a5"
+    },
+    {
+      "path": "vision/tests/test_departure_board50.py",
+      "sha256": "bcba772a6e78ce900f33b0756ea9a4ab60b65b88441661ac4528da401f02bb40"
+    },
+    {
+      "path": "vision/configs/departure.local.json",
+      "sha256": "a91edd07fcdb83348f3644710c2370486d0dcb5f320935ab343afeaa7bcbf972"
+    },
+    {
+      "path": "vision/src/carvision/brake_trial.py",
+      "sha256": "824bb740bffafea710508048ad19ce39222169500418df7f4c907431bb9e51bd"
+    },
+    {
+      "path": "vision/src/carvision/brake_controls.py",
+      "sha256": "a70e62bc24c8ade801207fc4a88c51535b9b18e4e3eaf412416c14258d88061e"
+    },
+    {
+      "path": "vision/src/carvision/brake_runtime.py",
+      "sha256": "eb8dd2406d3ed5014ae51aec2bc90b95964aefea0370240fd1664bbf4278f9d0"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_console.py",
+      "sha256": "60f7f2c91ced3a18919d5bbc54374e64c794ddf07a1700fc2739eec51ef6a227"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk_calibration.py",
+      "sha256": "39cccd3d45c48e5269d0b0e62b8da9dbba10f5d62c31d8fee9cafcd3b93a8930"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk_observation.py",
+      "sha256": "5209e023069301429d8139c42076e6544b7f55a2075ac178cd9a62e77e9ebc66"
+    },
+    {
+      "path": "vision/tests/test_brake_parking_program.py",
+      "sha256": "5116e95528b0bfc5d578b337db16748fb2618378182d9027c271011e3d7869f4"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_first_stop.py",
+      "sha256": "269055981da416c3c13b975818cccc8281ed2b0dfc2dce21ff7b886b905afbd5"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_calibration.py",
+      "sha256": "393b7d1253bdf71d5677648edb9f9cc03fefcdce2652858ab12e12adc2b50796"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_observation.py",
+      "sha256": "0718f533d8b6b1c1f8aca768e7a9fa2f5410b667fdc84ba47a247788a35814e8"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_profile_integration.py",
+      "sha256": "015a7301cde94b7dcf2249b4818dab7477de9cf523cfa10d6cbd1f8e903d2de2"
+    },
+    {
+      "path": "vision/configs/crosswalk-distance-calibration.json",
+      "sha256": "fd4329b5f07ff3b0ccc4bd2b026f569af3b65be9947ddfa42a88de47550c84a2"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_round_snapshot.py",
+      "sha256": "577ccdcbf4631285864ccf981067d1ede15664841d82bf480579096ef449c784"
+    },
+    {
+      "path": "vision/tests/test_departure_offline.py",
+      "sha256": "e227d23c6e8ea5620b33d242f3e4c78d108aa9c64734d70ce9b6630a7dbb6273"
+    },
+    {
+      "path": "vision/tools/departure_offline.py",
+      "sha256": "bad11c03cbd92f0be58c4a22c4424bac2e16557deedfad5192868ac41354cc86"
+    },
+    {
+      "path": "vision/tests/flow_calibration_fixture.py",
+      "sha256": "4f73d650c646a81ac9b632732d29a3ffc53a325dd91812408dbdb15ba740097c"
+    },
+    {
+      "path": "vision/tests/test_departure_quality_recovery.py",
+      "sha256": "9a826d25aa97e828b44a792404baf76fd766ed4e450bbbbba0341552fa11711e"
+    },
+    {
+      "path": "vision/tests/fixtures/departure-quality-dropout-20261024.json",
+      "sha256": "e0d18516e6cf2c41885198e97ebe17ae8729c5fb536c590e29c80a07368eadec"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_timing.py",
+      "sha256": "b389fea98f4291938a8b7b50a4e1db753c92b4d75c056523c50ee44aa0dde388"
+    },
+    {
+      "path": "vision/tests/test_crosswalk_selection.py",
+      "sha256": "0d2789092d8cf1c99a161b74051402e1319ad3e36f4efb19febde6343c4ad676"
+    },
+    {
+      "path": "vision/src/carvision/brake_timing.py",
+      "sha256": "18c8485d9712a40fb39c312520bdcd433dec3e65abbf8b3f56dc1cb1b3f1b56c"
+    },
+    {
+      "path": "vision/tests/test_brake_timing.py",
+      "sha256": "d6fd8acd5f3ef2a468bf4b0670228c82579360832ab5c58d52210d65e3fb5510"
+    },
+    {
+      "path": "vision/tests/test_brake_cleanup.py",
+      "sha256": "d4f7c9a38d75e7f0e07314cdad50944b38e3b99d7529d9e23b0b907a9a138f45"
+    },
+    {
+      "path": "vision/TRAFFIC_RED_1S_350MS.md",
+      "sha256": "e2791f9cca2fffe56c348b8fa3da9898f32f61716adf1dae769a79a246834292"
+    },
+    {
+      "path": "vision/configs/traffic-driving.json",
+      "sha256": "dc88f72681cc74413369cb4cf34b783fb5f214c742db3ab03cf088c12d922b7d"
+    },
+    {
+      "path": "vision/configs/traffic-driving.local.json",
+      "sha256": "5d28a0fe43387dfd08f33249ad5fdfa641a722edf895e566162fa48f75970020"
+    },
+    {
+      "path": "vision/src/carvision/traffic_controls.py",
+      "sha256": "f8a8320261b68b8a155efaacb0ab4de997ba70b7dde9fa2579c62ddc5faf9ae0"
+    },
+    {
+      "path": "vision/src/carvision/traffic_driving.py",
+      "sha256": "c08c8c494ff46c38f8b7b29b65fdca34bd1f4d4485b5112dcbb9de909591aec0"
+    },
+    {
+      "path": "vision/src/carvision/traffic_trial.py",
+      "sha256": "75dcacc94fb97651253b358a2dc93116a5505f70eef50edf0a5bbed2bae255da"
+    },
+    {
+      "path": "vision/src/carvision/traffic_voting.py",
+      "sha256": "85c8e25c3b7d1d645b7baecee4bad68522d4bfd16a1b2ebe7a8e24105e262ab5"
+    },
+    {
+      "path": "vision/tests/test_traffic_current_gate.py",
+      "sha256": "1991846e24f134b6b2da12b4ed0f301ff95dd9d340ea2f22a65b71e1118d9a32"
+    },
+    {
+      "path": "vision/tests/test_traffic_current_signal_ui.py",
+      "sha256": "16ec8217eef0a13f90054789cf1f2aa92c7286f54572008af7206bc1a2fb2a27"
+    },
+    {
+      "path": "vision/tests/test_traffic_driving.py",
+      "sha256": "560572423f55a3d5e41dd558c42a957dda02764f5b9d38a849ad3c5c63501f43"
+    },
+    {
+      "path": "vision/tests/test_traffic_red_1s.py",
+      "sha256": "07c7b74bbbd0d2c45443dda313b50ee1df88bcd4468599a004e1a9981df85da3"
+    },
+    {
+      "path": "vision/tests/test_traffic_trial.py",
+      "sha256": "53f0ab2de8a23a4994b5653f09052f073d42d5ebe5cfe7b284ca9b0063428b3c"
+    },
+    {
+      "path": "pc-launcher/launch_vehicle.py",
+      "sha256": "2b63c0a79a9bc06dfca603c30d0e4ca26cf0599a3ff66aa5ba89101d56873e71"
+    },
+    {
+      "path": "vision/configs/parking-bay.json",
+      "sha256": "46c7c31c4374ab49513c5ff95681f1d3f54fe1eb72cae5d1614f39e337aad1f9"
+    },
+    {
+      "path": "vision/configs/vehicle-geometry-measurements-20261025.json",
+      "sha256": "f4d0f63fa0b6532958f15924da3bdc8365967b0f206e10e7d2a401354f0d19da"
+    },
+    {
+      "path": "vision/src/carvision/application.py",
+      "sha256": "50d7f0d1c10c02af67008aa5a85a23baf6f9def11a5118a67e2dcd66b38a5409"
+    },
+    {
+      "path": "vision/src/carvision/cone_road.py",
+      "sha256": "bfd7d38d31020d49d96f3d6e99cd3bef45120bbd5833768c5f7028cc996f0fe9"
+    },
+    {
+      "path": "vision/src/carvision/cone_vision.py",
+      "sha256": "4d074fed5723126b9bb5ee1243c5faa3dda2f7858456bb541e54184bc4d0ebbf"
+    },
+    {
+      "path": "vision/src/carvision/debug_page.py",
+      "sha256": "c5cc90102c28e4546a8a40e39bd5cdb63a3804245f78bc42c01286989135c019"
+    },
+    {
+      "path": "vision/src/carvision/handoff.py",
+      "sha256": "c26ed71f83d7792a6e4c365b0a7d33597412e7f4882dac3afbf7c3a0cbd74537"
+    },
+    {
+      "path": "vision/src/carvision/manual_service.py",
+      "sha256": "21404092b550b96830c9943ca2ec4c4e3ff8042c4a450ba509060758b53371c3"
+    },
+    {
+      "path": "vision/src/carvision/parking_control.py",
+      "sha256": "5d01264a6c841d5fe606d682a6cb9738cc2bc44c63f1a06f815aaf424db7c7e2"
+    },
+    {
+      "path": "vision/src/carvision/parking_feedback.py",
+      "sha256": "cc18eb53780f6a3d49a55c70fe17163bce41be7a4412bf6f64d2834fd045fca1"
+    },
+    {
+      "path": "vision/src/carvision/parking_task.py",
+      "sha256": "ca1c796808a608b2acefaa186df7d4ba486ff88eee33c07ace630816387c9cae"
+    },
+    {
+      "path": "vision/src/carvision/shared_executor.py",
+      "sha256": "b4956594b7d0837c167a5785976ccf534377f576f020771ea21ad98b75173204"
+    },
+    {
+      "path": "vision/src/carvision/worker_client.py",
+      "sha256": "0cd4dca3e7ab8ebd03f7505c3348305c9813d33c6b5b22e7845ba5c91db93610"
+    },
+    {
+      "path": "vision/tests/js/competition_static.cjs",
+      "sha256": "be1893f5be071a56b34c598a24014404aaa6747532d8b3806fd9779194aea661"
+    },
+    {
+      "path": "vision/tests/js/debug_static.cjs",
+      "sha256": "36792744c244606e6c42e05c3b6eabb9b4f44ad36d16ff5be6b4ead29fe85d48"
+    },
+    {
+      "path": "vision/tests/test_application_cleanup.py",
+      "sha256": "b4b229231accc13f5689bce978ad2263b85b8a1e236c2654c027606deb4003c6"
+    },
+    {
+      "path": "vision/tests/test_competition_page.py",
+      "sha256": "e440a523820a3452c8b213086429b77c6b4646887f7dc25bb794b7232ba3d15b"
+    },
+    {
+      "path": "vision/tests/test_cone_safety.py",
+      "sha256": "0c75b71a927ab61e758200699ccf551643d29a0da4f18a6ad7978b61e9e10597"
+    },
+    {
+      "path": "vision/tests/test_cone_surface_colors.py",
+      "sha256": "11776d2c79131e64e5a70027a2b47be9e2a2516ef6edd4d34f9c0ddf3245573f"
+    },
+    {
+      "path": "vision/tests/test_cone_trial.py",
+      "sha256": "1baea1fee02c82a52f8b2ad5928e26193c72fce246f53aa45ee2177badacb1e4"
+    },
+    {
+      "path": "vision/tests/test_cone_white_fallback.py",
+      "sha256": "87bc8cd0828446defcc6795c8639c5c39f87b19ee4f9146c219b627468e9ce16"
+    },
+    {
+      "path": "vision/tests/test_debug_scene_controls.py",
+      "sha256": "74956a0c1e828379833d5719b195b96936d31d4bcab9f532934e12e58b40ee6a"
+    },
+    {
+      "path": "vision/tests/test_debug_static_page.py",
+      "sha256": "9963026199fedde7a93eca5f5986bdb6d57a947626543b8a5f23e71095c327f8"
+    },
+    {
+      "path": "vision/tests/test_desktop_launcher_recovery.py",
+      "sha256": "b42fb1f4d3aae3e015a497dfa621dd4d20aee7dfa4f25514843b8749030d4d5b"
+    },
+    {
+      "path": "vision/tests/test_desktop_mode_launcher.py",
+      "sha256": "1111a7c54c7b683cd4bdbf0947c183fa2ee156725dc1d350cd9e82d019a02069"
+    },
+    {
+      "path": "vision/tests/test_manual_service.py",
+      "sha256": "85a41d417fe14388acee4ce69666a12622a3da2d451daa746afd4eaa33128915"
+    },
+    {
+      "path": "vision/tests/test_parking_bay.py",
+      "sha256": "469a4a1c6bdf11da4a88abfd2a4173dbc79f829345fcd89b2ae3eafc3e56b64a"
+    },
+    {
+      "path": "vision/tests/test_parking_blue_surface.py",
+      "sha256": "2e18966c0cac7e7091ba7f86f20a0d90f9785a0ad47accb5e9a4e35b69c8eecc"
+    },
+    {
+      "path": "vision/tests/test_parking_task.py",
+      "sha256": "d962684f3fe196d4e937d1a81fea524fb341fc7dd92d1d7243abac1e7b6f95ad"
+    },
+    {
+      "path": "vision/tests/test_shared_executor.py",
+      "sha256": "e2eb93979802a99cea1ab05518b653743acdaa7ce37c881de56aaa5c2391c30e"
+    },
+    {
+      "path": "vision/tests/test_vehicle_application.py",
+      "sha256": "b690a98738b2c79d86cebaeb8fcd02b03d0c6651a9eb31f1561a29d987712274"
+    },
+    {
+      "path": "vision/tests/test_vehicle_geometry_measurements.py",
+      "sha256": "4033baf4eb054ce19a721bfd09ba3892a8ff469813be2f68c184e244f9217f7a"
+    },
+    {
+      "path": "vision/tools/run_debug.py",
+      "sha256": "8106a93a9f66e60f7095a13d93772ace76d01e39fd2bf412d2e3207fa9a0ec74"
+    },
+    {
+      "path": "vision/tools/run_race.py",
+      "sha256": "cdb7f3abcc9a75e2f78250a1107827d28c955c1274e92259acd8957381cedc7d"
+    },
+    {
+      "path": "vision/web/competition/app.js",
+      "sha256": "8fd0857b4ef8e6e4b491dbe87160a2310931af4e40729b1db5cf3ea169616f2a"
+    },
+    {
+      "path": "vision/web/competition/index.html",
+      "sha256": "9f3e9d35eddd8a49f11e2c804720e0bc3b283487eba005aa348dea48193a9a6c"
+    },
+    {
+      "path": "vision/web/competition/style.css",
+      "sha256": "fc7f85254485973912da4e8de3f4e36b0fe78c1784dba3ee7411c07d7e23969d"
+    },
+    {
+      "path": "vision/web/debug/app.js",
+      "sha256": "7d6b3a027432f7b2c9ffffa77565058c7b9e0a33f8f7b07322bef8f18122b58a"
+    },
+    {
+      "path": "vision/web/debug/index.html",
+      "sha256": "32e7a05778f95a25d9bf34269bcbf07a14f05297d9004f0d4c4d619a29e1d0cb"
+    },
+    {
+      "path": "vision/web/debug/style.css",
+      "sha256": "76be4c2cfa41052e92dea0b11a28630a193cdebb2bc544f8b5e1bca3e1b9593c"
+    },
+    {
+      "path": "vision/tests/test_traffic_fast_red.py",
+      "sha256": "b451cfb8e81a6604411a2aef75824b83ae4b7a0760a2a594e46f01d07a3f48d0"
+    },
+    {
+      "path": "vision/tests/test_traffic_fast_red_safety.py",
+      "sha256": "4d9ee04e2f1259c268977ba1ea7b9303d26e7be112f3197df805f0459022e150"
+    },
+    {
+      "path": "vision/src/carvision/traffic_signal.py",
+      "sha256": "6b9fb67e00ae51e9a9b1ba01dca086d48a67ce23c76b7689effbd88b6e939d4c"
+    },
+    {
+      "path": "vision/src/carvision/traffic_tracking.py",
+      "sha256": "9bdef826f748f9396ad99b714f27b9f4a163a5e48d8cdf968411ef1798bd2124"
+    },
+    {
+      "path": "vision/tests/test_traffic_approach_speed.py",
+      "sha256": "434d60075213017b3efbe294775453825effce2ae5c91673d48cdb362c53a453"
+    },
+    {
+      "path": "vision/tests/test_traffic_early_stop.py",
+      "sha256": "fef85b53d905cb094e7c02f6b0145a5d79be5054308e4d0742155f42e446076c"
+    },
+    {
+      "path": "vision/tests/test_traffic_fixture_selection.py",
+      "sha256": "bfee81b11c16caf8698980f414628884cd5451b5f4cef75a6c075f022b54e8c2"
+    },
+    {
+      "path": "vision/tests/test_traffic_tracking.py",
+      "sha256": "0e4629e8dd908620d1ec63a15eb961abcbb79422934b65718042aa80077fb6f5"
+    },
+    {
+      "path": "vision/tests/test_traffic_gate_trigger.py",
+      "sha256": "470e6b6d59f5b1b8e134baadda082578b930ea45df2f7b87de49b046c3ed63e8"
+    },
+    {
+      "path": "vision/tests/test_race_prefix_stop.py",
+      "sha256": "b86a9f7095532d54cea819c99b1d660d68e4a251b20fdc79b370001586d171a7"
+    },
+    {
+      "path": "vision/tests/test_race_start_readiness.py",
+      "sha256": "6eaca1b5b8a8561eca7dda1a61a7b2906940e011d9d49e066c7734c85d31b74e"
+    },
+    {
+      "path": "vision/tests/test_real_handoff_owner.py",
+      "sha256": "fc6e274bc2f3b44c3877cb3cbf38a48e12f96f6f9989bb2bd39ec00a79e34122"
+    },
+    {
+      "path": "vision/src/carvision/cone_corridor.py",
+      "sha256": "d3602641cf691022d3fce23dca2062569bd8e8dd5ef12ba959f34fc772bd495f"
+    },
+    {
+      "path": "vision/src/carvision/cone_evidence.py",
+      "sha256": "09cfc06ead4653d25dfdf05fe4ac29c722113474491096d17bd69d767975c082"
+    },
+    {
+      "path": "vision/src/carvision/cone_execution.py",
+      "sha256": "1266aceb7dd4e5eaef38c01c5bce71be9d73c9b3e3b8e8ebff6c6ac38fe550d0"
+    },
+    {
+      "path": "vision/tests/test_cone_cancel_provenance.py",
+      "sha256": "0e4b421fbfa51badfde66ad66b51fe166ba371c562457f935d23bbac9d7f3527"
+    },
+    {
+      "path": "vision/tests/test_cone_turn_controller.py",
+      "sha256": "2b9d80e4a439d4d37a2747916e2dfc2b63f005dcfcc217eca104130512924155"
+    },
+    {
+      "path": "vision/tests/test_cone_turn_corridor.py",
+      "sha256": "c556207d6994bb0ef54bd40b2be4d03d8a2987434a8f7c77fa8654b299675e97"
+    },
+    {
+      "path": "vision/tests/test_cone_turn_execution.py",
+      "sha256": "fccd1b8e84024f0d736087e3ba41872f3d1ea4119f5cad6dcef1a56b742ccab3"
+    },
+    {
+      "path": "vision/tests/test_cone_turn_output_contract.py",
+      "sha256": "c966e8cb23c77c041455a71cf6161e1299f8d680e1daf09ddad85687d28bc2cd"
+    },
+    {
+      "path": "vision/tests/test_cone_contact_continue.py",
+      "sha256": "c8a5a8929f101259e0e96197ac2bbc28e17d53fb7c3d14a5e6a0d7dbee6ea299"
+    },
+    {
+      "path": "vision/src/carvision/cone_response.py",
+      "sha256": "d17dae248cfa4a5c36bf7384d6be5c95b9fd7641967cc8c283aceb02975298d2"
+    },
+    {
+      "path": "vision/tests/fixtures/cone-response-699701-navigation.json",
+      "sha256": "9280575eb541254c2fc1a787e996ed3638e433df21a0943b1ff5f6ee523145be"
+    },
+    {
+      "path": "vision/tests/test_cone_response.py",
+      "sha256": "c5df8d50ea5747368b89ab1641e40421bf61773ee17558914568bf98f1d24b43"
+    },
+    {
+      "path": "vision/tests/test_cone_response_integration.py",
+      "sha256": "6c9cee56d269ac273045a0fe2eeeec541a35f03daf2b8ad760e6bf752c7ddfc1"
+    },
+    {
+      "path": "vision/tests/test_cone_visual_targets.py",
+      "sha256": "1eb371b886a398f039f6bbe245d672f9cc503223973faa3c5e0128585737777e"
+    },
+    {
+      "path": "vision/tests/test_cone_observed_control.py",
+      "sha256": "495f2c8627dbf10bd1448898427f1298b37ed120ac12f0d337a1fa11b11e3aec"
+    },
+    {
+      "path": "vision/tests/test_cone_observed_corridor.py",
+      "sha256": "39a67747b168d0d10ea9b2ece7e79e4e3c39bc95b637bf4943d14f9c1db2ce59"
+    },
+    {
+      "path": "vision/tests/test_cone_observed_corridor_integration.py",
+      "sha256": "1a7a30c78cca98a425d452a5ddebdbb5aa17182da1f4471c3f67a71b72f7f297"
+    },
+    {
+      "path": "vision/src/carvision/cone_maneuver.py",
+      "sha256": "c2ab1cd47e93cd2df3e3d67a2c509bd2ac41c9b1384ef74c427dee19b807af18"
+    },
+    {
+      "path": "vision/src/carvision/cone_route.py",
+      "sha256": "cc121a73caeaa446f02510cb1f2a3e2cc198ff8cb2b168e151c8a92c6d26cd34"
+    },
+    {
+      "path": "vision/tests/test_cone_identity_recovery.py",
+      "sha256": "817f016e2c8467ae10ae79bfca0803e67e6bc0a839a56fc44ac4e960ca1c5669"
+    },
+    {
+      "path": "vision/tests/test_cone_maneuver.py",
+      "sha256": "347c83804981249194cc35cd08fea7c3cdba0391fa8f4998c9aebe320820148a"
+    },
+    {
+      "path": "vision/tests/test_cone_maneuver_integration.py",
+      "sha256": "acc36cf49a023220dc3bd770f0c715ec7165e58b2d59bfd4deba68088d64d5e0"
+    },
+    {
+      "path": "vision/tests/test_cone_route.py",
+      "sha256": "fa09d5603988517dbb82c6cf06e00a1387db8514d6635a58b61484ea1a7d6cb8"
+    },
+    {
+      "path": "vision/src/carvision/cone_mission.py",
+      "sha256": "31277f0f723f41df8cd72f1025efd48763f25dd1e045da1563906332976c2b16"
+    },
+    {
+      "path": "vision/src/carvision/cone_passage.py",
+      "sha256": "e85a0415624be3912bd447d4f0ae6cb4180952ccd2beecace0cdb46927008c64"
+    },
+    {
+      "path": "vision/src/carvision/lane_following.py",
+      "sha256": "8bde32280ad116b5f0409d1a3e91a2963d191af2f95a88e845f2f74748ec89ef"
+    },
+    {
+      "path": "vision/tests/cone_mission_fixture.py",
+      "sha256": "8c104883c99a71e47969a8b107430f9f16043bcc14b2ed0f351d21e48276b7db"
+    },
+    {
+      "path": "vision/tests/test_cone_assignment.py",
+      "sha256": "139e62e96ab5b6a1e700f9af918deff7a4045c8adcb2979c2244ee2859c7954d"
+    },
+    {
+      "path": "vision/tests/test_cone_mission.py",
+      "sha256": "b880a686b86953ab74de6d9c600189663c0806172ac959497435ed37bd1083d6"
+    },
+    {
+      "path": "vision/tests/test_cone_passage.py",
+      "sha256": "55f298c85a0e457f523be35a373a6b5cebbd2336d172c2aa788429256d03ef85"
+    },
+    {
+      "path": "vision/tests/test_lane_following.py",
+      "sha256": "4a8ecd4d6f132402641855a37f145cbd85389c82f4828108c86161627e72b0d0"
+    },
+    {
+      "path": "vision/tests/test_lane_mission_integration.py",
+      "sha256": "ae4bc828187b5284585d82e5ee86ffefa63cd37b758d48d077c132c423aacf50"
+    },
+    {
+      "path": "vision/tests/test_lane_source_priority.py",
+      "sha256": "39554fc5bd070d94fc30d988f8f5206941d8bb51102b4c563afd7820cf973844"
+    },
+    {
+      "path": "vision/tests/test_lane_stop_resume.py",
+      "sha256": "52af2f4ce566abea9f30ebb76409d18420ef030820942fa1a415332ed1fca8fb"
+    },
+    {
+      "path": "vision/tests/test_race_camera_efficiency.py",
+      "sha256": "dd592efdac79df018a135941138b8bf5f8528669601f071024db5c5f6f309a92"
+    },
+    {
+      "path": "vision/src/carvision/cone_guidance.py",
+      "sha256": "f47a27a99e68b34ad74a6cecc8dfa93e19615b708250378520b040aee59636ab"
+    },
+    {
+      "path": "vision/tests/test_cone_guidance.py",
+      "sha256": "e26af84427b7194372c3abaea20556f4219a9892c67be1cbf4dea698b898ab12"
+    },
+    {
+      "path": "vision/tests/test_cone_guidance_integration.py",
+      "sha256": "c481f0dd855ed8d0c7636dc4cd106d1af65d1f5794fe28156f7c19c258b04e15"
+    },
+    {
+      "path": "vision/tests/test_cone_guidance_selection.py",
+      "sha256": "cac5babbc919f3e1cda78b77e1760a3c6f4286060156fd1dfa95c5e222cdcd13"
+    },
+    {
+      "path": "vision/tests/test_cone_guidance_wiring.py",
+      "sha256": "64de369bc8eba176874b48732d0a8a7078486312debd446d673ed440ee499c8d"
+    },
+    {
+      "path": "vision/tests/test_cone_passage_anchor.py",
+      "sha256": "e0fbe5ff70e43949302cf9e4f7d999467684359567b1518c5a2804e97edcba18"
     }
   ],
   "pi_checks": {
     "rc": 0,
-    "stdout": "........................................................................ [ 52%]\n..........s.....................................................s        [100%]\n=========================== short test summary info ============================\nSKIPPED [1] vision/tests/test_manual_heartbeat.py:14: Node.js is required for delayed browser-response checks\nSKIPPED [1] vision/tests/test_steering_pwm.py:156: Node.js is required for PWM browser checks\n135 passed, 2 skipped in 0.77s\n",
-    "stderr": ""
+    "stdout": "........................................................................ [  2%]\n........................................................................ [  4%]\n........................................................................ [  7%]\n.....................................ss................................. [  9%]\n........................................................................ [ 11%]\n........................................................................ [ 14%]\n.......................................................................s [ 16%]\n..........................................................ss............ [ 18%]\n........................................................................ [ 21%]\n........................................................................ [ 23%]\n........................................................................ [ 25%]\n........................................................................ [ 28%]\n...................s................s................................... [ 30%]\n........................................................................ [ 32%]\n........................................................................ [ 35%]\n........................................................................ [ 37%]\n........................................................................ [ 39%]\n........................................................................ [ 42%]\n........................................................................ [ 44%]\n.....s.................................................................. [ 46%]\n..s.s................................................................... [ 49%]\n........................................................................ [ 51%]\n........................................................................ [ 54%]\n.....................s.................................................. [ 56%]\n........................................................................ [ 58%]\n.................................................s...................... [ 61%]\n........................................................................ [ 63%]\n........................................................................ [ 65%]\n........................................................................ [ 68%]\n.............................s.......................................... [ 70%]\n........................................................................ [ 72%]\n........................................................................ [ 75%]\n........................................................................ [ 77%]\n....s................................................................... [ 79%]\n........................................................................ [ 82%]\n......................................................................s. [ 84%]\n........................................................................ [ 86%]\n.....ssssssss........................................................... [ 89%]\n........................................................................ [ 91%]\n........................................................................ [ 93%]\n.............................s.......................................... [ 96%]\n........................................................................ [ 98%]\n..........................................                               [100%]\n- generated xml file: /home/pi/smartcar-race-20261002/traffic-update-tests.xml -\n3042 passed, 24 skipped in 54.69s\n",
+    "scope": "traffic timing, present-signal release, full-flow handoff, brake bounds and page regressions"
   },
-  "public_repack": {
-    "generated_at": "2026-10-09T14:53:45.537024+08:00",
-    "pi_checks_are_historical": true,
-    "historical_pi_scope": "run/s3-pwm-deploy-20261008/1791468141111867700-5g-lease500",
-    "pi_rechecked_this_sync": false,
-    "original_hashes": "docs/reviews/deployment-baseline-20261009.json",
-    "publication_reason": "Preserve latest code while merging team documentation, redacting launcher address and normalizing checkout line endings.",
+  "operator_confirmed_esc_off_before_deployment": true,
+  "physical_driving_retested": false,
+  "motion_commands_sent": false,
+  "confirmed_reverse_trim_update": {
+    "at": "2026-10-09T18:24:40+08:00",
+    "offset_us": 30,
+    "forward_center_us": 1610,
+    "reverse_center_us": 1640,
+    "validation": "unopened backend constructor and deployment hashes",
+    "motion_commands_sent": false,
+    "operator_statement": "现在基本走直了 可以了"
+  },
+  "previous_pi_checks": {
+    "rc": 0,
+    "stdout": "........................................................................ [  2%]\n........................................................................ [  4%]\n........................................................................ [  7%]\n.....................................ss................................. [  9%]\n........................................................................ [ 12%]\n.........................................s.............................. [ 14%]\n............................ss.......................................... [ 17%]\n........................................................................ [ 19%]\n........................................................................ [ 21%]\n........................................................................ [ 24%]\n............................................s................s.......... [ 26%]\n........................................................................ [ 29%]\n........................................................................ [ 31%]\n........................................................................ [ 34%]\n........................................................................ [ 36%]\n........................................................................ [ 39%]\n........................................................................ [ 41%]\n..............................s......................................... [ 43%]\n...........................s.s.......................................... [ 46%]\n........................................................................ [ 48%]\n........................................................................ [ 51%]\n..............................................s......................... [ 53%]\n........................................................................ [ 56%]\n........................................................................ [ 58%]\n..s..................................................................... [ 61%]\n........................................................................ [ 63%]\n........................................................................ [ 65%]\n......................................................s................. [ 68%]\n........................................................................ [ 70%]\n........................................................................ [ 73%]\n........................................................................ [ 75%]\n.............................s.......................................... [ 78%]\n........................................................................ [ 80%]\n........................................................................ [ 83%]\n.......................s................................................ [ 85%]\n..............................ssssssss.................................. [ 87%]\n........................................................................ [ 90%]\n........................................................................ [ 92%]\n......................................................s................. [ 95%]\n........................................................................ [ 97%]\n...................................................................      [100%]\n- generated xml file: /home/pi/smartcar-race-20261002/traffic-update-tests.xml -\n2923 passed, 24 skipped in 53.51s\n",
+    "scope": "traffic timing, present-signal release, full-flow handoff, brake bounds and page regressions"
+  },
+  "manual_symmetric_steering_update": {
+    "at": "2026-10-12T23:22:48.590551+08:00",
+    "source": "live source snapshot plus reviewed pending steering patch",
+    "manual_center_us": 1610,
+    "manual_left_us": 1790,
+    "manual_right_us": 1430,
+    "field_verified": false,
     "local_tests": {
-      "passed": 771,
-      "failed": 0,
-      "skipped": 3,
-      "platform": "Windows Python 3.12"
+      "passed": 178,
+      "skipped": 2
     },
-    "no_vehicle_commands_sent": true,
-    "motion_config_and_verification_flags_unchanged": true
+    "pi_tests": {
+      "passed": 177,
+      "skipped": 3
+    },
+    "operator_confirmed_esc_off_and_raised": true,
+    "autonomous_limits_changed": false
+  },
+  "current_steering_reference_update": {
+    "at": "2026-10-13T00:13:39.869948+08:00",
+    "requested_by_user": true,
+    "left_us": 1870,
+    "center_us": 1610,
+    "right_us": 1350,
+    "source": "2026-10-13 operator accepted 1350-us right; explicitly requested symmetric left 1870, center 1610, right 1350 us",
+    "right_raised_observation_accepted": true,
+    "left_1870_physically_tested": false,
+    "symmetric_span_us": 260,
+    "manual_and_autonomous_s3_bounds_updated": true,
+    "wheel_angles_and_radii_verified": false,
+    "formal_verified_flags_changed": false,
+    "local_tests": {
+      "tests": 622,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "passed": 620
+    },
+    "pi_tests": {
+      "tests": 622,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 5,
+      "passed": 617
+    },
+    "hardware_actions_during_update": false,
+    "verification_input_sha256": {
+      "cone-trial.json": "326bd56dd576a7ab52f16c57497cc40c3c3768cd8cfe4ec6009c9ed75ef44b82",
+      "deploy_cone_trial.py": "1a0d25f20e3f46293168d9621a772039bb01ab7a9b99e7a04b234593c17afdb0",
+      "deploy_traffic_trial.py": "82b57afaf9ccc7496098e72a612dad7c4c40ebf8bbfe0a4b776852c4ba84cccb"
+    }
+  },
+  "race_deployment_recheck": {
+    "motion_commands_sent": false,
+    "physical_driving_retested": false,
+    "checked_at_epoch_s": 1791910895.8781517
+  },
+  "manual_speed_updates": [
+    {
+      "record": "/home/pi/smartcar-race-20261002/run/plan-b-speed-deploy-1791946688441287300",
+      "prior_pi_checks": {
+        "rc": 0,
+        "stdout": "..................s..................................................... [ 18%]\n........................s............................................... [ 37%]\n........................................................................ [ 55%]\n........................................................................ [ 74%]\ns..........................................................ss........... [ 92%]\n.............................                                            [100%]\n384 passed, 5 skipped in 7.38s\n\n.........................................................s               [100%]\n57 passed, 1 skipped in 0.55s\n",
+        "scope": "deployed task regressions and preserved manual runtime regressions"
+      },
+      "hardware_output": false,
+      "speed_mapping_field_verified": false,
+      "endpoint_source": "operator supplied 2026-10-14"
+    },
+    {
+      "record": "/home/pi/smartcar-race-20261002/run/plan-b-speed-deploy-1791954137467806500",
+      "prior_pi_checks": {
+        "rc": 0,
+        "record": "/home/pi/smartcar-race-20261002/run/plan-b-speed-deploy-1791946688441287300",
+        "output": "................s.....................                                   [100%]\n37 passed, 1 skipped in 0.40s\n",
+        "software_only": true,
+        "hardware_output": false
+      },
+      "hardware_output": false,
+      "speed_mapping_field_verified": false,
+      "endpoint_source": "operator supplied 2026-10-14"
+    }
+  ],
+  "edge_pd_deployment": {
+    "checked_at_epoch_s": 1792894558.4791493,
+    "motion_commands_sent": false,
+    "physical_driving_retested": false,
+    "backup": "/home/pi/smartcar-race-20261002/run/edge-pd-deploy-20261020-1792894468012346900/before"
+  },
+  "departure_to_crosswalk_update": {
+    "at_epoch_s": 1792677876.3555195,
+    "backup": "/home/pi/smartcar-race-20261002/run/blue-board-update-20261022/before",
+    "motion_commands_sent": false,
+    "physical_driving_retested": false,
+    "files": [
+      "vision/src/carvision/departure.py",
+      "vision/src/carvision/departure_controls.py",
+      "vision/src/carvision/race_flow.py",
+      "vision/src/carvision/race_flow_controls.py",
+      "vision/src/carvision/competition_page.py",
+      "vision/tools/serve_boot_test.py",
+      "vision/tests/test_departure.py",
+      "vision/tests/test_departure_to_crosswalk.py",
+      "vision/tests/js/competition_page.cjs"
+    ]
+  },
+  "board50_departure_update": {
+    "at_epoch_s": 1792679083.3508198,
+    "backup": "/home/pi/smartcar-race-20261002/run/blue-board-50-update-20261022/before",
+    "motion_commands_sent": false,
+    "physical_driving_retested": false,
+    "files": [
+      "vision/src/carvision/departure.py",
+      "vision/src/carvision/departure_trial.py",
+      "vision/src/carvision/departure_controls.py",
+      "vision/src/carvision/race_flow.py",
+      "vision/src/carvision/race_flow_camera.py",
+      "vision/tests/test_departure.py",
+      "vision/tests/test_departure_board50.py",
+      "vision/configs/departure.local.json"
+    ]
+  },
+  "mutable_config_reconciliation": {
+    "at_epoch_s": 1792836424.3226452,
+    "path": "vision/configs/departure.local.json",
+    "old_manifest_hash": "251ebbd8bc246033fc13ff4c17dd07ab8cc402b324c9a92a1e996744b9c82a89",
+    "current_file_hash": "a6b94e4ac25d5346afb1426cdd773ef77439a63559298d7af12bcea57d228026",
+    "reason": "UI serialized 50 as 50.0; retained current 50 percent and 0.5 second values; configuration file was not modified.",
+    "original_manifest": "/home/pi/smartcar-race-20261002/run/crosswalk-manifest-original-20261024.json",
+    "motion_commands_sent": false
+  },
+  "crosswalk_near_edge_update": {
+    "at_epoch_s": 1792836813.7034094,
+    "backup": "/home/pi/smartcar-race-20261002/run/crosswalk-near-edge-roundsync-20261024/before",
+    "motion_commands_sent": false,
+    "physical_driving_retested": false,
+    "files": [
+      "vision/src/carvision/brake_trial.py",
+      "vision/tests/test_crosswalk_round_snapshot.py"
+    ]
+  },
+  "validated_runtime_settings": {
+    "vision/configs/crosswalk-distance.local.json": {
+      "validator": "carvision.brake_parking.crosswalk_calibrated_settings",
+      "range_cm": [
+        40,
+        65
+      ],
+      "calibration_id": "crosswalk-near-edge-20261024-final",
+      "initial_sha256": "c9da91a3b95acaa3620d43f020ce75140bb90b14e100e8e892cfe680f84b9f4a",
+      "reason": "Editable next-round brake trigger; geometric calibration and all executable sources remain reviewed."
+    }
+  },
+  "traffic_1s_350ms_update": {
+    "checked_at_epoch_s": 1792897755.9622774,
+    "backup": "/home/pi/smartcar-race-20261002/run/traffic-update-20261025-1792897567812408600/before",
+    "source_archive_sha256": "3b70e18dba51913d7eb679c4ebfcdfc158e15a7a5087f2403d3d1d637b132380",
+    "review_corrections": [
+      "Current red/yellow veto; current green must come from the historically qualified camera.",
+      "Web badge uses current signal; history and release confirmation are displayed separately."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "autonomy_cleanup_20261025": {
+    "checked_at_epoch_s": 1792901037.7220924,
+    "backup": "/home/pi/smartcar-race-20261002/run/traffic-update-20261025-1792898314584155400/before",
+    "source_archive_sha256": "7637a75357f579cec9936d2f0e0bfedb055aec22110d1bf88d953730c4ec4656",
+    "review_corrections": [
+      "Explicit independent run_race/run_debug entries and static pages; shared task cores.",
+      "Flat debug task registry and explicit production composition, no global launcher or JS patching.",
+      "Shared manual/autonomous executor with immutable session ownership and bounded lease/braking.",
+      "Current motion stamp continuity during warm handoff; complete preflight before a full race.",
+      "Obstacle no-gap/line-loss/boundary guards and same-side two-cone passage.",
+      "Shared metric parking core and continuous stopped recovery; no invented calibration.",
+      "Bounded white-line brightness fallback with original geometry quality checks.",
+      "Solid quadrilateral blue board with true pixel area and unchanged departure sequence.",
+      "Current human-supplied geometry recorded separately from conservative 42cm envelope.",
+      "Desktop entry restores the previous idle service after a failed drop-in installation, including partial writes.",
+      "Readiness count uses the explicit blocker list without adding group headings."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "traffic_fast_red_fix_20261025": {
+    "checked_at_epoch_s": 1792920352.1186626,
+    "backup": "/home/pi/smartcar-race-20261002/run/traffic-fast-red-fix-20261025-1792919189113661100/before",
+    "source_archive_sha256": "0f1b9f4a1457b13838f25f61a650641805d07299a6c2ae88da204b4ea1249124",
+    "review_corrections": [
+      "Three distinct fresh red frames from one fixture and one camera trigger bounded braking.",
+      "Fast red has 200ms span, 150ms gap/age budgets; unresolved candidates conservatively stop on timeout.",
+      "Current red/yellow and unresolved new waiting-stage red veto green; qualified history requires current same-camera green.",
+      "Preserve formal red evidence through braking, settling and rebraking; start a fresh green window after stopping.",
+      "Close already-served fast candidates on stationary wait; retain frame identity to reject cached red reuse.",
+      "Keep current race handoff, obstacle/parking code, all UI files and on-car saved throttle unchanged.",
+      "Revalidate the existing saved traffic parameters instead of restoring the attachment old throttle."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "traffic_early_stop_fix_20261025": {
+    "checked_at_epoch_s": 1792923328.2407594,
+    "backup": "/home/pi/smartcar-race-20261002/run/traffic-early-stop-fix-20261025-1792922129512021000/before",
+    "source_archive_sha256": "05a393df265aa25d96417a06d15110822c01d77f8c4520a4ec5a363ffc5edb25",
+    "review_corrections": [
+      "First trustworthy fresh red or yellow requests immediate stop-only finite braking.",
+      "Per-camera fixture identity is acquired on two distinct continuous frames; unacquired evidence cannot enter formal red/green votes.",
+      "Reject remote fixture substitutions; loss over150ms, cropping or an approaching image edge stops forward motion.",
+      "No initial lock after300ms full-route entry or after neutral arming stops blind search.",
+      "Standalone and race traffic approach use min(saved PWM,1570), with one exact traffic-only actuator setpoint.",
+      "Formal1s red and post-stop2s green remain; release requires the same locked camera fixture to have confirmed this rounds red.",
+      "Keep F/B1400us350ms finite braking, leases, stationary checks and all other actuator actions unchanged.",
+      "Shared flow/actuator changes are limited to the traffic speed/action path; obstacle, parking, handoff and web behavior are unchanged.",
+      "Revalidate the exact saved traffic parameters without overwriting their bytes or relaxing global integrity checks."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "traffic_gate_trigger_fix_20261025": {
+    "checked_at_epoch_s": 1792924744.489551,
+    "backup": "/home/pi/smartcar-race-20261002/run/traffic-gate-trigger-fix-20261025-1792924114729173800/before",
+    "source_archive_sha256": "e145a039b52e9cd5fe6efdf5b3666f4919d59ee3ca2fa4d660c32234c9eb3e8a",
+    "review_corrections": [
+      "Correct the external1m photocell chronology: off/unknown can approach within the saved time budget, without claiming whether the gate was crossed.",
+      "Remove the300ms acquisition, image-edge/prediction and150ms target-loss stops that could deadlock the vehicle before the gate.",
+      "Preserve immediate stop-only braking on fresh credible red/yellow; shape-change red/yellow may stop but never enter formal votes.",
+      "Stationary without formal red enters neutral verify_red, with a first-stop-anchored3s deadline that late evidence or rebraking cannot renew.",
+      "Only formal1s red plus continuous visual still enters fresh2s green waiting for the same locked fixture.",
+      "Motion failure, no progress or approach timeout sends a bounded brake before fault; it cannot wait for untriggered green or restart automatically.",
+      "Preserve traffic-only1570 cap, F/B1400us350ms finite pulses, actuator leases, full-flow handoff, obstacle/parking logic and all web files.",
+      "About25cm braking is an explicitly authorized trial estimate, never recorded as verified calibration or a guarantee.",
+      "Preserve saved GUI parameter bytes and revalidate only their exact manifest entry."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "race_start_fix_20261025": {
+    "checked_at_epoch_s": 1792927953.009289,
+    "backup": "/home/pi/smartcar-race-20261002/run/race-start-fix-20261025-1792925346949828800/before",
+    "source_archive_sha256": "632bf80d4c185df7f2c4512d6451127d7bd5072f83e42640c4a0387d8b1a19dd",
+    "review_corrections": [
+      "Separate entry readiness from complete metric parking readiness; preserve all13 true parking blockers.",
+      "Allow explicit authorized entry to board/crosswalk/traffic/cone stages without parking calibration.",
+      "The browser respects the explicit new entry report, preserves old-service fallback and retains all online/owner/task/cleanup checks.",
+      "Display the remaining parking conditions and explain that the run stops after cones; no automatic prepare or race_enter requests.",
+      "Block the first unready parking-search/entry/payment intent before actuator.send and close through the existing finite-brake release.",
+      "Preserve all field declarations, ownership, page leases, emergency stops, shared handoff and actuator envelopes.",
+      "No parking calibration, verified flag, traffic logic, avoidance/parking algorithm, HTML/CSS or desktop/service entry was changed."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "handoff_owner_fix_20261025": {
+    "checked_at_epoch_s": 1792928882.3099327,
+    "backup": "/home/pi/smartcar-race-20261002/run/handoff-owner-fix-20261025-1792928363664034400/before",
+    "source_archive_sha256": "f2531de8ee504616f5283b6cb4d07f84e7c7959f9bf90e082d8414874956920c",
+    "review_corrections": [
+      "Expose the real ManualDrive.owner as owner_client in WorkerAutonomyOwner.status; do not invent ownership from a request.",
+      "Require an enabled, same-page prepared worker before borrowing; keep the worker-side owner, neutral, token and sequence checks.",
+      "Allow explicit re-enable in ready+disabled state, with correct waiting text and disabled guards during settling/enabled/other tasks.",
+      "Status/rendering stays read-only; no automatic enable, command, prepare or race_enter is sent.",
+      "Add an actual BootTestDrive/Deferred/OwnedWorker/WorkerAutonomyOwner/ManualDrive class-chain regression with fake I/O only.",
+      "Preserve driving algorithms, parking blockers, prefix-only limit, calibration, actuator bounds and service/desktop entries."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "cone_turn_fix_20261025": {
+    "checked_at_epoch_s": 1792932441.9119823,
+    "backup": "/home/pi/smartcar-race-20261002/run/cone-turn-fix-20261025-1792931113369624200/before",
+    "source_archive_sha256": "399d9c64b67d0441ff2720fe7a516577f13dbaa48b3aea568ea33b42435c7366",
+    "review_corrections": [
+      "Enable bounded curve/single-edge corridors only for obstacle observation and the cones race stage; preserve other stage acceptance.",
+      "Require three distinct same-camera fresh paired lane frames across at least 0.15 seconds before starting forward.",
+      "Single-edge recovery follows a currently observed stripe, keeps the actual paired timestamp and expires within 0.25 seconds.",
+      "Reduce obstacle PWM/steering during degradation or turns using a frozen lower-setpoint whitelist; preserve the original maximum, leases and finite F/B failsafe.",
+      "Cached selected-camera frames never renew a moving output lease or add pass/return evidence.",
+      "Pass counting requires actual paired evidence; after two estimated passes require lateral and heading convergence for 0.3 seconds before handoff.",
+      "Preserve the first stop source/navigation/last intent; retain bounded later cancellation history and separate cleanup failure.",
+      "Keep all webpage bytes, red-light/parking algorithms, calibration and operator-saved settings unchanged."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "cone_recovery_1s_20261025": {
+    "checked_at_epoch_s": 1792933843.9756193,
+    "backup": "/home/pi/smartcar-race-20261002/run/cone-recovery-1s-20261025-1792933354519858000/before",
+    "source_archive_sha256": "291119652e832614a419bcbf9f0a769ff492f143c0deb155eed60d4b3676e201",
+    "review_corrections": [
+      "Extend only ContinuousConeController obstacle lane recovery from 0.4 to 1.0 seconds, including trial and race cones.",
+      "Report the actual obstacle recovery duration in session status/progress and synchronize time text only.",
+      "Keep stable-lane reset, lower PWM, limited steering, single-edge 0.25-second expiry, frame validity, leases and braking unchanged.",
+      "Preserve the shared LowSpeedController 0.4-second budget used by other stages, all calibration and saved settings."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "cone_contact_continue_20261025": {
+    "checked_at_epoch_s": 1792936770.0151765,
+    "backup": "/home/pi/smartcar-race-20261002/run/cone-contact-continue-20261025-1792935884013444100/before",
+    "source_archive_sha256": "835114ab7fbc61ab532c1f8f6f6f97efd9a64af37436fba598cc6a73be5764f8",
+    "review_corrections": [
+      "Human explicitly requests continued obstacle driving even if a cone may be contacted; disable cone-only clearance stops by default.",
+      "Keep the original optional cone clearance policy available through the strictly boolean internal stop_for_cones argument; trial and race use its False default.",
+      "When no cone avoidance gap is confirmed, retain the target within the observed white-line envelope and continue; do not fabricate passed-cone evidence.",
+      "Preserve stable paired-lane start, one-second lane recovery, 0.25-second single prediction/frame validity, leases, finite braking and emergency stop.",
+      "Do not change the shared LowSpeedController or traffic, crosswalk, parking, calibration, saved settings, page layout or button interactions."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "cone_avoidance_response_fix_20261025": {
+    "checked_at_epoch_s": 1792939320.6736667,
+    "backup": "/home/pi/smartcar-race-20261002/run/cone-avoidance-response-20261025-1792938231186480500/before",
+    "source_archive_sha256": "dd6fce69f2d18a186ee5db2b7adf95908d8f947a1241e430a432ef77080baa20",
+    "review_corrections": [
+      "Bound opposing heading feedback during a current avoidance demand so it cannot erase the lateral request.",
+      "Do not let single-edge uncertainty alone reverse a soft warning; retain actual boundary danger and limited recovery.",
+      "Extend a locked cone using only current same-camera/frame confirmed pixels, never an old lane fraction in image coordinates.",
+      "Let a currently confirmed obstacle occupying the old target channel take over without inventing a passed-cone count.",
+      "Suppress immediate reacquisition of the just-retired ID for 0.3 seconds only; do not permanently ignore it or mark it passed.",
+      "Set trial/cone-stage default steering gain to 1.5, preserving explicit selections and current PWM/lease bounds.",
+      "Log target ID/coordinate space/provenance/handoff reason so actual output changes can be inspected.",
+      "Keep cone contact stops disabled as requested; preserve startup, one-second white-line recovery, 0.25-second frame/single limits, emergency and other task algorithms."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "cone_observed_corridor_fix_20261025": {
+    "checked_at_epoch_s": 1792941076.4529767,
+    "backup": "/home/pi/smartcar-race-20261002/run/cone-observed-corridor-20261025-1792940224816424000/before",
+    "source_archive_sha256": "645579c847e7d2f9ca3ebaf76e631138790a9f93f14a1955a22ac8c649d1c5f8",
+    "review_corrections": [
+      "Evaluate the turn-aware lane corridor only inside its actual shared observation interval; do not extrapolate quadratic edges to a cone foot.",
+      "Reject or downgrade only the obstacle when its current foot is outside the observed interval; preserve valid lane evidence and current visual pixels.",
+      "Remove the arbitrary three-to-one perspective width ratio while retaining positive widths, image bounds, fit/smoothness/coverage checks.",
+      "Separate observed-lane and obstacle-position diagnostics, bounded to sixteen obstacle rows plus omitted count.",
+      "Preserve historical target flags and current-pixel provenance; do not manufacture new lane targets, projected distance or passed-cone evidence outside observation.",
+      "Keep shared/legacy guidance, the response controller, gain 1.5, cone-contact continuation, all timeouts, web resources, calibration and saved settings unchanged."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "cone_maneuver_fix_20261026": {
+    "checked_at_epoch_s": 1792983103.6613822,
+    "backup": "/home/pi/smartcar-race-20261002/run/cone-maneuver-20261026-1792981664524067600/before",
+    "source_archive_sha256": "903e668ff0dfad90a7e347c3f867b78fd6d887c32632edf804c90d9d50ac729f",
+    "review_corrections": [
+      "Release the small-image 45 percent cap only for a locked cone with current same-frame pixel and observed-lane evidence; retain endpoints, slew and actual boundary priority.",
+      "Saved gain applies only to current cone avoidance; lane following, target-pending, boundary corrections and return use gain one.",
+      "Two continuous current observed pairs may resume a known same-target demand during recovery without resetting startup or the one-second loss budget; true single/missing retains its original limit.",
+      "A lost target has one capture-anchored 0.25-second pending deadline and a bounded decaying request; it is never automatically passed or declared a completed return.",
+      "Opt-in near-field tracking requires two fresh unique current matches; identity recovery cannot manufacture ground or pass evidence and resets old pass samples.",
+      "Choose among valid image endpoints from the current position without forced alternation; report dynamic route capability as unknown when calibrated metric trajectory evidence is absent.",
+      "Keep web resources, traffic lights, parking, calibration, saved settings, cone-contact continuation and all independent output leases unchanged."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "lane_unification_fix_20261026": {
+    "checked_at_epoch_s": 1792988373.5191634,
+    "backup": "/home/pi/smartcar-race-20261002/run/lane-unification-20261026-1792985218752334300/before",
+    "source_archive_sha256": "d0235db11e5e1523530a2d349164ecc60f8273db93d0cf8ac00f66c02c616fe8",
+    "review_corrections": [
+      "Continue from the current live maneuver fix; preserve all saved settings and calibration evidence.",
+      "All race lane-guided stages and obstacle steering use one PD/endpoint policy with gain one outside active cone avoidance.",
+      "Retain stage output continuity without repeated ESC initialization; cached navigation cannot renew forward output or delay the lane recovery deadline, and cannot suppress a new task brake.",
+      "A task-requested brake or stationary wait ends the old moving-lane budget; restart needs current fresh lane evidence, while missing-line or boundary neutral cannot erase the moving recovery deadline.",
+      "Only current same-camera same-frame same-foot-row evidence can establish a visual passage candidate; later current pixel side/bottom exit is required, never elapsed time alone.",
+      "Persistent secondary-camera task records survive target handoffs/timeouts; unresolved or overflowed records prevent completion without adding cone-contact stops.",
+      "Ordinary tracking uses full one-to-one strong assignments; all competing old targets can veto uniqueness and cross-camera fractions cannot merge task identities.",
+      "Urgent boundary reversal withdraws outward steering with neutral output before more forward power; ordinary soft corrections retain controlled slew.",
+      "Primary remains a temporary lane fallback; stable current paired secondary frames restore the main view without combining camera coordinates or direction demands.",
+      "Race perception fits each new view only once with its final phase mask and skips replaced intermediate previews; debug rendering remains available and cached frames never gain fabricated freshness.",
+      "Web resources, traffic signal recognition/brake timing, parking-entry algorithms, calibration flags and independent actuator limits/leases are unchanged."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
+  },
+  "cone_guidance_modes_fix_20261026": {
+    "checked_at_epoch_s": 1792990607.7573638,
+    "backup": "/home/pi/smartcar-race-20261002/run/cone-guidance-20261026-1792989050651385400/before",
+    "source_archive_sha256": "9d73647e9d267b3b8288290dba09e360391e7414607a24c3857e674f6db52929",
+    "review_corrections": [
+      "Continue from the live lane-unified-20261026 revision; preserve settings, calibration and the common normal lane follower.",
+      "Separate current road evidence from stable same-camera same-ID current target pixels; true target guidance may sustain avoidance without a paired lane and without the old universal 80us cap.",
+      "Retain endpoint/rate limits and reduce target-only power; only active cone avoidance uses gain 1.5 while normal and boundary guidance remains gain one.",
+      "One second bounds absence of both reliable road and target guidance; the independent five-second target-only episode is an unverified user trial estimate and cannot be extended by flicker, new IDs or cached frames.",
+      "Explicit avoidance camera hints preserve a current locked target view without affecting normal secondary camera priority or mixing camera geometry.",
+      "A visible motion target is not released merely because passage evidence expires; early same-foot-row clearance anchors plus later current pixel exit sequences form visual estimates only.",
+      "Neither elapsed time nor loss of a target counts a passed cone; unresolved mission records and stable lane return requirements remain.",
+      "Web files, red-light recognition/braking, parking entry algorithms, ordinary lane control, saved settings and independent camera/actuator/page leases are unchanged."
+    ],
+    "motion_commands_sent": false,
+    "physical_braking_retested": false
   }
 }

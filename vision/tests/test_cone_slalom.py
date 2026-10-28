@@ -155,6 +155,7 @@ def test_path_projection_cannot_rewind_completed_segments():
     assert error==pytest.approx(.9) and index==1
 
 
+@pytest.mark.skipif(os.environ.get('CARVISION_SKIP_PC_DEPLOY_TESTS')=='1',reason='PC deployment helper is not installed on the car')
 def test_deployment_respects_other_live_tasks_and_calibration():
     # Execute the actual read-only predicates without importing SSH/hardware
     # libraries into the offline suite.
@@ -280,7 +281,7 @@ function render(can,owner,count,reason){env.renderCone({cone_trial:{
  low_speed_test:{passed_count:count}},latest:{navigation:{}},readiness:{missing:[]}}});}
 render(true,'page',0,'等待开始');assert(!env.el('cone-test-start').disabled);
 render(true,'page',1,'第二桶避让');assert(env.el('cone-test-progress').textContent.includes('已过 1 个'));
-assert(env.el('cone-test-progress').textContent.includes('持续运行，由你停止'));
+assert(env.el('cone-test-progress').textContent.includes('越界或失联停止'));
 render(true,'other',1,'第二桶避让');assert(env.el('cone-test-start').disabled);
 render(false,'page',1,'白线无可通行空间');assert(env.el('cone-test-start').disabled);
 assert(env.el('cone-test-progress').textContent.includes('白线无可通行空间'));

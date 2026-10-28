@@ -7,6 +7,7 @@ All logged/input commands retain the actual pulse, not the placeholder.
 """
 
 from .steering import LEFT_US, RIGHT_US
+from .brake_timing import brake_cleanup_window_s
 import multiprocessing as mp
 import sys
 import time
@@ -31,6 +32,15 @@ class ConePulseGuard(PulseGuard):
                 any(type(p) is not int or not 1501<=p<=1625 for p in pulses)):
             raise ValueError('parking forward whitelist exceeds existing F/B envelope')
         self.parking_pulses=tuple(pulses)
+        traffic=settings.get('traffic_forward_us')
+        if traffic is not None and (type(traffic) is not int or not 1501<=traffic<=1575):
+            raise ValueError('traffic approach setpoint exceeds its low-speed envelope')
+        self.traffic_pulse=traffic
+        cone=settings.get('cone_forward_us',[])
+        if (not isinstance(cone,list) or len(cone)>2
+                or any(type(p) is not int or not 1501<=p<=min(1580,settings['pwm']['search_us']) for p in cone)):
+            raise ValueError('cone recovery setpoints must stay below the frozen forward envelope')
+        self.cone_pulses=tuple(cone)
         super().__init__(settings,self._write,mode=mode,forward_limit_us=1625)
 
     def _write(self,channel,pulse):
@@ -51,12 +61,17 @@ class ConePulseGuard(PulseGuard):
             if command.get('action')=='neutral' and steer!=1610:raise ValueError('neutral must center S3')
             self.actual_steering=steer
             parking={('parking_'+str(p)):p for p in self.parking_pulses}
-            pulse=parking.get(command.get('action'))
+            limited_cones={('cone_'+str(p)):p for p in self.cone_pulses}
+            traffic=command.get('action')=='traffic_approach'
+            if traffic and self.traffic_pulse is None:
+                raise ValueError('traffic approach has no frozen setpoint')
+            pulse=self.traffic_pulse if traffic else limited_cones.get(command.get('action'),parking.get(command.get('action')))
             if pulse is None:
                 super().accept({**command,'steering_us':1610},now)
             else:
                 if command.get('esc_us')!=pulse:
-                    raise ValueError('parking pulse does not match frozen measurement whitelist')
+                    raise ValueError('traffic pulse does not match its frozen setpoint' if traffic else
+                                     'parking pulse does not match frozen measurement whitelist')
                 # Reuse the installed PulseGuard unchanged. Only its forward
                 # setpoint is scoped to this synchronous accept; brake, lease,
                 # time/sequence checks and fault latch remain exactly the same.
@@ -103,7 +118,7 @@ def _worker(connection,settings,port,mode,right_us,left_us):
     finally:
         if guard:
             try:
-                guard.abort('worker ending',time.monotonic());end=time.monotonic()+.35
+                guard.abort('worker ending',time.monotonic());end=time.monotonic()+brake_cleanup_window_s(guard.s['brake_pulse_s'])
                 while guard.emergency_until is not None and time.monotonic()<end:
                     guard.tick(time.monotonic());time.sleep(.005)
                 guard.neutral()

@@ -7,6 +7,7 @@ import secrets
 import subprocess
 import threading
 import time
+from collections import deque
 
 from .manual_drive import DriveError, ManualDrive
 from .network_guard import interface_is_inactive
@@ -38,6 +39,7 @@ class BootTestDrive:
                          'steering_direction': 'center', 'motor_pulse_us': None,
                          'session_remaining_s': None, 'ready_in_s': 0}
             return {**state, 'boot_test': True, 'boot_test_phase': self.phase,
+                    'esc_confirmation_only': self.initial_status.get('esc_confirmation_only', False),
                     'test_mode': self.selected_mode,
                     'setup_token': self.setup_token}
 
@@ -89,6 +91,7 @@ class BootTestDrive:
             if action in ('stop', 'emergency'):
                 if self.delegate is not None:
                     return {**self.delegate.request(action, payload), 'boot_test': True,
+                            'esc_confirmation_only': self.initial_status.get('esc_confirmation_only', False),
                             'boot_test_phase': self.phase, 'setup_token': self.setup_token,
                             'test_mode':self.selected_mode}
                 if (action == 'stop' and self.phase == 'baseline'
@@ -102,6 +105,11 @@ class BootTestDrive:
                 return self.status()
             if payload.get('setup_token') != self.setup_token:
                 raise DriveError('准备步骤已更新，请重新确认当前页面')
+            if (self.initial_status.get('esc_confirmation_only') is True
+                    and (action == 'enable' or action == 'reset' and self.phase == 'fault')):
+                expected = 'off' if self.phase in ('esc_off', 'fault', 'steering_ready') or self.selected_mode == 'steering_pwm' else 'on_static'
+                if payload.get('esc_state') != expected:
+                    raise DriveError('请确认当前步骤的电调状态')
             if action == 'select_mode':
                 if self.delegate is not None or self.phase != 'esc_off' or self.mode != 'disabled':
                     raise DriveError('请先结束当前测试，再选择模式')
@@ -138,6 +146,7 @@ class BootTestDrive:
                 if self.phase != 'ready':
                     raise DriveError('当前测试正在清理，方向请求不会排队')
                 return {**self.delegate.request(action, payload), 'boot_test': True,
+                        'esc_confirmation_only': self.initial_status.get('esc_confirmation_only', False),
                         'boot_test_phase': self.phase, 'setup_token': self.setup_token,
                         'test_mode':self.selected_mode}
             if action != 'enable' or self.mode != 'disabled' or self.phase not in ('esc_off', 'esc_on', 'steering_ready'):
@@ -201,6 +210,44 @@ class PiBootPreparation:
         self.root = root.resolve()
         self.template_path = template_path
         self.boot = self.current_boot()
+        self._samples = deque(maxlen=31)
+        self._sample_lock = threading.Lock()
+        self._monitor_stop = threading.Event()
+        self._monitor_thread = None
+
+    def start_monitor(self):
+        """Observe power/network in the background. Never open an actuator port."""
+        if self._monitor_thread is not None:
+            return
+        def observe():
+            while not self._monitor_stop.is_set():
+                try:
+                    sample = self.health()
+                    with self._sample_lock:
+                        self._samples.append((time.monotonic(), sample))
+                except Exception:
+                    with self._sample_lock:
+                        self._samples.clear()
+                self._monitor_stop.wait(1)
+        self._monitor_thread = threading.Thread(target=observe, name='passive-startup-checks', daemon=True)
+        self._monitor_thread.start()
+
+    def close(self):
+        self._monitor_stop.set()
+        if self._monitor_thread is not None:
+            self._monitor_thread.join(timeout=3)
+
+    def recent_baseline(self):
+        with self._sample_lock:
+            samples = list(self._samples)
+        now = time.monotonic()
+        if (len(samples) < 31 or now-samples[-1][0] > 2.5
+                or samples[-1][0]-samples[0][0] < 30
+                or any(b[0]-a[0] > 2.5 for a, b in zip(samples, samples[1:]))):
+            return None
+        # Retain acquisition times; these are power/network observations,
+        # not a claim that the ESC was off throughout the observation window.
+        return samples
 
     @staticmethod
     def current_boot():
@@ -256,12 +303,19 @@ class PiBootPreparation:
                     if board.read_position(4) != 1500:
                         raise RuntimeError('零油门回读失败，请保持电调关闭')
                 start = time.monotonic()
+                observed = self.recent_baseline()
                 samples = []
-                for _ in range(30):
-                    if cancelled.is_set():
-                        raise RuntimeError('准备已取消')
-                    samples.append(self.health())
-                    time.sleep(1)
+                if observed is not None:
+                    samples = [sample for _, sample in observed]
+                    self.health()
+                else:
+                    for _ in range(30):
+                        if cancelled.is_set():
+                            raise RuntimeError('准备已取消')
+                        samples.append(self.health())
+                        time.sleep(1)
+                if cancelled.is_set():
+                    raise RuntimeError('准备已取消')
                 if not steering and board.read_position(4) != 1500:
                     raise RuntimeError('零油门状态发生变化，请保持电调关闭')
             finally:
@@ -272,6 +326,14 @@ class PiBootPreparation:
                     'all_car_network_samples_cellular_only': True,
                     'esc_off_confirmed_by_user': True, 'confirmation_source': 'explicit webpage ESC-off checkbox and prepare request',
                     'forward_reverse_commands_sent': False, 'steering_gimbal_commands_sent': False}
+        if observed is not None:
+            baseline.update(observation_source='passive_service_monitor',
+                            observation_started_monotonic_s=observed[0][0],
+                            observation_finished_monotonic_s=observed[-1][0],
+                            duration_s=observed[-1][0]-observed[0][0],
+                            sample_monotonic_s=[stamp for stamp, _ in observed],
+                            esc_state_during_observation='not_measured',
+                            esc_off_confirmation_applies_to='explicit current prepare request only')
         review = dict(template)
         for name in ('neutral_evidence_record', 'neutral_handoff_verified_monotonic_s', 'neutral_handoff_boot_id'):
             review.pop(name, None)
@@ -292,6 +354,14 @@ class PiBootPreparation:
                           ground_short_requested_by_user=False, continuous_ground_driving_enabled=False,
                           wheels_raised_confirmed_by_user=True, wheels_on_ground_confirmed_by_user=False,
                           reverse_revalidation_prepared=False)
+        elif template.get('operator_confirmation_scope') == 'esc_state_only':
+            # The simplified UI confirms ESC state only. Do not fabricate
+            # ground/spotter observations from that button press.
+            review.update(wheels_on_ground_confirmed_by_user=False,
+                          clear_area_confirmed_by_user=False,
+                          power_switch_in_reach_confirmed_by_user=False,
+                          spotter_can_cut_power_confirmed_by_user=False,
+                          confirmation_source='explicit ESC-state button')
         for name, value in (('baseline.json', baseline), ('review.json', review), ('modem.json', modem)):
             (folder/name).write_text(json.dumps(value, indent=2)+'\n')
         return {'folder': str(folder), 'scope': scope, 'boot_id': self.boot, 'review': review, 'test_mode': mode}

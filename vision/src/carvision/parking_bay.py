@@ -32,7 +32,7 @@ def validate(s):
                       ('stopped_speed_mps',.001,.02)]:
         if not number(s[key]) or not lo<=s[key]<=hi:raise ValueError('停车控制参数越界：'+key)
     if s['final_speed_mps']>s['max_speed_mps']:raise ValueError('末段速度不能超过停车速度上限')
-    if s['surface'] not in ('auto','red_running_track','indoor_green'):raise ValueError('停车地面类型无效')
+    if s['surface'] not in ('auto','red_running_track','blue_running_track','indoor_green'):raise ValueError('停车地面类型无效')
     for name,lo,hi in [('zone_length_m',1,1),('lane_width_m',.6,2),('vehicle_width_m',.1,.6),
                        ('front_extent_m',.1,.8),('rear_extent_m',.01,.4),('clearance_m',.01,.1),
                        ('blocked_blue_fraction',.005,.3),('clear_ground_fraction',.5,.95),
@@ -319,13 +319,21 @@ def detect_parking(image,s):
     red=cv2.bitwise_or(cv2.inRange(hsv,(0,55,35),(15,255,255)),cv2.inRange(hsv,(165,55,35),(179,255,255)))
     green=cv2.inRange(hsv,(40,45,35),(99,255,255))
     grey=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY);visible=(grey>18)&(grey<250)
+    blue_floor=cv2.inRange(hsv,(100,55,35),(135,255,255))
+    surface=s.get('surface','auto')
+    if surface=='auto':
+        # Infer the surrounding near-field surface once, rather than calling
+        # a blue obstruction inside one bay a different floor for that bay.
+        start=round(image.shape[0]*.5)
+        floors={'red_running_track':red,'indoor_green':green,'blue_running_track':blue_floor}
+        surface=max(floors,key=lambda name:cv2.countNonZero(floors[name][start:]))
     pixels=[];metric=[]
     if (s.get('ground') or {}).get('verified') is True:
         pixels,metric=metric_layout(yellow,white,s)
     if not pixels:pixels=pixel_layout(yellow,white)
     source='metric' if metric else 'two_visible_halves' if pixels else None
     partial=None;diagnostics={'original_yellow_pixels':original_yellow_pixels,'yellow_pixels':int(cv2.countNonZero(yellow))}
-    if not pixels:
+    if not pixels and surface!='blue_running_track':
         partial,detail=occluded_layout(yellow,white,blue);diagnostics.update(detail)
         if partial:
             pixels=[None,partial['visible']] if partial['missing']=='left' else [partial['visible'],None]
@@ -351,9 +359,8 @@ def detect_parking(image,s):
         enough=int(interior.sum())>150 and int(entrance.sum())>50
         red_floor=float(np.mean(red[interior]>0)) if enough else 0.
         green_floor=float(np.mean(green[interior]>0)) if enough else 0.
-        surface=s.get('surface','auto')
-        if surface=='auto':surface='indoor_green' if green_floor>red_floor else 'red_running_track'
-        floor=green_floor if surface=='indoor_green' else red_floor
+        blue_floor_fraction=float(np.mean(blue_floor[interior]>0)) if enough else 0.
+        floor={'indoor_green':green_floor,'red_running_track':red_floor,'blue_running_track':blue_floor_fraction}[surface]
         selected_blue=blue
         if surface=='indoor_green':
             # Cyan cast on this green floor overlaps the old blue H=90 edge.
@@ -365,11 +372,19 @@ def detect_parking(image,s):
         blue_inside=float(np.mean(selected_blue[interior]>0)) if enough else 0.
         availability=('blocked' if enough and br>=s['blocked_blue_fraction'] else
                       'clear' if enough and br<s['blocked_blue_fraction']/2 and blue_inside<.01 and floor>=s['clear_ground_fraction'] and vis>=.65 else 'unknown')
-        verified=bool(metric and s['perception_verified'] and availability!='unknown')
+        # On a blue track color cannot independently separate the blue board
+        # from floor. Report floor support, but never turn it into free-space
+        # evidence or call the entire blue floor an entrance obstruction.
+        occupancy_ambiguous=surface=='blue_running_track'
+        if occupancy_ambiguous:availability='unknown'
+        verified=bool(metric and s['perception_verified'] and availability!='unknown' and not occupancy_ambiguous)
         slot={'id':name,'availability':availability,'occupancy_verified':verified,
               'corners_px':poly.tolist(),'polygon_m':metric[i] if metric else None,
               'blue_entrance_fraction':br,'red_ground_fraction':red_floor,'visible_fraction':vis,
-              'ground_fraction':floor,'ground_surface':surface,'geometry_visible':True}
+              'ground_fraction':floor,'ground_surface':surface,'geometry_visible':True,
+              'ground_color_supported':floor>=s['clear_ground_fraction'],
+              'occupancy_ambiguous':occupancy_ambiguous,
+              'occupancy_reason':'蓝地与蓝挡板颜色重叠，需要独立挡板几何证据' if occupancy_ambiguous else None}
         slots.append(slot);color={'blocked':(0,0,255),'clear':(0,200,0),'unknown':(0,180,255)}[availability]
         cv2.polylines(display,[poly.astype(np.int32)],True,color,2)
         center=tuple(poly.mean(axis=0).astype(int));cv2.putText(display,slot['id']+' '+availability,center,cv2.FONT_HERSHEY_SIMPLEX,.45,color,2)
@@ -377,7 +392,7 @@ def detect_parking(image,s):
     contours,_=cv2.findContours(yellow,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(display,contours,-1,(0,255,255),1)
     hint=board_direction_hint(hsv,s)
-    ground=red if s.get('surface')=='red_running_track' else green if s.get('surface')=='indoor_green' else cv2.bitwise_or(red,green)
+    ground={'red_running_track':red,'indoor_green':green,'blue_running_track':blue_floor}[surface]
     lower=list(s['blue_lower']);lower[0]=min(s['blue_upper'][0],max(100,lower[0]))
     strong_blue=cv2.inRange(hsv,tuple(lower),tuple(s['blue_upper']))
     candidates=visible_entry_candidates(yellow,white,ground,strong_blue,visible,hint) if not slots else []
@@ -391,6 +406,7 @@ def detect_parking(image,s):
         cv2.putText(display,c['id']+' entry target',tuple(q.mean(axis=0).astype(int)),cv2.FONT_HERSHEY_SIMPLEX,.4,(0,200,0),1)
     return {'layout_found':len(slots)==2,'layout_complete':len(slots)==2 and partial is None,
             'layout_source':source,'diagnostics':diagnostics,'metric_geometry':bool(metric),'slots':slots,
+            'ground_surface':surface,
             'direction_hint':hint,'entry_candidates':candidates,'entry_guides':guides,
             'reason':('可见半区边界与相邻入口蓝挡板已识别；遮挡侧边界未完整确认' if partial else
                       '两个停车半区边界已识别' if slots else '黄线未形成可确认车位；需看到空闲半区近/远边与分隔线'),

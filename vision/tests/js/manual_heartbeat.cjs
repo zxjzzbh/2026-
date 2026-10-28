@@ -133,7 +133,7 @@ async function main(){
  // remain available with physical keyboard codes (including IME key names).
  const l=await setup(true,{ground_continuous_trial:true,test_session_s:null,motion_hold_max_s:null,
   reverse_available:true,session_remaining_s:null});
- assert.equal(l.el('drive-title').textContent,'5G 长距离遥控');checks++;
+ assert.equal(l.el('drive-title').textContent,'遥控驾驶');checks++;
  assert.equal(l.el('drive-time').textContent.includes('不设轮次'),true);checks++;
  assert.equal(l.el('drive-limits').textContent.includes('W/S'),true);checks++;
  l.events.keydown({code:'KeyS',key:'Process',repeat:false,target:{tagName:'DIV'},preventDefault(){}});await flush();
@@ -160,7 +160,7 @@ async function main(){
  assert.equal(p.el('bench-confirm-text').textContent.includes('电调已关闭'),true);checks++;
  p.setStatus({boot_test_phase:'ready',mode:'enabled',hardware_output:true,release_required:false,steering_pulse_us:1715});
  await p.poll();await flush();
- assert.equal(p.el('pwm-slider').disabled,false);assert.equal(p.el('drive-title').textContent,'S3 实时 PWM 调试');checks++;
+ assert.equal(p.el('pwm-slider').disabled,false);assert.equal(p.el('drive-title').textContent,'转向调试');checks++;
  await p.el('pwm-slider').oninput({target:{value:'1700'}});await flush();
  assert.equal(p.requests.at(-1).url,'/api/drive/steering_pwm');
  assert.equal(p.requests.at(-1).body.pulse_us,1700);assert.equal(p.requests.at(-1).body.setup_token,'pwm-ready-token');checks++;

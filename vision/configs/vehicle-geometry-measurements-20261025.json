@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "recorded_date": "2026-10-25",
+  "source": "Direct human user report of physical measurements in this chat",
+  "units": "metres",
+  "coordinate_frame": "rear_axle_x_right_y_forward",
+  "raw_measurements_m": {
+    "front_axle_to_front": 0.09,
+    "rear_axle_to_rear": 0.07,
+    "overall_width": 0.30,
+    "overall_length": 0.42,
+    "wheelbase": 0.245,
+    "wheel_track": 0.24,
+    "tyre_contact_width": 0.05,
+    "tyre_contact_length": 0.035
+  },
+  "derived_geometry_m": {
+    "rear_axle_to_front": 0.335,
+    "axle_and_overhang_length": 0.405,
+    "overall_length_discrepancy": 0.015,
+    "outer_tyres_width": 0.29
+  },
+  "effective_conservative_envelope_m": {
+    "width": 0.30,
+    "length": 0.42,
+    "front_extent_from_rear_axle": 0.335,
+    "rear_extent_from_rear_axle": 0.085
+  },
+  "envelope_policy": "Preserve the reported overall body length. Effective rear extent is max(measured rear overhang, overall length - derived rear-axle-to-front extent). The 0.085 m effective rear extent is not a measured overhang.",
+  "discrepancy_status": "Unresolved: measured front overhang + wheelbase + rear overhang total 0.405 m, 0.015 m shorter than the reported overall length. Do not shorten the runtime envelope to 0.405 m.",
+  "calibration_effect": "Dimensions only. This record does not verify clearance, turn radius, steering-to-curvature mapping, speed, braking distance, ground homography, perception, odometry or vehicle pose. Existing verification flags remain unchanged."
+}

@@ -13,9 +13,14 @@ import numpy as np
 
 from .brake_parking import BrakeParkingController, numeric
 from .parking_visual import resolve_visual_options
+from .parking_control import PARKING_STEERING_RATE_US_S
 from .steering import CENTER_US, LEFT_US, RIGHT_US, ImagePD, from_offset
 
-PARKING_STEERING_RATE_US_S = 600.
+# Recovery is stronger than the old single-frame stopped check. Three new
+# stationary observations must also span 200 ms after brake release.
+BOUNDARY_RECOVERY_STOP_S = .2
+BOUNDARY_RECOVERY_STOP_FRAMES = 3
+BAY_SUPPORT_ACQUIRE_MARGIN = .025
 
 
 class ParkingEntryController:
@@ -117,6 +122,9 @@ class ParkingEntryController:
         self.last_boundary_risk=None
         self.boundary_wait_since=self.boundary_brake_until=None
         self.boundary_paused_driving=False
+        self.boundary_wait_cause=None
+        self.recovery_stop_since=None;self.recovery_stop_frames=0
+        self.bay_support_active=False
         self.bay_since=self.bay_at=None;self.bay_frames=0
 
     def _result(self, esc_us=1500, events=None):
@@ -137,13 +145,18 @@ class ParkingEntryController:
              'guidance_phase':self.guidance_phase,
              'steering_policy':'bay_center_heading_pd',
              'steering_rate_us_s':PARKING_STEERING_RATE_US_S,
-             'logic_revision':'parking_closed_loop_v2',
+             'logic_revision':'parking_closed_loop_v3',
+             'diagnostic_only':True,'formal_task':False,'payment_ready':False,
+             'completion_authorizes_payment':False,
              'slow_forward_us':self.visual['slow_forward_us'],
              'slowdown_available':self.visual['slow_forward_us']<self.s['pwm']['search_us'],
              'slow_line_y_normalized':self.visual['slow_line_y_normalized'],
              'seek_timeout_s':self.visual['seek_timeout_s'],
              'max_entry_s':self.visual['max_run_s'],
              'boundary_wait_elapsed_s':None if self.boundary_wait_since is None else self.last_now-self.boundary_wait_since,
+             'boundary_wait_cause':self.boundary_wait_cause,
+             'recovery_stop_frames':self.recovery_stop_frames,
+             'recovery_stop_confirm_s':BOUNDARY_RECOVERY_STOP_S,
              'near_boundary_observed':self.near_boundary_observed,
              'far_boundary_fresh':not self.cached_geometry and self.last_far_at == self.last_now,
              'target_acquired':self.last_far_edge is not None,
@@ -411,9 +424,20 @@ class ParkingEntryController:
 
     def _boundary_gate(self,parking,sample,now):
         """Fuse fresh bay geometry; otherwise pause without cancelling a blink."""
-        fresh_bay=(self.last_far_at==now and self.geometry.get('availability')=='clear'
-                   and self.geometry.get('lateral_envelope_estimate_inside') is True
-                   and numeric(self.geometry.get('heading_error')) and abs(self.geometry['heading_error'])<=.35)
+        # Heading belongs to steering and the final stop gate. It cannot make
+        # a currently contained, observed bay disappear during alignment.
+        observed_bay=(self.last_far_at==now and self.geometry.get('availability')=='clear'
+                      and numeric(self.geometry.get('heading_error')))
+        inside=self.geometry.get('lateral_envelope_estimate_inside') is True
+        margins=[]
+        for check in self.geometry.get('envelope_checks',[]):
+            span=check['right_px']-check['left_px'];center=check['center_px']
+            if center is not None and span>0:
+                half=check['envelope_half_width_px']
+                margins.append(min(center-check['left_px']-half,check['right_px']-center-half)/span)
+        clearance=min(margins) if len(margins)==2 else None
+        margin_ok=numeric(clearance) and (clearance>0 if self.bay_support_active else clearance>=BAY_SUPPORT_ACQUIRE_MARGIN)
+        fresh_bay=observed_bay and inside and margin_ok
         risk=self._visible_edge_risk(parking)
         recent_risk=self.last_boundary_risk is not None and now-self.last_boundary_risk<.5
         supported=(not self.require_white_boundary or self.boundary['observed'])
@@ -423,22 +447,54 @@ class ParkingEntryController:
             elif (fresh_bay and self.last_white_at is not None
                     and now-self.last_white_at<=self.visual['boundary_grace_s']):
                 supported=True;mode='recent_white_and_current_bay'
-        self.boundary.update(usable=bool(supported),support_source=mode if supported else 'waiting')
+        evidence_usable=bool(supported)
+        cause=('bay_envelope_outside' if observed_bay and not inside else
+               'bay_margin_pending' if observed_bay and not margin_ok else 'boundary_evidence_missing')
+        self.boundary.update(evidence_usable=evidence_usable,bay_clearance_fraction=clearance,
+                             support_source=mode if supported else 'waiting')
         if supported and self.boundary_wait_since is not None and self.boundary_paused_driving:
-            stopped=(sample.get('motion') or {}).get('valid') is True and (sample.get('motion') or {}).get('moving') is False
-            if now<(self.boundary_brake_until or now)+self.s['brake_release_s'] or not stopped:supported=False
+            motion=sample.get('motion') or {}
+            stamp=motion.get('captured_s',sample.get('captured_s'))
+            feedback_ok=(motion.get('valid') is True and type(motion.get('moving')) is bool
+                         and numeric(stamp) and 0<=now-stamp<=self.s['max_frame_age_s'])
+            released=now>=(self.boundary_brake_until if self.boundary_brake_until is not None else now)+self.s['brake_release_s']
+            stopped=feedback_ok and motion['moving'] is False
+            if released and stopped:
+                if self.recovery_stop_since is None:self.recovery_stop_since=now
+                self.recovery_stop_frames+=1
+            else:
+                self.recovery_stop_since=None;self.recovery_stop_frames=0
+            confirmed=(self.recovery_stop_since is not None
+                       and self.recovery_stop_frames>=BOUNDARY_RECOVERY_STOP_FRAMES
+                       and now-self.recovery_stop_since>=BOUNDARY_RECOVERY_STOP_S-1e-9)
+            if not confirmed:
+                supported=False
+                cause=('stop_feedback_invalid' if not feedback_ok else
+                       'still_moving' if not stopped else 'stop_confirmation_pending')
+        elif not supported:
+            self.recovery_stop_since=None;self.recovery_stop_frames=0
         self.boundary['usable']=bool(supported)
         if supported:
             self.boundary_wait_since=self.boundary_brake_until=None;self.boundary_paused_driving=False
+            self.boundary_wait_cause=None;self.recovery_stop_since=None;self.recovery_stop_frames=0
+            self.bay_support_active=mode in ('current_bay_envelope','recent_white_and_current_bay')
             if mode not in ('white_lines','historical_replay'):
                 self.boundary['reason']='由连续新鲜车位边界补充白线；低输出修正，未作米制验证'
             return None
+        if not fresh_bay:self.bay_support_active=False
+        self.boundary_wait_cause=cause
         if self.boundary_wait_since is None:
             self.boundary_wait_since=now;self.boundary_paused_driving=self.was_driving
             self.boundary_brake_until=now+(self.s['brake_pulse_s'] if self.was_driving else 0.)
             self.core=None;self.last_core_output={};self.pd.reset()
         if now-self.boundary_wait_since>=self.visual['boundary_wait_s']:
-            return self._abort('停车边界或暂停后的停稳反馈持续不足，结束入位',now)
+            reason={'stop_feedback_invalid':'停车边界已恢复，但缺少有效停稳反馈，结束入位',
+                    'still_moving':'停车边界已恢复，但仍检测到移动，结束入位',
+                    'stop_confirmation_pending':'停车边界已恢复，但连续停稳确认不足，结束入位',
+                    'bay_margin_pending':'当前车位包络余量不足以首次确认边界，结束入位',
+                    'bay_envelope_outside':'当前车位车体包络已越过边界，结束入位',
+                    'boundary_evidence_missing':'缺少当前有效车位和白线边界，结束入位'}[cause]
+            return self._abort(reason,now)
         self.phase='boundary_wait';self.guidance_phase='boundary_wait'
         self.reason='停车边界暂不明确，暂停等待新鲜边界和停稳反馈'
         if now<self.boundary_brake_until:return self._result(self.s['pwm']['brake_us'])

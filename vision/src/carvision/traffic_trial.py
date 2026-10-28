@@ -13,8 +13,9 @@ from .brake_output import BrakeActuator
 from .brake_parking import GroundMotionEstimate, numeric
 from .parking_speech import ParkingSpeech
 from .traffic_driving import (TrafficDrivingController, load_settings, validate_settings,
-                              TRAFFIC_FORWARD_MIN_US, TRAFFIC_FORWARD_MAX_US)
+                              TRAFFIC_FORWARD_MIN_US, TRAFFIC_FORWARD_MAX_US, approach_settings)
 from .traffic_signal import TrafficSignalDetector, load_profile
+from .traffic_tracking import FixtureTrack
 
 
 class TrafficCamera:
@@ -23,12 +24,21 @@ class TrafficCamera:
         self.states, self.s = states, settings
         self.clock = clock
         self.detectors = {c:TrafficSignalDetector(profile) for c in settings['cameras']}
+        self.tracks = {c:FixtureTrack() for c in settings['cameras']}
         self.motion = GroundMotionEstimate()
         self.last_ids, self.last_times, self.observations = {}, {}, {}
         self.images, self.jpegs, self.errors = {}, {}, {}
         self.motion_result = {'valid':False,'moving':None}
         self.sequence = 0
         self.jpeg = self.preview = None
+
+    def begin_round(self):
+        self.tracks = {c:FixtureTrack() for c in self.s['cameras']}
+        # Force the next read to classify the cached frame again with a clean
+        # identity, rather than using an off/green from the previous round.
+        self.last_ids.clear()
+        self.last_times.clear()
+        self.observations.clear()
 
     def _frame(self, camera, now, batch_started):
         state = self.states.get(camera)
@@ -53,11 +63,13 @@ class TrafficCamera:
                 image = cv2.imdecode(np.frombuffer(jpeg,np.uint8),cv2.IMREAD_COLOR)
                 if image is None or [image.shape[1],image.shape[0]] != self.s['image_size']:
                     raise ValueError(camera+' 图像尺寸与480×360配置不一致')
-                observation = self.detectors[camera].detect(image)
+                track = self.tracks[camera]
+                observation = self.detectors[camera].detect(image, reference_box=track.box)
+                observation, tracking = track.update(observation, fid, captured)
                 if camera == self.s['motion_camera']:
                     self.motion_result = {**self.motion.update(image,fid,captured),'captured_s':captured}
                 self.observations[camera] = {'camera_id':camera,'frame_id':fid,'captured_s':captured,
-                    'image_size':self.s['image_size'],'signal':observation}
+                    'image_size':self.s['image_size'],'signal':observation,'fixture_track':tracking}
                 self.last_ids[camera], self.last_times[camera] = fid, captured
                 self.jpegs[camera], self.images[camera] = jpeg, image
                 self.errors.pop(camera,None)
@@ -115,7 +127,7 @@ actuator, and only start can subsequently request forward/braking commands.
                 self.settings = self._updated(json.loads(self.settings_path.read_text(encoding='utf-8')))
             except (OSError, ValueError, TypeError, KeyError) as exc:
                 self.settings_error = str(exc)
-        self.active_settings = copy.deepcopy(self.settings)
+        self.active_settings = approach_settings(self.settings)
         self.actuator_factory = actuator_factory or (lambda: BrakeActuator(self.active_settings, run=True, esc_mode='F/B',
                                                                          forward_limit_us=TRAFFIC_FORWARD_MAX_US))
         self.reader_factory = reader_factory
@@ -183,6 +195,8 @@ actuator, and only start can subsequently request forward/braking commands.
                      'camera': self.settings['camera'], 'camera_label': '双摄独立识别，任一路达标', 'motion_camera': self.settings['motion_camera'],
                      'start_requires_fixture': False, 'search_without_visible_fixture': True,
                      'vote_window_s': self.settings['red_window_s'], 'signal_confirm_percent': self.settings['red_confirm_percent'],
+                     'green_vote_window_s': self.settings['green_window_s'],
+                     'brake_pulse_s': self.settings['brake_pulse_s'],
                      'cameras': self.settings['cameras'], 'vote_rule': 'independent_any_camera_red_priority',
                      'green_action': 'speech_only', 'speech_text': self.settings['speech_text'],
                      'speech': self.speech.status() if self.speech else None,
@@ -253,7 +267,7 @@ actuator, and only start can subsequently request forward/braking commands.
                     self.drive.request('finish_test', payload)
                 self.client, self.token = client, secrets.token_hex(16)
                 self.last_sequence, self.round_number = -1, 0
-                self.active_settings = copy.deepcopy(self.settings)
+                self.active_settings = approach_settings(self.settings)
                 self.phase, self.reason = 'preparing', '正在检查双路实时画面并建立中位输出，无需看见灯具'
                 self.controller = self.latest = self.observation = self.preview_jpeg = self.execution = None
                 self.stop, self.busy = threading.Event(), True
@@ -291,7 +305,7 @@ actuator, and only start can subsequently request forward/braking commands.
             (self.folder/'settings.json').write_text(json.dumps({'driving': self.active_settings, 'vision': self.profile,
                 'camera_selection': {'decision_camera': self.active_settings['camera'],
                     'profile_recommended_camera': self.profile['recommended_camera'],
-                    'reason': 'both use original classifier; independent 2s red/green votes; any camera qualifies; red priority'}}, ensure_ascii=False, indent=2), encoding='utf-8')
+                    'reason': 'original classifier; independent 1s red / 2s green votes; any camera qualifies; red priority'}}, ensure_ascii=False, indent=2), encoding='utf-8')
             deadline = self.clock()+5
             while True:
                 s = self.drive.status()
@@ -311,6 +325,7 @@ actuator, and only start can subsequently request forward/braking commands.
             actuator = self.actuator_factory()
             prepared = self.clock()
             active_since = None
+            tracked_controller = None
             with (self.folder/'decisions.jsonl').open('w', encoding='utf-8') as log:
                 while not self.stop.is_set():
                     now = self.clock()
@@ -318,6 +333,10 @@ actuator, and only start can subsequently request forward/braking commands.
                         raise ValueError('页面心跳中断，结束本轮并制动回中位')
                     if self.phase in ('preparing', 'ready', 'complete') and now-prepared > 120:
                         raise ValueError('等待开始超时，请重新准备')
+                    if self.controller is not None and self.controller is not tracked_controller:
+                        reset = getattr(reader, 'begin_round', None)
+                        if reset:reset()
+                        tracked_controller = self.controller
                     sample = reader.read(now)
                     if sample is None:
                         self.stop.wait(.005)

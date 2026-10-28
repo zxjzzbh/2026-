@@ -22,7 +22,7 @@ def test_gamepad_browser_guard_and_dashboard_integration():
     )
     assert result.returncode == 0, result.stdout + result.stderr
     record = json.loads(result.stdout)
-    assert record["checks_passed"] == 30
+    assert record["checks_passed"] == 36
     assert record["hardware_output"] is False
 
 

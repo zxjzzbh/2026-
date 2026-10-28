@@ -107,12 +107,32 @@ def _iou(a,b):
     return area/max(1,(a[2]-a[0])*(a[3]-a[1])+(b[2]-b[0])*(b[3]-b[1])-area)
 
 
+def _reference_geometry(box,reference):
+    """A per-frame image-space gate, never a ground-distance estimate.
+
+    The caller owns the track and supplies its latest reliable reference.
+    This detector does not move that reference or acquire a replacement ID.
+    """
+    width=(box[2]-box[0])/(reference[2]-reference[0])
+    height=(box[3]-box[1])/(reference[3]-reference[1])
+    area=width*height
+    overlap=_iou(box,reference)
+    return {'iou':overlap,'width_ratio':width,'height_ratio':height,'area_ratio':area,
+            'matched':overlap>=.25 and .5<=width<=2 and .5<=height<=2 and .5<=area<=2}
+
+
 class TrafficSignalDetector:
     def __init__(self,profile=None):self.profile=load_profile() if profile is None else profile
 
-    def detect(self,image):
+    def detect(self,image,*,reference_box=None):
         started=time.perf_counter()
         if image is None or image.ndim!=3 or image.shape[2]!=3:raise ValueError('BGR image required')
+        if reference_box is not None:
+            if (not isinstance(reference_box,(list,tuple)) or len(reference_box)!=4
+                    or not all(type(v) in (int,float) and math.isfinite(v) and v>=0 for v in reference_box)
+                    or reference_box[2]<=reference_box[0] or reference_box[3]<=reference_box[1]):
+                raise ValueError('reference_box must be a finite increasing image-space box')
+            reference_box=list(reference_box)
         h,w=image.shape[:2];hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV);anchors=_round_candidates(image,hsv)
         proposals=[];seen=set()
         for first,second in combinations(sorted(anchors),2):
@@ -142,8 +162,24 @@ class TrafficSignalDetector:
         groups=[]
         for p in proposals:
             if not any(_iou(p['bbox'],g['bbox'])>.4 for g in groups):groups.append(p)
+        diagnostics={'selection_mode':'global' if reference_box is None else 'reference',
+                     'proposal_count':len(proposals),'fixture_candidate_count':len(groups),
+                     'reference_match_count':None,'selected_reference_geometry':None}
+        if reference_box is not None:
+            matched=[]
+            for group in groups:
+                geometry=_reference_geometry(group['bbox'],reference_box)
+                if geometry['matched']:matched.append((group,geometry))
+            # Geometry selects the identity first; a brighter remote fixture
+            # cannot win over the already acquired lamp. No matches stay lost.
+            matched.sort(key=lambda row:(row[1]['iou'],row[0]['score']),reverse=True)
+            groups=[row[0] for row in matched]
+            diagnostics['reference_match_count']=len(matched)
+            if matched:diagnostics['selected_reference_geometry']=matched[0][1]
         result={'schema_version':1,'state':'unknown','signal_for_race':'unknown','fixture_detected':bool(groups),
-                'bbox_xyxy':None,'lamp_features':[],'reason':'no_supported_fixture',
+                'bbox_xyxy':None,'lamp_features':[],
+                'reason':'no_supported_fixture' if reference_box is None else 'tracked_fixture_missing',
+                'candidate_diagnostics':diagnostics,
                 'algorithm':self.profile['algorithm'],'field_verified':False,'hardware_output':False}
         if groups:
             g=groups[0];fs=g['features'];vs=[f['median_v'] for f in fs]

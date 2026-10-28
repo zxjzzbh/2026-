@@ -39,6 +39,21 @@ def test_boot_and_polling_never_prepare_or_create_hardware():
     assert events==[]
 
 
+def test_simplified_start_requires_current_esc_state_for_each_button():
+    drive,events=setup()
+    drive.initial_status['esc_confirmation_only']=True
+    with pytest.raises(DriveError):request(drive)
+    with pytest.raises(DriveError):request(drive,esc_state='on_static')
+    assert events==[]
+    request(drive,esc_state='off');drive.thread.join(2)
+    assert drive.status()['boot_test_phase']=='esc_on'
+    with pytest.raises(DriveError):request(drive,esc_state='off')
+    request(drive,esc_state='on_static');drive.thread.join(2)
+    assert drive.status()['boot_test_phase']=='ready'
+    assert drive.status()['esc_confirmation_only'] is True
+    drive.close()
+
+
 def test_two_fresh_physical_confirmations_required_without_held_direction_replay():
     drive,events=setup()
     first_token=drive.status()['setup_token']

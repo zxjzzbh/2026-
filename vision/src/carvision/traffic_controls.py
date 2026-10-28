@@ -20,7 +20,7 @@ HTML = '''<section class="drive-panel" id="traffic-test">
 <div class="traffic-observation"><strong id="traffic-color">等待准备</strong><span id="traffic-vision"></span></div>
 <p id="traffic-intent" hidden></p><p id="traffic-red-vote" role="status"></p><p id="traffic-speech-state" role="status" hidden></p>
 <p>首次：电调保持 F/B，关闭电调点“准备”；打开电调、确认静止且前方空旷后点“开始”。</p>
-<p>3 秒后按已保存油门搜索，无需先看见灯具。两路分别统计最近 2 秒，任一路红灯占比达标时制动；停稳后任一路绿灯占比达标且无红灯达标时播报，保持停车。</p>
+<p>3 秒后按已保存油门搜索，无需测距。两路各自统计最近 1 秒，任一路红灯占比达标即请求 0.35 秒制动；停稳后按原 2 秒绿灯窗口确认，播报并保持停车。</p>
 <details id="traffic-preview-section"><summary>实时识别画面</summary>
 <div class="traffic-viewer"><img id="traffic-preview" alt="双路实际识别画面：左第一路，右第二路H65" width="960" height="360" hidden>
 <span id="traffic-preview-placeholder">准备后显示双路识别画面：左第一路，右第二路 H65</span></div></details>
@@ -28,9 +28,9 @@ HTML = '''<section class="drive-panel" id="traffic-test">
 <div class="traffic-parameters">
 <label for="traffic-approach">接近最长时间（秒）</label><input id="traffic-approach" type="number" min="0.5" max="10" step="0.5" value="5">
 </div>
-<p>红、绿共用 1–100% 阈值和 2 秒窗口；分别对两路计票，不混合帧数，重复／过期图像不累计。停止后修改并保存。准备完成即可开始，不检查是否看见灯具。</p>
+<p>红灯 1 秒、绿灯 2 秒，各自使用完整时间窗；两路独立计票，不混合帧数，重复／过期图像不累计。红绿共用可调比例，当前交接设为 50%，达到一半即确认。停止后修改并保存。</p>
 <p>两路都运行原第一路的灯具定位与发光判断算法，第二路继续提供地面运动估计。任一路达红灯条件即停车；若同时有红、绿达标，红灯优先。黄灯、运动反馈失效、两路断帧、失联或接近超时会停车。</p>
-<p>本轮确认红灯并取得停稳估计后重新收集 2 秒窗口，任一路绿灯占比达共用阈值且无红灯／黄灯阻挡时，播报“红绿灯结束，开始前行”，车辆保持停止。取消原连续绿灯0.6秒规则。</p>
+<p>本轮确认红灯并取得停稳估计后清空旧票，重新收集 2 秒绿灯窗口；任一路达标且无红灯／黄灯阻挡时，播报“红绿灯结束，开始前行”，单项测试保持停止。完整比赛流程随后继续下一阶段。</p>
 <p>光电传感器由场地控制灯具，未接入车端。本程序不猜测随机倒计时，也不把灯色当作前轮位置。</p>
 <p>首次在灯具正前方直线路段测试，让摄像头始终看清灯具；核对前轮停车位置是否位于传感器与灯具之间。油门数值是控制指令，不等于实际车速；提高后需重新检查停车距离。持续前进但无运动反馈仍会退出。</p>
 <p>此入口测试红绿灯阶段，不自动从斑马线切入。前进搜索不会自动延长时限，未确认绿灯不会完成停车流程。参数只在停止后可改，遥控与斑马线测试互斥。</p></details>
@@ -66,20 +66,21 @@ function renderTraffic(s){
  if(!trafficDirty&&!trafficSaveBusy&&cfg.pwm){
   el('traffic-forward').value=cfg.pwm.search_us;el('traffic-approach').value=cfg.max_approach_s;
   el('traffic-red-percent').value=cfg.red_confirm_percent;
-  el('traffic-settings-state').textContent='已保存 · '+cfg.pwm.search_us+' μs · 两路各统计 2 秒，红／绿共用 '+cfg.red_confirm_percent+'% · 红灯优先。';
+  el('traffic-settings-state').textContent='已保存 · '+cfg.pwm.search_us+' μs · 红灯 '+cfg.red_window_s+' 秒／绿灯 '+cfg.green_window_s+' 秒 · 共用 '+cfg.red_confirm_percent+'% · 制动 '+(cfg.brake_pulse_s*1000).toFixed(0)+' ms · 红灯优先。';
  }
  el('traffic-forward-down').disabled=forward.disabled||Number(forward.value)<=Number(forward.min);
  el('traffic-forward-up').disabled=forward.disabled||Number(forward.value)>=Number(forward.max);
  const obs=t.observation, raw=obs?.signal, p=t.intent;
  const fresh=t.active&&t.frame_age_s!=null&&t.frame_age_s>=0&&t.frame_age_s<=.25;
- const color=fresh?(p?.signal_votes?.state||raw?.state):'unknown';
- el('traffic-color').textContent=({red:p?.red_seen_this_round?'红灯已确认 · 停车':'红灯候选 · 待比例确认',yellow:'黄灯 · 停车',green:'绿灯',off:t.can_start?'灯具未亮 · 可开始搜索':p?.phase==='approach'?'未亮 · 正在接近':'熄灯 · 等待',unknown:t.can_start?'未见灯具 · 可开始搜索':p?.phase==='approach'?'未见灯具 · 搜索中':'未确认灯色'})[color]||'等待画面';
+ const votes=p?.signal_votes;
+ const color=fresh?(votes?.raw_state||raw?.state||'unknown'):'unknown';
+ const greenReady=fresh&&votes?.green_confirmed===true;
+ el('traffic-color').textContent=({red:p?.red_seen_this_round?'红灯已确认 · 停车':'红灯候选 · 待比例确认',yellow:'黄灯 · 停车',green:greenReady?'当前绿灯 · 已确认':'当前绿灯 · 待确认',off:t.can_start?'灯具未亮 · 可开始搜索':p?.phase==='approach'?'未亮 · 正在接近':'熄灯 · 等待',unknown:t.can_start?'未见灯具 · 可开始搜索':p?.phase==='approach'?'未见灯具 · 搜索中':'未确认灯色'})[color]||'等待画面';
  el('traffic-color').dataset.signal=color;
  el('traffic-vision').textContent=fresh?Object.entries(obs.camera_observations||{}).map(([c,v])=>(c==='primary'?'第一路':'第二路 H65')+' #'+v.frame_id+' '+v.signal.state).join(' · '):'准备后显示双路识别；旧画面不作为依据';
- el('traffic-intent').textContent=t.active&&p?('阶段 '+p.phase+' · 输出 '+p.esc_us+' μs'+(p.red_seen_this_round?' · 已见本轮红灯':'')+(p.stable?.green_confirmed?' · 绿灯占比已达标':'')):'';
+ el('traffic-intent').textContent=t.active&&p?('阶段 '+p.phase+' · 输出 '+p.esc_us+' μs'+(p.red_seen_this_round?' · 已见本轮红灯':'')+(greenReady?' · 当前绿灯条件已确认':'')):'';
  el('traffic-intent').hidden=!t.active||!p;
- const votes=p?.signal_votes;
- el('traffic-red-vote').textContent=t.active&&votes?Object.entries(votes.cameras).map(([c,v])=>(c==='primary'?'第一路':'第二路')+'：'+(!v.valid?'画面不可用，不参与计票':('红 '+v.red_frames+'/'+v.total_frames+' = '+v.red_percent.toFixed(1)+'% · 绿 '+v.green_frames+'/'+v.total_frames+' = '+v.green_percent.toFixed(1)+'%'+(!v.ready?' · 收集窗口 '+v.collected_s.toFixed(1)+'/2 秒':'')))).join(String.fromCharCode(10))+String.fromCharCode(10)+'共用阈值 '+votes.threshold_percent+'%'+(votes.conflict?' · 红绿同时达标，红灯优先':''):'开始后显示两路各自的红／绿帧占比；绿灯也使用相同2秒窗口及比例。';
+ el('traffic-red-vote').textContent=t.active&&votes?'历史窗口投票：'+String.fromCharCode(10)+Object.entries(votes.cameras).map(([c,v])=>(c==='primary'?'第一路':'第二路')+'：'+(!v.valid?'画面不可用，不参与计票':('红 '+v.red_frames+'/'+v.total_frames+' = '+v.red_percent.toFixed(1)+'% · 绿 '+v.green_frames+'/'+(v.green_total_frames??v.total_frames)+' = '+v.green_percent.toFixed(1)+'%'+(!v.ready?' · 红窗 '+v.collected_s.toFixed(1)+'/'+votes.window_s+' 秒':'')+(!(v.green_ready??v.ready)?' · 绿窗 '+(v.green_collected_s??v.collected_s).toFixed(1)+'/'+(votes.green_window_s??votes.window_s)+' 秒':'')))).join(String.fromCharCode(10))+String.fromCharCode(10)+'共用阈值 '+votes.threshold_percent+'%'+(votes.conflict?' · 红绿同时达标，红灯优先':'')+(p.phase==='wait_green'&&!greenReady?String.fromCharCode(10)+'当前灯色或比例尚未满足放行条件，保持停止；历史绿票不能单独授权通行。':''):'开始后显示双路独立票数：红灯最近 1 秒，绿灯最近 2 秒。';
  el('traffic-speech-state').textContent=({sending:'正在发送播报',command_sent:'已发送：红绿灯结束，开始前行',failed:'语音发送失败；车辆仍保持停车',cancelled:'播报已结束'})[t.speech?.state]||'';
  el('traffic-speech-state').hidden=!el('traffic-speech-state').textContent;
  if(t.active&&!wasActive)el('traffic-preview-section').open=true;

@@ -307,32 +307,20 @@ class PreviewWorker:
         self.thread.join(timeout=2)
 
 
-def make_server(address, state, secondary=None, drive=None):
+def make_server(address, state, secondary=None, drive=None, *, controls=None, build_controls=True):
     states = {'primary': state}
     if secondary is not None:
         states['secondary'] = secondary
     drive_key = secrets.token_hex(24) if drive else None
     drive_session = secrets.token_hex(12) if drive else None
     page = PAGE
-    if drive:
-        from .manual_controls import HTML, SCRIPT, STYLE, AUX_SCRIPT
-        page = page.replace("let view='processed'", "let view='raw'")
-        page = page.replace('class="active" data-view="processed"', 'data-view="processed"')
-        page = page.replace('<button data-view="raw">', '<button class="active" data-view="raw">')
-        page = page.replace('id="assist-enabled" type="checkbox" checked', 'id="assist-enabled" type="checkbox"')
-        page = page.replace('<title>树莓派实时视觉</title>', '<title>智能车遥控驾驶台</title>')
-        page = page.replace('</style>', '</style>'+STYLE, 1)
-        page = page.replace('<h1>树莓派实时视觉</h1>', '<h1>智能车遥控驾驶台</h1>')
-        page = page.replace('原始画面持续更新，识别叠加画面按识别完成的速度更新。',
-                            '电脑键盘控制 · 双路实时画面 · 速度指令调节')
-        page = page.replace('<label>画面来源：', '<div class="driving-layout"><section class="camera-zone"><label>驾驶画面：')
-        aux = ('<section id="aux-camera" class="aux-camera" hidden><h3 id="aux-title">第二路画面</h3>'
-               '<p id="aux-state">正在连接摄像头……</p><div class="viewer">'
-               '<img id="aux-video" alt="第二路实时摄像头画面" hidden></div></section>')
-        page = page.replace('<div class="metrics"><div class="metric"><div class="label">道路检测',
-                            aux+'</section>'+HTML+'</div><details class="vision-details"><summary>图像分析信息</summary>'
-                            '<div class="metrics"><div class="metric"><div class="label">道路检测', 1)
-        page = page.replace('</small></main>', '</small></details></main>')
+    if drive and build_controls:
+        if controls is None:
+            from . import manual_controls as controls
+        HTML, SCRIPT, STYLE = controls.HTML, controls.SCRIPT, controls.STYLE
+        AUX_SCRIPT = getattr(controls, 'AUX_SCRIPT', '')
+        from .console_layout import build_page
+        page = build_page(PAGE, HTML, STYLE)
         script = SCRIPT.replace('__DRIVE_KEY__', json.dumps(drive_key)).replace('__DRIVE_SESSION__', json.dumps(drive_session))
         page = page.replace('</html>', script+AUX_SCRIPT+'</html>')
     class Handler(BaseHTTPRequestHandler):
@@ -362,6 +350,10 @@ def make_server(address, state, secondary=None, drive=None):
         def do_GET(self):
             try:
                 parsed = urlsplit(self.path)
+                route = getattr(self.server, 'routes', {}).get(parsed.path)
+                if route is not None:
+                    content, mime, status = route(parsed)
+                    return self.send_body(content, mime, status)
                 if parsed.path == '/':
                     return self.send_body(page.encode('utf-8'), 'text/html; charset=utf-8')
                 if parsed.path == '/api/drive/status' and drive:
@@ -445,6 +437,8 @@ def make_server(address, state, secondary=None, drive=None):
 
     server = ThreadingHTTPServer(address, Handler)
     server.daemon_threads = True
+    server.drive_key, server.drive_session = drive_key, drive_session
+    server.routes = {}
     return server
 
 

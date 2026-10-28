@@ -297,7 +297,7 @@ def test_parking_entry_console_reserves_output_and_blocks_other_tasks(tmp_path,m
     w=ParkingBayDrive(base,{},tmp_path,clock=lambda:now[0],entry_factory=factory)
     monkeypatch.setattr(w,'_start_observation',lambda:None)
     result=w.request('parking_trial_prepare',{'client':'page','setup_token':'boot','esc_off':True,
-        'fb_mode_confirmed':True,'selected_slot':'right'})
+        'fb_mode_confirmed':True,'selected_slot':'right','controller_mode':'visual_trial'})
     assert result['parking_trial']['active'] and not opened
     assert other_task_active(result)
     for action in ('command','cone_prepare','traffic_prepare','parking_payment_begin'):
@@ -320,7 +320,7 @@ def test_console_injects_own_fresh_start_selection_not_client_fields(tmp_path,mo
     monkeypatch.setattr(w,'_entry_settings',configurations)
     monkeypatch.setattr(w,'_start_observation',lambda:setattr(w,'active',True))
     w.request('parking_trial_prepare',{'client':'page','setup_token':'boot','esc_off':True,
-        'fb_mode_confirmed':True,'selected_slot':'right','suggestion_source':'layout'})
+        'fb_mode_confirmed':True,'selected_slot':'right','suggestion_source':'layout','controller_mode':'visual_trial'})
     assert w.entry.s['selection_source']=='default_right'
     now[0]=.1;w.entry.tick(entry_sample(.1),.1)
     w.updated=.15;w.latest={'frame_id':2};w.recommendation={

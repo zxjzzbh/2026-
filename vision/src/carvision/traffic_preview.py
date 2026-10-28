@@ -59,3 +59,4 @@ class RemoteFeed:
     def close(self):
         self.stop.set()
         for t in self.threads:t.join(timeout=3)
+

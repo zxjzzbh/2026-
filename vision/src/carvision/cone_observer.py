@@ -20,19 +20,46 @@ from .cone_navigation import (ConeNavigator,driving_settings,validate_driving,ex
 from .cone_execution import ConeRun
 from .cone_short_trial import ConeShortRun
 from .cone_low_speed import PROFILE,DualLowSpeedNavigator
+from .cone_guidance import NO_GUIDANCE_MAX_S,TARGET_ONLY_MAX_S
+
+
+CANCEL_REASONS={
+    'stop_button':'停止按钮结束避障',
+    'window_blur':'调试窗口失去焦点，页面自动停止避障',
+    'page_hidden':'调试页面进入后台，页面自动停止避障',
+    'page_exit':'调试页面离开，页面自动停止避障',
+    'connection_lost':'调试页面通信请求失败，页面自动停止避障',
+}
 
 
 class ConeCamera:
-    def __init__(self,states,settings,clock=time.monotonic):
+    def __init__(self,states,settings,clock=time.monotonic,*,turn_aware=False):
         self.states,self.s,self.clock=states,settings,clock
         self.detectors={c:BlueConeDetector(settings) for c in ('primary','secondary')}
         self.trackers={c:ImageConeTracker(c,settings) for c in self.detectors}
-        self.ids={};self.views={};self.rows={};self.images={};self.road=ConeRoadContext(settings)
-        self.roads={'secondary':self.road,'primary':ConeRoadContext(settings,'primary')}
+        self.ids={};self.views={};self.rows={};self.images={};self.turn_aware=None
+        self.set_turn_aware(turn_aware)
         self.preview=None;self.sequence=0
         self.navigator=ConeNavigator(settings);self.navigation=None
 
-    def read(self):
+    def set_turn_aware(self,enabled):
+        enabled=bool(enabled)
+        if self.turn_aware==enabled:return
+        self.turn_aware=enabled
+        for tracker in self.trackers.values():
+            tracker.set_near_field_recovery(enabled)
+        self.roads={camera:ConeRoadContext(self.s,camera,turn_aware=enabled)
+                    for camera in ('primary','secondary')}
+        self.road=self.roads['secondary']
+        # A mode change does not create a new frame, cone ID or pass sample.
+        for camera,row in self.rows.items():
+            image=self.images.get(camera)
+            if image is not None:
+                _,mask=self.detectors[camera].detect(image)
+                row['road_context']=self.roads[camera].inspect(image,mask)
+
+    def read(self,*,road_mask_filter=None,render=True):
+        """Consume new cache frames; optional filtering precedes the only road fit."""
         changed=False
         for camera in ('primary','secondary'):
             try:
@@ -46,14 +73,21 @@ class ConeCamera:
                 if self.ids.get(camera)==fid:continue
                 image=cv2.imdecode(np.frombuffer(jpg,np.uint8),cv2.IMREAD_COLOR)
                 if image is None or [image.shape[1],image.shape[0]]!=self.s['image_size']:raise ValueError('image size changed')
-                if camera in self.ids and fid<self.ids[camera]:self.trackers[camera]=ImageConeTracker(camera,self.s)
+                if camera in self.ids and fid<self.ids[camera]:
+                    self.trackers[camera]=ImageConeTracker(camera,self.s,near_field_recovery=self.turn_aware)
                 detections,mask=self.detectors[camera].detect(image)
-                context=self.roads[camera].inspect(image,mask)
+                if road_mask_filter is not None:
+                    mask=road_mask_filter(camera,image,fid,ms/1000,mask)
+                    if not isinstance(mask,np.ndarray) or mask.shape!=image.shape[:2] or mask.dtype!=np.uint8:
+                        raise ValueError('road mask filter returned an invalid mask')
+                context=self.roads[camera].inspect(image,mask,frame_id=fid,captured_s=ms/1000)
                 self.roads[camera].enrich(detections,image,context)
                 tracks=self.trackers[camera].update(detections,fid,ms/1000)
                 row={'camera_id':camera,'frame_id':fid,'captured_s':ms/1000,'tracks':tracks,
                      'lane_valid':context['valid'],'lane_reason':context['reason'],'road_context':context,
                      'metric_cones':[],'metric_unresolved':[]}
+                if self.turn_aware:
+                    row['tracking_diagnostics']=copy.deepcopy(self.trackers[camera].latest_diagnostics)
                 if camera==self.s['camera'] and readiness(self.s)['metric_planning_ready']:
                     row['metric_cones'],row['metric_unresolved']=project_tracks(tracks,self.s)
                 if camera==self.s['camera'] and not isinstance(self.navigator,DualLowSpeedNavigator):
@@ -61,16 +95,19 @@ class ConeCamera:
                     except (ValueError,cv2.error) as exc:
                         self.navigation={'action':'stop','phase':'waiting_for_feedback','reason':str(exc),'hardware_output':False}
                         self.navigator.latest=self.navigation
-                display=self.navigator.draw(image) if camera==self.s['camera'] and not isinstance(self.navigator,DualLowSpeedNavigator) else image.copy()
-                for track in tracks:
-                    x1,y1,x2,y2=track['bbox_xyxy'];color=(0,160,255) if track['kind']=='unresolved_blue' else (255,160,40)
-                    if not track['visible']:color=(150,150,150)
-                    cv2.rectangle(display,(x1,y1),(x2,y2),color,2)
-                    cv2.putText(display,track['id']+(' OK' if track['confirmed'] else ' ?'),(x1,max(15,y1-5)),cv2.FONT_HERSHEY_SIMPLEX,.4,color,1)
-                for points in (context['left_inner'],context['right_inner']):
-                    if points:cv2.polylines(display,[np.asarray(points,np.int32)],False,(0,230,100) if context['valid'] else (0,180,255),2)
-                cv2.putText(display,camera.upper()+' BLUE CONES / LIVE',(8,20),cv2.FONT_HERSHEY_SIMPLEX,.4,(240,240,240),1)
-                self.rows[camera]=row;self.images[camera]=image;self.views[camera]=display;self.ids[camera]=fid;changed=True
+                if render:
+                    display=self.navigator.draw(image) if camera==self.s['camera'] and not isinstance(self.navigator,DualLowSpeedNavigator) else image.copy()
+                    for track in tracks:
+                        x1,y1,x2,y2=track['bbox_xyxy'];color=(0,160,255) if track['kind']=='unresolved_blue' else (255,160,40)
+                        if not track['visible']:color=(150,150,150)
+                        cv2.rectangle(display,(x1,y1),(x2,y2),color,2)
+                        cv2.putText(display,track['id']+(' OK' if track['confirmed'] else ' ?'),(x1,max(15,y1-5)),cv2.FONT_HERSHEY_SIMPLEX,.4,color,1)
+                    for points in (context['left_inner'],context['right_inner']):
+                        if points:cv2.polylines(display,[np.asarray(points,np.int32)],False,(0,230,100) if context['valid'] else (0,180,255),2)
+                    cv2.putText(display,camera.upper()+' BLUE CONES / LIVE',(8,20),cv2.FONT_HERSHEY_SIMPLEX,.4,(240,240,240),1)
+                    self.views[camera]=display
+                else:self.views.pop(camera,None)
+                self.rows[camera]=row;self.images[camera]=image;self.ids[camera]=fid;changed=True
             except (KeyError,ValueError,cv2.error):
                 self.rows.pop(camera,None);self.views.pop(camera,None);self.images.pop(camera,None)
         if not self.rows:raise ValueError('两路摄像头均无新鲜画面')
@@ -78,14 +115,16 @@ class ConeCamera:
         if isinstance(self.navigator,DualLowSpeedNavigator):
             self.navigation=self.navigator.update_views(self.images,self.rows,self.clock())
         self.sequence+=1
-        panes=[]
-        for camera in ('primary','secondary'):
-            if camera in self.views:panes.append(self.navigator.draw_camera(camera,self.views[camera]) if isinstance(self.navigator,DualLowSpeedNavigator) else self.views[camera])
-            else:
-                blank=np.zeros((360,480,3),np.uint8)
-                cv2.putText(blank,camera.upper()+' NO FRAME',(10,25),cv2.FONT_HERSHEY_SIMPLEX,.5,(170,170,170),1);panes.append(blank)
-        ok,jpg=cv2.imencode('.jpg',np.concatenate(panes,axis=1))
-        self.preview=jpg.tobytes() if ok else None
+        if render:
+            panes=[]
+            for camera in ('primary','secondary'):
+                if camera in self.views:panes.append(self.navigator.draw_camera(camera,self.views[camera]) if isinstance(self.navigator,DualLowSpeedNavigator) else self.views[camera])
+                else:
+                    blank=np.zeros((360,480,3),np.uint8)
+                    cv2.putText(blank,camera.upper()+' NO FRAME',(10,25),cv2.FONT_HERSHEY_SIMPLEX,.5,(170,170,170),1);panes.append(blank)
+            ok,jpg=cv2.imencode('.jpg',np.concatenate(panes,axis=1))
+            self.preview=jpg.tobytes() if ok else None
+        else:self.preview=None
         return {'sequence':self.sequence,'cameras':copy.deepcopy(self.rows),
                 'captured_s':min(row['captured_s'] for row in self.rows.values()),
                 'physical_cones_passed':len(self.navigation['passed_ids']) if self.navigation and 'passed_ids' in self.navigation else None,
@@ -118,11 +157,15 @@ class ConeObserverDrive:
                 base['pending_hardware_start']=not (run['hardware_output'] or short['hardware_output'])
                 base['hardware_output']=run['hardware_output'] or short['hardware_output']
             return {**base,'cone_status_s':self.clock(),'cone_trial':{'program':'blue-cone-avoidance-v2','observing':self.observing,
-                'logic_revision':'slalom-continuity-20261012','legacy_reference_available':True,'low_speed_trial_available':True,
-                'low_speed_line_policy':'either_camera_or_image_only_continuation',
+                'logic_revision':'cone-guidance-save-20261026','legacy_reference_available':True,'low_speed_trial_available':True,
+                'low_speed_line_policy':'separate_road_and_current_target_guidance',
+                'low_speed_no_guidance_limit_s':NO_GUIDANCE_MAX_S,'low_speed_target_only_limit_s':TARGET_ONLY_MAX_S,
+                'low_speed_target_only_limit_verified':False,
                 'low_speed_drive_mode':'continuous',
                 'low_speed_stop_policy':'operator_end_with_camera_and_lease_failsafe',
                 'low_speed_steering_policy':'locked_cone_edge_pd',
+                'low_speed_steering_gain_scope':'active_cone_avoidance','normal_steering_gain':1.,
+                'lane_steering_policy':'shared_multi_row_pd','cone_mission_camera':'secondary',
                 'low_speed_steering_adjustable':True,
                 'low_speed_boundary_policy':'nearest_row_correction_persistent_departure_guard',
                 'low_speed_pass_policy':'visual_estimate_with_review_fallback',
@@ -162,7 +205,10 @@ class ConeObserverDrive:
                 self.reset_navigation=True
                 self._start_observer();return self.status()
             if action=='cone_cancel':
-                self.run.cancel('用户停止避障');return self.status()
+                source=payload.get('stop_source')
+                source=source if source in CANCEL_REASONS else 'unknown'
+                self.run.cancel(CANCEL_REASONS.get(source,'避障收到停止请求，来源未分类'),source=source,now=self.clock())
+                return self.status()
             if action=='cone_white_threshold':
                 if self.run.active or self.short.active:raise ValueError('先结束本轮行驶，再调整白线亮度阈值')
                 value=payload.get('white_v_min')
@@ -184,11 +230,14 @@ class ConeObserverDrive:
                 self.reason='已载入 GitHub 10 月 7 日第二路旧标定；保留原有效区域，未补写运动实测标志'
                 return self.status()
             if action=='cone_settings':
-                if self.observing or self.run.active or self.short.active:raise ValueError('先停止识别、短测和避障，再保存参数')
+                fields=set(payload)-{'client','setup_token','trial_token'}
+                if (self.run.active or self.short.active
+                        or self.observing and not fields<={'scene_surface'}):
+                    raise ValueError('先停止识别、短测和避障，再保存参数')
                 candidate=copy.deepcopy(self.settings)
                 if 'scene_surface' in payload:
-                    if payload['scene_surface'] not in ('red_running_track','indoor_white_line_track'):
-                        raise ValueError('请选择红色跑道或室内白线赛道')
+                    if payload['scene_surface'] not in ('red_running_track','blue_running_track','indoor_white_line_track'):
+                        raise ValueError('请选择红色跑道、蓝色跑道或室内白线赛道')
                     candidate.setdefault('scene',{})['surface']=payload['scene_surface']
                 for key in ('blue_hsv_lower','blue_hsv_upper','confirm_frames'):
                     if key in payload:candidate[key]=payload[key]
@@ -231,7 +280,11 @@ class ConeObserverDrive:
                     candidate['motion']['verified']=driving_settings(candidate)['steering_verified'] and numeric(candidate['motion'].get('braking_distance_m'))
                 from .cone_planning import validate_settings
                 validate_settings(candidate)
-                self._save(candidate)
+                if candidate!=self.settings:
+                    self._save(candidate)
+                    if self.observing:
+                        self.reset_reader=True
+                        self.latest=self.preview=self.updated=None
                 return self.status()
             if action=='cone_stop':
                 if self.run.active:self.run.cancel('用户停止识别与避障')
@@ -271,14 +324,18 @@ class ConeObserverDrive:
 
     def _work(self):
         try:
-            reader=ConeCamera(self.states,self.settings,self.clock)
+            reader=ConeCamera(self.states,self.settings,self.clock,turn_aware=True)
             while not self.stop.is_set():
                 with self.lock:
                     if self.reset_reader:
-                        reader=ConeCamera(self.states,self.settings,self.clock);self.reset_reader=False
+                        reader=ConeCamera(self.states,self.settings,self.clock,turn_aware=True);self.reset_reader=False
                     if self.reset_navigation:
                         reader.navigator=DualLowSpeedNavigator(self.run.s) if self.run.profile==PROFILE else ConeNavigator(self.settings)
                         reader.navigation=None;self.reset_navigation=False
+                    if isinstance(reader.navigator,DualLowSpeedNavigator):
+                        intent=(self.run.intent or {}) if self.run.active else {}
+                        target_id=intent.get('target_id')
+                        reader.navigator.set_avoidance_target(intent.get('target_camera') if target_id else None,target_id or None)
                 try:sample=reader.read()
                 except (ValueError,cv2.error) as exc:
                     with self.lock:
@@ -286,8 +343,12 @@ class ConeObserverDrive:
                         if self.run.active:self.run.cancel('相机画面中断，已结束避障',phase='fault')
                         self.short.cancel('相机画面中断，已结束短测',phase='fault')
                     self.stop.wait(.3);continue
-                if sample is not None:
-                    with self.lock:
+                with self.lock:
+                    # A settings save/prepare can arrive while decoding or
+                    # waiting for a new frame. Retire that old batch before
+                    # publishing or ticking; the next loop refreshes it.
+                    if self.reset_reader or self.reset_navigation:continue
+                    if sample is not None:
                         self.latest,self.preview,self.updated=sample,reader.preview,sample['captured_s']
                         self.reason='实际双摄识别中；当前仅观察，不驱动车辆'
                 # Actuator startup can take time; do not block page lease /

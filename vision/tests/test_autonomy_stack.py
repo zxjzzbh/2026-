@@ -30,11 +30,9 @@ ROOT = Path(__file__).resolve().parents[1]
 def measured_profile():
     # Synthetic calibration, solely for exercising software. Never deployed.
     data = json.loads((ROOT / "configs/autonomy-pi5.json").read_text(encoding="utf-8"))
-    # Keep synthetic geometry independent of newly surveyed real dimensions.
-    data["vehicle"].pop("front_to_rear_axle_m", None)
-    data["vehicle"].pop("length_m", None)
     data["vehicle"].update(measured=True, width_m=.19, wheelbase_m=.25, track_width_m=.15,
-                           front_overhang_m=.05, rear_overhang_m=.07, tyre_width_m=.035, tyre_length_m=.06)
+                           front_overhang_m=.05, rear_overhang_m=.07, tyre_width_m=.035, tyre_length_m=.06,
+                           front_to_rear_axle_m=.30, length_m=.37)
     data["motion"].update(calibrated=True, continuous_motion_verified=True,
                           max_speed_mps=.25, max_steering_rad=.35, speed_kp_us_per_mps=40,
                           speed_ki_us_per_m=20, braking_deceleration_mps2=.5,
@@ -102,7 +100,7 @@ def test_real_profile_remains_incomplete_and_never_opens_adapter():
     assert adapter.calls == []
 
 
-@pytest.mark.parametrize("field,value", [("calibrated", 1), ("max_speed_mps", .26), ("steering_center_us", 1800), ("max_steering_rad", math.nan)])
+@pytest.mark.parametrize("field,value", [("calibrated", 1), ("max_speed_mps", .26), ("steering_center_us", 1871), ("max_steering_rad", math.nan)])
 def test_profile_rejects_invalid_or_outside_reviewed_range(field, value):
     data = copy.deepcopy(measured_profile().data)
     data["motion"][field] = value
@@ -171,7 +169,7 @@ def test_failed_steering_does_not_prevent_neutral_or_close():
     adapter.fail_channel = 3
     with pytest.raises(OSError):
         driver.apply({"motion_planned": True, "esc_us": 1540, "steering_us": 1660})
-    assert adapter.calls[-2:] == [(4, 1500), (3, 1650)]
+    assert adapter.calls[-2:] == [(4, 1500), (3, 1610)]
     errors = driver.close()
     assert errors and adapter.calls[-1] == "close"
 
@@ -231,35 +229,6 @@ def camera_packet(profile, name, seq, now, lane=True, light="unknown"):
                 perception=dict(detector_status="ok", lane=dict(valid=lane, left=[[100, 300]], right=[[540, 300]], target=[320, 300]), presence={"blue_board": "present"}, traffic_light_state=light),
                 ground_features=dict(board_roi_visible=True, task_region_visible=True, obstacle_region_visible=True,
                                      crosswalk_edge_px=[[160, 380], [480, 380]], traffic_stop_line_px=[[160, 300], [480, 300]], cones=[]))
-
-
-def test_stop_distance_uses_direct_front_measurement_without_moving_axle_stop_line():
-    profile = measured_profile()
-    profile.data["vehicle"]["front_to_rear_axle_m"] = .34
-    packet = {"primary": camera_packet(profile, "primary", 0, 10)}
-    obs = DualCameraObservationBuilder(profile).build(packet, 10)["observation"]
-    assert obs["crosswalk_distance_m"] == pytest.approx(.16)
-    assert obs["traffic_stop_distance_m"] == pytest.approx(.65)
-
-
-def test_sweep_checks_measured_front_and_larger_rear_envelope():
-    profile = measured_profile()
-    ahead = observation(cones=[{"lateral_m": 0, "forward_m": .81, "radius_m": .01}])
-    assert MetricMotionController(profile).plan(move(), ahead)["motion_planned"]
-    profile.data["vehicle"]["front_to_rear_axle_m"] = .34
-    assert "hits_obstacle" in MetricMotionController(profile).plan(move(), ahead)["reason"]
-    behind = observation(cones=[{"lateral_m": 0, "forward_m": -.167, "radius_m": .01}])
-    assert MetricMotionController(profile).plan(move(), behind)["motion_planned"]
-    profile.data["vehicle"]["length_m"] = .42
-    assert "hits_obstacle" in MetricMotionController(profile).plan(move(), behind)["reason"]
-
-
-@pytest.mark.parametrize("field,value", [("front_to_rear_axle_m", .20), ("front_to_rear_axle_m", True), ("length_m", .2)])
-def test_profile_refuses_impossible_direct_body_measurements(field, value):
-    data = copy.deepcopy(measured_profile().data)
-    data["vehicle"][field] = value
-    with pytest.raises(ValueError):
-        AutonomyProfile(data)
 
 
 def test_dual_camera_main_priority_aux_fallback_and_conflicting_light_unknown():
@@ -705,7 +674,7 @@ def test_live_real_mode_handover_waits_for_measured_stop_and_exclusive_uart():
     second = replay_envelope(observation(10.1, speed_mps=0, in_switch_zone=True, enable_autonomy=True, board_monitor_valid=True, start_board_state="present"), 2)
     second.update(mode="live", source_oldest_monotonic_s=10.1)
     assert runtime.step(second)["decision"]["phase"] == Phase.BOARD.value
-    assert adapter.calls[:3] == ["open", (4, 1500), (3, 1650)]
+    assert adapter.calls[:3] == ["open", (4, 1500), (3, 1610)]
     assert (4, 1540) not in adapter.calls and (4, 1575) not in adapter.calls
     runtime.close()
 

@@ -12,7 +12,8 @@ from urllib.request import ProxyHandler, HTTPRedirectHandler, build_opener
 import cv2
 import numpy as np
 
-from .brake_parking import BrakeParkingController, GroundMotionEstimate, load_settings, numeric
+from .brake_parking import (BrakeParkingController, GroundMotionEstimate, load_settings, numeric,
+                            crosswalk_calibrated_settings)
 from .brake_output import BrakeActuator
 from .crosswalk import CrosswalkDetector
 from .config import load_config
@@ -73,7 +74,8 @@ def append(stream,data):
 
 
 def replay(args):
-    s=load_settings(args.config);controller=BrakeParkingController(s,args.path_mode)
+    s=crosswalk_calibrated_settings(load_settings(args.config),Path(args.config).resolve().parents[2])
+    controller=BrakeParkingController(s,args.path_mode,first_detection_stop=True,crosswalk=True)
     out=Path(args.output).resolve();out.mkdir(parents=True,exist_ok=False)
     count=0
     with Path(args.input).open(encoding='utf-8-sig') as source,(out/'decisions.jsonl').open('w',encoding='utf-8') as log:
@@ -91,7 +93,9 @@ def replay(args):
 
 
 def camera(args):
-    s=load_settings(args.config)
+    s=crosswalk_calibrated_settings(load_settings(args.config),Path(args.config).resolve().parents[2])
+    if s.get('crosswalk_calibration') is not None:
+        raise ValueError('当前已使用双摄近边标定，请使用网页斑马线入口；单摄CLI不能退回旧标定运行')
     if not 1<=args.seconds<=180:raise ValueError('camera session must be 1..180 seconds')
     if args.run and urlsplit(args.preview).hostname not in ('127.0.0.1','localhost','::1'):
         raise ValueError('live parking must run on the Pi with its loopback camera feed')
@@ -100,7 +104,7 @@ def camera(args):
     if args.run:source.check_no_driver()
     out=Path(args.output).resolve();out.mkdir(parents=True,exist_ok=False)
     (out/'settings.json').write_text(json.dumps(s,ensure_ascii=False,indent=2),encoding='utf-8')
-    controller=BrakeParkingController(s,args.path_mode)
+    controller=BrakeParkingController(s,args.path_mode,first_detection_stop=True)
     motion=GroundMotionEstimate();detector=CrosswalkDetector();lane_detector=LaneDetector(load_config(None).lane)
     actuator=speech=None
     started=time.monotonic();frames=0;failure=None

@@ -12,6 +12,8 @@ import pytest
 from carvision.race_flow import load_bundle,prepare_bundle,RaceFlowController,parking_blockers
 from carvision.race_flow_console import RaceFlowDrive
 from carvision.cone_trial_output import ConePulseGuard
+from flow_calibration_fixture import current_crosswalk_sample
+from cone_mission_fixture import ground_nav,exit_nav
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -22,11 +24,12 @@ def bundle():return load_bundle(Path(os.environ.get('CARVISION_FLOW_TEST_ROOT',R
 
 class Frames:
     def __init__(self,controller):self.c=controller;self.t=0.;self.i=0;self.outputs=[]
-    def step(self,dt=.1,board='absent',color='red',moving=False,cones=None,ego=.5,parking=None,layout=False,audio=True,lines=True,active_only=False):
+    def step(self,dt=.1,board='absent',color='red',moving=False,cones=None,ego=.5,parking=None,layout=False,audio=True,lines=True,active_only=False,nav_override=None):
         self.t=round(self.t+dt,8);self.i+=1;t=self.t;i=self.i
         motion={'valid':True,'moving':moving,'captured_s':t}
         nav={'experimental':True,'ready':True,'captured_s':t,'frame_id':i,'ego_fraction':ego,'half_envelope':.20,
              'lane_bounds_px':[[100,380],[50,430]],'cones':cones or [],'uncertain':[],'source_camera':'secondary'}
+        if nav_override is not None:nav=nav_override(t,i)
         signal={'state':color,'fixture_detected':True,'bbox_xyxy':[100,70,250,125]}
         sample={'sequence':i,'captured_s':t,'motion':motion,'navigation':nav,
             'board':{cam:{'state':board,'scene_valid':True,'frame_id':i,'captured_s':t} for cam in ('primary','secondary')},
@@ -35,6 +38,7 @@ class Frames:
             'traffic':{'fresh':True,'camera_id':'dual','image_size':[480,360],'frame_id':i,'captured_s':t,'motion':motion,
                 'camera_observations':{'secondary':{'camera_id':'secondary','frame_id':i,'captured_s':t,'image_size':[480,360],'signal':signal}}},
             'parking_view':{'layout_found':layout},'parking':parking(t,i) if callable(parking) else parking}
+        sample['crosswalk']=current_crosswalk_sample(self.c,sample['crosswalk'])
         if not lines:
             nav.pop('lane_bounds_px');nav.pop('ego_fraction');nav['line_missing']=True
         if active_only:
@@ -49,6 +53,25 @@ class Frames:
             if self.c.stage==stage:return out
             assert self.c.stage!='fault',out
         pytest.fail(f'never reached {stage}: {out}')
+
+    def stable_cones(self,**kw):
+        # The obstacle stage requires its own three fresh paired observations.
+        assert self.c.stage=='cones'
+        for _ in range(3):out=self.step(**kw)
+        assert out['esc_us']>1500 and out['phase']=='cones'
+        return out
+
+    def estimate_cone(self,number,side='left'):
+        identifier=f'secondary-bucket-{number}'
+        for y in (.55,.63,.71,.73,.76):
+            out=self.step(moving=True,nav_override=lambda t,i:ground_nav(t,identifier,side=side,y=y,fid=i))
+        assert self.c.controller.pass_evidence['visual_pass_candidate']
+        assert not self.c.controller.pass_evidence['visual_estimate_ready']
+        for index in range(3):
+            out=self.step(moving=True,nav_override=lambda t,i:exit_nav(t,identifier,side=side,index=index,fid=i))
+        assert identifier in self.c.controller.passed_ids
+        assert not out['physical_tail_verified']
+        return out
 
 
 def test_snapshot_does_not_change_individual_trial_behavior(bundle):
@@ -81,8 +104,8 @@ def test_only_actual_red_then_green_advances_traffic_and_single_trial_stays_neut
     assert c.controller.phase=='wait_green'
     for _ in range(20):r.step(color='red')
     assert c.stage=='traffic'
-    assert r.until('cones',color='green')['esc_us']>1500
-    out=r.step(moving=True)
+    assert r.until('cones',color='green')['esc_us']==1500
+    out=r.stable_cones(moving=True)
     assert out['esc_us']>1500 and out['phase']=='cones'
 
 
@@ -117,13 +140,9 @@ def test_complete_task_chain_and_every_pwm_through_real_guard(bundle):
         if c.controller.phase=='wait_green':break
     assert c.controller.phase=='wait_green'
     r.until('cones',color='green')
+    r.stable_cones(moving=True)
     cone_start=len(r.outputs)
-    for number,x,ego in ((1,.70,.38),(2,.30,.62)):
-        for y in (.55,.63,.71,.73,.75):
-            cone={'id':f'bucket-{number}','fraction':x,'half_width':.03,'near':y>=.60,'exit_band':y>=.70,
-                  'y_fraction':y,'image_close':y>=.70,'reference_distance_m':None}
-            assert r.step(cones=[cone],ego=ego,moving=True)['esc_us']>1500
-        for _ in range(14):r.step(ego=ego,moving=True)
+    r.estimate_cone(1,'left');r.estimate_cone(2,'right')
     r.until('parking_search',moving=True)
     assert all(o['esc_us']>1500 for _,o in r.outputs[cone_start:])
     r.step(layout=True);assert c.stage=='parking_entry'
@@ -138,17 +157,28 @@ def test_complete_task_chain_and_every_pwm_through_real_guard(bundle):
     writes=[];act={'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':1600,'creep_us':1575,'brake_us':1400},
                    'brake_pulse_s':.12,'brake_release_s':.1,'actuator_lease_s':.2}
     act['parking_forward_us']=[r['pwm_us'] for r in b['parking']['motion_calibration']['speed_pwm']]
+    act['traffic_forward_us']=b['traffic']['pwm']['search_us']  # Traffic-only frozen output.
+    act['cone_forward_us']=[1570,1580]
     guard=ConePulseGuard(act,lambda ch,v:writes.append((ch,v)),mode='F/B',right_us=1350,left_us=1870)
     for sequence,(t,intent) in enumerate(r.outputs):guard.accept({**intent,'sequence':sequence,'sent_s':t},t)
     assert not guard.fault and all(ch in (3,4) for ch,_ in writes)
 
 
 @pytest.mark.parametrize('stage',['crosswalk','traffic','cones','parking_search'])
-def test_all_moving_stages_continue_through_line_loss(bundle,stage):
+def test_all_moving_stages_stop_after_bounded_line_recovery(bundle,stage):
     c=RaceFlowController(bundle,0.);c._go(stage,0.,'test');r=Frames(c)
+    color='off' if stage=='traffic' else 'unknown'
+    if stage=='traffic':
+        # Isolate line recovery after acquiring the actual off fixture. No
+        # initial fixture now correctly stops blind traffic approach earlier.
+        for _ in range(2):r.step(lines=True,moving=True,color=color)
+    if stage=='cones':r.stable_cones(moving=True)
     if stage=='crosswalk':
         # Keep the real zebra stop decision separate from lane segmentation.
-        c.controller.brake_reference['far_edge_y_normalized']=.90
+        if c.controller.crosswalk_profile is not None:
+            for reference in c.controller.brake_reference['camera_references'].values():
+                reference['near_edge_y_normalized']=.99
+        else:c.controller.brake_reference['far_edge_y_normalized']=.90
         # First-sighting stop is intentional. Finish it before lane-loss testing.
         first=r.step(lines=False,moving=True,color='unknown')
         assert first['action']=='brake' and first['stop_stage']=='first_detection'
@@ -157,11 +187,15 @@ def test_all_moving_stages_continue_through_line_loss(bundle,stage):
             assert not any(e['event']=='speak' for e in out['events'])
             if c.controller.first_detection_handled and not c.controller.preliminary_stop:break
         assert c.controller.phase=='search' and not c.controller.preliminary_stop
-    for _ in range(70):
-        out=r.step(lines=False,moving=True,color='unknown')
-        assert out['esc_us']>1500 and out['line_search'],out
-        assert c.stage==stage
-    assert r.step(lines=True,moving=True,color='unknown')['esc_us']>1500
+    for _ in range(12):
+        out=r.step(lines=False,moving=True,color=color)
+        if c.stage=='fault':break
+        assert out['esc_us']>=1500 and out['line_search'],out
+        # A stage with no previously observed lane cannot start blind; an
+        # already-moving stage retains only its bounded recovery request.
+        if out['esc_us']==1500:assert out['lane_reference_source']=='no_observed_lane'
+    assert c.stage=='fault' and out['esc_us']==1500
+    assert r.step(lines=True,moving=True,color='unknown')['esc_us']==1500
 
 
 def test_stage_handoff_works_with_actual_reader_active_task_only(bundle):
@@ -172,14 +206,21 @@ def test_stage_handoff_works_with_actual_reader_active_task_only(bundle):
     for _ in range(50):
         r.step(color='red',active_only=True)
         if c.controller.phase=='wait_green':break
-    assert r.until('cones',color='green',active_only=True)['esc_us']>1500
+    assert r.until('cones',color='green',active_only=True)['esc_us']==1500
+    assert r.stable_cones(moving=True,active_only=True)['esc_us']>1500
 
 
-def test_two_passed_cones_do_not_wait_for_lines_before_next_stage(bundle):
+def test_two_passed_cones_require_fresh_centered_lane_before_next_stage(bundle):
     c=RaceFlowController(bundle,0.);c._go('cones',0.,'test')
-    c.controller.count=2;c.controller.auto_count=2
-    r=Frames(c);out=r.step(lines=False,moving=True)
-    assert out['esc_us']>1500 and c.stage=='parking_search' and out['line_search']
+    r=Frames(c);r.stable_cones(moving=True)
+    r.estimate_cone(1,'left');r.estimate_cone(2,'right')
+    assert c.controller.count==2 and c.controller.mission.completion_ready()
+    out=r.step(lines=False,moving=True)
+    assert c.stage=='cones' and not out['lane_return_confirmed']
+    for _ in range(8):
+        out=r.step(lines=True,moving=True)
+        if c.stage=='parking_search':break
+    assert c.stage=='parking_search' and out['esc_us']>1500
 
 
 def test_unverified_parking_stops_before_entry_and_never_starts_payment(bundle):
@@ -223,17 +264,18 @@ def test_explicit_handoff_releases_manual_and_blocks_parallel_trials(bundle,tmp_
         def join(self,**kw):pass
     monkeypatch.setattr('carvision.race_flow_console.threading.Thread',Thread)
     now=[1.];base=Base(manual=True);made=[]
-    flow=RaceFlowDrive(base,{},tmp_path,live=True,clock=lambda:now[0],actuator_factory=lambda b:made.append(b))
+    flow=RaceFlowDrive(base,{},tmp_path,live=True,clock=lambda:now[0],actuator_factory=lambda b:made.append(b),require_ready=False)
     assert not made and flow.status()['race_flow']['can_enter']
     payload={'client':'operator','setup_token':'boot','trial_token':'manual-token','stationary_confirmed':True,'in_switch_zone':True,'fb_mode_confirmed':True}
     state=flow.request('race_enter',payload)
-    assert base.calls[0]=='finish_test' and not base.manual and state['race_flow']['active'] and not made
+    assert not base.calls and base.manual and state['race_flow']['active'] and not made
+    assert state['race_flow']['stage']=='handoff'  # The worker performs asynchronous release, not the HTTP handler.
     for action in ('command','traffic_prepare','crosswalk_prepare','cone_prepare','parking_bay_observe'):
         with pytest.raises(ValueError,match='占用'):flow.request(action,{'client':'operator'})
     with pytest.raises(ValueError,match='未持有'):flow.request('race_keepalive',{'client':'other','run_token':flow.token,'race_sequence':1})
     now[0]=2.
     with pytest.raises(ValueError,match='超时'):flow.request('race_keepalive',{'client':'operator','run_token':flow.token,'race_sequence':1})
-    flow.request('race_exit',{});assert not flow.active
+    flow.request('race_exit',{'client':'operator'});assert not flow.active
     flow.request('traffic_prepare',{});assert base.calls[-1]=='traffic_prepare'
 
 

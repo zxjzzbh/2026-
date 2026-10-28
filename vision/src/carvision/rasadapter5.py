@@ -4,13 +4,12 @@ Source: the board_demo SDK linked from the manufacturer's expansion-board
 control lesson. Importing/opening this transport sends no actuator commands.
 PWM position readback is the controller's stored command, not servo feedback.
 """
-
-from .steering import LEFT_US, RIGHT_US
 import math
 import os
 import select
 import struct
 import time
+from .manual_steering import REQUESTED_MIN_US, REQUESTED_MAX_US
 
 SOURCE = 'https://wiki.hiwonder.com/projects/Raspberry-Pi-5-Expansion-Board/en/latest/docs/2_Expansion_Board_Control_Lesson.html'
 
@@ -108,16 +107,32 @@ class RasAdapter:
 
     def set_position(self, channel, pulse, seconds=.02):
         if (type(channel) is not int or not 1 <= channel <= 6
-                or type(pulse) is not int or not ((RIGHT_US <= pulse <= LEFT_US) if channel == 3 else 1550 <= pulse <= 1750)
+                or type(pulse) is not int or not (REQUESTED_MIN_US <= pulse <= REQUESTED_MAX_US if channel == 3 else 1550 <= pulse <= 1750)
                 or type(seconds) not in (int, float) or not math.isfinite(seconds)
                 or not .02 <= seconds <= .5):
-            raise ValueError('only conservative, observed steering points are allowed')
+            raise ValueError('pulse outside the channel-specific steering envelope')
         duration = int(seconds * 1000)
         self.send(4, struct.pack('<BHBBH', 1, duration, 1, channel, pulse))
+
+    def set_manual_steering(self, channel, pulse, seconds=.02):
+        """Manual S3 output uses the same current limits as autonomous S3 output."""
+        if (type(channel) is not int or channel != 3
+                or type(pulse) is not int or not REQUESTED_MIN_US <= pulse <= REQUESTED_MAX_US
+                or type(seconds) not in (int, float) or not math.isfinite(seconds)
+                or not .02 <= seconds <= .5):
+            raise ValueError('manual steering requires S3 and the requested 1350..1870 us envelope')
+        self.send(4, struct.pack('<BHBBH', 1, int(seconds * 1000), 1, channel, pulse))
 
     def set_esc(self, channel, pulse):
         if type(channel) is not int or channel != 4 or type(pulse) is not int or pulse not in (1500, 1575, 1300):
             raise ValueError('only the identified S4 ESC and previously observed short-trial points are allowed')
+        self.send(4, struct.pack('<BHBBH', 1, 20, 1, channel, pulse))
+
+    def set_manual_esc(self, channel, pulse):
+        """Only S4 inside the operator-supplied manual 1000..2000-us range."""
+        from .manual_speed import valid_manual_pulse
+        if type(channel) is not int or channel != 4 or not valid_manual_pulse(pulse):
+            raise ValueError('manual throttle requires S4 and 1000..2000 us')
         self.send(4, struct.pack('<BHBBH', 1, 20, 1, channel, pulse))
 
     def set_gimbal_reference(self, channel, pulse, seconds=.1):

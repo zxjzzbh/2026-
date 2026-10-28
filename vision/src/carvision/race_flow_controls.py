@@ -2,7 +2,7 @@
 HTML='''<section id="race-flow-panel" class="drive-panel">
 <h3>完整比赛流程 · 手动切入自动驾驶</h3>
 <p>遥控到切换区并停稳，保持电调 F/B，再点击下方入口。接管后先等待蓝色挡板移开，不会立即前进。</p>
-<p>挡板发车 → 斑马线停 10 秒并播报 → 红灯停、绿灯继续 → 两桶避障 → 空闲半区停车 → 30 秒扫码缴费。</p>
+<p>挡板移开后前进并寻找斑马线（不播报发车） → 斑马线停 10 秒并播报 → 红灯停、绿灯继续 → 两桶避障 → 空闲半区停车 → 30 秒扫码缴费。</p>
 <button id="race-enter" type="button">已在切换区停稳 · 进入自动模式（F/B）</button>
 <div class="race-actions"><button id="race-stop" type="button">急停总流程</button><button id="race-exit" type="button">退出总流程，恢复单项测试</button></div>
 <p id="race-stage" role="status">完整流程尚未启用</p><p id="race-reason" role="status"></p>
@@ -66,7 +66,7 @@ setInterval(async()=>{
   if(!response.ok)throw new Error('no fresh image');const blob=await response.blob(),url=URL.createObjectURL(blob),old=raceImageURL;
   raceImageURL=url;el('race-preview').src=url;el('race-preview').hidden=false;if(old)URL.revokeObjectURL(old);
  }catch(e){el('race-preview').hidden=true;}finally{clearTimeout(timer);raceImageBusy=false;}
-},400);
+},125);
 '''
 
 

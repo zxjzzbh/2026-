@@ -14,15 +14,17 @@ def main():
     from carvision import web_preview,manual_controls
     from carvision.race_flow_console import RaceFlowDrive
     from carvision.race_flow_controls import extend_controls,add_endpoints
+    from carvision.competition_page import build_controls,add_page
     import serve_parking_payment
     original=web_preview.make_server;argv=sys.argv[:];wrappers=[]
+    competition=build_controls(manual_controls)
     live='--race-live' in sys.argv
     sys.argv=[x for x in sys.argv if x!='--race-live']
     def make_server(address,state,secondary=None,drive=None):
         if drive is None or secondary is None:raise ValueError('完整流程需要原控制服务及双摄缓存')
         extend_controls(manual_controls)
         full=RaceFlowDrive(drive,{'primary':state,'secondary':secondary},ROOT,live=live);wrappers.append(full)
-        return add_endpoints(original(address,state,secondary,full),full)
+        return add_page(add_endpoints(original(address,state,secondary,full),full),competition)
     web_preview.make_server=make_server
     try:return serve_parking_payment.main()
     finally:

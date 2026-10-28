@@ -187,7 +187,8 @@ def test_guardian_keeps_legacy_limit_but_accepts_long_manual_control_after_800_s
     clock = Clock()
     monkeypatch.setattr(pwm_module.time, 'monotonic', clock)
     class PWM:
-        def __init__(self, **kwargs): pass
+        def __init__(self, **kwargs):
+            self.manual_forward_speed_enabled=kwargs.get('manual_forward_speed',False)
         def open(self): clock.now = 850
         def neutral(self): pass
         def steering_idle(self): pass

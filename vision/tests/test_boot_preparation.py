@@ -122,3 +122,42 @@ def test_s3_preparation_and_confirmation_never_open_uart_or_touch_s4(prepared_en
     assert events == [] and review['neutral_physically_verified'] is False
     assert (Path(context['folder'])/'steering-ready.json').exists()
     assert not (Path(context['folder'])/'neutral-observation.json').exists()
+
+
+def test_recent_background_observations_remove_foreground_wait_without_inventing_esc_state(prepared_environment, monkeypatch):
+    prep, events, _ = prepared_environment
+    for tick in range(31):
+        prep._samples.append((float(tick), {'boot_id':'fresh-boot','power_flags':0}))
+    monkeypatch.setattr(module.time, 'monotonic', lambda:30.5)
+    waits=[]
+    monkeypatch.setattr(module.time, 'sleep', waits.append)
+    context=prep.prepare(threading.Event())
+    assert waits==[.2]
+    baseline=json.loads((Path(context['folder'])/'baseline.json').read_text())
+    assert baseline['duration_s']==30 and len(baseline['samples'])==31
+    assert baseline['esc_state_during_observation']=='not_measured'
+    assert context['review']['neutral_physically_verified'] is False
+    assert [e for e in events if isinstance(e,tuple) and e[0]=='esc']==[('esc',4,1500)]
+
+
+def test_incomplete_stale_or_gapped_background_history_is_not_reused(prepared_environment, monkeypatch):
+    prep, _, _=prepared_environment
+    monkeypatch.setattr(module.time, 'monotonic', lambda:33)
+    for tick in range(31):prep._samples.append((float(tick), {}))
+    assert prep.recent_baseline() is None
+    monkeypatch.setattr(module.time, 'monotonic', lambda:30)
+    assert prep.recent_baseline() is not None
+    prep._samples[10]=(6., {})
+    assert prep.recent_baseline() is None
+
+
+def test_esc_only_confirmation_does_not_invent_ground_or_spotter_observations(prepared_environment):
+    prep, _, _=prepared_environment
+    template=json.loads(prep.template_path.read_text())
+    template.update(operator_confirmation_scope='esc_state_only',ground_continuous_requested_by_user=True)
+    prep.template_path.write_text(json.dumps(template))
+    review=prep.prepare(threading.Event())['review']
+    for key in ('wheels_on_ground_confirmed_by_user','clear_area_confirmed_by_user',
+                'spotter_can_cut_power_confirmed_by_user','power_switch_in_reach_confirmed_by_user'):
+        assert review[key] is False
+    assert review['esc_off_confirmed_by_user'] is True

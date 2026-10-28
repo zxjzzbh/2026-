@@ -5,26 +5,27 @@ Visual cone passage remains estimated; parking needs measured world feedback.
 Payment is reported by the operator, never performed by the vehicle software.
 """
 
-from .steering import LEFT_US, RIGHT_US, ImagePD, from_offset
-from .parking_entry import PARKING_STEERING_RATE_US_S
+from .steering import LEFT_US, RIGHT_US
 import copy
 import json
 import math
 from pathlib import Path
 
-from .brake_parking import BrakeParkingController, numeric, load_settings as load_brake
-from .traffic_driving import TrafficDrivingController, load_settings as load_traffic
-from .cone_low_speed import LowSpeedController, trial_settings
+from .brake_parking import (BrakeParkingController, numeric, load_settings as load_brake,
+                            crosswalk_calibrated_settings)
+from .traffic_driving import TrafficDrivingController, load_settings as load_traffic, approach_settings
+from .cone_low_speed import trial_settings
 from .cone_continuous import ContinuousConeController
+from .lane_following import LaneFollower
 from .cone_planning import load_settings as load_cones
 from .cone_navigation import reuse_legacy_ground
-from .departure import DepartureSequence
+from .departure import DEFAULT_MIN_BLUE_PERCENT,DEFAULT_CLEAR_CONFIRM_S,DepartureSequence
 from .parking_bay import load_settings as load_parking
-from .parking_mission import ParkingMission
-from .parking_control import parking_blockers, parking_intent
+from .parking_task import ParkingTask
+from .parking_control import parking_blockers
 
 STAGES=('arming','wait_board','crosswalk','traffic','cones','parking_search','parking_entry','payment','complete')
-LABELS={'idle':'手动遥控／待切换','arming':'自动模式初始化','wait_board':'等待发车挡板移开',
+LABELS={'handoff':'正在交接控制权','idle':'手动遥控／待切换','arming':'自动模式初始化','wait_board':'等待发车挡板移开',
         'crosswalk':'斑马线停车与播报','traffic':'红绿灯停车通行','cones':'两桶避障',
         'parking_search':'寻找空闲停车半区','parking_entry':'自动入位与停稳',
         'payment':'30 秒扫码缴费','complete':'流程结束','fault':'已停止，需重新准备','cancelled':'已退出自动模式'}
@@ -55,19 +56,20 @@ def load_bundle(root,drive=None):
     if saved:brake['brake_trigger_distance_m']=saved['brake_trigger_distance_m']
     saved=local('traffic-driving')
     if saved:
+        if 'forward_us' in saved:
+            traffic['pwm']['search_us']=traffic['pwm']['creep_us']=saved['forward_us']
         for key in ('red_confirm_percent','max_approach_s'):
             if key in saved:traffic[key]=saved[key]
     cones=load_cones(configs/('cone-trial.local.json' if local('cone-trial') else 'cone-trial.json'))
     parking=load_parking(configs/('parking-bay.local.json' if local('parking-bay') else 'parking-bay.json'))
-    departure=local('departure') or {'min_blue_percent':3.,'clear_s':1.}
-    # Use exactly the settings already loaded by the real console wrappers.
-    node=drive;seen=set()
-    mapping={'BrakeTrialDrive':'brake','TrafficTrialDrive':'traffic','ConeObserverDrive':'cones','ParkingBayDrive':'parking','DepartureTrialDrive':'departure'}
+    departure=local('departure') or {'min_blue_percent':DEFAULT_MIN_BLUE_PERCENT,'clear_confirm_s':DEFAULT_CLEAR_CONFIRM_S}
+    # The application passes explicit task settings; no wrapper/class-name walk.
     values={'brake':brake,'traffic':traffic,'cones':cones,'parking':parking,'departure':departure}
-    while node is not None and id(node) not in seen:
-        seen.add(id(node));name=type(node).__name__
-        if name in mapping:values[mapping[name]]=copy.deepcopy(node.settings)
-        node=getattr(node,'drive',None)
+    supplied=getattr(drive,'task_settings',{}) if drive is not None else {}
+    supplied=supplied() if callable(supplied) else supplied
+    for name,settings in (supplied or {}).items():
+        if name in values:values[name]=copy.deepcopy(settings)
+    values['brake']=crosswalk_calibrated_settings(values['brake'],root)
     if not values['cones']['ground'].get('historical_verified') and not values['cones']['ground'].get('verified'):
         reference=json.loads((configs/'cone-legacy-ground-candidate.json').read_text(encoding='utf-8'))
         values['cones']=reuse_legacy_ground(values['cones'],reference)
@@ -78,9 +80,10 @@ def prepare_bundle(bundle):
     b=copy.deepcopy(bundle);f=validate_flow(b['flow']);b['flow']=f
     b['brake']['hold_s']=10.;b['brake']['speech_text']=f['school_team_speech']
     b['brake']['max_approach_s']=f['max_stage_s']
-    b['brake']['pwm']['search_us']=b['brake']['pwm']['creep_us']=min(1575,f['forward_us'])
+    b['brake']['pwm']['search_us']=f['forward_us']
+    b['brake']['pwm']['creep_us']=min(1575,f['forward_us'])
     b['brake']['brake_release_s']=max(.1,b['brake']['brake_release_s'])
-    b['traffic']['pwm']['search_us']=b['traffic']['pwm']['creep_us']=f['forward_us']
+    b['traffic']=approach_settings(b['traffic'])
     b['cones']=trial_settings(b['cones'],{'test_forward_us':f['forward_us'],'test_left_us':f['left_us'],
                                         'test_right_us':f['right_us'],'test_run_s':min(120,f['max_stage_s'])})
     geometry=b['cones']['geometry']
@@ -106,35 +109,45 @@ class FlowTrafficController(TrafficDrivingController):
 
 
 class RaceFlowController:
-    def __init__(self,bundle,now):
+    def __init__(self,bundle,now,*,initialized=False):
         self.b=prepare_bundle(bundle);self.s=self.b['flow'];self.stage='arming';self.started=self.entered=now
         self.reason='保持中位 3 秒，随后等待蓝色发车挡板';self.last_t=None;self.last_seq=None
-        self.controller=None;self.departure=DepartureSequence(self.b['departure'].get('clear_confirm_s',1.))
+        self.controller=None;self.departure=DepartureSequence(self.b['departure'].get('clear_confirm_s',DEFAULT_CLEAR_CONFIRM_S))
         self.guide=None;self.last_module_id=None;self.last_intent=None;self.events=[];self.transitions=[]
-        self.parking=ParkingMission(self.b['parking']);self.parking_wait=None
-        self.parking_pd=ImagePD(kp=1.,kd=.08)
-        self.parking_steering=1610.;self.parking_control_at=None
+        self.parking=ParkingTask(self.b['parking'],self.b['cones'],require_ready=False);self.parking_wait=None
         self.payment_started=None;self.paid=False;self.paid_in_time=False;self.last_drive=False;self.audio_wait=None;self.stationary_since=None
         self.passed_cone_ids=set()
+        if initialized:
+            self._go('wait_board',now,'已确认共用执行器零油门及连续静止，等待蓝色挡板')
 
     def _go(self,stage,now,reason):
         self.transitions.append({'from':self.stage,'to':stage,'at_s':now,'reason':reason})
         self.stage=stage;self.entered=now;self.reason=reason;self.last_module_id=None;self.last_intent=None
-        self.guide=LowSpeedController(self.b['cones'],now,initialized=True)
-        if stage=='crosswalk':self.controller=BrakeParkingController(self.b['brake'],'straight',first_detection_stop=True)
+        if self.guide is None:self.guide=LaneFollower(self.b['cones'],now)
+        self.guide.transition(stage)
+        if stage=='crosswalk':self.controller=BrakeParkingController(self.b['brake'],'straight',first_detection_stop=True,crosswalk=True)
         elif stage=='traffic':self.controller=FlowTrafficController(self.b['traffic'],now,self.s['max_stage_s'])
         elif stage=='cones':self.controller=ContinuousConeController(self.b['cones'],now,initialized=True,handoff_after_two=True)
-        elif stage=='parking_entry':
-            self.parking_pd.reset();self.parking_steering=1610.;self.parking_control_at=now
+
+    def frame_age_limit(self):
+        if self.stage=='crosswalk' and self.b['brake'].get('crosswalk_calibration') is not None:
+            return self.b['brake'].get('crosswalk_max_frame_age_s',self.s['max_frame_age_s'])
+        return self.s['max_frame_age_s']
 
     def _out(self,reason=None,intent=None,events=None):
         raw=intent or {'action':'neutral','esc_us':1500,'steering_us':1610}
         if reason:self.reason=reason
         result={**raw,'phase':self.stage,'stage_label':LABELS[self.stage],'reason':self.reason,
                 'events':events or [],'hardware_output':False,'field_verified':False}
-        if result['esc_us']>1500 and not result['action'].startswith('parking_'):
-            result['action']='creep' if result['esc_us']==self.b['brake']['pwm']['creep_us'] else 'search'
+        if self.stage in ('arming','wait_board'):
+            result['departure_diagnostics']=self.departure.diagnostics()
+        cone_limited=result['action'].startswith('cone_')
+        if result['esc_us']>1500 and not result['action'].startswith('parking_') and not cone_limited:
+            result['action']=('traffic_approach' if self.stage=='traffic' else
+                              'creep' if result['esc_us']==self.b['brake']['pwm']['creep_us'] else 'search')
         self.last_drive=result['esc_us']>1500
+        if self.guide is not None and result.get('fresh_control') is not False:
+            self.guide.observe_output(result['steering_us'],self.last_t if self.last_t is not None else self.entered)
         return result
 
     def fail(self,reason):
@@ -146,19 +159,24 @@ class RaceFlowController:
         self._go('complete',now,'已记录队员付款声明；支付平台到账结果未自动核验')
 
     def _guided(self,nav,now,base=None):
+        # Lane feedback supplies direction and a forward ceiling only. It has
+        # no cone ownership, ESC arming or authority to override a task brake.
+        decision=dict(base or {'action':'search','esc_us':self.s['forward_us']})
+        if decision['esc_us']<=1500:
+            self.guide.suspend()
+            return decision
         if not nav:raise ValueError('缺少新鲜相机引导')
-        # Reuse the existing lane-loss and inward-correction behavior without
-        # selecting cone targets before the traffic stage has finished.
-        nav={**nav,'cones':[c for c in nav.get('cones',[]) if c['id'] not in self.passed_cone_ids]}
-        lane={**nav,'cones':[]}
-        steer=self.guide.step(lane,now)
-        if steer['action'] not in ('search','creep'):return steer
-        # Apply the same near-obstacle clearance guard to the real observations.
-        if nav.get('line_missing') or not nav.get('lane_bounds_px') or 'ego_fraction' not in nav:
-            steer=self.guide._without_lines(nav,now,steer)
-        else:steer=self.guide._forward(nav,now,steer,'沿赛道低速前进')
-        result={**(base or steer),'steering_us':steer['steering_us']}
-        if steer.get('line_search'):result.update(line_search=True,boundary_observed=False,reason=steer['reason'])
+        steer=self.guide.update(nav,now)
+        result={**decision,**steer}
+        pulse=min(decision['esc_us'],steer['forward_limit_us'])
+        result['esc_us']=pulse
+        if pulse==1500:
+            result.update(action='neutral',steering_us=1610,
+                reason='边界外向旧舵撤回或等待当前白线，保持中位')
+        elif pulse!=decision['esc_us']:
+            result['action']='cone_'+str(pulse)  # Existing frozen 1570/1580 profiles.
+        if steer.get('line_search') and pulse>1500:
+            result['reason']='巡线暂失，在有限恢复预算内保持有界方向'
         return result
 
     def step(self,sample,now,audio=None):
@@ -171,7 +189,7 @@ class RaceFlowController:
         self.last_t=now
         if now-self.started>self.s['max_run_s']:return self.fail('总流程超时，已停止')
         if now-self.entered>self.s['max_stage_s']:return self.fail('当前任务超时，已停止')
-        if not isinstance(sample,dict) or not numeric(sample.get('captured_s')) or not 0<=now-sample['captured_s']<=.25:
+        if not isinstance(sample,dict) or not numeric(sample.get('captured_s')) or not 0<=now-sample['captured_s']<=self.frame_age_limit():
             return self.fail('相机帧过期或中断')
         if type(sample.get('sequence')) is not int:return self.fail('相机批次编号无效')
         if sample['sequence']<0 or self.last_seq is not None and sample['sequence']<self.last_seq:
@@ -196,7 +214,8 @@ class RaceFlowController:
             # Bridge to its first observation with live lane/image guidance,
             # not a neutral pulse or fabricated traffic/crosswalk observation.
             intent=self._guided(sample.get('navigation'),now)
-            intent['esc_us']=self.b['brake' if stage=='crosswalk' else 'traffic']['pwm']['search_us']
+            if intent['action'] in ('search','creep') and intent['esc_us']>1500:
+                intent['esc_us']=self.b['brake' if stage=='crosswalk' else 'traffic']['pwm']['search_us']
             result=self._out(reason,intent)
         else:result=self._step_stage(sample,now,audio)
         result['events']=(events or [])+result.get('events',[])
@@ -209,12 +228,11 @@ class RaceFlowController:
         if self.stage=='wait_board':
             ready=self.departure.update(sample.get('board',{}),now)
             if ready:
-                return self._advance('crosswalk',now,'挡板移开已确认，开始自主循迹',sample,audio,
-                    [{'event':'speak','id':'departure','text':'我发车啦'}])
+                return self._advance('crosswalk',now,'挡板移开已确认，前进并寻找斑马线',sample,audio)
             return self._out(self.departure.reason)
         if self.stage in ('crosswalk','traffic'):
             module=sample.get(self.stage);nav=sample.get('navigation')
-            if not module or not 0<=now-module.get('captured_s',-1e9)<=.25:raise ValueError('任务观测过期')
+            if not module or not 0<=now-module.get('captured_s',-1e9)<=self.frame_age_limit():raise ValueError('任务观测过期')
             if module['frame_id']!=self.last_module_id:
                 self.last_module_id=module['frame_id'];self.last_intent=self.controller.step(module,now)
                 events=[{**e,'id':self.stage} for e in self.last_intent.get('events',[]) if e.get('event')=='speak']
@@ -230,7 +248,7 @@ class RaceFlowController:
                         return self._out('已停够 10 秒，等待播报发送结果',events=events)
                     return self._advance('traffic',now,'斑马线任务完成，接近红绿灯',sample,audio,events)
                 return self._advance('cones',now,'实际绿灯达标，继续行驶并开始两桶避障',sample,audio,events)
-            if decision['esc_us']>1500:decision=self._guided(nav,now,decision)
+            decision=self._guided(nav,now,decision)
             return self._out(decision['reason'],decision,events)
         if self.stage=='cones':
             decision=self.controller.step(sample.get('navigation'),now)
@@ -257,26 +275,12 @@ class RaceFlowController:
             parking=sample.get('parking')
             if parking is None:return self._out('等待停车区世界坐标、位姿和速度反馈')
             if parking['frame_id']==self.last_module_id:return self._out()
-            self.last_module_id=parking['frame_id'];decision=self.parking.step(parking,now)
+            self.last_module_id=parking['frame_id'];decision=self.parking.decide(parking,now)
             if decision['phase']=='fault':raise ValueError(decision['reason'])
             if decision['phase']=='parked':
                 self.payment_started=now;self._go('payment',now,'正确半区内已取得停稳反馈，30 秒内由队员扫码支付 0.01 元')
                 return self._out(events=[{'event':'payment_window_opened','amount_cents':1}])
-            intent=parking_intent(decision,self.b['parking'])
-            if decision['action']=='follow_path':
-                signed_ratio=(1610-intent['steering_us'])/260.
-                command=self.parking_pd.update(signed_ratio,parking['captured_s'],context=self.parking.selected)
-                requested=from_offset(command)
-                rows=self.b['parking']['motion_calibration']['curvature_pwm']
-                requested=max(min(r['pwm_us'] for r in rows),min(max(r['pwm_us'] for r in rows),requested))
-                dt=min(.25,max(0.,now-(self.parking_control_at if self.parking_control_at is not None else now-.1)))
-                change=PARKING_STEERING_RATE_US_S*dt
-                self.parking_steering+=max(-change,min(change,requested-self.parking_steering))
-                self.parking_control_at=now
-                intent.update(steering_us=round(self.parking_steering),steering_policy='verified_path_pd',
-                              requested_steering_us=requested)
-            else:
-                self.parking_pd.reset();self.parking_steering=1610.;self.parking_control_at=now
+            intent=self.parking.intent(decision,now,parking['captured_s'])
             return self._out(decision['reason'],intent)
         raise ValueError('未知比赛阶段')
 

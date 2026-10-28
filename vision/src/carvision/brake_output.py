@@ -6,12 +6,19 @@ The default 1575-us parking envelope is unchanged. Only the traffic caller
 explicitly selects the separate 1625-us tuning ceiling.
 """
 import multiprocessing as mp
+import math
 import struct
 import sys
 import time
 
-from .brake_parking import numeric
-from .steering import LEFT_US as STEERING_LEFT_US, RIGHT_US as STEERING_RIGHT_US
+from .brake_timing import MAX_BRAKE_PULSE_S, brake_cleanup_window_s
+from .steering_limits import STEERING_LEFT_US, STEERING_RIGHT_US
+
+
+def numeric(value):
+    # Keep the guard usable in the system-Python hardware worker without
+    # importing the vision/OpenCV stack. Match the original strict type check.
+    return type(value) in (int,float) and math.isfinite(value)
 
 
 def write_parking_pulse(adapter, channel, pulse, *, forward_limit_us=1575):
@@ -48,7 +55,7 @@ class PulseGuard:
         if (p.get('neutral_us')!=1500 or p.get('steering_center_us')!=1610
                 or any(type(p.get(k)) is not int for k in ('search_us','creep_us','brake_us'))
                 or not 1500<p['creep_us']<=p['search_us']<=forward_limit_us or not 1300<=p['brake_us']<1500
-                or not numeric(settings.get('brake_pulse_s')) or not 0<settings['brake_pulse_s']<=.3
+                or not numeric(settings.get('brake_pulse_s')) or not 0<settings['brake_pulse_s']<=MAX_BRAKE_PULSE_S
                 or not numeric(settings.get('actuator_lease_s')) or not 0<settings['actuator_lease_s']<=.25
                 or not numeric(settings.get('brake_release_s')) or settings['brake_release_s']<=0):
             raise ValueError('invalid local F/B actuator envelope')
@@ -164,7 +171,7 @@ def _worker(connection,settings,port,mode,forward_limit_us=1575):
         if guard:
             try:
                 guard.abort('worker ending',time.monotonic())
-                end=time.monotonic()+.35
+                end=time.monotonic()+brake_cleanup_window_s(guard.s['brake_pulse_s'])
                 while guard.emergency_until is not None and time.monotonic()<end:
                     guard.tick(time.monotonic());time.sleep(.005)
                 guard.neutral()

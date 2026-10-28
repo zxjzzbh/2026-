@@ -69,9 +69,12 @@ def execution_readiness(settings):
 
 def actuator_settings(settings):
     d=validate_driving(settings)
-    return {'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':d['forward_us'],
+    result={'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':d['forward_us'],
                    'creep_us':d['forward_us'],'brake_us':1400},
             'brake_pulse_s':d['brake_pulse_s'],'brake_release_s':d['brake_release_s'],'actuator_lease_s':d['actuator_lease_s']}
+    if settings.get('low_speed_test'):
+        result['cone_forward_us']=sorted({min(d['forward_us'],1570),min(d['forward_us'],1580)})
+    return result
 
 
 def import_ground_calibration(settings,data):

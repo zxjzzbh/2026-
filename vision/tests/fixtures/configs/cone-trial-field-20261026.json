@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "camera": "secondary",
+  "aux_camera": "primary",
+  "image_size": [
+    480,
+    360
+  ],
+  "target_count": 2,
+  "blue_hsv_lower": [
+    100,
+    110,
+    50
+  ],
+  "blue_hsv_upper": [
+    135,
+    255,
+    255
+  ],
+  "confirm_frames": 3,
+  "confirm_s": 0.15,
+  "track_timeout_s": 0.6,
+  "max_frame_age_s": 0.25,
+  "scene": {
+    "surface": "indoor_white_line_track",
+    "boundary_policy": "whole_vehicle_inside_white_inner_edges",
+    "red_ground_min_fraction": 0.15,
+    "blue_only_obstacles_reported": true,
+    "white_v_min": 255
+  },
+  "geometry": {
+    "measured": false,
+    "lane_width_m": 1.25,
+    "vehicle_width_m": 0.3,
+    "vehicle_length_m": 0.42,
+    "rear_axle_to_front_m": 0.335,
+    "rear_overhang_m": 0.085,
+    "cone_height_m": 0.08,
+    "cone_base_width_m": 0.075,
+    "clearance_m": null,
+    "measured_geometry": {
+      "source_record": "vision/configs/vehicle-geometry-measurements-20261025.json",
+      "source": "human_user_measurements_2026-10-25",
+      "front_axle_to_front_m": 0.09,
+      "rear_axle_to_rear_m": 0.07,
+      "overall_length_m": 0.42,
+      "overall_width_m": 0.3,
+      "wheelbase_m": 0.245,
+      "wheel_track_m": 0.24,
+      "tyre_contact_width_m": 0.05,
+      "tyre_contact_length_m": 0.035,
+      "axle_and_overhang_length_m": 0.405,
+      "length_discrepancy_m": 0.015,
+      "effective_front_extent_m": 0.335,
+      "effective_rear_extent_m": 0.085,
+      "effective_rear_extent_is_measured": false,
+      "notes": "The reported rear overhang is 0.07 m. Runtime rear_overhang_m stays at the conservative envelope max(0.07, 0.42 - 0.335) = 0.085 m to cover the full reported 0.42 m length. The 0.015 m discrepancy is unresolved. Dimensions do not verify clearance, ground projection, motion or pose."
+    }
+  },
+  "ground": {
+    "verified": false,
+    "detector_verified": false,
+    "image_size": [
+      480,
+      360
+    ],
+    "pose_us": [
+      1600,
+      1150
+    ],
+    "homography": [
+      [
+        -0.001719914438483979,
+        0.00016533935234815564,
+        0.3639539214583493
+      ],
+      [
+        -9.487806934345525e-05,
+        -0.0007147609050347506,
+        -0.37016768184374077
+      ],
+      [
+        -0.00019889022326163343,
+        -0.0050630492532325235,
+        1.0
+      ]
+    ],
+    "valid_polygon_px": [
+      [
+        156.83043015302692,
+        339.8921501998256
+      ],
+      [
+        333.37466201283524,
+        336.3141605394761
+      ],
+      [
+        326.8497023809524,
+        246.8407738095238
+      ],
+      [
+        146.44681818181817,
+        252.5222727272727
+      ]
+    ],
+    "independent_check_rms_m": 0.014248798066974693,
+    "independent_check_max_error_m": 0.02114873755797878,
+    "coordinate_frame": "rear_axle_x_right_y_forward",
+    "max_error_m": 0.03,
+    "historical_verified": true,
+    "current_pose_verified": false,
+    "reuse_source": {
+      "commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+      "path": "vision/tests/fixtures/configs/README.md",
+      "pose_us": [
+        1600,
+        1150
+      ],
+      "source_repeat_error_m": 0.02157725555847742
+    },
+    "calibration_evidence": {
+      "image_size": [
+        480,
+        360
+      ],
+      "pose_us": [
+        1600,
+        1150
+      ],
+      "points": [
+        {
+          "pixel": [
+            156.83043015302692,
+            339.8921501998256
+          ],
+          "ground_m": [
+            -0.2,
+            0.835
+          ]
+        },
+        {
+          "pixel": [
+            333.37466201283524,
+            336.3141605394761
+          ],
+          "ground_m": [
+            0.2,
+            0.835
+          ]
+        },
+        {
+          "pixel": [
+            326.8497023809524,
+            246.8407738095238
+          ],
+          "ground_m": [
+            0.5,
+            1.835
+          ]
+        },
+        {
+          "pixel": [
+            146.44681818181817,
+            252.5222727272727
+          ],
+          "ground_m": [
+            -0.5,
+            1.835
+          ]
+        }
+      ],
+      "check_points": [
+        {
+          "pixel": [
+            242.78308317302827,
+            297.3570108163748
+          ],
+          "ground_m": [
+            0,
+            1.085
+          ]
+        },
+        {
+          "pixel": [
+            239.1779891304348,
+            259.4071557971015
+          ],
+          "ground_m": [
+            0,
+            1.585
+          ]
+        },
+        {
+          "pixel": [
+            262.6210166177908,
+            274.5902737047898
+          ],
+          "ground_m": [
+            0.1,
+            1.335
+          ]
+        }
+      ],
+      "valid_polygon_px": [
+        [
+          156.83043015302692,
+          339.8921501998256
+        ],
+        [
+          333.37466201283524,
+          336.3141605394761
+        ],
+        [
+          326.8497023809524,
+          246.8407738095238
+        ],
+        [
+          146.44681818181817,
+          252.5222727272727
+        ]
+      ],
+      "camera": "secondary",
+      "measured_fixed_camera": false,
+      "accepted_error_m": 0.03,
+      "candidate_only": true,
+      "source_commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+      "source_path": "vision/tests/fixtures/configs/README.md",
+      "source_pose_us": [
+        1600,
+        1150
+      ],
+      "source_repeat_error_m": 0.02157725555847742,
+      "rear_axle_origin_adjustment_m": -0.0050000000000000044,
+      "notes": "Historical data only: assumes unchanged fixed camera and pure uncropped resize. Current pose and lane-edge coverage must be checked. This polygon does not cover both edges of the 1.23m lane. Not enabled for driving."
+    }
+  },
+  "motion": {
+    "verified": false,
+    "minimum_turn_radius_m": null,
+    "maximum_tracking_error_m": null,
+    "braking_distance_m": null,
+    "pose_feedback_verified": false
+  },
+  "notes": "2026-10-25 human measurements update body width to 0.30 m and overall length to 0.42 m; measured rear overhang 0.07 m is recorded separately from the conservative runtime 0.085 m rear envelope. Rear-axle-to-front extent is 0.245 + 0.09 = 0.335 m. See geometry.measured_geometry and its source record for wheel/tyre measurements and the unresolved 0.015 m length discrepancy. Existing lane, cone and camera settings are preserved. Clearance, ground/motion/pose validation remain incomplete; geometry.measured is not promoted.",
+  "driving": {
+    "forward_us": 1575,
+    "max_run_s": 30,
+    "max_speed_mps": 0.2,
+    "lookahead_m": 0.4,
+    "brake_pulse_s": 0.12,
+    "brake_release_s": 0.1,
+    "actuator_lease_s": 0.2,
+    "steering_radius_right_cm": null,
+    "steering_radius_left_cm": null,
+    "visual_error_bound_m": null,
+    "visual_verified_distance_m": null,
+    "fixed_camera_confirmed": false,
+    "steering_verified": false,
+    "odometry_verified": false,
+    "steering_radius_1350_cm": null,
+    "steering_radius_1870_cm": null,
+    "steering_radius_1570_cm": null,
+    "steering_radius_1650_cm": null
+  }
+}

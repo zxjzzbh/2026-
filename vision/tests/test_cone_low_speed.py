@@ -20,6 +20,9 @@ def settings():
     s=load_settings(Path(os.environ.get('CARVISION_REPOSITORY_CONE_CONFIG',ROOT/'configs/cone-trial.json')))
     reference=json.loads((ROOT/'configs/cone-legacy-ground-candidate.json').read_text(encoding='utf-8'))
     s=reuse_legacy_ground(s,reference);s['geometry']['lane_width_m']=1.25
+    # Synthetic vehicle geometry for these offline trials. The public template
+    # deliberately leaves axle offsets unknown and cannot authorize driving.
+    s['geometry'].update(vehicle_length_m=.42,rear_axle_to_front_m=.335,rear_overhang_m=.085)
     return s
 
 
@@ -43,7 +46,8 @@ def test_profile_uses_reported_limits_without_changing_verified_flags(settings):
     before=copy.deepcopy(settings);s=trial_settings(settings)
     assert settings==before and not execution_readiness(s)['ready']
     assert s['driving']['forward_us']==1600 and s['low_speed_test']['stopping_budget_m']==.27
-    assert s['low_speed_test']['steering_gain']==1.0
+    assert s['low_speed_test']['steering_gain']==1.5
+    assert trial_settings(settings,{'test_steering_gain':2.2})['low_speed_test']['steering_gain']==2.2
     assert not s['motion']['verified'] and not s['ground']['verified']
 
 
@@ -62,13 +66,18 @@ def test_debug_throttle_reaches_shared_guard_and_retains_watchdog(settings,pulse
     assert 'id="cone-test-forward" type="number" min="1501" max="1625" step="1" value="1600"' in HTML
 
 
-def test_real_run_unconfirmed_blue_does_not_insert_brake_and_settle():
+def test_real_run_cannot_ignore_explicit_navigation_stop():
     data=json.loads((ROOT/'tests/fixtures/cone-continuity-20261013.json').read_text(encoding='utf-8'))
     ctl=LowSpeedController(data['settings'],data['started_s']);moving=False
     for row in data['steps']:
+        nav=row['navigation']
+        if nav.get('ready') is False or nav.get('action')=='stop' or nav.get('boundary_danger'):
+            with pytest.raises(ValueError):ctl.step(nav,row['now_s'])
+            break
         result=ctl.step(row['navigation'],row['now_s'])
         moving|=result['action']=='search'
         if moving:assert result['action']=='search',result
+    else:pytest.fail('trace stop request was not exercised')
 
 
 def test_far_heading_intersection_is_not_body_boundary_collision(settings):
@@ -274,14 +283,16 @@ def test_near_cone_inside_body_clearance_still_stops(settings):
     with pytest.raises(ValueError,match='净空'):ctl.step(data,3.1)
 
 
-def test_tracked_approaching_cone_uses_forward_escape_instead_of_near_stop(settings):
+def test_tracked_approaching_cone_cannot_bypass_body_clearance_with_escape(settings):
     ctl=LowSpeedController(trial_settings(settings),0.)
-    for i,y in enumerate((.55,.63,.71,.74)):
+    for i,y in enumerate((.55,.63)):
         t=3.1+i*.1;data=observation(t)
         data['cones'][0].update(y_fraction=y,near=y>=.60,image_close=y>=.70,exit_band=y>=.70)
         intent=ctl.step(data,t)
         assert intent['action']=='search' and intent['esc_us']==1600 and intent['steering_us']==1870
-    assert ctl.possible_contact and ctl.escape_turn=='left'
+    data=observation(3.3);data['cones'][0].update(y_fraction=.71,image_close=True,exit_band=True)
+    with pytest.raises(ValueError,match='净空'):ctl.step(data,3.3)
+    assert ctl.count==0
     assert not ctl.progress()['field_verified']
 
 
@@ -299,7 +310,9 @@ def test_same_cone_clipped_below_ground_roi_keeps_moving_until_estimated_pass(se
         assert nav['ready'] and not nav['uncertain']
         assert nav['cones'][0]['near_field_continuation'] and nav['cones'][0]['reference_distance_m'] is None
         assert controller.step(nav,t)['action']=='search'
-    assert controller.count==1 and controller.auto_count==1
+    # Clipped continuation cannot manufacture the missing third observed
+    # side-clearance frame, even after the tail interval has elapsed.
+    assert controller.count==0 and controller.auto_count==0 and controller.pass_gate_hits<3
 
 
 def test_static_bonnet_blob_does_not_gain_near_field_continuation(settings):
@@ -315,7 +328,7 @@ def test_static_bonnet_blob_does_not_gain_near_field_continuation(settings):
 def test_escape_does_not_override_white_boundary_hard_stop(settings):
     ctl=LowSpeedController(trial_settings(settings),0.)
     for i,y in enumerate((.55,.63,.71)):
-        t=3.1+i*.1;data=observation(t);data['cones'][0].update(y_fraction=y,image_close=y>=.7,exit_band=y>=.7)
+        t=3.1+i*.1;data=observation(t,ego_fraction=.38);data['cones'][0].update(y_fraction=y,image_close=y>=.7,exit_band=y>=.7)
         ctl.step(data,t)
     data=observation(3.5,boundary_danger=True,reason='车身白线净空不足')
     with pytest.raises(ValueError,match='白线'):ctl.step(data,3.5)
@@ -526,32 +539,32 @@ def test_arming_survives_single_frame_line_miss_without_driving(settings):
     assert ctl.step(observation(3.1),3.1)['action']=='search'
 
 
-def test_line_hold_and_long_line_loss_keep_throttle_without_fake_passes(settings):
+def test_line_hold_and_loss_share_a_short_budget_without_fake_passes(settings):
     ctl=LowSpeedController(trial_settings(settings),0.)
     ctl.step(observation(3.01,cones=[]),3.01)
-    for t in (3.06,3.18,3.4,4.):
+    for t in (3.06,3.18,3.4):
         assert ctl.step(observation(t,cones=[],line_held=True),t)['action']=='search'
-    for t in np.arange(4.1,10.,.1):
-        t=float(t);lost=observation(t,cones=[]);lost.pop('lane_bounds_px');lost.pop('ego_fraction')
-        result=ctl.step(lost,t)
-        assert result['action']=='search' and result['esc_us']==1600 and result['steering_us']==1610
-        assert result['line_search'] and not result['boundary_observed']
-    assert ctl.count==0 and ctl.phase=='driving'
-    restored=ctl.step(observation(10.1,cones=[],ego_fraction=.55),10.1)
+    lost=observation(3.47,cones=[]);lost.pop('lane_bounds_px');lost.pop('ego_fraction')
+    with pytest.raises(ValueError,match='恢复预算'):ctl.step(lost,3.47)
+    assert ctl.count==0
+    restored=ctl.step(observation(3.5,cones=[],ego_fraction=.55),3.5)
     assert restored['action']=='search' and restored['steering_us']==1870
     assert ctl.line_missing_since is None
 
 
-def test_no_lines_at_start_still_arms_and_drives_with_fresh_images(settings):
+def test_no_lines_at_start_allows_only_short_recovery_after_arming(settings):
     s=trial_settings(settings);nav=DualLowSpeedNavigator(s);ctl=LowSpeedController(s,0.)
     image=np.zeros((360,480,3),np.uint8)
-    for t in (1.,3.1,3.3,5.,8.):
+    for t in (1.,3.1,3.3):
         data=row(t,round(t*100));data['road_context']['valid']=False;data['tracks']=[]
         guide=nav.update_views({'secondary':image},{'secondary':data},t)
         assert guide['ready'] and guide['line_missing'] and not guide.get('lane_bounds_px')
         result=ctl.step(guide,t)
         assert result['action']==('neutral' if t<3 else 'search')
     assert ctl.count==0
+    data=row(3.5,350);data['road_context']['valid']=False;data['tracks']=[]
+    guide=nav.update_views({'secondary':image},{'secondary':data},3.5)
+    with pytest.raises(ValueError,match='恢复预算'):ctl.step(guide,3.5)
 
 
 def test_image_only_cones_are_current_and_steering_is_not_held_after_disappearance(settings):
@@ -566,12 +579,12 @@ def test_image_only_cones_are_current_and_steering_is_not_held_after_disappearan
     assert ctl.count==0
 
 
-def test_real_dual_pipeline_line_loss_and_recovery_never_inserts_braking(settings):
+def test_real_dual_pipeline_brief_line_loss_recovers_before_budget(settings):
     s=trial_settings(settings);nav=DualLowSpeedNavigator(s);ctl=LowSpeedController(s,0.)
     image=np.zeros((360,480,3),np.uint8)
     for i,t in enumerate(np.arange(3.1,9.,.1)):
         t=float(t);data=row(t,i);data['tracks']=[]
-        data['road_context']['valid']=bool(i<3 or i>48)
+        data['road_context']['valid']=bool(i<3 or i>4)
         guide=nav.update_views({'secondary':image},{'secondary':data},t)
         result=ctl.step(guide,t)
         assert result['action']=='search' and result['esc_us']==1600
@@ -637,28 +650,53 @@ class Actuator:
     def close(self):self.closed=True
 
 
-def test_low_speed_session_can_prepare_start_and_keep_running_without_lines(settings,tmp_path):
+def test_low_speed_session_closes_on_line_recovery_timeout(settings,tmp_path):
     made=[]
     def factory(s):
         a=Actuator();made.append(a);return a
     run=ConeRun(factory,tmp_path)
     run.prepare(settings,{'mode':'disabled','boot_test_phase':'esc_off','setup_token':'boot'},
         {'profile':PROFILE,'client':'page','setup_token':'boot','esc_off':True,'fb_mode_confirmed':True},1.)
+    assert run.status(settings,{},1.)['line_recovery_s']==1.
+    def current(t):
+        return observation(t,cones=[],source_camera='secondary',line_state='paired',boundary_observed=True)
     def lost(t):
-        data=observation(t,cones=[]);data.pop('lane_bounds_px');data.pop('ego_fraction');data['line_missing']=True
+        data=current(t);data.pop('lane_bounds_px');data.pop('ego_fraction')
+        data.update(line_missing=True,line_state='missing',boundary_observed=False)
         return data
     run.tick(lost(1.1),1.1)
     assert made and run.phase=='ready'
+    assert not run.status(settings,{},1.1)['can_start']
+    with pytest.raises(ValueError,match='连续可靠'):
+        run.command('cone_start',{'client':'page','run_token':run.token,'trial_sequence':1,
+            'fb_mode_confirmed':True,'esc_on_static':True,'field_ready':True},1.15)
+    for t in (1.2,1.3,1.4):run.tick(current(t),t)
+    assert run.status(settings,{},1.4)['can_start']
     run.command('cone_start',{'client':'page','run_token':run.token,'trial_sequence':1,
-        'fb_mode_confirmed':True,'esc_on_static':True,'field_ready':True},1.2)
-    for i in range(60):
-        t=1.3+i*.1
-        run.command('cone_keepalive',{'client':'page','run_token':run.token,'trial_sequence':i+2},t)
-        run.tick(lost(t),t)
+        'fb_mode_confirmed':True,'esc_on_static':True,'field_ready':True},1.4)
+    assert run.controller.progress()['line_recovery_s']==1.
+    sequence=1
+    # Complete initialization with actual paired observations. Losing the lane
+    # before any forward command is not evidence of the driving timeout.
+    for i in range(31):
+        t=1.5+i*.1;sequence+=1
+        run.command('cone_keepalive',{'client':'page','run_token':run.token,'trial_sequence':sequence},t)
+        run.tick(current(t),t)
         assert run.active
-        if t>=4.2:assert made[0].intents[-1]['action']=='search'
-    run.cancel('test emergency')
-    assert made[0].closed and not run.active
+    assert made[0].intents[-1]['action']=='search'
+    last_paired_s=t
+    # Continuous control starts its one-second no-guidance budget at the
+    # first current missing observation, including that frame's processing age.
+    # The bounded LowSpeedController cases elsewhere stay at .4 s.
+    for i in range(1,13):
+        t=last_paired_s+i*.1;sequence+=1
+        run.command('cone_keepalive',{'client':'page','run_token':run.token,'trial_sequence':sequence},t)
+        run.tick(lost(t),t)
+        if not run.active:break
+        assert t-(last_paired_s+.1)<1.+1e-9
+    assert made[0].closed and not run.active and run.phase=='fault'
+    assert '均无可靠引导超过 1 秒' in run.reason
+    assert t-(last_paired_s+.1)==pytest.approx(1.)
 
 
 def test_experimental_session_is_exclusive_leased_and_never_implicitly_starts(settings,tmp_path):
@@ -672,13 +710,17 @@ def test_experimental_session_is_exclusive_leased_and_never_implicitly_starts(se
     assert not created
     run.tick(observation(1.1,cones=[]),1.1)
     assert created[0].intents[-1]['action']=='neutral'
-    assert run.status(settings,base,1.1)['can_start']
-    with pytest.raises(ValueError):run.command('cone_start',{'client':'other','run_token':run.token,'trial_sequence':1},1.2)
+    assert not run.status(settings,base,1.1)['can_start']
+    run.tick(observation(1.2,cones=[]),1.2)
+    assert not run.status(settings,base,1.2)['can_start']
+    run.tick(observation(1.3,cones=[]),1.3)
+    assert run.status(settings,base,1.3)['can_start']
+    with pytest.raises(ValueError):run.command('cone_start',{'client':'other','run_token':run.token,'trial_sequence':1},1.35)
     run.command('cone_start',{'client':'page','run_token':run.token,'trial_sequence':1,
-        'fb_mode_confirmed':True,'esc_on_static':True,'field_ready':True},1.2)
-    run.tick(observation(1.3),1.3)
+        'fb_mode_confirmed':True,'esc_on_static':True,'field_ready':True},1.35)
+    run.tick(observation(1.4),1.4)
     assert all(i['action']=='neutral' for i in created[0].intents)
-    run.tick(observation(1.8),1.8)
+    run.tick(observation(1.95),1.95)
     assert not run.active and created[0].closed and run.phase=='fault'
     with pytest.raises(ValueError):run.command('cone_start',{},2.)
 
@@ -727,7 +769,7 @@ def test_prepare_page_transmits_selected_gain_to_backend():
     from carvision.cone_controls import HTML,STATE,SCRIPT
     node=os.environ.get('SMARTCAR_NODE') or shutil.which('node')
     if not node:pytest.skip('Node required for actual prepare callback')
-    assert 'id="cone-test-steering-gain" type="number" min="1" max="3" step="0.1" value="1.0"' in HTML
+    assert 'id="cone-test-steering-gain" type="number" min="1" max="3" step="0.1" value="1.5"' in HTML
     js=r'''
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
 const input=JSON.parse(fs.readFileSync(0,'utf8')),nodes=new Map(input.ids.map(id=>[id,{value:'',disabled:false,valid:true,

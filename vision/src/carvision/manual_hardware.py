@@ -5,8 +5,6 @@ BCM17/27 are not commanded here. Ordinary output remains locked after faults;
 reviewed bench trials and a separately prepared finite ground trial have their own scope.
 """
 
-from .steering import LEFT_US, RIGHT_US
-
 import argparse
 import hashlib
 import json
@@ -17,7 +15,7 @@ import socket
 import subprocess
 import time
 
-from .manual_drive import ManualDrive, DriveError, worker_control_endpoint
+from .manual_drive import ManualDrive, DriveError, worker_control_endpoint, CONTINUOUS_STARTUP_SETTLING_S
 from .steering_calibrate import CalibrationDriver
 from .esc_wave import DmaEsc
 from .esc_load_probe import LoadProbeEsc
@@ -279,7 +277,7 @@ class PiBenchBackend:
                  '-n', '127.0.0.1', '-t', '1', '-x', pin_mask, '-p', '8890'],
                 stdout=self.log, stderr=subprocess.STDOUT, start_new_session=True)
             if not self.motor_only:
-                self.client = CalibrationDriver(8890, [(p, .02) for p in range(RIGHT_US, LEFT_US + 1, 10)])
+                self.client = CalibrationDriver(8890, [(p, .02) for p in range(1550, 1751, 10)])
             if not self.steering_only:
                 self.motor = (LoadProbeEsc if self.load_probe else DmaEsc)(8890)
             connection = self.client or self.motor
@@ -432,7 +430,10 @@ def main():
     scope.add_argument('--raised-held', action='store_true', help='reviewed Pi 5 raised-wheel holds up to 3 seconds')
     scope.add_argument('--ground-held', action='store_true', help='reviewed fixed-low-gear manual ground session')
     scope.add_argument('--ground-continuous', action='store_true', help='explicit operator-held 5G control without a session timer')
+    p.add_argument('--allow-autonomy-handoff', action='store_true',help='allow explicit borrowing of this prepared continuous worker')
     args = p.parse_args()
+    if args.allow_autonomy_handoff and not (args.ground_continuous and args.pi5_review):
+        raise ValueError('autonomy handoff requires the prepared Pi 5 continuous worker')
     ground_mode = args.ground_short or args.ground_held or args.ground_continuous
     if ground_mode and not args.ground_prepared or args.ground_prepared and not ground_mode:
         raise ValueError('ground short trial requires explicit ground preparation')
@@ -470,7 +471,7 @@ def main():
         backend = PiBenchBackend(args.root, args.output, args.expected_boot_id, state,
                                  motor_only=args.motor_only, steering_only=args.steering_only, combined=args.combined,
                                  parking_protection=args.parking_protection, ground_short_trial=args.ground_short, raised_load_probe=args.raised_load_probe)
-    controller, listener = None, None
+    controller, listener, autonomy = None, None, None
     endpoint = worker_control_endpoint(args.output)
     private_socket_folder = endpoint.parent if endpoint.parent != args.output.resolve() else None
     if private_socket_folder is not None:
@@ -488,18 +489,22 @@ def main():
         def record(event):
             with (args.output/'events.jsonl').open('a') as stream:
                 stream.write(json.dumps(event, ensure_ascii=False)+'\n')
-        controller = ManualDrive(backend, event_sink=record, settling_s=1 if args.steering_only else 12,
+        controller = ManualDrive(backend, event_sink=record,
+                                 settling_s=1 if args.steering_only else CONTINUOUS_STARTUP_SETTLING_S if args.ground_continuous else 12,
                                  session_s=backend.manual_session_limit_s if args.ground_held or args.ground_continuous else 60 if args.ground_short or args.raised_load_probe or args.raised_held else 120 if args.pi5_review else 180 if extended else 120,
                                  preparation_s=120 if args.ground_continuous or args.ground_held and backend.manual_session_limit_s == 600 else 600 if args.pi5_review else 120 if args.ground_short or args.raised_load_probe else 600 if extended else None,
                                  raised_held=args.raised_held, ground_held=args.ground_held or args.ground_continuous,
                                  ground_continuous=args.ground_continuous)
+        from .shared_executor import WorkerAutonomyOwner
+        autonomy=WorkerAutonomyOwner(controller,backend,enabled=args.allow_autonomy_handoff)
         listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         listener.bind(str(endpoint))
         os.chmod(endpoint, 0o600)
         listener.listen(8)
-        listener.settimeout(.1)
+        listener.settimeout(.01 if args.allow_autonomy_handoff else .1)
         controller.start()
         while not stop and controller.status()['mode'] not in ('fault', 'expired'):
+            autonomy.tick()
             try:
                 connection, _ = listener.accept()
             except socket.timeout:
@@ -510,16 +515,10 @@ def main():
                     with connection.makefile('rb') as stream:
                         request = json.loads(stream.readline(4097))
                     action = request.get('action')
-                    if action == 'shutdown':
-                        stop = True
-                        controller.emergency('控制服务退出')
-                        status = controller.status()
-                    elif action == 'status':
-                        status = controller.status()
-                    else:
-                        status = controller.request(action, request.get('payload'))
+                    status=autonomy.dispatch(action,request.get('payload',{}))
+                    if action=='shutdown':stop=True
                     reply = {'status': status}
-                except (ValueError, OSError) as exc:
+                except (ValueError, OSError, RuntimeError) as exc:
                     reply = {'error': str(exc)}
                 try:
                     connection.sendall((json.dumps(reply, ensure_ascii=False)+'\n').encode())
@@ -527,6 +526,10 @@ def main():
                     pass
     finally:
         mode_before_close = controller.status()['mode'] if controller else 'startup_failed'
+        autonomy_cleanup_error=None
+        if autonomy:
+            try:autonomy.close()
+            except Exception as exc:autonomy_cleanup_error=str(exc)
         if controller:
             controller.close()
         else:
@@ -538,6 +541,7 @@ def main():
             private_socket_folder.rmdir()
         (args.output/'trial-completion.json').write_text(json.dumps({
             'boot_id': args.expected_boot_id, 'mode_before_close': mode_before_close,
+            'autonomy_cleanup_error':autonomy_cleanup_error,
             'cleanup_completed': True}, indent=2)+'\n')
 
 

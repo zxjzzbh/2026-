@@ -11,7 +11,7 @@ def test_flow_pd_retains_measured_speed_special_action_and_finite_brake(bundle,c
     controller.parking_wait=-1.
     decision={'phase':'enter','action':'follow_path','reason':'synthetic metric target',
               'target_speed_mps':.075,'target_curvature_1pm':curvature}
-    controller.parking=SimpleNamespace(selected='right',step=lambda sample,now:dict(decision))
+    controller.parking.mission=SimpleNamespace(selected='right',path=[],step=lambda sample,now:dict(decision))
     previous=1610
     for frame in range(1,7):
         now=frame*.1
@@ -26,4 +26,4 @@ def test_flow_pd_retains_measured_speed_special_action_and_finite_brake(bundle,c
     decision.update(action='brake',phase='braking')
     out=controller._step_stage({'parking':{'frame_id':7,'captured_s':.7}},.7,{})
     assert out['action']=='brake' and out['esc_us']==1400 and out['steering_us']==1610
-    assert controller.parking_pd.error is None
+    assert controller.parking.pd.error is None

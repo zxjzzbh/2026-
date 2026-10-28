@@ -1,0 +1,34 @@
+{
+  "publication_date": "2026-10-28",
+  "base_commit": "02bb367a597720cc5b2cbf9eb3e3451d74c343ff",
+  "vehicle_connected": false,
+  "deployed": false,
+  "physical_driving_verified": false,
+  "raspberry_pi_realtime_verified": false,
+  "public_checkout_regression": {
+    "tests": 3318,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 6,
+    "passed": 3312,
+    "duration_s": 69.174,
+    "python": "3.12",
+    "platform": "Windows",
+    "command": "python -m pytest vision/tests -q --tb=short",
+    "network": "Non-loopback connections blocked during local verification",
+    "pc_deployment_checks": "CARVISION_SKIP_PC_DEPLOY_TESTS=1; no SSH or vehicle deployment",
+    "runtime_test_config_hashes_verified": true
+  },
+  "preserved_upstream": [
+    "ground_odometry atomic point-pair projection",
+    "standalone crosswalk race/CLI and regressions",
+    "SSH optional deployment/test dependencies",
+    "repository-only capture and feedback modules"
+  ],
+  "public_configuration": "No installed .local files; explicitly named offline fixture profiles; runtime calibration flags remain unverified",
+  "latest_local_baseline": {
+    "passed": 3205,
+    "skipped": 6,
+    "deployed": false
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "camera": "secondary",
+  "image_size": [
+    480,
+    360
+  ],
+  "zone_length_m": 1.0,
+  "lane_width_m": 1.23,
+  "vehicle_width_m": 0.3,
+  "front_extent_m": 0.335,
+  "rear_extent_m": 0.085,
+  "measured_geometry": {
+    "source_record": "vision/configs/vehicle-geometry-measurements-20261025.json",
+    "source": "human_user_measurements_2026-10-25",
+    "front_axle_to_front_m": 0.09,
+    "rear_axle_to_rear_m": 0.07,
+    "overall_length_m": 0.42,
+    "overall_width_m": 0.3,
+    "wheelbase_m": 0.245,
+    "wheel_track_m": 0.24,
+    "tyre_contact_width_m": 0.05,
+    "tyre_contact_length_m": 0.035,
+    "axle_and_overhang_length_m": 0.405,
+    "length_discrepancy_m": 0.015,
+    "effective_front_extent_m": 0.335,
+    "effective_rear_extent_m": 0.085,
+    "effective_rear_extent_is_measured": false,
+    "notes": "The reported rear overhang is 0.07 m. Runtime rear_extent_m stays at the conservative envelope max(0.07, 0.42 - 0.335) = 0.085 m to cover the full reported 0.42 m length. The 0.015 m discrepancy is unresolved. Dimensions do not verify clearance, ground projection, motion or pose."
+  },
+  "clearance_m": 0.02,
+  "yellow_lower": [
+    15,
+    80,
+    80
+  ],
+  "yellow_upper": [
+    40,
+    255,
+    255
+  ],
+  "blue_lower": [
+    90,
+    90,
+    50
+  ],
+  "blue_upper": [
+    135,
+    255,
+    255
+  ],
+  "blocked_blue_fraction": 0.03,
+  "clear_ground_fraction": 0.65,
+  "selection_confirm_s": 0.5,
+  "stop_hold_s": 0.5,
+  "max_frame_age_s": 0.25,
+  "max_speed_mps": 0.15,
+  "max_run_s": 30.0,
+  "perception_verified": false,
+  "ground": null,
+  "minimum_turn_radius_m": null,
+  "braking_distance_m": null,
+  "maximum_pose_error_m": null,
+  "notes": "1 m bay length from 2026 draft; existing 1.23 m lane setting retained. 2026-10-25 human body measurements: overall width 0.30 m, overall length 0.42 m, wheelbase 0.245 m, front overhang 0.09 m and rear overhang 0.07 m. Front extent is 0.335 m from the rear axle. Runtime rear extent 0.085 m is a conservative envelope covering the reported overall length, not a measured rear overhang. See measured_geometry/source record for the unresolved 0.015 m discrepancy. Clearance 2 cm and speed cap are software limits, not measured performance. Perception, ground and motion verification are unchanged.",
+  "surface": "auto",
+  "visual_entry": {
+    "slow_forward_us": 1550,
+    "seek_timeout_s": 5.0,
+    "max_run_s": 30.0,
+    "boundary_grace_s": 0.25,
+    "boundary_wait_s": 1.2,
+    "countersteer_limit_us": 80,
+    "slow_line_y_normalized": null,
+    "stop_line_y_normalized": null
+  },
+  "lookahead_m": 0.25,
+  "final_speed_mps": 0.05,
+  "slowdown_distance_m": 0.6,
+  "maximum_tracking_error_m": 0.06,
+  "stopped_speed_mps": 0.01
+}

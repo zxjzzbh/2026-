@@ -17,22 +17,29 @@
   "arming_s": 3.0,
   "max_frame_age_s": 0.25,
   "actuator_lease_s": 0.25,
-  "brake_pulse_s": 0.12,
+  "brake_pulse_s": 0.35,
   "brake_release_s": 0.1,
   "max_brake_pulses": 3,
   "brake_timeout_s": 3.0,
   "stop_confirm_s": 0.5,
   "max_approach_s": 5.0,
   "max_wait_green_s": 45.0,
-  "red_window_s": 2.0,
+  "red_window_s": 1.0,
+  "fast_red_frames": 3,
+  "fast_red_max_span_s": 0.2,
+  "fast_red_max_gap_s": 0.15,
+  "fast_red_max_age_s": 0.15,
+  "green_window_s": 2.0,
   "red_confirm_percent": 50.0,
   "green_action": "speech_only",
   "speech_text": "红绿灯结束，开始前行",
   "no_progress_s": 2.0,
   "field_verified": false,
-  "notes": "Both cameras use the same original TrafficSignalDetector/profile. Each counts its own fresh distinct frames in a full trailing 2-second window. Either camera can confirm red or green at the shared red_confirm_percent (legacy key). Red wins red/green conflicts, yellow also holds. Votes reset when stationary waiting starts so pre-stop green cannot complete a run. Secondary remains ground-motion source. Start does not require lamp visibility. Green completion is speech only, with no forward output.",
+  "notes": "Photocell-triggered traffic trial: the external gate is1m before the light and has no electrical input to this Pi. Off/unknown images do not prove whether the gate has been crossed. Approach at min(saved PWM,1570) within the approach time budget; no300ms acquisition, pixel-edge or150ms lamp-loss stop before a credible stop color. First trustworthy fresh red/yellow requests1400us350ms bounded F/B braking immediately. Stop-only evidence cannot fake a formal red vote. Continuous visual still without formal red enters verify_red at neutral, with a3s deadline anchored to the first stop request; no automatic forward restart. Only formal1s red plus continuous still enters a fresh2s green wait for the same locked fixture. Motion-feedback failure/no-progress/approach timeout transmits a bounded brake then faults, without waiting for an untriggered green. Leases, max3 finite pulses, neutral1500 and other task actions unchanged. About25cm braking is a user-authorized trial estimate, not a verified maximum, speed calibration or metric stopping-position guarantee. Ground homography never projects the elevated lamp center.",
   "cameras": [
     "primary",
     "secondary"
-  ]
+  ],
+  "approach_speed_limit_us": 1570,
+  "max_verify_red_s": 3.0
 }

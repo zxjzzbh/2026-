@@ -20,13 +20,13 @@ HTML='''<section class="drive-panel" id="parking-bay-test">
 <p>识别过程中持续给出左／右建议；依据不足时标为暂定。选区建议不代表已确认可安全入位。</p>
 <div id="parking-trial-test">
 <h4>低速停车入位</h4>
-<label>入库方式<select id="parking-trial-controller"><option value="metric_path">路径跟踪入库</option><option value="visual_trial">原视觉入位试验（对照）</option></select></label>
+<label>入库方式<select id="parking-trial-controller"><option value="metric_path">路径跟踪入库</option><option value="visual_trial">历史视觉诊断（不计正式入位）</option></select></label>
 <p id="parking-trial-mode-help"></p>
 <p id="parking-trial-missing" role="status"></p>
 <label>入位前进油门（μs）<input id="parking-trial-forward" type="number" min="1501" max="1625" step="1" value="1575"></label>
 <label>入位转向增益<input id="parking-trial-gain" type="number" min="1" max="3" step="0.05" value="1.25"></label>
 <p>油门在下次准备时生效。准备后打开电调、保持车辆静止，再点击开始；本项会实际行驶并自动刹停。</p>
-<p>路径入库：确认空位 → 规划入口前转弯 → 跟随路径 → 末段减速 → 停稳确认。原视觉试验保留原有寻位行为，仅供对照。</p>
+<p>路径入库：确认空位 → 规划入口前转弯 → 跟随路径 → 末段减速 → 停稳确认。历史视觉诊断保留原有寻位行为，不计正式入位。</p>
 <p>视觉对照模式：白线短暂缺失时结合连续车位边界低速修正；证据不足则暂停等待，持续不足退出。寻位默认最多5秒，总入位最多30秒；末段降低油门输出。</p>
 <div class="parking-bay-actions"><button id="parking-trial-prepare" type="button" disabled>准备停车（电调关闭、F/B）</button><button id="parking-trial-start" type="button" disabled>开始低速入位</button></div>
 <button id="parking-trial-cancel" type="button">停止入位／结束本轮</button>
@@ -86,7 +86,7 @@ function renderParkingTrial(s){
  if(parkingTrialActive)selector.value=t.controller_mode||'visual_trial';
  selector.disabled=locked||parkingTrialActive;
  const metric=selector.value==='metric_path',missing=t.metric_missing||[];
- el('parking-trial-mode-help').textContent=metric?'速度采用实测档位表，按剩余路径减速；下方手动油门不参与路径模式。':'视觉入位：白线与连续车位边界共同判断；证据不足暂停，恢复且停稳后继续。寻位有时限，末段降低油门；实际停点仍需实测。';
+ el('parking-trial-mode-help').textContent=metric?'速度采用实测档位表，按剩余路径减速；下方手动油门不参与路径模式。':'历史视觉诊断，不计正式入位：白线与连续车位边界共同判断；证据不足暂停，恢复且停稳后继续。寻位有时限，末段降低油门；实际停点仍需实测。';
  el('parking-trial-missing').textContent=metric?(missing.length?'待补齐：'+missing.join('；'):'参数已齐备；开始后还须有新鲜米制车位和位姿反馈。'):'当前为原视觉对照试验。';
  el('parking-trial-prepare').disabled=locked||parkingTrialActive||!t.can_prepare||(metric&&missing.length>0);
  el('parking-trial-start').disabled=locked||!parkingTrialActive||!parkingTrialOwned||!t.can_request_start;

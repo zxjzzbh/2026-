@@ -3,9 +3,9 @@ HTML='''<section class="drive-panel" id="departure-test">
 <h3>发车挡板测试 · 仅播报</h3>
 <p>蓝色挡板：宽 40 cm × 高 50 cm。先确认挡板存在，再确认移开；本轮不输出前进。</p>
 <p id="departure-state" role="status">等待车端状态</p>
-<label>最小蓝色面积占比（%）<input id="departure-area" type="number" min="0.5" max="30" step="0.5" value="3"></label>
-<p>默认从 1.5% 提高到 3%。数值越大，越不容易把小块蓝色物体当作挡板；这是蓝色区域占画面的面积比例，不是识别置信度。</p>
-<label>移开确认时间（秒）<input id="departure-clear" type="number" min="0.5" max="3" step="0.1" value="1"></label>
+<label>出现所需蓝色面积占比（%）<input id="departure-area" type="number" min="0.5" max="100" step="0.5" value="19.53125"></label>
+<p>默认值对应参考算法的 640×480 图像 60000 像素。移开判断使用独立的低面积阈值；这是蓝色轮廓总面积比例，不是识别置信度。</p>
+<label>移开确认时间（秒）<input id="departure-clear" type="number" min="0.5" max="3" step="0.1" value="0.6"></label>
 <div class="departure-actions"><button id="departure-save" type="button" disabled>保存参数</button>
 <button id="departure-test-speech" type="button" disabled>试听“我发车啦”</button></div>
 <p id="departure-settings-state"></p><p id="departure-speech-test-state" role="status"></p>
@@ -14,7 +14,7 @@ HTML='''<section class="drive-panel" id="departure-test">
 <p id="departure-observation"></p><p id="departure-speech" role="status"></p><p id="departure-error" role="alert"></p>
 <div class="departure-viewer"><img id="departure-preview" alt="挡板识别实拍：左第一路，右第二路 H65" width="960" height="360" hidden>
 <span id="departure-placeholder">开始后显示两路实际识别画面</span></div>
-<p>任一路稳定看到挡板 0.5 秒后，进入等待移开；抬起造成的蓝色形状变化保留此前确认记录，暂停移开计时。两路画面明确清空并达到设定时间后，播报一次“我发车啦”。断帧、黑屏或过曝仍需重新确认挡板。</p>
+<p>任一路稳定看到挡板 0.5 秒后，进入等待移开；抬起造成的蓝色形状变化保留此前确认记录，暂停移开计时。两路画面明确清空并达到设定时间后，播报一次“我发车啦”。已确认后，1秒内的短时画面质量异常暂停移开计时；恢复后重新完整确认清空。缺帧、过期或持续异常需重新确认挡板。</p>
 <p>停止后可修改参数，点击保存或开始测试都会保存到车端，下次打开网页仍保留。试听仅验证语音，不表示检测到挡板移开。</p>
 <p>开始后保持车和镜头不动，由人移开挡板。完成后保留最后识别图；再次点击开始可测下一轮。停止／空格／Esc 结束测试。两分钟未完成自动结束。</p>
 </section>'''
@@ -27,9 +27,9 @@ function renderDeparture(s){
  for(const id of ['departure-area','departure-clear','departure-save'])el(id).disabled=stale||departureBusy||!d.can_save;
  el('departure-test-speech').disabled=stale||departureBusy||!d.can_test_speech;
  if(!departureSettingsDirty&&!departureBusy){
-  el('departure-area').value=cfg.min_blue_percent??3;el('departure-clear').value=cfg.clear_confirm_s??1;
+ el('departure-area').value=cfg.min_blue_percent??19.53125;el('departure-clear').value=cfg.clear_confirm_s??0.6;
  }
- el('departure-settings-state').textContent=d.settings_error||'已保存：最小蓝色面积 '+(cfg.min_blue_percent??3)+'% · 移开确认 '+(cfg.clear_confirm_s??1)+' 秒'+(departureSettingsDirty?'（输入有修改，保存或开始时生效）':'');
+ el('departure-settings-state').textContent=d.settings_error||'已保存：出现蓝色面积 '+(cfg.min_blue_percent??19.53125)+'% · 移开确认 '+(cfg.clear_confirm_s??0.6)+' 秒'+(departureSettingsDirty?'（输入有修改，保存或开始时生效）':'');
  el('departure-start').textContent=d.phase==='complete'?'开始下一轮':'开始发车测试';
  const rows=d.observations||{},names={primary:'第一路',secondary:'第二路'},states={present:'有挡板',absent:'未见挡板',unknown:'画面不明确'};
  el('departure-observation').textContent=Object.entries(rows).map(([c,r])=>names[c]+'：'+states[r.state]+(r.frame_id!=null?' #'+r.frame_id:'')+(r.largest_blue_fraction!=null?' · 蓝色 '+(r.largest_blue_fraction*100).toFixed(1)+'%':'')).join(' / ')+(d.phase==='wait_removed'?' · 移开确认 '+(d.clear_elapsed_s||0).toFixed(1)+' / '+d.clear_confirm_s+' 秒':'');

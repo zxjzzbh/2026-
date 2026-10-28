@@ -5,8 +5,6 @@ the command lease in software; it is not the Pi 4 finite DMA waveform driver.
 No pins are changed by importing this module or by inspecting hardware.
 """
 
-from .steering import LEFT_US, RIGHT_US
-
 import argparse
 import json
 import math
@@ -20,6 +18,7 @@ import threading
 import time
 
 from .network_guard import interface_is_inactive
+from .manual_steering import manual_endpoints, REQUESTED_SPAN_US, CONTINUOUS_GAIN_PERCENT
 
 
 def inspect_pi5():
@@ -71,12 +70,21 @@ def validate_review(review, boot, *, neutral_only=False, motor_only=False,
                 or review.get('steering_backend') != 'rasadapter5a_uart' or review.get('steering_channel') != 3):
             raise ValueError('ground held control needs current key-release stop evidence, ground preparation and spotter')
     if ground_continuous:
+        reverse_mode = review.get('reverse_start_mode', 'legacy_double_pulse')
+        if (reverse_mode not in ('legacy_double_pulse', 'direct_after_neutral')
+                or reverse_mode == 'direct_after_neutral'
+                and review.get('single_pulse_reverse_observed_by_user') is not True):
+            raise ValueError('direct reverse requires an operator observation for this ESC')
         required = ('ground_continuous_requested_by_user', 'wheels_on_ground_confirmed_by_user',
                     'clear_area_confirmed_by_user', 'spotter_can_cut_power_confirmed_by_user',
                     'neutral_physically_verified', 'stop_physically_verified',
                     'disconnect_stop_physically_verified', 'steering_physically_verified',
                     'drivetrain_issue_resolved_reported_by_user', 'continuous_ground_driving_enabled',
                     'reverse_revalidation_prepared')
+        if review.get('operator_confirmation_scope') == 'esc_state_only':
+            required = tuple(k for k in required if k not in (
+                'wheels_on_ground_confirmed_by_user', 'clear_area_confirmed_by_user',
+                'spotter_can_cut_power_confirmed_by_user'))
         if (not all(review.get(k) is True for k in required)
                 or review.get('manual_session_limit_s', 0) is not None
                 or review.get('hold_limit_s', 0) is not None
@@ -176,7 +184,7 @@ class ScopedPWM:
         self.write(1, 'duty_cycle', pulse * 1000)
 
     def turn(self, pulse):
-        if not self.steering or type(pulse) is not int or not RIGHT_US <= pulse <= LEFT_US:
+        if not self.steering or type(pulse) is not int or not 1550 <= pulse <= 1750:
             raise ValueError('invalid conservative steering point')
         self.write(0, 'duty_cycle', pulse * 1000)
         self.write(0, 'enable', 1)
@@ -219,8 +227,11 @@ class ScopedPWM:
 
 class GuardState:
     """The hardware owner expires motion even if the HTTP/control parent stalls."""
-    def __init__(self, pwm, *, clock=time.monotonic, neutral_only=False):
+    def __init__(self, pwm, *, clock=time.monotonic, neutral_only=False, manual_forward_speed=False):
         self.pwm, self.clock, self.neutral_only = pwm, clock, neutral_only
+        if manual_forward_speed and (neutral_only or getattr(pwm, 'manual_forward_speed_enabled', False) is not True):
+            raise ValueError('adjustable forward throttle requires the continuous S3/S4 UART scope')
+        self.manual_forward_speed = manual_forward_speed
         self.expires = clock() + 1.5  # bounded startup handshake
         self.motion_until = None
         self.fault = None
@@ -244,9 +255,11 @@ class GuardState:
         if action == 'motion':
             duration = data.get('seconds')
             pulse = data.get('pulse')
+            from .manual_speed import valid_manual_pulse
+            allowed_pulse = (type(pulse) is int and pulse in (1575, 1300)) or (self.manual_forward_speed and valid_manual_pulse(pulse))
             if (self.neutral_only or type(duration) not in (int, float)
                     or not math.isfinite(duration) or not .02 <= duration <= .8
-                    or type(pulse) is not int or pulse not in (1575, 1300)):
+                    or not allowed_pulse):
                 raise ValueError('only finite, reviewed motor commands are allowed')
             # Count the limit from before the potentially slow sysfs write.
             self.motion_until = self.clock() + duration
@@ -269,11 +282,18 @@ class GuardState:
 class RasAdapterPWM(ScopedPWM):
     """Only the identified S3 steering and S4 ESC; S1/S2 never commanded."""
     def __init__(self, *, motor, channel=None, esc_channel=None, center_us=1650, single_target=False,
-                 boundary_center_trial=False):
+                 boundary_center_trial=False, symmetric_manual=False, manual_forward_speed=False):
         # Keep the common ownership lock; do not export RP1 PWM channels.
         super().__init__(motor=False, steering=False)
         from .rasadapter5 import RasAdapter
         self.board = RasAdapter()
+        if type(symmetric_manual) is not bool:
+            raise ValueError('symmetric manual steering requires an explicit boolean')
+        if symmetric_manual:
+            manual_endpoints(center_us, REQUESTED_SPAN_US)
+            if channel != 3:
+                raise ValueError('symmetric manual steering is only available on S3')
+        self.symmetric_manual = symmetric_manual
         if type(boundary_center_trial) is not bool:
             raise ValueError('boundary center trial requires an explicit boolean')
         if boundary_center_trial and (channel != 3 or center_us != 1550):
@@ -289,6 +309,9 @@ class RasAdapterPWM(ScopedPWM):
             raise ValueError('actual steering is S3; cloud/gimbal channels are excluded')
         if motor and esc_channel != 4:
             raise ValueError('actual ESC is S4')
+        if manual_forward_speed and (not motor or channel != 3 or esc_channel != 4):
+            raise ValueError('adjustable forward throttle requires continuous S3/S4 UART control')
+        self.manual_forward_speed_enabled = manual_forward_speed
         self.channel = channel
         self.esc_channel = esc_channel if motor else None
         self.steering_commanded = False
@@ -325,13 +348,17 @@ class RasAdapterPWM(ScopedPWM):
     def turn(self, pulse):
         if self.channel is None:
             raise ValueError('servos disabled for this RasAdapter scope')
-        self.board.set_position(self.channel, pulse, .3 if self.single_target else .02)
+        setter = self.board.set_manual_steering if self.symmetric_manual else self.board.set_position
+        setter(self.channel, pulse, .3 if self.single_target else .02)
         self.steering_commanded = True
 
     def motion(self, pulse):
         if self.esc_channel is None:
             raise ValueError('ESC disabled for this RasAdapter scope')
-        self.board.set_esc(self.esc_channel, pulse)
+        if self.manual_forward_speed_enabled:
+            self.board.set_manual_esc(self.esc_channel, pulse)
+        else:
+            self.board.set_esc(self.esc_channel, pulse)
 
     def neutral(self):
         if self.esc_channel is not None and self.board.fd is not None:
@@ -361,7 +388,9 @@ def guard_main(args):
     pwm = (RasAdapterPWM(motor=args.motor, channel=args.steering_channel, esc_channel=args.esc_channel,
                          center_us=args.steering_center_us,
                          single_target=getattr(args, 'steering_single_target', False),
-                         boundary_center_trial=getattr(args, 'steering_boundary_center_trial', False)) if args.steering_channel or args.esc_channel
+                         boundary_center_trial=getattr(args, 'steering_boundary_center_trial', False),
+                         symmetric_manual=getattr(args, 'symmetric_manual_steering', False),
+                         manual_forward_speed=getattr(args, 'continuous_manual', False)) if args.steering_channel or args.esc_channel
            else ScopedPWM(motor=args.motor, steering=args.steering))
     stopping = False
     def stop(*_):
@@ -380,7 +409,7 @@ def guard_main(args):
         if int(subprocess.check_output(['vcgencmd', 'get_throttled'], text=True).split('=')[1], 16):
             raise RuntimeError('Pi 5 PWM requires clean current/historical power flags')
         pwm.open()
-        state = GuardState(pwm, neutral_only=args.neutral_only)
+        state = GuardState(pwm, neutral_only=args.neutral_only, manual_forward_speed=continuous)
         reply({'ok': True, 'ready': True})
         power_at = network_at = 0
         while not stopping and (deadline is None or time.monotonic() < deadline):
@@ -469,6 +498,11 @@ class Pi5BenchBackend:
             self.signal_backend = 'rasadapter5a_uart_guardian'
         self.motor_available = not steering_only and not neutral_only
         self.steering_available = steering_only or combined or ground_short or ground_held or ground_continuous
+        self.manual_steering_span_us = review.get('manual_steering_span_us', 0)
+        manual_endpoints(self.steering_center_us, self.manual_steering_span_us)
+        if self.manual_steering_span_us and (not self.steering_available
+                or self.steering_backend != 'rasadapter5a_uart' or review.get('steering_channel') != 3):
+            raise ValueError('symmetric manual steering requires the identified S3 UART scope')
         self.steering_pwm_available = (steering_only and self.steering_backend == 'rasadapter5a_uart'
                                        and review.get('steering_channel') == 3)
         self.steering_single_target = review.get('steering_single_target_verified') is True
@@ -479,6 +513,12 @@ class Pi5BenchBackend:
                                   or review.get('reverse_revalidation_prepared') is True) and not neutral_only
         self.ground_short_trial = ground_short
         self.ground_continuous_trial = ground_continuous
+        self.reverse_start_mode = (review.get('reverse_start_mode', 'legacy_double_pulse')
+                                   if ground_continuous else 'legacy_double_pulse')
+        self.reverse_steering_trim_us = review.get('reverse_steering_trim_us', 0) if ground_continuous else 0
+        if (type(self.reverse_steering_trim_us) is not int or abs(self.reverse_steering_trim_us) > 30
+                or not 1550 <= self.steering_center_us+self.reverse_steering_trim_us <= 1750):
+            raise ValueError('invalid bounded reverse steering trim')
         self.ground_held_trial = ground_held or ground_continuous
         self.manual_session_limit_s = review.get('manual_session_limit_s', 180) if self.ground_held_trial else 180
         self.manual_motion_hold_max_s = review.get('hold_limit_s', 60) if self.ground_held_trial else 60
@@ -570,6 +610,8 @@ class Pi5BenchBackend:
         if self.steering_available and self.steering_backend == 'rasadapter5a_uart':
             command.extend(['--steering-channel', str(self.review['steering_channel'])])
             command.extend(['--steering-center-us', str(self.steering_center_us)])
+            if self.manual_steering_span_us:
+                command.append('--symmetric-manual-steering')
             if self.steering_boundary_center_trial:
                 command.append('--steering-boundary-center-trial')
             if self.steering_single_target:
@@ -586,7 +628,7 @@ class Pi5BenchBackend:
         self.check()
 
     def motion(self, pulse, seconds):
-        if not self.motor_available or pulse == 1300 and not self.reverse_available:
+        if not self.motor_available or pulse < 1500 and not self.reverse_available:
             raise RuntimeError('Pi 5 motor direction not reviewed')
         # Establish position holding before traction after startup/idle. A
         # retained UART target is not sufficient for an unloaded RP1 output.
@@ -672,6 +714,8 @@ class Pi5ContinuousBackend(Pi5BenchBackend):
     """Operator-held manual input with no wall clock limit; guardian lease remains finite."""
     ground_held_reviewed = True
     manual_continuous_reviewed = True
+    manual_forward_speed_adjustable = True
+    manual_steering_gain_percent = CONTINUOUS_GAIN_PERCENT
 
     def __init__(self, root, output, expected_boot, review):
         super().__init__(root, output, expected_boot, review, ground_continuous=True)
@@ -688,6 +732,7 @@ if __name__ == '__main__':
     parser.add_argument('--steering-center-us', type=int, default=1650)
     parser.add_argument('--steering-boundary-center-trial', action='store_true')
     parser.add_argument('--steering-single-target', action='store_true')
+    parser.add_argument('--symmetric-manual-steering', action='store_true')
     parser.add_argument('--esc-channel', type=int)
     parser.add_argument('--expected-boot-id')
     parser.add_argument('--result', type=Path)
@@ -697,6 +742,9 @@ if __name__ == '__main__':
             parser.error('guardian requires expected boot and selected channels')
         if options.steering_single_target and options.steering_channel != 3:
             parser.error('single target steering requires the actual S3 channel')
+        if options.symmetric_manual_steering and (not options.steering
+                or options.steering_channel != 3 or options.steering_center_us != 1610 or options.neutral_only):
+            parser.error('symmetric manual steering requires S3 and the requested 1610-us center')
         if options.steering_boundary_center_trial and (not options.steering
                 or options.steering_channel != 3 or options.steering_center_us != 1550 or options.neutral_only):
             parser.error('boundary center trial requires S3 steering at exactly 1550 us')
