@@ -1,0 +1,14 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>启航队 · 单项调试</title><link rel="stylesheet" href="/debug/assets/style.css">
+<script id="control-bootstrap" type="application/json">__COMPETITION_BOOTSTRAP__</script><script defer src="/debug/assets/app.js"></script></head>
+<body><header><div><small>山东大学 · 启航队</small><h1>单项调试</h1></div><nav><span id="connection">正在连接</span><a id="manual-link" href="/manual">打开遥控 / 键盘 / 手柄页</a><button id="emergency" class="danger">全局急停 · 空格 / Esc</button></nav></header>
+<main><p id="message" role="alert" aria-live="polite"></p>
+<section class="card"><label class="task-selector">选择任务<select id="task-select"><option value="crosswalk">斑马线停车与播报</option><option value="traffic">红绿灯停车</option><option value="cone">避障场地测试</option><option value="departure">蓝色挡板识别（仅播报）</option><option value="parking">米制停车入位</option><option value="visual">历史视觉诊断（不计正式入位）</option></select></label><p id="task-description"></p>
+<div class="workspace"><div><h2>现场参数</h2><form id="settings-form"><div id="settings-fields"></div><button id="save-settings" type="button" disabled>保存参数</button></form><p id="settings-state"></p>
+<fieldset id="prepare-confirmations"><legend>准备前现场确认</legend><label><input id="confirm-esc-off" type="checkbox">我已关闭电调</label><label><input id="confirm-fb" type="checkbox">我已确认电调为 F/B 模式</label></fieldset>
+<fieldset id="start-confirmations"><legend>开始前现场确认</legend><label><input id="confirm-on-static" type="checkbox">电调已打开，车辆保持静止</label><label><input id="confirm-field" type="checkbox">测试区域已就绪</label></fieldset>
+<div class="actions"><button id="prepare-task" type="button" disabled>准备</button><button id="start-task" type="button" disabled>开始</button><button id="stop-task" type="button" class="secondary" disabled>停止本页任务</button></div><button id="observe-task" type="button" class="secondary" disabled>仅观察识别</button><p id="confirmation-help"></p></div>
+<div><h2 id="task-phase">尚未准备</h2><p id="task-reason" role="status"></p><p id="task-output"></p><p id="task-owner"></p><strong id="traffic-current" hidden></strong><pre id="task-diagnostics"></pre>
+<details id="missing-details" open><summary>当前缺项与限制</summary><ul id="task-missing"></ul></details><figure id="task-figure"><figcaption>单项识别叠加图 <span id="camera-task-state">等待任务画面</span></figcaption><img id="camera-task" alt="当前单项识别叠加图" hidden></figure></div></div></section>
+<section class="card"><h2>双路实际画面</h2><div class="cameras"><figure><figcaption>第一路 <span id="camera-primary-state">等待画面</span></figcaption><img id="camera-primary" alt="第一路实际相机画面" hidden></figure><figure><figcaption>第二路 <span id="camera-secondary-state">等待画面</span></figcaption><img id="camera-secondary" alt="第二路实际相机画面" hidden></figure></div></section>
+<footer>参数通过原有设置接口保存；本页不写入实测验证标记。没有满足条件时，程序会说明缺项。切换任务前请先停止当前测试；普通失焦只停止本页持有的任务，显式急停始终全局有效。</footer></main></body></html>

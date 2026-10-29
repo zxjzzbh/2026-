@@ -1821,8 +1821,8 @@
     },
     {
       "path": "vision/tests/test_console_contract.py",
-      "sha256": "8d92f94f1c70b46aa45582f0f832d6d68af85574fff9083a3ec6f0e9d2cb0cc0",
-      "git_blob_sha": "06df7fe07287e04a096b83525af6cd9813100dd0"
+      "sha256": "b81a1baedeac81f62d43d21b486a011f6b05596ff9b454427fbd8c8a2da10f7b",
+      "git_blob_sha": "aedf69813f81b72d386aa35c28725477373d3da0"
     },
     {
       "path": "vision/tests/test_console_forward.py",
@@ -2620,9 +2620,25 @@
       "git_blob_sha": "d3cb7d409412328d9a55467cced3492a52b95c80"
     },
     {
+      "path": "vision/web/debug/app.js",
+      "sha256": "7d6b3a027432f7b2c9ffffa77565058c7b9e0a33f8f7b07322bef8f18122b58a",
+      "git_blob_sha": "5da7362dbe8033988384bf851b5607f6c46089e2"
+    },
+    {
+      "path": "vision/web/debug/index.html",
+      "sha256": "32e7a05778f95a25d9bf34269bcbf07a14f05297d9004f0d4c4d619a29e1d0cb",
+      "git_blob_sha": "2ea970de4539872fee9a781ca002b8ebf0362b25"
+    },
+    {
+      "path": "vision/web/debug/style.css",
+      "sha256": "76be4c2cfa41052e92dea0b11a28630a193cdebb2bc544f8b5e1bca3e1b9593c",
+      "git_blob_sha": "5d3f1a79ba26ce7f56fcd118e2c9b409f98b17e7"
+    },
+    {
       "path": "vision/web/traffic_capture.html",
       "sha256": "8f6fa2f89d5da81c874d00ca9624a7a886041a41bdb8c7f1214aff6551ea8fc9",
       "git_blob_sha": "476dd38744a939cbb420c084a62d29f5def9d0aa"
     }
-  ]
+  ],
+  "publication_correction_date": "2026-10-29"
 }

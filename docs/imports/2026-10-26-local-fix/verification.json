@@ -1,23 +1,23 @@
 {
   "publication_date": "2026-10-28",
   "base_commit": "02bb367a597720cc5b2cbf9eb3e3451d74c343ff",
-  "vehicle_connected": false,
-  "deployed": false,
   "physical_driving_verified": false,
   "raspberry_pi_realtime_verified": false,
   "public_checkout_regression": {
     "tests": 3318,
     "failures": 0,
     "errors": 0,
-    "skipped": 6,
-    "passed": 3312,
-    "duration_s": 69.174,
+    "skipped": 4,
+    "passed": 3314,
+    "duration_s": 228.59,
     "python": "3.12",
     "platform": "Windows",
     "command": "python -m pytest vision/tests -q --tb=short",
     "network": "Non-loopback connections blocked during local verification",
-    "pc_deployment_checks": "CARVISION_SKIP_PC_DEPLOY_TESTS=1; no SSH or vehicle deployment",
-    "runtime_test_config_hashes_verified": true
+    "pc_deployment_checks": "Included; no CARVISION_SKIP_PC_DEPLOY_TESTS override",
+    "runtime_test_config_hashes_verified": true,
+    "checkout": "Fresh extraction of the staged Git tree; no untracked resources available",
+    "default_text_encoding": "PYTHONUTF8=0; explicit UTF-8 read for the boot template test"
   },
   "preserved_upstream": [
     "ground_odometry atomic point-pair projection",
@@ -30,5 +30,13 @@
     "passed": 3205,
     "skipped": 6,
     "deployed": false
-  }
+  },
+  "publication_correction_date": "2026-10-29",
+  "publication_completeness_corrections": [
+    "Explicitly include all three vision/web/debug static resources despite the generic Debug/ ignore rule",
+    "Read the UTF-8 boot template explicitly in the Windows regression test"
+  ],
+  "vehicle_connected_during_publication_tests": false,
+  "vehicle_deployed_during_publication_tests": false,
+  "scope": "Public-source checkout regression; later vehicle installations have separate deployment receipts"
 }

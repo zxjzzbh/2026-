@@ -25,7 +25,7 @@ def test_dashboard_retains_unique_control_video_and_diagnostic_targets():
 
 def test_esc_only_workflow_keeps_neutral_boot_channel_and_stop_checks():
     root=Path(__file__).resolve().parents[1]
-    review=json.loads((root/'deployment/boot-test-template.json').read_text())
+    review=json.loads((root/'deployment/boot-test-template.json').read_text(encoding='utf-8'))
     review.update(boot_id='current',esc_off_confirmed_by_user=True,neutral_physically_verified=True)
     assert review['operator_confirmation_scope']=='esc_state_only'
     assert review['wheels_on_ground_confirmed_by_user'] is False
