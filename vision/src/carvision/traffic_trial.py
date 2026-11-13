@@ -1,4 +1,6 @@
 """Supervised traffic stage on the existing console; one UART owner at a time."""
+from .page_heartbeat import PageHeartbeat
+
 import copy
 import json
 import secrets
@@ -10,12 +12,14 @@ import cv2
 import numpy as np
 
 from .brake_output import BrakeActuator
-from .brake_parking import GroundMotionEstimate, numeric
+from .brake_parking import numeric
 from .parking_speech import ParkingSpeech
 from .traffic_driving import (TrafficDrivingController, load_settings, validate_settings,
                               TRAFFIC_FORWARD_MIN_US, TRAFFIC_FORWARD_MAX_US, approach_settings)
 from .traffic_signal import TrafficSignalDetector, load_profile
 from .traffic_tracking import FixtureTrack
+from .motion_cache import GroundMotionCache
+from .preview_encoding import PreviewEncoder
 
 
 class TrafficCamera:
@@ -25,12 +29,16 @@ class TrafficCamera:
         self.clock = clock
         self.detectors = {c:TrafficSignalDetector(profile) for c in settings['cameras']}
         self.tracks = {c:FixtureTrack() for c in settings['cameras']}
-        self.motion = GroundMotionEstimate()
+        self.motion_cache = GroundMotionCache(states, settings['motion_camera'], clock=clock or time.monotonic)
+        self.encoder = PreviewEncoder()
         self.last_ids, self.last_times, self.observations = {}, {}, {}
         self.images, self.jpegs, self.errors = {}, {}, {}
-        self.motion_result = {'valid':False,'moving':None}
         self.sequence = 0
         self.jpeg = self.preview = None
+
+    def close(self):
+        self.motion_cache.close()
+        self.encoder.close()
 
     def begin_round(self):
         self.tracks = {c:FixtureTrack() for c in self.s['cameras']}
@@ -53,6 +61,7 @@ class TrafficCamera:
         return jpeg, fid, ms/1000
 
     def read(self, now):
+        self.motion_cache.snapshot()
         changed = False
         batch_started = time.perf_counter()
         for camera in self.s['cameras']:
@@ -66,8 +75,6 @@ class TrafficCamera:
                 track = self.tracks[camera]
                 observation = self.detectors[camera].detect(image, reference_box=track.box)
                 observation, tracking = track.update(observation, fid, captured)
-                if camera == self.s['motion_camera']:
-                    self.motion_result = {**self.motion.update(image,fid,captured),'captured_s':captured}
                 self.observations[camera] = {'camera_id':camera,'frame_id':fid,'captured_s':captured,
                     'image_size':self.s['image_size'],'signal':observation,'fixture_track':tracking}
                 self.last_ids[camera], self.last_times[camera] = fid, captured
@@ -95,14 +102,13 @@ class TrafficCamera:
                     x1,y1,x2,y2=map(int,box);cv2.rectangle(display,(x1,y1),(x2,y2),color,2)
                 cv2.putText(display,f"{camera.upper()} #{row['frame_id']} {obs['state'].upper()}",(8,23),cv2.FONT_HERSHEY_SIMPLEX,.55,color,2)
             panes.append(display)
-        ok, jpg = cv2.imencode('.jpg',np.concatenate(panes,axis=1))
-        self.preview = jpg.tobytes() if ok else None
+        self.preview = self.encoder.submit(np.concatenate(panes,axis=1))
         self.jpeg = self.preview
         raw = {r['signal']['state'] for r in self.observations.values()}
         merged = {'state':next((c for c in ('red','yellow','green','off') if c in raw),'unknown'),
                   'fixture_detected':any(r['signal'].get('fixture_detected') for r in self.observations.values()),
                   'processing_ms':sum(r['signal'].get('processing_ms',0) for r in self.observations.values())}
-        motion = dict(self.motion_result) if self.s['motion_camera'] in self.observations else {'valid':False,'moving':None}
+        motion = self.motion_cache.snapshot()
         return {'fresh':True,'camera_id':'dual','frame_id':self.sequence,
                 'captured_s':max(r['captured_s'] for r in self.observations.values()),
                 'image_size':self.s['image_size'],'signal':merged,'motion':motion,
@@ -141,6 +147,8 @@ actuator, and only start can subsequently request forward/braking commands.
         self.client = self.token = self.folder = None
         self.last_sequence, self.round_number = -1, 0
         self.lease_until = 0
+        self.page_link = PageHeartbeat()
+        self.page_lock = threading.RLock()
         self.controller = self.latest = self.observation = self.preview_jpeg = None
         self.execution = None
 
@@ -178,7 +186,7 @@ actuator, and only start can subsequently request forward/braking commands.
                 code, blocked = 'round_running', '本轮已经开始，无需重复点击开始'
             elif not frame_ok:
                 code, blocked = 'frame_stale', '两路均没有新鲜画面；等待摄像头恢复，无需看见灯具'
-            trial = {'program': 'traffic-fb-v1', 'active': self.busy, 'phase': self.phase, 'reason': self.reason,
+            trial = {'program': 'traffic-fb-v1', 'active': self.busy, 'phase': self.phase, 'reason': self.reason, 'page_heartbeat': self.page_link.status(self.clock()),
                      'owner_client': self.client, 'run_token': self.token, 'round_number': self.round_number,
                      'can_prepare': not self.closed and not self.busy and not zebra.get('active') and (idle or can_end) and not self.settings_error,
                      'can_start': not code,
@@ -213,9 +221,20 @@ actuator, and only start can subsequently request forward/braking commands.
         self.phase, self.reason = ('fault' if fault else 'cancelled'), reason
         self.stop.set()
 
+    def page_heartbeat(self, payload):
+        # Full status can inspect cameras/worker RPC; it must not block supervision.
+        with self.page_lock:
+            if (self.closed or not self.busy or self.stop.is_set()
+                    or payload.get('client') != self.client or payload.get('run_token') != self.token):
+                raise ValueError('本页未持有当前测试控制权')
+            reply = self.page_link.accept(payload, self.clock(), self.lease_until)
+            self.lease_until = self.page_link.deadline
+            return reply
+
     def request(self, action, payload):
         if not isinstance(payload, dict):
             raise ValueError('JSON object required')
+        if action == 'traffic_page_heartbeat':return self.page_heartbeat(payload)
         with self.lock:
             if action == 'status':
                 return self.status()
@@ -265,19 +284,22 @@ actuator, and only start can subsequently request forward/braking commands.
                     raise ValueError('准备时电调需关闭，并保持 F/B 档')
                 if t['can_end_manual']:
                     self.drive.request('finish_test', payload)
-                self.client, self.token = client, secrets.token_hex(16)
+                with self.page_lock:
+                    self.client, self.token = client, secrets.token_hex(16)
+                    self.lease_until = self.page_link.reset(self.clock())
                 self.last_sequence, self.round_number = -1, 0
                 self.active_settings = approach_settings(self.settings)
                 self.phase, self.reason = 'preparing', '正在检查双路实时画面并建立中位输出，无需看见灯具'
                 self.controller = self.latest = self.observation = self.preview_jpeg = self.execution = None
                 self.stop, self.busy = threading.Event(), True
-                self.lease_until = self.clock()+.5
                 self.folder = self.root/'run'/('traffic-console-'+str(time.time_ns()))
                 self.thread = threading.Thread(target=self._work, name='traffic-console', daemon=True)
                 self.thread.start()
                 return self.status()
             if not self.busy or client != self.client or payload.get('run_token') != self.token:
                 raise ValueError('本轮由另一页面持有，或本轮已结束')
+            if self.stop.is_set() or self.clock() > self.lease_until:
+                raise ValueError('控制页心跳已超时，请重新准备')
             sequence = payload.get('trial_sequence')
             if type(sequence) is not int or sequence <= self.last_sequence:
                 raise ValueError('old or invalid traffic sequence')
@@ -295,11 +317,13 @@ actuator, and only start can subsequently request forward/braking commands.
                 self.latest = None
             elif action != 'traffic_keepalive':
                 raise ValueError('未知红绿灯动作')
-            self.last_sequence, self.lease_until = sequence, self.clock()+.5
+            self.last_sequence = sequence
+            with self.page_lock:
+                self.lease_until = self.page_link.renew(self.clock())
             return self.status()
 
     def _work(self):
-        actuator = None
+        actuator = reader = None
         try:
             self.folder.mkdir(parents=True, exist_ok=False)
             (self.folder/'settings.json').write_text(json.dumps({'driving': self.active_settings, 'vision': self.profile,
@@ -392,13 +416,14 @@ actuator, and only start can subsequently request forward/braking commands.
                 if actuator:
                     actuator.close()
             finally:
+                if reader is not None and callable(getattr(reader,'close',None)):reader.close()
                 if self.speech:
                     self.speech.close()
                 with self.lock:
                     self.busy = False
                     if self.folder and self.folder.is_dir():
                         try:
-                            (self.folder/'summary.json').write_text(json.dumps({'phase': self.phase, 'reason': self.reason,
+                            (self.folder/'summary.json').write_text(json.dumps({'phase': self.phase, 'reason': self.reason, 'page_heartbeat': self.page_link.status(self.clock()),
                                 'speech': self.speech.status() if self.speech else None,
                                 'physical_stop_verified': False, 'parking_zone_verified': False}, ensure_ascii=False, indent=2), encoding='utf-8')
                         except OSError:

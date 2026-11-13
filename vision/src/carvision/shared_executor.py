@@ -21,6 +21,7 @@ class WorkerAutonomyOwner:
         self.reason='尚未借用执行器';self.closed=False;self.resume_watcher=False
         self.handoff_fault=None
         self.last_motion_at=None
+        self.retired_owner=self.retired_token=None
 
     @property
     def active(self):return self.token is not None
@@ -126,6 +127,7 @@ class WorkerAutonomyOwner:
             self._pause_manual()
             self.guard=guard;guard.neutral()
             self.owner=client;self.token=secrets.token_hex(24)
+            self.retired_owner=self.retired_token=None
             self.reason='共享执行器已接管；物理停稳仍需相机确认'
         except Exception as exc:
             self._latch_handoff_failure(exc)
@@ -135,6 +137,8 @@ class WorkerAutonomyOwner:
     def _begin_release(self,reason):
         # Invalidate before braking so a queued old intent/release cannot own a
         # subsequent run. The guard retains its original finite brake deadline.
+        if self.token is not None:
+            self.retired_owner,self.retired_token=self.owner,self.token
         self.token=self.owner=None;self.reason=reason
         if self.guard is not None:self.guard.abort(reason,self.clock())
 
@@ -162,12 +166,22 @@ class WorkerAutonomyOwner:
                 raise ValueError(self.handoff_fault)
             if action=='autonomy_acquire':return self._acquire(payload)
             if action in ('autonomy_intent','autonomy_release'):
+                # A lease expiry already released this exact owner. Acknowledge
+                # cleanup without granting commands or touching a newer owner.
+                if (action == 'autonomy_release' and not self.active
+                        and payload.get('client') == self.retired_owner
+                        and isinstance(payload.get('worker_token'), str)
+                        and self.retired_token is not None
+                        and secrets.compare_digest(payload['worker_token'], self.retired_token)):
+                    self.tick()
+                    return self.status()
                 self._authorized(payload)
                 if action=='autonomy_release':
                     self._begin_release('自主流程已释放执行器')
                     self.tick();return self.status()
                 command=payload.get('intent')
-                if not isinstance(command,dict) or set(command)!=INTENT_FIELDS:
+                if (not isinstance(command,dict) or not INTENT_FIELDS<=set(command)
+                        or set(command)-INTENT_FIELDS-{'control_profile'}):
                     self._begin_release('自主指令字段无效');self.tick()
                     raise ValueError('自主指令仅接受动作、脉宽、序号和发送时间')
                 try:self.guard.accept(command,self.clock())
@@ -218,6 +232,7 @@ class BorrowedActuator:
         command={'action':intent['action'],'esc_us':intent['esc_us'],'steering_us':intent['steering_us'],
                  'sequence':self.sequence,'sent_s':self.clock()}
         self.sequence+=1
+        if 'control_profile' in intent:command['control_profile']=intent['control_profile']
         reply=self.worker.request('autonomy_intent',{'client':self.client,'worker_token':self.token,'intent':command})
         if not reply.get('autonomy_active'):raise RuntimeError(reply.get('autonomy_reason') or '自主执行器已停车')
         return {'hardware_output':True,'command':command,'startup_readback':self.startup_readback,

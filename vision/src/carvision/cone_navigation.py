@@ -6,6 +6,7 @@ from throttle, and an invalid pose cannot quietly reset while driving.
 """
 
 from .steering import LEFT_US, RIGHT_US, RADIUS_ALIASES, radius_settings
+from .cone_command import CONE_COMMAND_LEASE_S
 import copy
 import math
 
@@ -73,6 +74,7 @@ def actuator_settings(settings):
                    'creep_us':d['forward_us'],'brake_us':1400},
             'brake_pulse_s':d['brake_pulse_s'],'brake_release_s':d['brake_release_s'],'actuator_lease_s':d['actuator_lease_s']}
     if settings.get('low_speed_test'):
+        result['actuator_lease_s']=CONE_COMMAND_LEASE_S
         result['cone_forward_us']=sorted({min(d['forward_us'],1570),min(d['forward_us'],1580)})
     return result
 

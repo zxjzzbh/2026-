@@ -1,0 +1,10 @@
+{
+  "now_s": 269.831463589,
+  "prepared_slot": "left",
+  "selected_slot": "left",
+  "selection_source": "blue_board_position",
+  "selection_basis": "蓝色挡板主要在右侧，暂选另一侧；边界未必完整",
+  "selection_captured_s": 269.682492397,
+  "selection_locked": true,
+  "occupancy_verified": false
+}

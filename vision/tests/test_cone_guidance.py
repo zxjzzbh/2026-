@@ -30,7 +30,7 @@ def test_strict_visual_accepts_actual_same_frame_normalized_foot_and_bbox():
     nav = observation(.2)
     entry = strict_visual(nav, 'secondary-A', .3)
     assert entry is nav['visual_cones'][0]
-    assert strict_visual(nav, 'secondary-A', .450001) is None
+    assert strict_visual(nav, 'secondary-A', .700001) is None
     assert strict_visual(nav, 'secondary-A', .19) is None
 
 
@@ -124,7 +124,7 @@ def test_identity_side_view_revision_or_gap_rebuilds_stable_target(change):
     elif change == 'revision':
         revision = 1
     else:
-        t = .451
+        t = .701
     result = evidence.update(observation(t, identifier=identifier, camera=camera, revision=revision), identifier, side, t)
     assert result['frames'] == 1 and not result['target_stable']
 
@@ -214,7 +214,7 @@ def test_untrusted_road_claim_cannot_close_target_only_episode(bad):
     budget.update(observation(0.), 0., target_stable=True)
     nav, now = observation(.1, state='paired'), .1
     if bad == 'stale':
-        now = .4
+        now = .601
     elif bad == 'future':
         nav = observation(.2, state='paired')
     elif bad == 'duplicate':
@@ -230,7 +230,7 @@ def test_untrusted_road_claim_cannot_close_target_only_episode(bad):
 def test_single_claim_requires_current_valid_prediction_and_does_not_hide_no_guidance():
     budget = GuidanceBudgets()
     nav = observation(0., state='single')
-    nav['prediction_age_s'] = .251
+    nav['prediction_age_s'] = 1.001
     result = budget.update(nav, 0., single_valid=True)
     assert result['mode'] == 'none' and result['none_deadline_s'] == 1.
     nav = observation(.2, state='single')

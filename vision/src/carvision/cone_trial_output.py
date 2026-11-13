@@ -13,6 +13,7 @@ import sys
 import time
 
 from .brake_output import BrakeActuator,PulseGuard,write_parking_pulse,verify_neutral_readback
+from .cone_command import CONE_COMMAND_LEASE_S
 
 
 def validate_limits(right,left):
@@ -22,10 +23,12 @@ def validate_limits(right,left):
 
 
 class ConePulseGuard(PulseGuard):
+    MAX_LEASE_S = CONE_COMMAND_LEASE_S
     def __init__(self,settings,write,*,mode,right_us=RIGHT_US,left_us=LEFT_US):
         validate_limits(right_us,left_us)
         if not 1500<settings.get('pwm',{}).get('search_us',0)<=1625:
             raise ValueError('锥桶测试油门上限为 1625 μs')
+        self.base_lease_s=settings['actuator_lease_s']
         self.right_us,self.left_us=right_us,left_us;self.actual_steering=1610;self.actual_write=write
         pulses=settings.get('parking_forward_us',[])
         if (not isinstance(pulses,list) or len(pulses)>32 or
@@ -51,6 +54,18 @@ class ConePulseGuard(PulseGuard):
         super().neutral()
 
     def accept(self,command,now):
+        original_settings=self.s
+        try:
+            profile=command.get('control_profile') if isinstance(command,dict) else None
+            if profile not in (None,'cone'):raise ValueError('unknown command control profile')
+            self.s={**original_settings,'actuator_lease_s':CONE_COMMAND_LEASE_S if profile=='cone' else self.base_lease_s}
+            return self._accept(command,now)
+        except Exception as error:
+            self.abort(str(error),now);raise
+        finally:
+            self.s=original_settings
+
+    def _accept(self,command,now):
         self.tick(now)
         if self.fault:raise RuntimeError(self.fault)
         try:

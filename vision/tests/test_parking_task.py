@@ -107,4 +107,4 @@ def test_recovery_rejects_stale_stationary_feedback_and_requires_three_fresh_fra
         output = step(controller,i,moving=False)
         assert output['phase'] == 'boundary_wait' and output['esc_us'] == 1500
     output = step(controller,46,moving=False)
-    assert output['phase'] == 'approach' and output['esc_us'] == 1550
+    assert output['phase'] == 'approach' and output['esc_us'] == 1570

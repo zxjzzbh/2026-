@@ -16,6 +16,7 @@ import numpy as np
 
 from .autonomy_profile import GroundProjection
 from .brake_parking import numeric
+from .runtime_timing import VISION_MAX_AGE_S
 from .cone_trial_output import validate_limits
 from .cone_corridor import SINGLE_MAX_AGE_S,measured_corridor,recover_single
 from .cone_evidence import StablePairedLane
@@ -42,7 +43,7 @@ def steering_gain(value):
 
 
 def trial_settings(settings,payload=None):
-    payload=payload or {};s=copy.deepcopy(settings);g=s['geometry'];ground=s['ground']
+    payload=payload or {};s=copy.deepcopy(settings);s['max_frame_age_s']=VISION_MAX_AGE_S;g=s['geometry'];ground=s['ground']
     if not ground.get('historical_verified') or not ground.get('reuse_source'):
         raise ValueError('请先载入已有 GitHub 标定参考；本入口不要求重新采集')
     GroundProjection(ground,require_verified=False)
@@ -71,7 +72,7 @@ class LowSpeedNavigator:
         self.s=settings;self.latest=None;self.last_id=None
         self.near_history={}
         self.outside_since=None;self.outside_frames=0;self.last_boundary_s=None
-        self.camera=camera
+        self.camera=camera;self.single_recovery_s=SINGLE_MAX_AGE_S
         self.projection=GroundProjection(settings['ground'],require_verified=False)
         self.paired_corridor=None;self.last_captured_s=None;self.last_turn_aware=None
 
@@ -145,18 +146,18 @@ class LowSpeedNavigator:
                             'ego_far_fraction','ego_range','heading_error'):
                     result.pop(key,None)
                 result.update(line_state='missing',boundary_observed=False,line_held=False)
-            if not result.get('boundary_danger') and 0<=now-t<=.25:
+            if not result.get('boundary_danger') and 0<=now-t<=VISION_MAX_AGE_S:
                 # Losing segmentation is not losing the camera. Keep current
                 # cone pixels, but never label image fractions as lane space.
                 result.update(self.image_guidance(row,w,h),line_missing=True,guard='image_only_boundary_unknown')
                 result.update(ready=True,action='visual_trial_ready')
                 self.outside_since=None;self.outside_frames=0
             self.latest={**result,'reason':reason};return self.latest
-        if not 0<=now-t<=.25:return fail('第二路图像过期')
+        if not 0<=now-t<=VISION_MAX_AGE_S:return fail('第二路图像过期')
         if repeated:
             if self.latest and self.latest.get('line_state')=='single':
                 age=now-self.latest['line_observed_s']
-                if age>SINGLE_MAX_AGE_S+1e-9:return fail('单边恢复超过 0.25 秒')
+                if age>self.single_recovery_s+1e-9:return fail(f'单边恢复超过 {self.single_recovery_s:g} 秒')
                 self.latest=copy.deepcopy(self.latest)
                 delta=max(0.,age-self.latest['prediction_age_s'])
                 self.latest.update(prediction_age_s=age,line_age_s=age,
@@ -173,7 +174,7 @@ class LowSpeedNavigator:
             try:
                 model=measured_corridor(road,image.shape)
             except ValueError as pair_error:
-                try:model=recover_single(road,image.shape,t,self.paired_corridor,now_s=now)
+                try:model=recover_single(road,image.shape,t,self.paired_corridor,now_s=now,max_age_s=self.single_recovery_s)
                 except ValueError as single_error:
                     return fail(str(pair_error)+'；'+str(single_error))
             y0,y1=model.low,model.high
@@ -406,6 +407,10 @@ class DualLowSpeedNavigator:
         first=copy.deepcopy(settings);first['ground']=original
         self.views['primary']=LowSpeedNavigator(first,'primary')
 
+    def set_single_recovery_limit(self,seconds):
+        if seconds not in (.25,1.):raise ValueError('unsupported single-edge recovery limit')
+        for view in self.views.values():view.single_recovery_s=seconds
+
     def set_avoidance_target(self,camera,identifier):
         """Optional avoidance hint; clearing it restores normal lane selection."""
         if camera is None and identifier is None:
@@ -431,7 +436,7 @@ class DualLowSpeedNavigator:
         current={};fresh=[];held=[];danger=[]
         for camera in ('secondary','primary'):
             row=rows.get(camera)
-            if not row or camera not in images or not 0<=now-row['captured_s']<=.25:continue
+            if not row or camera not in images or not 0<=now-row['captured_s']<=VISION_MAX_AGE_S:continue
             observed=bool(row['road_context'].get('valid'));data=row;memory=self.memory.get(camera)
             turn_aware=bool(row['road_context'].get('turn_aware'))
             if turn_aware:
@@ -597,7 +602,7 @@ class LowSpeedController:
             if self.review_pending:self.tail_powered+=elapsed
             if nav and nav.get('line_held'):self.held_powered_s+=elapsed
         self.last_step=now
-        if not nav or not 0<=now-nav.get('captured_s',-1e9)<=.25:raise ValueError('引导画面中断，已结束试验')
+        if not nav or not 0<=now-nav.get('captured_s',-1e9)<=VISION_MAX_AGE_S:raise ValueError('引导画面中断，已结束试验')
         if not nav.get('experimental'):raise ValueError('低速测试画面尚未就绪')
         # Confirmation and completion are stationary latches. A segmentation
         # gap must never turn them into a resumable lane-following state.

@@ -9,7 +9,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from .parking_bay import load_settings,validate,readiness,detect_parking
+from .parking_bay import load_settings,validate,readiness,detect_parking,parking_road_context
 from .brake_parking import GroundMotionEstimate,load_settings as load_brake
 from .cone_planning import load_settings as load_cones
 from .cone_navigation import reuse_legacy_ground
@@ -18,6 +18,9 @@ from .parking_feedback import ParkingFrameFeedback
 from .parking_control import parking_blockers, parking_readiness
 from .parking_far_tracker import ParkingFarTracker
 from .cone_road import ConeRoadContext
+from .parking_limits import FRAME_MAX_AGE_S
+from .parking_ground_view import ParkingGroundMotion
+from .parking_bay import contrast_markings,blue_board_mask,yellow_marking_mask
 
 
 class BaySelection:
@@ -49,12 +52,12 @@ class BaySelection:
         return 'right','尚无方向证据，按固定默认值暂选右侧','default_right'
 
     def update(self,observation,fid,captured,now):
-        if not isinstance(captured,(int,float)) or not 0<=now-captured<=.25:
+        if not isinstance(captured,(int,float)) or not 0<=now-captured<=FRAME_MAX_AGE_S:
             self.pending=None;self.count=0;self.since=None
             return self.snapshot('图像过期，仅保留建议，不能据此进入车位',stale=True)
         if self.last is not None and (fid<=self.last[0] or captured<=self.last[1]):
             return self.snapshot('等待新帧；不使用重复画面累积确认')
-        if self.last is not None and captured-self.last[1]>.25:self.pending=None;self.count=0;self.since=None
+        if self.last is not None and captured-self.last[1]>FRAME_MAX_AGE_S:self.pending=None;self.count=0;self.since=None
         self.last=(fid,captured)
         slots=observation.get('slots',[])
         clear=[s['id'] for s in slots if s['availability']=='clear'];blocked=[s['id'] for s in slots if s['availability']=='blocked']
@@ -93,6 +96,7 @@ class ParkingBayDrive:
         self.output_initializing=False
         self.motion=GroundMotionEstimate();self.far_tracker=ParkingFarTracker();self.entry_sample=None
         self.road=None
+        self.ground_motion=None
         self.metric_feedback=None
         self.metric_missing=None
         self.metric_readiness=None
@@ -100,7 +104,7 @@ class ParkingBayDrive:
     def status(self):
         with self.lock:
             s=self.drive.status();entry=self.entry.status(s,self.clock());age=None if self.updated is None else max(0,self.clock()-self.updated)
-            fresh=age is not None and age<=self.settings['max_frame_age_s']
+            fresh=age is not None and age<=FRAME_MAX_AGE_S
             selection=(self.recommendation if fresh else self.selector.snapshot('画面过期，仅保留方向建议',stale=True)) if (self.active or self.recommendation) else {}
             s['parking_bay']={'program':'two-bay-parking-v1','active':self.active,'reason':self.settings_error or self.reason,
                 'can_observe':not self.settings_error and not self.active and not self.closed and not (self.thread and self.thread.is_alive()),
@@ -138,6 +142,10 @@ class ParkingBayDrive:
         self.selector=BaySelection(self.settings['selection_confirm_s']);self.latest={}
         self.recommendation=self.selector.snapshot('等待画面，先给出暂定方向');self.last=None
         self.preview=None;self.updated=None;self.entry_sample=None;self.motion=GroundMotionEstimate();self.far_tracker=ParkingFarTracker();self.road=None
+        self.ground_motion=None
+        if self.settings.get('visual_entry',{}).get('ground_pose_confirmed'):
+            _,_,cones=self._entry_settings()
+            self.ground_motion=ParkingGroundMotion(cones['ground'])
         self.folder=self.root/'run'/('parking-bay-'+str(time.time_ns()));self.folder.mkdir(parents=True,exist_ok=False)
         self.active=True;self.stop.clear();self.reason='正在读取第二路实际停车区画面'
         self.thread=threading.Thread(target=self._run,name='parking-bay-observation',daemon=True);self.thread.start()
@@ -160,14 +168,20 @@ class ParkingBayDrive:
 
     def _selection_for_start(self,now):
         """Use only this observer's current frame, not a selection in page JSON."""
-        if (not self.active or self.updated is None or not 0<=now-self.updated<=self.settings['max_frame_age_s']
+        if (not self.active or self.updated is None or not 0<=now-self.updated<=FRAME_MAX_AGE_S
                 or not self.recommendation or self.recommendation.get('stale') is True):
             return None
         return {**self.recommendation,'captured_s':self.updated,
                 'frame_id':self.latest.get('frame_id')}
 
+    def page_heartbeat(self,payload):
+        # No full status gathering or image-processing lock on the lease path.
+        if self.closed:raise ValueError('停车观察服务已关闭')
+        return self.entry.heartbeat(payload,self.clock())
+
     def request(self,action,payload):
         if not isinstance(payload,dict):raise ValueError('JSON object required')
+        if action=='parking_page_heartbeat':return self.page_heartbeat(payload)
         with self.lock:
             if self.closed:raise ValueError('停车观察服务已关闭')
             if action=='parking_trial_cancel':
@@ -246,7 +260,7 @@ class ParkingBayDrive:
         handle=None
         try:
             handle=self.entry.factory(settings)
-            with self.lock:
+            with self.lock, self.entry.output_lock:
                 if (self.entry.active and self.entry.token==token
                         and not self.closed and not self.stop.is_set()):
                     self.entry.actuator=handle
@@ -280,7 +294,7 @@ class ParkingBayDrive:
                     state=self.states['secondary']
                     with state.condition:jpg,fid,ms=state.raw_jpeg,state.raw_frame_id,state.raw_received_ms;failed=state.state in ('error','stopped')
                     t=ms/1000 if isinstance(ms,(int,float)) else -1
-                    if failed or not jpg or type(fid) is not int or not 0<=self.clock()-t<=self.settings['max_frame_age_s']:raise ValueError('第二路没有新鲜画面')
+                    if failed or not jpg or type(fid) is not int or not 0<=self.clock()-t<=FRAME_MAX_AGE_S:raise ValueError('第二路没有新鲜画面')
                     if self.last==(fid,t):
                         if self.stop.wait(.01):break
                         continue
@@ -293,9 +307,7 @@ class ParkingBayDrive:
                         if not cone_path.exists():cone_path=self.root/'vision/configs/cone-trial.json'
                         road_settings=json.loads(cone_path.read_text(encoding='utf-8-sig')) if cone_path.exists() else {}
                         self.road=ConeRoadContext(road_settings,'secondary',thorough_boundary_search=True)
-                    hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
-                    blue=cv2.inRange(hsv,tuple(self.settings['blue_lower']),tuple(self.settings['blue_upper']))
-                    observation['road_context']=self.road.inspect(image,blue)
+                    observation['road_context']=parking_road_context(self.road,image,self.settings)
                     for key in ('left_inner','right_inner'):
                         points=observation['road_context'].get(key,[])
                         if points:cv2.polylines(overlay,[np.rint(points).astype(np.int32)],False,(255,255,0),2)
@@ -305,11 +317,20 @@ class ParkingBayDrive:
                         cv2.line(overlay,tuple(a),tuple(b),(255,0,255),2)
                     motion=self.motion.update(image,fid,t);now=self.clock()
                     timings={'processing_ms':max(0.,(now-processing_started)*1000.),'frame_age_ms':max(0.,(now-t)*1000.)}
-                    entry_sample={'fresh':0<=now-t<=self.settings['max_frame_age_s'],'frame_id':fid,'captured_s':t,'camera_id':'secondary',
+                    entry_sample={'fresh':0<=now-t<=FRAME_MAX_AGE_S,'frame_id':fid,'captured_s':t,'camera_id':'secondary',
                                   'image_size':[image.shape[1],image.shape[0]],'parking':observation,
                                   'motion':motion,**timings}
+                    if self.ground_motion is not None:
+                        hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
+                        marks,floor=contrast_markings(hsv,cv2.cvtColor(image,cv2.COLOR_BGR2GRAY),self.settings)
+                        mask=cv2.bitwise_or(floor,cv2.bitwise_or(marks,yellow_marking_mask(hsv,self.settings)))
+                        mask[blue_board_mask(hsv,self.settings)>0]=0
+                        entry_sample['parking_ground_motion']=self.ground_motion.update(image,fid,t,mask)
                     if self.entry.active and self.metric_feedback is not None:
                         entry_sample['parking_world']=self.metric_feedback.update(image,fid,t,observation,self.clock())
+                    now=self.clock()
+                    timings={'processing_ms':max(0.,(now-processing_started)*1000.),'frame_age_ms':max(0.,(now-t)*1000.)}
+                    entry_sample.update(fresh=0<=now-t<=FRAME_MAX_AGE_S,**timings)
                     recommendation=self.selector.update(observation,fid,t,now)
                     label='SUGGEST '+recommendation['selected_slot'].upper()+(' / VISUAL' if recommendation['confirmed'] else ' / TENTATIVE')
                     cv2.putText(overlay,label,(8,24),cv2.FONT_HERSHEY_SIMPLEX,.5,(0,210,0) if recommendation['confirmed'] else (0,170,255),2)
@@ -317,6 +338,8 @@ class ParkingBayDrive:
                     with self.lock:
                         if not self.active:break
                         self.entry_sample=entry_sample
+                        recorder=getattr(self.entry,'frames',None)
+                        if self.entry.active and recorder is not None:recorder.add(jpg,fid,t)
                         self.last=(fid,t);self.latest={**observation,'frame_id':fid,'captured_s':t,'camera_id':'secondary',**timings}
                         self.recommendation=recommendation;self.updated=t;self.preview=encoded.tobytes() if ok else None
                         self.reason=(observation.get('reason') or recommendation['reason']) if not observation.get('layout_found') else recommendation['reason']
@@ -325,7 +348,7 @@ class ParkingBayDrive:
                             'hardware_output':bool(handle and getattr(handle,'run',False)),
                             'output_scope':'parking_entry','perception_hardware_output':False}
                     # Neither journal/image writes nor detection hold the
-                    # control lock. A slow frame will still expire at 250 ms.
+                    # control lock. A slow frame will still expire at 500 ms.
                     with (self.folder/'observations.jsonl').open('a',encoding='utf-8') as f:
                         f.write(json.dumps(record,ensure_ascii=False,allow_nan=False)+'\n')
                     if fid%10==0:(self.folder/'latest.jpg').write_bytes(jpg)

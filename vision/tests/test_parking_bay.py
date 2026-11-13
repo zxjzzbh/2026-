@@ -173,11 +173,12 @@ def test_blank_and_both_blocked_return_tentative_choice_not_clear_space():
 def test_clipped_actual_scene_has_direction_and_observed_entry_candidate_without_fake_full_layout():
     path=ROOT/'vision/tests/fixtures/parking-border-clipped-left-board-20261013.jpg'
     image=cv2.imdecode(np.frombuffer(path.read_bytes(),np.uint8),1);obs,_=detect_parking(image,settings())
-    assert not obs['layout_found'] and not obs['metric_geometry']
+    assert not obs['layout_complete'] and not obs['metric_geometry']
     assert obs['direction_hint']['suggested_slot']=='right'
-    assert len(obs['entry_candidates'])==1
-    candidate=obs['entry_candidates'][0]
-    assert candidate['id']=='right' and candidate['candidate_only'] and candidate['availability']=='clear'
+    candidates=obs['entry_candidates'] or [s for s in obs['slots'] if s['availability']=='clear']
+    assert len(candidates)==1
+    candidate=candidates[0]
+    assert candidate['id']=='right' and candidate['availability']=='clear'
     assert candidate['polygon_m'] is None and not candidate['occupancy_verified']
     result=BaySelection().update(obs,1,1.,1.)
     assert result['selected_slot']=='right' and result['tentative']
@@ -366,7 +367,7 @@ def test_slow_motion_processing_cannot_confirm_an_expired_selection(tmp_path):
     ok,jpg=cv2.imencode('.jpg',scene('left'));assert ok
     state=SimpleNamespace(condition=threading.RLock(),raw_jpeg=jpg.tobytes(),raw_frame_id=1,raw_received_ms=1000.,state='ok')
     now=[1.05];w=ParkingBayDrive(Base(),{'secondary':state},tmp_path,clock=lambda:now[0])
-    def slow_motion(*args):now[0]=1.4;return {'valid':True,'moving':False}
+    def slow_motion(*args):now[0]=1.6;return {'valid':True,'moving':False}
     w.motion=SimpleNamespace(update=slow_motion);samples=[]
     class Entry:
         active=True
@@ -379,9 +380,9 @@ def test_slow_motion_processing_cannot_confirm_an_expired_selection(tmp_path):
     assert w.recommendation['stale'] and not w.recommendation['confirmed']
     sample,t=samples[0]
     assert sample['fresh'] is False
-    assert t==1.4 and sample['processing_ms']==pytest.approx(350.) and sample['frame_age_ms']==pytest.approx(400.)
+    assert t==1.6 and sample['processing_ms']==pytest.approx(550.) and sample['frame_age_ms']==pytest.approx(600.)
     record=json.loads((w.folder/'observations.jsonl').read_text(encoding='utf-8'))
-    assert record['observation']['frame_age_ms']==pytest.approx(400.)
+    assert record['observation']['frame_age_ms']==pytest.approx(600.)
 
 
 def test_web_observer_save_and_status_have_no_motor_or_payment_requests(tmp_path):

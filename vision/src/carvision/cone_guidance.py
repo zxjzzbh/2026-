@@ -9,7 +9,8 @@ from .cone_evidence import paired_lane
 from .cone_response import current_visual
 
 
-MAX_FRAME_AGE_S = .25
+from .runtime_timing import VISION_MAX_AGE_S
+MAX_FRAME_AGE_S = VISION_MAX_AGE_S
 TARGET_FRAMES = 3
 TARGET_SPAN_S = .15
 NO_GUIDANCE_MAX_S = 1.
@@ -185,7 +186,7 @@ class GuidanceBudgets:
         road = bool(fresh and paired_stable is True and paired_lane(nav))
         age = (nav or {}).get('prediction_age_s', (nav or {}).get('line_age_s')) if isinstance(nav, dict) else None
         single = bool(fresh and single_valid is True and nav.get('line_state') == 'single'
-                      and not nav.get('line_missing') and numeric(age) and 0 <= age <= MAX_FRAME_AGE_S
+                      and not nav.get('line_missing') and numeric(age) and 0 <= age <= NO_GUIDANCE_MAX_S
                       and nav.get('lane_bounds_px') and numeric(nav.get('ego_fraction')))
         target = bool(fresh and target_stable is True)
         current = bool(fresh and (target_current_valid is True or target))

@@ -84,15 +84,15 @@ def test_crosswalk_limit_is_separate_from_shared_parking_and_actuator_deadlines(
     assert parking.step(sample,.4)['phase']=='fault'
 
 
-def test_full_flow_uses_500ms_only_in_crosswalk_stage():
+def test_full_flow_uses_current_500ms_frame_budget_across_stages():
     from test_race_flow import ROOT
     from carvision.race_flow import RaceFlowController,load_bundle
     c=RaceFlowController(load_bundle(ROOT),0.)
-    assert c.frame_age_limit()==.25
+    assert c.frame_age_limit()==.5
     c._go('crosswalk',.1,'test')
     assert c.frame_age_limit()==.5
     c._go('traffic',.2,'test')
-    assert c.frame_age_limit()==.25
+    assert c.frame_age_limit()==.5
 
 
 def test_cancel_keeps_the_original_fault_reason_visible(tmp_path):

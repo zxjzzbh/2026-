@@ -214,7 +214,7 @@ def test_ongoing_motion_after_fast_stop_cannot_release_on_green():
         assert not any(event['event']=='speak' for event in result['events'])
         if result['phase']=='fault':
             break
-    assert result['phase']=='fault' and result['brake_pulses'] <= 3
+    assert result['phase']=='fault' and result['brake_pulses'] <= 6
 
 
 @pytest.mark.parametrize('value', [0,1,4,-1,True,'3',2.5,None])

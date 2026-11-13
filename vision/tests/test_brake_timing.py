@@ -54,7 +54,7 @@ def test_full_flow_uses_the_same_350ms_cap_as_its_crosswalk_controller(monkeypat
     flow._make_actuator(flow.bundle)
     controller=RaceFlowController(flow.bundle,0.);controller._go('crosswalk',0.,'test')
     assert captured['brake_pulse_s']==controller.controller.s['brake_pulse_s']==.35
-    assert captured['actuator_lease_s']==.2 and captured['brake_release_s']==.1
+    assert captured['actuator_lease_s']==.5 and captured['brake_release_s']==.1
     writes=[];guard=PulseGuard(captured,lambda ch,p:writes.append((ch,p)),mode='F/B',forward_limit_us=1625)
     for seq,t in enumerate((0.,.1,.2,.3,.349,.35)):
         guard.accept({'sequence':seq,'sent_s':t,'action':'brake','esc_us':1400,'steering_us':1610},t)

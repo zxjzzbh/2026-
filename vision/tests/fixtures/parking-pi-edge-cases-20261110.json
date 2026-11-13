@@ -1,0 +1,599 @@
+[
+  {
+    "recording": "parking-acquire-offset-20261109",
+    "frame_id": 7945,
+    "ground": {
+      "verified": false,
+      "detector_verified": false,
+      "image_size": [
+        480,
+        360
+      ],
+      "pose_us": [
+        1600,
+        1150
+      ],
+      "homography": [
+        [
+          -0.001719914438483979,
+          0.00016533935234815564,
+          0.3639539214583493
+        ],
+        [
+          -9.487806934345525e-05,
+          -0.0007147609050347506,
+          -0.37016768184374077
+        ],
+        [
+          -0.00019889022326163343,
+          -0.0050630492532325235,
+          1.0
+        ]
+      ],
+      "valid_polygon_px": [
+        [
+          156.83043015302692,
+          339.8921501998256
+        ],
+        [
+          333.37466201283524,
+          336.3141605394761
+        ],
+        [
+          326.8497023809524,
+          246.8407738095238
+        ],
+        [
+          146.44681818181817,
+          252.5222727272727
+        ]
+      ],
+      "independent_check_rms_m": 0.014248798066974693,
+      "independent_check_max_error_m": 0.02114873755797878,
+      "coordinate_frame": "rear_axle_x_right_y_forward",
+      "max_error_m": 0.03,
+      "historical_verified": true,
+      "current_pose_verified": false,
+      "reuse_source": {
+        "commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+        "path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+        "pose_us": [
+          1600,
+          1150
+        ],
+        "source_repeat_error_m": 0.02157725555847742
+      },
+      "calibration_evidence": {
+        "image_size": [
+          480,
+          360
+        ],
+        "pose_us": [
+          1600,
+          1150
+        ],
+        "points": [
+          {
+            "pixel": [
+              156.83043015302692,
+              339.8921501998256
+            ],
+            "ground_m": [
+              -0.2,
+              0.835
+            ]
+          },
+          {
+            "pixel": [
+              333.37466201283524,
+              336.3141605394761
+            ],
+            "ground_m": [
+              0.2,
+              0.835
+            ]
+          },
+          {
+            "pixel": [
+              326.8497023809524,
+              246.8407738095238
+            ],
+            "ground_m": [
+              0.5,
+              1.835
+            ]
+          },
+          {
+            "pixel": [
+              146.44681818181817,
+              252.5222727272727
+            ],
+            "ground_m": [
+              -0.5,
+              1.835
+            ]
+          }
+        ],
+        "check_points": [
+          {
+            "pixel": [
+              242.78308317302827,
+              297.3570108163748
+            ],
+            "ground_m": [
+              0,
+              1.085
+            ]
+          },
+          {
+            "pixel": [
+              239.1779891304348,
+              259.4071557971015
+            ],
+            "ground_m": [
+              0,
+              1.585
+            ]
+          },
+          {
+            "pixel": [
+              262.6210166177908,
+              274.5902737047898
+            ],
+            "ground_m": [
+              0.1,
+              1.335
+            ]
+          }
+        ],
+        "valid_polygon_px": [
+          [
+            156.83043015302692,
+            339.8921501998256
+          ],
+          [
+            333.37466201283524,
+            336.3141605394761
+          ],
+          [
+            326.8497023809524,
+            246.8407738095238
+          ],
+          [
+            146.44681818181817,
+            252.5222727272727
+          ]
+        ],
+        "camera": "secondary",
+        "measured_fixed_camera": false,
+        "accepted_error_m": 0.03,
+        "candidate_only": true,
+        "source_commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+        "source_path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+        "source_pose_us": [
+          1600,
+          1150
+        ],
+        "source_repeat_error_m": 0.02157725555847742,
+        "rear_axle_origin_adjustment_m": -0.0050000000000000044,
+        "notes": "Historical data only: assumes unchanged fixed camera and pure uncropped resize. Current pose and lane-edge coverage must be checked. This polygon does not cover both edges of the 1.23m lane. Not enabled for driving."
+      }
+    },
+    "quad": [
+      [
+        68.5163345336914,
+        260.80645751953125
+      ],
+      [
+        212.6952667236328,
+        254.81002807617188
+      ],
+      [
+        226.19189453125,
+        214.82606506347656
+      ],
+      [
+        144.8653106689453,
+        216.28651428222656
+      ]
+    ]
+  },
+  {
+    "recording": "parking-reacquire-20261108",
+    "frame_id": 3282,
+    "ground": {
+      "verified": false,
+      "detector_verified": false,
+      "image_size": [
+        480,
+        360
+      ],
+      "pose_us": [
+        1600,
+        1150
+      ],
+      "homography": [
+        [
+          -0.001719914438483979,
+          0.00016533935234815564,
+          0.3639539214583493
+        ],
+        [
+          -9.487806934345525e-05,
+          -0.0007147609050347506,
+          -0.37016768184374077
+        ],
+        [
+          -0.00019889022326163343,
+          -0.0050630492532325235,
+          1.0
+        ]
+      ],
+      "valid_polygon_px": [
+        [
+          156.83043015302692,
+          339.8921501998256
+        ],
+        [
+          333.37466201283524,
+          336.3141605394761
+        ],
+        [
+          326.8497023809524,
+          246.8407738095238
+        ],
+        [
+          146.44681818181817,
+          252.5222727272727
+        ]
+      ],
+      "independent_check_rms_m": 0.014248798066974693,
+      "independent_check_max_error_m": 0.02114873755797878,
+      "coordinate_frame": "rear_axle_x_right_y_forward",
+      "max_error_m": 0.03,
+      "historical_verified": true,
+      "current_pose_verified": false,
+      "reuse_source": {
+        "commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+        "path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+        "pose_us": [
+          1600,
+          1150
+        ],
+        "source_repeat_error_m": 0.02157725555847742
+      },
+      "calibration_evidence": {
+        "image_size": [
+          480,
+          360
+        ],
+        "pose_us": [
+          1600,
+          1150
+        ],
+        "points": [
+          {
+            "pixel": [
+              156.83043015302692,
+              339.8921501998256
+            ],
+            "ground_m": [
+              -0.2,
+              0.835
+            ]
+          },
+          {
+            "pixel": [
+              333.37466201283524,
+              336.3141605394761
+            ],
+            "ground_m": [
+              0.2,
+              0.835
+            ]
+          },
+          {
+            "pixel": [
+              326.8497023809524,
+              246.8407738095238
+            ],
+            "ground_m": [
+              0.5,
+              1.835
+            ]
+          },
+          {
+            "pixel": [
+              146.44681818181817,
+              252.5222727272727
+            ],
+            "ground_m": [
+              -0.5,
+              1.835
+            ]
+          }
+        ],
+        "check_points": [
+          {
+            "pixel": [
+              242.78308317302827,
+              297.3570108163748
+            ],
+            "ground_m": [
+              0,
+              1.085
+            ]
+          },
+          {
+            "pixel": [
+              239.1779891304348,
+              259.4071557971015
+            ],
+            "ground_m": [
+              0,
+              1.585
+            ]
+          },
+          {
+            "pixel": [
+              262.6210166177908,
+              274.5902737047898
+            ],
+            "ground_m": [
+              0.1,
+              1.335
+            ]
+          }
+        ],
+        "valid_polygon_px": [
+          [
+            156.83043015302692,
+            339.8921501998256
+          ],
+          [
+            333.37466201283524,
+            336.3141605394761
+          ],
+          [
+            326.8497023809524,
+            246.8407738095238
+          ],
+          [
+            146.44681818181817,
+            252.5222727272727
+          ]
+        ],
+        "camera": "secondary",
+        "measured_fixed_camera": false,
+        "accepted_error_m": 0.03,
+        "candidate_only": true,
+        "source_commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+        "source_path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+        "source_pose_us": [
+          1600,
+          1150
+        ],
+        "source_repeat_error_m": 0.02157725555847742,
+        "rear_axle_origin_adjustment_m": -0.0050000000000000044,
+        "notes": "Historical data only: assumes unchanged fixed camera and pure uncropped resize. Current pose and lane-edge coverage must be checked. This polygon does not cover both edges of the 1.23m lane. Not enabled for driving."
+      }
+    },
+    "quad": [
+      [
+        107.5435562133789,
+        249.47393798828125
+      ],
+      [
+        234.78030395507812,
+        245.37844848632812
+      ],
+      [
+        242.12982177734375,
+        210.88137817382812
+      ],
+      [
+        164.70774841308594,
+        212.95458984375
+      ]
+    ]
+  },
+  {
+    "recording": "parking-reacquire-20261108",
+    "frame_id": 3283,
+    "ground": {
+      "verified": false,
+      "detector_verified": false,
+      "image_size": [
+        480,
+        360
+      ],
+      "pose_us": [
+        1600,
+        1150
+      ],
+      "homography": [
+        [
+          -0.001719914438483979,
+          0.00016533935234815564,
+          0.3639539214583493
+        ],
+        [
+          -9.487806934345525e-05,
+          -0.0007147609050347506,
+          -0.37016768184374077
+        ],
+        [
+          -0.00019889022326163343,
+          -0.0050630492532325235,
+          1.0
+        ]
+      ],
+      "valid_polygon_px": [
+        [
+          156.83043015302692,
+          339.8921501998256
+        ],
+        [
+          333.37466201283524,
+          336.3141605394761
+        ],
+        [
+          326.8497023809524,
+          246.8407738095238
+        ],
+        [
+          146.44681818181817,
+          252.5222727272727
+        ]
+      ],
+      "independent_check_rms_m": 0.014248798066974693,
+      "independent_check_max_error_m": 0.02114873755797878,
+      "coordinate_frame": "rear_axle_x_right_y_forward",
+      "max_error_m": 0.03,
+      "historical_verified": true,
+      "current_pose_verified": false,
+      "reuse_source": {
+        "commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+        "path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+        "pose_us": [
+          1600,
+          1150
+        ],
+        "source_repeat_error_m": 0.02157725555847742
+      },
+      "calibration_evidence": {
+        "image_size": [
+          480,
+          360
+        ],
+        "pose_us": [
+          1600,
+          1150
+        ],
+        "points": [
+          {
+            "pixel": [
+              156.83043015302692,
+              339.8921501998256
+            ],
+            "ground_m": [
+              -0.2,
+              0.835
+            ]
+          },
+          {
+            "pixel": [
+              333.37466201283524,
+              336.3141605394761
+            ],
+            "ground_m": [
+              0.2,
+              0.835
+            ]
+          },
+          {
+            "pixel": [
+              326.8497023809524,
+              246.8407738095238
+            ],
+            "ground_m": [
+              0.5,
+              1.835
+            ]
+          },
+          {
+            "pixel": [
+              146.44681818181817,
+              252.5222727272727
+            ],
+            "ground_m": [
+              -0.5,
+              1.835
+            ]
+          }
+        ],
+        "check_points": [
+          {
+            "pixel": [
+              242.78308317302827,
+              297.3570108163748
+            ],
+            "ground_m": [
+              0,
+              1.085
+            ]
+          },
+          {
+            "pixel": [
+              239.1779891304348,
+              259.4071557971015
+            ],
+            "ground_m": [
+              0,
+              1.585
+            ]
+          },
+          {
+            "pixel": [
+              262.6210166177908,
+              274.5902737047898
+            ],
+            "ground_m": [
+              0.1,
+              1.335
+            ]
+          }
+        ],
+        "valid_polygon_px": [
+          [
+            156.83043015302692,
+            339.8921501998256
+          ],
+          [
+            333.37466201283524,
+            336.3141605394761
+          ],
+          [
+            326.8497023809524,
+            246.8407738095238
+          ],
+          [
+            146.44681818181817,
+            252.5222727272727
+          ]
+        ],
+        "camera": "secondary",
+        "measured_fixed_camera": false,
+        "accepted_error_m": 0.03,
+        "candidate_only": true,
+        "source_commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+        "source_path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+        "source_pose_us": [
+          1600,
+          1150
+        ],
+        "source_repeat_error_m": 0.02157725555847742,
+        "rear_axle_origin_adjustment_m": -0.0050000000000000044,
+        "notes": "Historical data only: assumes unchanged fixed camera and pure uncropped resize. Current pose and lane-edge coverage must be checked. This polygon does not cover both edges of the 1.23m lane. Not enabled for driving."
+      }
+    },
+    "quad": [
+      [
+        104.64409637451172,
+        253.90599060058594
+      ],
+      [
+        237.08511352539062,
+        249.50315856933594
+      ],
+      [
+        241.7549591064453,
+        214.12298583984375
+      ],
+      [
+        164.9453125,
+        216.48013305664062
+      ]
+    ]
+  }
+]

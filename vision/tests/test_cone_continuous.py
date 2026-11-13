@@ -428,10 +428,10 @@ def test_blue_background_does_not_become_a_new_target_when_lines_are_missing(set
 def test_camera_and_clock_failures_and_worker_watchdog_are_not_bypassed(settings):
     s=continuous(settings);ctl=warmed(s)
     result=ctl.step(observation(3.1,cones=[]),3.1)
-    with pytest.raises(ValueError,match='相机'):ctl.step(observation(3.1),3.5)
+    with pytest.raises(ValueError,match='相机'):ctl.step(observation(3.1),3.601)
     with pytest.raises(ValueError,match='时钟'):ctl.step(observation(2.),2.)
     writes=[];guard=ConePulseGuard(actuator_settings(s),lambda *v:writes.append(v),mode='F/B')
-    guard.accept({**result,'sequence':0,'sent_s':3.1},3.1);guard.tick(3.31)
+    guard.accept({**result,'sequence':0,'sent_s':3.1},3.1);guard.tick(guard.deadline+.001)
     assert guard.fault and guard.esc==1400
 
 

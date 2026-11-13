@@ -1,0 +1,188 @@
+{
+  "algorithm_commit": "7fb99893d34fedc0b79942ba0507755f5034fabf",
+  "author": "13246",
+  "modules": {
+    "cone_observer": {
+      "source_sha256": "52a3791668dae60a7a50d89d6a18c90a76d8f1355c4e00983bf86af778df9917",
+      "installed_sha256": "6bb8c4506ca6c9ffb28856037be160f4efe294e03c037b6fb3b179d60c2ca36d",
+      "field_fix": true,
+      "field_revision": "cone-unified-control-20261107"
+    },
+    "cone_planning": {
+      "source_sha256": "46cb84ddd68d3339d90460a861eed997102f109e897bdaa0561f9659f8e64664",
+      "installed_sha256": "46cb84ddd68d3339d90460a861eed997102f109e897bdaa0561f9659f8e64664"
+    },
+    "steering": {
+      "source_sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7",
+      "installed_sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7"
+    },
+    "cone_slalom": {
+      "source_sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14",
+      "installed_sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14"
+    },
+    "brake_parking": {
+      "source_sha256": "80f107212273719c9c2484077b75440be46de3bf3810d14fdda68857b65dff62",
+      "installed_sha256": "80f107212273719c9c2484077b75440be46de3bf3810d14fdda68857b65dff62"
+    },
+    "autonomy_audio": {
+      "source_sha256": "a88cefadd6a08d21808b32dd07ff3f25373918cfdd5ad541ec17dbb50dd396ca",
+      "installed_sha256": "a88cefadd6a08d21808b32dd07ff3f25373918cfdd5ad541ec17dbb50dd396ca"
+    },
+    "autonomy_profile": {
+      "source_sha256": "5722cfd9d1c572d89346a42bd91ae5330d9c5951a6328d29aad659515abc6120",
+      "installed_sha256": "5722cfd9d1c572d89346a42bd91ae5330d9c5951a6328d29aad659515abc6120"
+    },
+    "announcement_backend": {
+      "source_sha256": "01edeb05c92b227487054505d26315d2de1b2af8e44706012688f90f4f353b22",
+      "installed_sha256": "01edeb05c92b227487054505d26315d2de1b2af8e44706012688f90f4f353b22"
+    },
+    "cone_low_speed": {
+      "source_sha256": "2544e1c4de643395fc5ecb81c65ed0710b2651c9a47cd361da4c88a1f044973d",
+      "relocation": "config reference is one package level deeper; no control change",
+      "installed_sha256": "626289bd1636a749096434ae502d59a63d270e93c98c9805540b606a575d4365",
+      "field_fix": true,
+      "field_revision": "cone-bounded-handoff-20261107"
+    },
+    "cone_ground_flow": {
+      "source_sha256": "2744f2c0628c8baa2256ead8b674e502e5a2a67b8bf67f7a0b10b88df4aa2879",
+      "installed_sha256": "2744f2c0628c8baa2256ead8b674e502e5a2a67b8bf67f7a0b10b88df4aa2879"
+    },
+    "cone_local_flow": {
+      "source_sha256": "072f3d483b17a460ba485bac81c181caa18a1d69a7edd5dcc13211956f518a39",
+      "installed_sha256": "d2fdb9910ce4c2241b0e4095282567bbb57d5dc5284483bf3c0b5161f7aeef32",
+      "field_fix": true,
+      "field_revision": "cone-forward-floor-recovery-20261107"
+    },
+    "cone_trial_output": {
+      "source_sha256": "65baf11b05ff13370294fd545ed07720cb7b89758936bede0ec86398d28ceeff",
+      "installed_sha256": "65baf11b05ff13370294fd545ed07720cb7b89758936bede0ec86398d28ceeff"
+    },
+    "rasadapter5": {
+      "source_sha256": "dac614183fcb1892cfce57ddfdd827cfb00b6987ea25b4258548c74bee58a693",
+      "installed_sha256": "dac614183fcb1892cfce57ddfdd827cfb00b6987ea25b4258548c74bee58a693"
+    },
+    "brake_output": {
+      "source_sha256": "9fafe798cc7d7c1de3433f0da69d1bd24e1bf0348b6634acf3b35db0cb193b14",
+      "installed_sha256": "9fafe798cc7d7c1de3433f0da69d1bd24e1bf0348b6634acf3b35db0cb193b14"
+    },
+    "cone_short_trial": {
+      "source_sha256": "0b632f5e6f6923eb29ac191ecb50fe4c23c7c40a241dd0eac07283d5876ebc06",
+      "installed_sha256": "0b632f5e6f6923eb29ac191ecb50fe4c23c7c40a241dd0eac07283d5876ebc06"
+    },
+    "cone_short_output": {
+      "source_sha256": "d10af83a6af7c3b3c7729a713870707cb675117089409cee50cfb6943c4828f1",
+      "installed_sha256": "d10af83a6af7c3b3c7729a713870707cb675117089409cee50cfb6943c4828f1"
+    },
+    "cone_execution": {
+      "source_sha256": "e7ec81fea5da8ad6f3a00f37ff1332a515c68c36f551b1b40c8e79b5780a6f44",
+      "installed_sha256": "ba028a02733cabca1b840e69cd05bf54ebdd79170e3bcb9bfb866a157d8a9273",
+      "field_fix": true,
+      "field_revision": "cone-unified-control-20261107"
+    },
+    "cone_continuous": {
+      "source_sha256": "e3b26253097683529ba4d96bf137669840fd1e4e6399b95445a7805507238b84",
+      "installed_sha256": "31398f95226532395cf88e0b9807e79cde26637b57ee6196ece43683264b5bb9",
+      "field_fix": true,
+      "field_revision": "cone-first-maneuver-20261108"
+    },
+    "cone_navigation": {
+      "source_sha256": "a20b7e3df026eaec4f2a077679fb0c3041e093d9752661d852aaed6dcbc4052b",
+      "installed_sha256": "a20b7e3df026eaec4f2a077679fb0c3041e093d9752661d852aaed6dcbc4052b"
+    },
+    "cone_road": {
+      "source_sha256": "83d4bf1f0b1bc1408af125e9e9890ddd75ce1ea13ec9a42f389c8b2502aaa2dc",
+      "installed_sha256": "da3867af5fce1642048edba3018a023ed5f5ac8d8ce5124df3ebb433dfa805d8",
+      "field_fix": true,
+      "field_revision": "cone-second-handoff-20261107"
+    },
+    "cone_boundaries": {
+      "source_sha256": "6218f771aac72d26c764972d464b10fef0098e98a5ccdfbed927b4ad35819e50",
+      "installed_sha256": "6218f771aac72d26c764972d464b10fef0098e98a5ccdfbed927b4ad35819e50"
+    },
+    "lane": {
+      "source_sha256": "d4c84e55a290a061ef2a3854d2d8174a7684b830815cebd00e00f09bd5036a25",
+      "installed_sha256": "d4c84e55a290a061ef2a3854d2d8174a7684b830815cebd00e00f09bd5036a25"
+    },
+    "results": {
+      "source_sha256": "e4974ec91555443e9279baf0741a1b3d831b761a89fe7a4a546e0ab5c509215f",
+      "installed_sha256": "e4974ec91555443e9279baf0741a1b3d831b761a89fe7a4a546e0ab5c509215f"
+    },
+    "config": {
+      "source_sha256": "d632cfd8603bb788180970d5577acb972c35b937c62d293939102067a9521b35",
+      "installed_sha256": "d632cfd8603bb788180970d5577acb972c35b937c62d293939102067a9521b35"
+    },
+    "cone_vision": {
+      "source_sha256": "cf21e2cf1c0e27cddbe89cf605690a3615d0ff0937597dc26de58203d107865f",
+      "installed_sha256": "cff51e4de69a0dca83b034cc91b1cac194de86dcb030eb2c88192e6061362133",
+      "field_fix": true,
+      "field_revision": "cone-tracking-recovery-20261107"
+    },
+    "cone_image_geometry": {
+      "added_for_field_fix": true,
+      "installed_sha256": "08ccc0afaa96bc6292d4fc5517b59b45562eb3820b802fc6f4f200f08363bb23",
+      "field_fix": true,
+      "field_revision": "cone-second-handoff-20261107"
+    },
+    "cone_image_guidance": {
+      "added_for_field_fix": true,
+      "installed_sha256": "d0abb26238cbbb4ef5b9fa662f32e113d54e0286a1b182aafb80a292dd0c2beb",
+      "field_fix": true,
+      "field_revision": "cone-first-maneuver-20261108"
+    },
+    "cone_lane_margin": {
+      "origin": "local supervised cone tuning",
+      "installed_sha256": "2705cd10c170d02251d81294b293311ab3de41bb337fd489236f8be577dfe0ed",
+      "field_fix": true,
+      "field_revision": "cone-second-handoff-20261107"
+    },
+    "cone_timing": {
+      "origin": "local supervised cone tuning",
+      "installed_sha256": "5858470204907f5d2b4465d0f5a888135c5f387f98017f94d174d205458b0e10",
+      "field_fix": true,
+      "field_revision": "cone-unified-control-20261107"
+    },
+    "cone_edge_recovery": {
+      "source_sha256": null,
+      "origin": "local supervised obstacle correction",
+      "installed_sha256": "49cb99e8fa9102cb2d586cdd276f4ebb589fe737a687c151bffd0acd32fcd3ab",
+      "field_fix": true,
+      "field_revision": "cone-forward-floor-recovery-20261107"
+    },
+    "cone_power": {
+      "source_sha256": null,
+      "origin": "local supervised obstacle correction",
+      "installed_sha256": "b32111399f8734679d163dc45cb277ee9db8f9382e173cf3caf7efe60b94a852",
+      "field_fix": true,
+      "field_revision": "cone-forward-floor-recovery-20261107"
+    },
+    "cone_steering_policy": {
+      "source_sha256": null,
+      "origin": "local supervised obstacle correction",
+      "installed_sha256": "5be5e1bf135ad314dab196e9708c00b9f46c7ff9e334d6d2e1e711521295259f",
+      "field_fix": true,
+      "field_revision": "cone-bounded-handoff-20261107"
+    },
+    "cone_side_choice": {
+      "source_sha256": null,
+      "origin": "local supervised obstacle correction",
+      "installed_sha256": "cd9a4ba243573b84a8dec8b0c251045c92619d56d4d92f059baad76316f2e19b",
+      "field_fix": true,
+      "field_revision": "cone-first-maneuver-20261108"
+    },
+    "cone_right_boundary": {
+      "source_sha256": null,
+      "origin": "local supervised obstacle correction",
+      "installed_sha256": "9fd52be3a30925a7327932911b52571112c2deb97bb639447d7a0c1468e8c04d",
+      "field_fix": true,
+      "field_revision": "cone-right-margin-50cm-20261108"
+    },
+    "cone_maneuver_state": {
+      "source_sha256": null,
+      "origin": "local supervised obstacle correction",
+      "installed_sha256": "69aa11588df15e33a7ffdbe5886a543ef1ab72841ebd75fc076b3aa32a5ccddc",
+      "field_fix": true,
+      "field_revision": "cone-first-maneuver-20261108"
+    }
+  },
+  "field_revision": "cone-first-maneuver-20261108"
+}

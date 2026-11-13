@@ -225,6 +225,10 @@ def test_explicit_preparation_and_start_are_both_required(measured):
     assert not opened
     run.tick(nav(.1),.1)
     assert len(opened)==1 and opened[0].commands[-1]['action']=='neutral'
+    assert run.phase=='preparing' and run.navigation is None
+    run.tick(nav(.1),.15)
+    assert run.phase=='preparing'  # The pre-initialization frame cannot unlock start.
+    run.tick(nav(.2),.2)
     run.command('cone_start',command(run,0,fb_mode_confirmed=True,esc_on_static=True,field_ready=True),.2)
     for i in range(1,36):
         now=.2+i*.1
@@ -250,7 +254,9 @@ def test_failsafe_closes_the_output_session(measured,failure):
         run.factory=factory;run.tick(nav(.1),.1)
     else:
         run.tick(nav(.1),.1)
-        run.tick(None,.2 if failure=='camera' else 1.)
+        run.tick(nav(.2),.2)
+        run.command('cone_start',command(run,0,fb_mode_confirmed=True,esc_on_static=True,field_ready=True),.2)
+        run.tick(None,.3 if failure=='camera' else 3.01)
     assert not run.active and actuator.closed
 
 
@@ -259,7 +265,7 @@ def test_foreign_repeated_or_expired_page_command_cannot_drive(measured):
     with pytest.raises(ValueError):run.command('cone_keepalive',command(run,0,client='other'),.2)
     run.command('cone_keepalive',command(run,0),.2)
     with pytest.raises(ValueError):run.command('cone_keepalive',command(run,0),.25)
-    with pytest.raises(ValueError):run.command('cone_keepalive',command(run,1),1.)
+    with pytest.raises(ValueError):run.command('cone_keepalive',command(run,1),3.201)
     assert not run.active
 
 

@@ -35,7 +35,8 @@ class FrameNavigator:
 
 
 class NavigationSpy:
-    def __init__(self):self.calls=[]
+    def __init__(self):self.calls=[];self.recovery_limits=[]
+    def set_single_recovery_limit(self,seconds):self.recovery_limits.append(seconds)
     def update_views(self,images,rows,now):
         self.calls.append({camera:(row['frame_id'],row['captured_s']) for camera,row in rows.items()})
         source='secondary' if 'secondary' in rows else next(iter(rows))
@@ -108,11 +109,14 @@ def test_default_debug_read_still_renders_one_combined_preview(bundle,monkeypatc
     reader=ConeCamera(caches(),bundle['cones'],lambda:1.)
     reader.navigator=FrameNavigator();fits,_=fit_spies(reader,monkeypatch);calls=encoder_spy(monkeypatch)
     result=reader.read()
+    with reader.encoder.condition:
+        assert reader.encoder.condition.wait_for(lambda:reader.encoder.latest is not None,timeout=1)
     assert result['sequence']==1 and calls==['.jpg'] and reader.navigator.draws==1
     assert set(reader.views)=={'primary','secondary'}
-    assert cv2.imdecode(np.frombuffer(reader.preview,np.uint8),1).shape==(360,960,3)
+    assert cv2.imdecode(np.frombuffer(reader.encoder.latest,np.uint8),1).shape==(360,960,3)
     assert all(len(items)==1 for items in fits.values())
     assert reader.read() is None and calls==['.jpg']
+    reader.close()
 
 
 @pytest.mark.parametrize('stage,encodes',[('crosswalk',1),('traffic',0),('cones',1)])
@@ -120,6 +124,9 @@ def test_race_has_one_final_fit_per_view_and_no_intermediate_jpeg(bundle,monkeyp
     states=caches();reader=isolated_race(states,bundle,lambda:1.,monkeypatch)
     fits,enriched=fit_spies(reader.cones,monkeypatch);calls=encoder_spy(monkeypatch)
     result=reader.read(stage,1.)
+    if encodes:
+        with reader.encoder.condition:
+            assert reader.encoder.condition.wait_for(lambda:reader.encoder.latest is not None,timeout=1)
     assert result is not None and reader.cones.turn_aware
     assert all(road.turn_aware for road in reader.cones.roads.values())
     assert all(len(items)==1 for items in fits.values())
@@ -131,6 +138,7 @@ def test_race_has_one_final_fit_per_view_and_no_intermediate_jpeg(bundle,monkeyp
             assert np.all(fits[camera][0]['mask'][200:208,zebra.x:zebra.x+70]==255)
     if stage=='traffic':assert reader.preview==b'traffic-final-preview'
     assert reader.read(stage,1.) is None and len(calls)==encodes
+    reader.close()
 
 
 def test_mask_phase_change_waits_for_each_real_view_instead_of_refitting_cache(bundle,monkeypatch):

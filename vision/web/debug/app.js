@@ -38,6 +38,7 @@
     const every=options.setInterval||setInterval,later=options.setTimeout||setTimeout,clearLater=options.clearTimeout||clearTimeout;
     const el=id=>doc.getElementById(id),fieldNodes=new Map();
     let status=null,online=false,stale=false,busy=false,dirty=false,task='crosswalk',epoch=0,token=null,sequence=-1;
+    let heartbeatSequence=-1,pollBusy=false;const heartbeatRequests=new Set();
     let queue=Promise.resolve(),pulseBusy=false,selectedOnce=false,observationOwner=null,stopping=false,started=false,lastSnapshot=-Infinity;
     const selected=()=>TASKS[task],state=()=>path(status,selected().key)||{},owned=()=>!!state().active&&state().owner_client===client;
     const activeRows=()=>[status?.crosswalk_trial,status?.traffic_trial,status?.cone_trial?.avoidance,status?.cone_trial?.short_test,status?.departure_trial,status?.parking_trial,status?.race_flow,status?.plan_b].filter(r=>r?.active);
@@ -120,16 +121,16 @@
       const times=['application_status_s','traffic_status_s','cone_status_s','parking_trial_status_s','departure_status_s'].map(k=>next[k]).filter(x=>typeof x==='number');
       const at=times.length?Math.max(...times):null;if(at!==null&&at<lastSnapshot)return false;if(at!==null)lastSnapshot=at;
       const nextRun=path(next,selected().key)||{},nextToken=nextRun.run_token||null;
-      if(nextToken!==token){token=nextToken;sequence=-1;epoch++;}
+      if(nextToken!==token){token=nextToken;sequence=-1;heartbeatSequence=-1;epoch++;}
       status=next;if(!selectedOnce){fillFields();selectedOnce=true;}
       if(observationOwner===task&&!(task==='cone'?status.cone_trial?.observing:status.parking_bay?.active))observationOwner=null;
       render();return true;
     }
-    async function rawRequest(action,body={},keepalive=false){
-      const controller=new AbortController(),timer=later(()=>controller.abort(),2000);
+    async function rawRequest(action,body={},keepalive=false,timeoutMs=2000){
+      const controller=new AbortController(),timer=later(()=>controller.abort(),timeoutMs);
       try{const response=await http('/api/drive/'+action,{method:'POST',cache:'no-store',keepalive,signal:controller.signal,
         headers:{'Content-Type':'application/json','X-Drive-Key':bootstrap.key},body:JSON.stringify({client,setup_token:status?.setup_token,trial_token:status?.trial_token,...body})});
-        const next=await response.json();if(!response.ok){if(next.code==='control_page_rejected'){stale=true;epoch++;render();}throw new Error(next.error||'操作未确认');}return next;
+        const next=await response.json();if(!response.ok){if(next.code==='control_page_rejected'){stale=true;epoch++;render();}const error=new Error(next.error||'操作未确认');error.rejected=response.status>=400&&response.status<500;throw error;}return next;
       }finally{clearLater(timer);}
     }
     function enqueue(action,body={},sequenced=false){const generation=epoch,selectedTask=task,currentToken=token;
@@ -176,13 +177,28 @@
       catch(e){error('停止确认未收到：'+e.message);}finally{stopping=false;render();}
     }
     async function observe(){if(el('observe-task').disabled)return;return action(async()=>{await enqueue(selected().observe);observationOwner=task;});}
-    async function pulse(){const d=selected();if(!validPage()||doc.hidden||pulseBusy||stopping||!owned()||!d.heartbeat)return;
+    async function coneHeartbeat(){return pageHeartbeat('cone_page_heartbeat');}
+    async function pageHeartbeat(endpoint){
+      if(stale||status?.application_mode!=='debug'||doc.hidden||stopping||!owned()||!token||heartbeatRequests.size>=2)return;
+      const generation=epoch,currentToken=token,currentTask=task,seq=++heartbeatSequence,id={};heartbeatRequests.add(id);
+      try{
+        const reply=await rawRequest(endpoint,{run_token:currentToken,heartbeat_sequence:seq},false,1000);
+        if(generation!==epoch||token!==currentToken||task!==currentTask)return;
+        if(reply.heartbeat_ack!==true||reply.heartbeat_sequence!==seq)throw new Error('心跳确认格式无效');
+      }catch(e){
+        if(generation!==epoch||token!==currentToken)return;
+        // An isolated timeout is not disconnection. Keep retrying even while
+        // full status polling is slow; the Pi enforces the three-second lease.
+        if(e.rejected){stale=true;epoch++;error(e.message);render();}
+      }finally{heartbeatRequests.delete(id);}
+    }
+    async function pulse(){if(task==='cone')return coneHeartbeat();if(task==='parking'||task==='visual')return pageHeartbeat('parking_page_heartbeat');if(task==='crosswalk'||task==='traffic')return pageHeartbeat(task+'_page_heartbeat');const d=selected();if(!validPage()||doc.hidden||pulseBusy||stopping||!owned()||!d.heartbeat)return;
       pulseBusy=true;const generation=epoch;
       try{await enqueue(d.heartbeat,{},true);}catch(e){if(!e.superseded&&generation===epoch){error(e.message);await stop(false,'connection_lost');}}
       finally{pulseBusy=false;}}
-    async function poll(){const controller=new AbortController(),timer=later(()=>controller.abort(),2000);
+    async function poll(){if(pollBusy)return;pollBusy=true;const controller=new AbortController(),timer=later(()=>controller.abort(),2000);
       try{const response=await http('/api/drive/status',{cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('状态读取失败');online=true;applyStatus(await response.json());}
-      catch(e){online=false;render();if(owned())void stop(false,'connection_lost');}finally{clearLater(timer);}}
+      catch(e){online=false;render();}finally{clearLater(timer);pollBusy=false;}}
     function choose(next){if(!TASKS[next]||busy||activeRows().length||observationOwner)return false;
       task=next;epoch++;token=null;sequence=-1;selectedOnce=false;fillFields();selectedOnce=!!status;
       for(const id of ['confirm-esc-off','confirm-fb','confirm-on-static','confirm-field'])el(id).checked=false;
@@ -192,7 +208,7 @@
       const source=id==='task'?selected().image:url,currentTask=task,pending=doc.createElement('img');let ended=false;
       const finish=ok=>{if(ended)return;ended=true;clearLater(timer);pending.onload=pending.onerror=null;
         if(ok&&(id!=='task'||currentTask===task)){image.src=pending.src;image.hidden=doc.hidden;label.textContent='刚刚更新';}else{image.hidden=true;label.textContent='等待新鲜画面';}
-        later(()=>camera(id,url),ok?200:400);};
+        later(()=>camera(id,url),ok?(task==='cone'&&owned()?400:200):400);};
       const timer=later(()=>{finish(false);pending.removeAttribute('src');},1200);pending.onload=()=>finish(true);pending.onerror=()=>finish(false);pending.src=source+(source.includes('?')?'&':'?')+'t='+Date.now();
     }
     function bind(){el('task-select').addEventListener('change',()=>{if(!choose(el('task-select').value))el('task-select').value=task;});

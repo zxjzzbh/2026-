@@ -102,9 +102,9 @@ def test_cached_target_keeps_original_frame_and_expiry_cannot_be_refreshed_by_ot
         assert result['frame_id']==10 and result['captured_s']==1.
         observed=evidence.update(result,'secondary-target','left',now)
         assert not observed['target_stable'] and observed['frames']==1
-    result=update(run,'secondary',cached,1.251)
+    result=update(run,'secondary',cached,1.501)
     assert result['source_camera']=='primary'
-    assert result['captured_s']==1.251 and all(item['id']!='secondary-target' for item in result.get('visual_cones',[]))
+    assert result['captured_s']==1.501 and all(item['id']!='secondary-target' for item in result.get('visual_cones',[]))
 
 
 def test_missing_locked_camera_and_same_image_fraction_in_other_view_do_not_transfer_identity():

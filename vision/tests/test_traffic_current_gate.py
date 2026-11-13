@@ -82,9 +82,10 @@ def flow_sample(fid, t, color):
 def test_full_flow_stays_stopped_at_current_red_then_advances_on_real_green():
     controller = RaceFlowController(load_bundle(ROOT), 0.)
     controller._go('traffic', 0., 'offline waiting-stage setup')
-    # Start at the state reached only after this round's red and stationary
-    # confirmation. Exercise the real traffic controller and stage dispatch.
+    # Start after this round's red and completed brake/neutral sequence.
+    # Exercise the real traffic controller and stage dispatch.
     controller.controller.phase = 'wait_green'
+    controller.controller.stop_sequence_complete = True
     controller.controller.red_seen = True
     controller.controller.red_source_cameras.add('secondary')
     controller.controller.wait_at = 0.

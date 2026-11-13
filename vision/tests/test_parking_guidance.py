@@ -26,6 +26,7 @@ def test_visible_far_and_two_sides_after_near_line_left_frame():
     row=rows[0];q=np.asarray(row['corners_px'])
     assert row['near_boundary_observed'] is False and row['far_boundary_observed'] is True
     assert row['geometry_source']=='image_far_corridor'
+    assert row['availability']=='clear' and not row['occupancy_verified']
     assert q[0,0]<q[1,0] and q[3,0]<q[2,0]
     assert np.allclose(q[:2,1],288,atol=2) and np.all(q[2:,1]<160)
     assert row['far_boundary_support']>=.7 and min(row['side_boundary_support'])>=.75

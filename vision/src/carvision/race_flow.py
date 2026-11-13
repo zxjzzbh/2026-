@@ -7,6 +7,7 @@ Payment is reported by the operator, never performed by the vehicle software.
 
 from .steering import LEFT_US, RIGHT_US
 import copy
+from .runtime_timing import VISION_MAX_AGE_S, MOTION_RECOVERY_S
 import json
 import math
 from pathlib import Path
@@ -33,12 +34,13 @@ LABELS={'handoff':'正在交接控制权','idle':'手动遥控／待切换','arm
 
 def validate_flow(s):
     s=copy.deepcopy(s)
+    if s.get('max_frame_age_s')==.25:s['max_frame_age_s']=VISION_MAX_AGE_S
     if s.get('schema_version')!=1:raise ValueError('总流程配置版本无效')
-    for k,lo,hi in [('forward_us',1501,1600),('left_us',1650,LEFT_US),('right_us',RIGHT_US,1570)]:
+    for k,lo,hi in [('forward_us',1570,1600),('left_us',1650,LEFT_US),('right_us',RIGHT_US,1570)]:
         if type(s.get(k)) is not int or not lo<=s[k]<=hi:raise ValueError('总流程参数越界：'+k)
     for k,lo,hi in [('max_run_s',60,600),('max_stage_s',20,180),('parking_search_s',5,60)]:
         if not numeric(s.get(k)) or not lo<=s[k]<=hi:raise ValueError('总流程参数越界：'+k)
-    for k,value in [('crosswalk_hold_s',10),('payment_window_s',30),('max_frame_age_s',.25),('page_lease_s',.5),('arming_s',3)]:
+    for k,value in [('crosswalk_hold_s',10),('payment_window_s',30),('max_frame_age_s',VISION_MAX_AGE_S),('page_lease_s',.5),('arming_s',3)]:
         if not numeric(s.get(k)) or s[k]!=value:raise ValueError('本版比赛流程固定参数：'+k)
     if s.get('school_team_speech')!='我是山东大学启航队的智能车，请为我加油':raise ValueError('学校队伍播报未匹配')
     return s
@@ -78,6 +80,7 @@ def load_bundle(root,drive=None):
 
 def prepare_bundle(bundle):
     b=copy.deepcopy(bundle);f=validate_flow(b['flow']);b['flow']=f
+    b['brake']['max_frame_age_s']=VISION_MAX_AGE_S;b['brake']['actuator_lease_s']=VISION_MAX_AGE_S
     b['brake']['hold_s']=10.;b['brake']['speech_text']=f['school_team_speech']
     b['brake']['max_approach_s']=f['max_stage_s']
     b['brake']['pwm']['search_us']=f['forward_us']
@@ -117,6 +120,11 @@ class RaceFlowController:
         self.parking=ParkingTask(self.b['parking'],self.b['cones'],require_ready=False);self.parking_wait=None
         self.payment_started=None;self.paid=False;self.paid_in_time=False;self.last_drive=False;self.audio_wait=None;self.stationary_since=None
         self.passed_cone_ids=set()
+        self.vision_recovery_started=None
+        self.vision_recovery_needs_lane=False
+        self.vision_recovery_brake_until=0.
+        self.vision_recovery_hits=0
+        self.vision_recovery_frame=None
         if initialized:
             self._go('wait_board',now,'已确认共用执行器零油门及连续静止，等待蓝色挡板')
 
@@ -125,13 +133,13 @@ class RaceFlowController:
         self.stage=stage;self.entered=now;self.reason=reason;self.last_module_id=None;self.last_intent=None
         if self.guide is None:self.guide=LaneFollower(self.b['cones'],now)
         self.guide.transition(stage)
-        if stage=='crosswalk':self.controller=BrakeParkingController(self.b['brake'],'straight',first_detection_stop=True,crosswalk=True)
+        if stage=='crosswalk':self.controller=BrakeParkingController(self.b['brake'],'straight',first_detection_stop=True,crosswalk=True,control_interval_s=VISION_MAX_AGE_S)
         elif stage=='traffic':self.controller=FlowTrafficController(self.b['traffic'],now,self.s['max_stage_s'])
         elif stage=='cones':self.controller=ContinuousConeController(self.b['cones'],now,initialized=True,handoff_after_two=True)
 
     def frame_age_limit(self):
         if self.stage=='crosswalk' and self.b['brake'].get('crosswalk_calibration') is not None:
-            return self.b['brake'].get('crosswalk_max_frame_age_s',self.s['max_frame_age_s'])
+            return max(self.s['max_frame_age_s'],self.b['brake'].get('crosswalk_max_frame_age_s',0.))
         return self.s['max_frame_age_s']
 
     def _out(self,reason=None,intent=None,events=None):
@@ -189,8 +197,15 @@ class RaceFlowController:
         self.last_t=now
         if now-self.started>self.s['max_run_s']:return self.fail('总流程超时，已停止')
         if now-self.entered>self.s['max_stage_s']:return self.fail('当前任务超时，已停止')
-        if not isinstance(sample,dict) or not numeric(sample.get('captured_s')) or not 0<=now-sample['captured_s']<=self.frame_age_limit():
-            return self.fail('相机帧过期或中断')
+        stamp=(sample or {}).get('captured_s')
+        fresh=numeric(stamp) and 0<=now-stamp<=self.frame_age_limit()
+        nav=(sample or {}).get('navigation')
+        if self.vision_recovery_needs_lane or self.last_drive and nav is not None:
+            t=(nav or {}).get('captured_s');fresh=fresh and numeric(t) and 0<=now-t<=VISION_MAX_AGE_S
+        if not fresh or self.vision_recovery_started is not None:
+            recovering=self._recover_vision(sample,now,fresh)
+            if recovering is not None:return recovering
+
         if type(sample.get('sequence')) is not int:return self.fail('相机批次编号无效')
         if sample['sequence']<0 or self.last_seq is not None and sample['sequence']<self.last_seq:
             return self.fail('相机批次编号倒退，结束本轮')
@@ -204,6 +219,34 @@ class RaceFlowController:
                 if now-self.stationary_since>=19:return self.fail('自动阶段连续停止接近 20 秒，结束本轮并保持停止')
         try:return self._step_stage(sample,now,audio)
         except (ValueError,KeyError,TypeError) as exc:return self.fail(str(exc))
+
+    def _recover_vision(self,sample,now,fresh):
+        if self.vision_recovery_started is None:
+            self.vision_recovery_started=now
+            self.vision_recovery_needs_lane=self.last_drive
+            self.vision_recovery_brake_until=now+(.35 if self.last_drive else 0.)
+            self.vision_recovery_hits=0;self.vision_recovery_frame=None
+            if self.guide:self.guide.suspend()
+        if now-self.vision_recovery_started>=MOTION_RECOVERY_S:
+            return self.fail('画面持续失效，恢复等待超时，保持停止')
+        if fresh:
+            identity=(sample.get('sequence'),sample.get('captured_s'))
+            previous=self.vision_recovery_frame
+            ordered=(type(identity[0]) is int and identity[0]>=0
+                     and (self.last_seq is None or identity[0]>self.last_seq)
+                     and (previous is None or identity[0]>previous[0] and identity[1]>previous[1]))
+            if ordered:
+                self.vision_recovery_frame=identity;self.vision_recovery_hits+=1
+            else:fresh=False
+        else:self.vision_recovery_hits=0
+        if fresh and self.vision_recovery_hits>=2 and now>=self.vision_recovery_brake_until+.1:
+            self.vision_recovery_started=None
+            self.vision_recovery_needs_lane=False
+            if self.guide:self.guide.suspend()
+            return None
+        braking=now<self.vision_recovery_brake_until
+        return self._out('画面短暂失效，停车等待连续新画面恢复',
+            {'action':'brake' if braking else 'neutral','esc_us':1400 if braking else 1500,'steering_us':1610})
 
     def _advance(self,stage,now,reason,sample,audio,events=None):
         # Dispatch the next task in the same camera batch. No neutral pulse

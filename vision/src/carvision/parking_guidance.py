@@ -76,6 +76,7 @@ def visible_far_guides(yellow,white,ground_mask,blue_mask):
         # A hull may span a hole in the component. Do not hide an obstacle in it.
         if floor_fraction<.90 or np.count_nonzero(blue[interior])>max(5,.003*int(interior.sum())):continue
         guides.append({'corners_px':q.tolist(),'near_boundary_observed':False,
+            'availability':'clear','occupancy_verified':False,
             'far_boundary_observed':True,'far_boundary_support':far_support,
             'side_boundary_support':side_support,'ground_fraction':floor_fraction,
             'guide_source':'visible_far_and_side_boundaries','geometry_source':'image_far_corridor',

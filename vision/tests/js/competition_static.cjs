@@ -31,8 +31,8 @@ const http=async(url,options={})=>{
   if(deferEnter)return new Promise(resolve=>{pendingEnter=()=>{status=snapshot({...status,race_flow:{active:true,owner_client:'page',run_token:'token',stage:'handoff',can_enter:false,readiness:{ready:true,missing:[]}}});resolve(response(status));};});
   status=snapshot({...status,race_flow:{active:true,owner_client:'page',run_token:'token',stage:'handoff',can_enter:false}});
  }
- if(action==='race_keepalive'){
-  const process=()=>{if(body.race_sequence<=lastSequence)return response({error:'old sequence'},false);lastSequence=body.race_sequence;return response(snapshot(status));};
+ if(action==='race_page_heartbeat'){
+  const process=()=>response({heartbeat_ack:true,accepted:true,heartbeat_sequence:body.heartbeat_sequence,page_lease_s:2});
   if(deferPulse)return new Promise(resolve=>{pendingPulse=()=>resolve(process());});return process();
  }
  if(action==='race_report_paid'){assert(body.race_sequence>lastSequence);lastSequence=body.race_sequence;status=snapshot({...status,race_flow:{...status.race_flow,stage:'complete',operator_reported_paid:true,can_report_paid:false}});}
@@ -64,13 +64,13 @@ const active=(stage='cones',token='token',owner='page')=>snapshot({...base(),rac
  assert.equal(requests.filter(x=>x.action==='finish_test').length,0,'handoff is one API action');
  pendingEnter();await enter;deferEnter=false;
  assert(nodes.get('handoff-state').textContent.includes('控制'),'handoff has its own status');
- await api.pulse();assert.equal(requests.at(-1).action,'race_keepalive','handoff retains ownership lease');
+ await api.pulse();assert.equal(requests.at(-1).action,'race_page_heartbeat','handoff retains ownership lease');
 
  status=active('cones');api.applyStatus(status);deferPulse=true;
  const pulse=api.pulse();await flush();assert(pendingPulse);
  status=active('payment');api.applyStatus(status);
  const paid=nodes.get('report-paid').fire('click');await flush();
- assert.notEqual(requests.at(-1).action,'race_report_paid','payment waits behind in-flight heartbeat');
+ assert.equal(requests.at(-1).action,'race_report_paid','payment does not wait behind an independent heartbeat');
  pendingPulse();await pulse;await paid;await flush();deferPulse=false;
  const actions=requests.map(x=>x.action);assert.equal(actions.at(-1),'race_report_paid');
  assert.equal(api.inspect().status.race_flow.stage,'complete');

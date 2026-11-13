@@ -4,6 +4,8 @@ Observation/settings/startup never open the actuator. Only a calibrated,
 explicit prepare may acquire neutral output; start is a separate user action.
 """
 import copy
+from .preview_encoding import PreviewEncoder
+from .runtime_timing import VISION_MAX_AGE_S
 import json
 import threading
 import time
@@ -39,7 +41,7 @@ class ConeCamera:
         self.trackers={c:ImageConeTracker(c,settings) for c in self.detectors}
         self.ids={};self.views={};self.rows={};self.images={};self.turn_aware=None
         self.set_turn_aware(turn_aware)
-        self.preview=None;self.sequence=0
+        self.preview=None;self.sequence=0;self.encoder=PreviewEncoder()
         self.navigator=ConeNavigator(settings);self.navigation=None
 
     def set_turn_aware(self,enabled):
@@ -60,15 +62,17 @@ class ConeCamera:
 
     def read(self,*,road_mask_filter=None,render=True):
         """Consume new cache frames; optional filtering precedes the only road fit."""
+        read_started=time.perf_counter();camera_processing={}
         changed=False
         for camera in ('primary','secondary'):
+            camera_started=time.perf_counter()
             try:
                 state=self.states[camera]
                 with state.condition:
                     jpg,fid,ms=state.raw_jpeg,state.raw_frame_id,state.raw_received_ms
                     failed=state.state in ('stopped','error')
                 now=self.clock()
-                if failed or not jpg or type(fid) is not int or not numeric(ms) or not 0<=now-ms/1000<=self.s['max_frame_age_s']:
+                if failed or not jpg or type(fid) is not int or not numeric(ms) or not 0<=now-ms/1000<=VISION_MAX_AGE_S:
                     raise ValueError('camera unavailable')
                 if self.ids.get(camera)==fid:continue
                 image=cv2.imdecode(np.frombuffer(jpg,np.uint8),cv2.IMREAD_COLOR)
@@ -108,6 +112,7 @@ class ConeCamera:
                     self.views[camera]=display
                 else:self.views.pop(camera,None)
                 self.rows[camera]=row;self.images[camera]=image;self.ids[camera]=fid;changed=True
+                camera_processing[camera]=time.perf_counter()-camera_started
             except (KeyError,ValueError,cv2.error):
                 self.rows.pop(camera,None);self.views.pop(camera,None);self.images.pop(camera,None)
         if not self.rows:raise ValueError('两路摄像头均无新鲜画面')
@@ -122,14 +127,21 @@ class ConeCamera:
                 else:
                     blank=np.zeros((360,480,3),np.uint8)
                     cv2.putText(blank,camera.upper()+' NO FRAME',(10,25),cv2.FONT_HERSHEY_SIMPLEX,.5,(170,170,170),1);panes.append(blank)
-            ok,jpg=cv2.imencode('.jpg',np.concatenate(panes,axis=1))
-            self.preview=jpg.tobytes() if ok else None
+            self.preview=self.encoder.submit(np.concatenate(panes,axis=1))
         else:self.preview=None
-        return {'sequence':self.sequence,'cameras':copy.deepcopy(self.rows),
+        processing=time.perf_counter()-read_started
+        if self.navigation is not None:
+            self.navigation['vision_processing_s']=processing
+            self.navigation['camera_processing_s']=camera_processing
+        return {'vision_processing_s':processing,'sequence':self.sequence,'cameras':copy.deepcopy(self.rows),
                 'captured_s':min(row['captured_s'] for row in self.rows.values()),
                 'physical_cones_passed':len(self.navigation['passed_ids']) if self.navigation and 'passed_ids' in self.navigation else None,
                 'navigation':{k:v for k,v in (self.navigation or {}).items() if k not in ('path','sample')},
                 'hardware_output':False,'metric_readiness':readiness(self.s)}
+
+
+    def close(self):
+        self.encoder.close()
 
 
 class ConeObserverDrive:
@@ -176,6 +188,10 @@ class ConeObserverDrive:
                 'latest':self.latest,'frame_age_s':None if self.updated is None else self.clock()-self.updated,
                 'limitations':['真实绕行仍需完成现场标定及试验'],
                 'control_available':self.run.active or self.short.active}}
+
+    def page_heartbeat(self,payload):
+        if self.closed:raise ValueError('调试服务已关闭')
+        return self.run.heartbeat(payload,self.clock())
 
     def request(self,action,payload):
         if not isinstance(payload,dict):raise ValueError('JSON object required')
@@ -328,11 +344,13 @@ class ConeObserverDrive:
             while not self.stop.is_set():
                 with self.lock:
                     if self.reset_reader:
+                        if callable(getattr(reader,'close',None)):reader.close()
                         reader=ConeCamera(self.states,self.settings,self.clock,turn_aware=True);self.reset_reader=False
                     if self.reset_navigation:
                         reader.navigator=DualLowSpeedNavigator(self.run.s) if self.run.profile==PROFILE else ConeNavigator(self.settings)
                         reader.navigation=None;self.reset_navigation=False
                     if isinstance(reader.navigator,DualLowSpeedNavigator):
+                        reader.navigator.set_single_recovery_limit(1. if self.run.profile==PROFILE else .25)
                         intent=(self.run.intent or {}) if self.run.active else {}
                         target_id=intent.get('target_id')
                         reader.navigator.set_avoidance_target(intent.get('target_camera') if target_id else None,target_id or None)
@@ -359,6 +377,7 @@ class ConeObserverDrive:
         except Exception as exc:
             with self.lock:self.reason=str(exc)
         finally:
+            if 'reader' in locals() and callable(getattr(reader,'close',None)):reader.close()
             with self.lock:
                 if self.run.active:self.run.cancel('识别线程停止，已结束避障',phase='fault')
                 self.short.cancel('识别线程停止，已结束短测',phase='fault')

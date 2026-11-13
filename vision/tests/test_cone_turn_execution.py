@@ -62,14 +62,14 @@ def test_real_single_trial_caller_does_not_send_cached_moving_intent_or_renew_sh
         now[0]=t;run.tick(sample,t)
         assert not run.intent['fresh_control'] and run.active
         assert len(worker.calls)==requests and owner.guard.deadline==deadline
-    now[0]=.501;owner.tick()
+    now[0]=deadline+.001;owner.tick()
     assert not owner.active and owner.guard.fault
     assert owner.guard.esc==1400
     assert any(row[0]=='motion' and row[2]==1400 and row[3]<=.2 for row in backend.writes)
-    now[0]=.852;owner.tick()
+    now[0]+=.351;owner.tick()
     motor_writes=[row for row in backend.writes if row[0] in ('motion','neutral')]
     assert owner.guard is None and motor_writes[-1][0]=='neutral'
-    run.cancel('offline test cleanup',now=.86)
+    run.cancel('offline test cleanup',now=now[0])
 
 
 @pytest.mark.parametrize('action,pulse',[

@@ -23,6 +23,7 @@ const http=async(url,opts={})=>{if(opts.method!=='POST')return response(status);
  const action=url.split('/').at(-1),body=JSON.parse(opts.body);requests.push({action,body});assert.equal(opts.headers['X-Drive-Key'],'key');
  if(action==='emergency'){status=base();return response(status);}
  const row=rowFor(action);
+ if(action.endsWith('_page_heartbeat')){const process=()=>response({heartbeat_ack:true,accepted:true,heartbeat_sequence:body.heartbeat_sequence,page_lease_s:3});if(deferPulse)return new Promise(resolve=>{pendingPulse=()=>resolve(process())});return process();}
  if(action.endsWith('_keepalive')){const process=()=>{if(body.trial_sequence<=lastSeq)return response({error:'old sequence'},false);lastSeq=body.trial_sequence;return response(stamp(status));};
   if(deferPulse)return new Promise(resolve=>{pendingPulse=()=>resolve(process())});return process();}
  if(action.endsWith('_prepare')){assert.equal(body.esc_off,true);assert.equal(body.fb_mode_confirmed,true);Object.assign(row,{active:true,owner_client:'page',run_token:'token-'+action,phase:'ready',can_start:true,can_request_start:true});lastSeq=-1;}
@@ -57,9 +58,9 @@ function check(id){nodes.get(id).checked=true;api.render();}
  assert.equal(requests.at(-1).body.red_confirm_percent,50);assert(!('red_window_s'in requests.at(-1).body));
  check('confirm-esc-off');check('confirm-fb');await api.prepare();
  deferPulse=true;const pulse=api.pulse();await flush();assert(pendingPulse);
- check('confirm-on-static');check('confirm-field');const start=api.startTask();await flush();assert.equal(requests.at(-1).action,'traffic_keepalive','start waits behind heartbeat');
+ check('confirm-on-static');check('confirm-field');const start=api.startTask();await flush();assert.equal(requests.at(-1).action,'traffic_start','start is independent of delayed heartbeat ACK');
  pendingPulse();await pulse;await start;deferPulse=false;assert.equal(requests.at(-1).action,'traffic_start');
- assert(requests.at(-1).body.trial_sequence>requests.at(-2).body.trial_sequence);
+ assert(Number.isInteger(requests.at(-1).body.trial_sequence));assert(!('trial_sequence' in requests.at(-2).body));
  deferPulse=true;const latePulse=api.pulse();await flush();const lateReply=pendingPulse;
  await api.stop();assert(api.choose('cone'));lateReply();await latePulse;deferPulse=false;
  assert.equal(api.inspect().task,'cone');assert.equal(api.inspect().status.traffic_trial.active,false,'late reply cannot restore cancelled task');

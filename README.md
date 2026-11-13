@@ -4,13 +4,13 @@
 
 **从 [项目内容概览](docs/overview.md) 开始。** 概览介绍各项功能、代码位置和完成程度；[当前进度](docs/current-status.md) 区分主线代码、历史部署与待验收项。完整自主赛道和停车入位尚未通过实车验收。
 
-## 2026-10-28 主线同步：10月26日本地最终修复版
+## 2026-11-13 主线同步：当前已部署车端版本
 
-`main` 已同步最近确认的完整本地代码，包含比赛/调试独立入口、共享控制、红绿灯后续改动，以及最新白线追踪和反光排除。不是只上传三个白线补丁文件。
+当前代码版本为 **`traffic-rebrake-6-20261112`**，对应 11 月 12 日已部署并核验的最新版。完整同步 204 个运行源码和网页文件，以及配套配置模板、测试与工具；包括此前修复和最新红绿灯六次制动上限、连续新帧补刹确认。
 
-**本次只更新 GitHub，没有连接或部署树莓派。** 最新白线版本尚未完成树莓派实时性和实车验收。保留仓库原有光流点对修复、独立斑马线离线功能和 SSH 依赖；真实个人配置不提交，离线测试使用独立样本。
+本次只同步 GitHub，不操作车辆。软件/部署验证与实车任务验收分别记录，完整自主比赛尚未验收通过。真实连接凭据与车辆私有配置不提交。
 
-[同步范围、兼容处理和验证](docs/imports/2026-10-26-local-fix/README.md) · [下载当前 main](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip)
+[同步范围与验证](docs/imports/2026-11-13-current-release/README.md) · [最新代码说明](docs/latest-code.md) · [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip)
 
 ## 2026-10-20 停车固定版本（历史）
 
@@ -28,10 +28,10 @@
 | --- | --- |
 | 浏览最新已合并源码 | [main 主分支](https://github.com/zxjzzbh/2026-/tree/main) |
 | 下载随主线更新的完整源码 | [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip) |
-| 获取本次固定版本（含停车修复及完整主线） | [2026-10-20 r5 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r5) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r5/smartcar-source-20261020-r5.zip) |
+| 获取历史 r5 固定版本（不含当前更新） | [2026-10-20 r5 源码发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r5) · [源码包 ZIP](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r5/smartcar-source-20261020-r5.zip) |
 | 核对包含内容、版本和安装步骤 | [最新代码说明](docs/latest-code.md) |
 
-本次固定版本为 **`source-2026-10-20-r5`**，包含PR #10停车修复、PR #9避障/停车PD、r3光流修复、PR #6路径停车和PR #7的结构图与目录整理。补齐`parking_visual.py`部署依赖，并保留主线SSH依赖、同值转向常量和原有测试。旧版标签和源码包保持固定。
+历史固定版本 **`source-2026-10-20-r5`**，包含PR #10停车修复、PR #9避障/停车PD、r3光流修复、PR #6路径停车和PR #7的结构图与目录整理。补齐`parking_visual.py`部署依赖，并保留主线SSH依赖、同值转向常量和原有测试。旧版标签和源码包保持固定。
 
 原有 **14项光流回归测试**继续通过，详见 [光流修复记录](docs/reviews/2026-10-20-ground-flow-fix.md)；停车检查历史见 [PR #6 记录](docs/reviews/2026-10-20-pr6-review.md)。路径模式默认仍有 **13项实测/反馈缺项**，缺项时禁止启动，不自动退回视觉试验。源码已合并不表示已部署到小车或通过全程实车验收。
 

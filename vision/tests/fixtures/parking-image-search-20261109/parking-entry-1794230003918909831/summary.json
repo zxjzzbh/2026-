@@ -1,0 +1,292 @@
+{
+  "phase": "fault",
+  "reason": "当前入口尚未识别，需要先确认目标车位；暂停恢复超时，保持停止",
+  "field_verified": false,
+  "controller_mode": "visual_trial",
+  "diagnostic_only": true,
+  "formal_task": false,
+  "completion_authorizes_payment": false,
+  "final_selected_side": "left",
+  "retarget_count": 0,
+  "actual_pose_not_verified": true,
+  "parking_zone_verified": false,
+  "failure_sample": {
+    "fresh": true,
+    "frame_id": 2328,
+    "captured_s": 249.887194449,
+    "camera_id": "secondary",
+    "image_size": [
+      480,
+      360
+    ],
+    "parking": {
+      "layout_found": false,
+      "layout_complete": false,
+      "layout_source": null,
+      "diagnostics": {
+        "original_yellow_pixels": 3,
+        "yellow_pixels": 3753,
+        "visible_quad_candidates": 0,
+        "blue_board_candidates": 2,
+        "occluded_layout_candidates": 0
+      },
+      "metric_geometry": false,
+      "slots": [],
+      "ground_surface": "indoor_green",
+      "direction_hint": {
+        "suggested_slot": "left",
+        "blocked_side": "right",
+        "source": "blue_board_position",
+        "basis": "蓝色挡板主要在右侧，暂选另一侧；边界未必完整",
+        "areas": {
+          "left": 0.0,
+          "right": 0.0643431712962963
+        },
+        "boards": [
+          {
+            "bbox_px": [
+              228,
+              155,
+              358,
+              236
+            ],
+            "side": "right",
+            "area_fraction": 0.04730613425925926,
+            "ground_below_fraction": 0.6346153846153846
+          },
+          {
+            "bbox_px": [
+              415,
+              134,
+              480,
+              196
+            ],
+            "side": "right",
+            "area_fraction": 0.017037037037037038,
+            "ground_below_fraction": 0.9192872117400419
+          }
+        ]
+      },
+      "entry_candidates": [],
+      "entry_guides": [],
+      "reason": "黄线未形成可确认车位；需看到空闲半区近/远边与分隔线",
+      "perception_verified": false,
+      "hardware_output": false,
+      "road_context": {
+        "valid": false,
+        "white_lines_detected": false,
+        "red_ground_supported": false,
+        "boundary_diagnostics": {
+          "detector": "adaptive_paired_rows",
+          "paired_candidates": 15,
+          "support_rows": 0,
+          "roi_top": 0.38,
+          "white_v_min": 200,
+          "white_s_max": 70,
+          "hypothesis_policy": "complete_small_set",
+          "reason": "no_continuous_boundary_pair",
+          "baseline_reason": "insufficient_boundary_pairs",
+          "threshold_search_order": [
+            200,
+            180
+          ],
+          "configured_white_v_min": 200,
+          "effective_white_v_min": 200,
+          "threshold_fallback_used": false,
+          "threshold_attempts": [
+            {
+              "white_v_min": 200,
+              "valid": false,
+              "white_lines_detected": false,
+              "reason": "insufficient_boundary_pairs"
+            },
+            {
+              "white_v_min": 180,
+              "valid": false,
+              "white_lines_detected": false,
+              "reason": "insufficient_boundary_pairs"
+            }
+          ],
+          "max_threshold_attempts": 2,
+          "yellow_excluded_pixels": 3753,
+          "parking_color_separation": true
+        },
+        "red_ground_required": false,
+        "ground_color": null,
+        "ground_supported": true,
+        "ground_fraction": 0.0,
+        "blue_ground_fraction": 0.0,
+        "obstacle_color": "blue",
+        "red_ground_fraction": 0.0,
+        "left_inner": [],
+        "right_inner": [],
+        "reason": "insufficient_boundary_pairs",
+        "boundary_policy": "whole_vehicle_inside_white_inner_edges",
+        "metric_boundary_verified": false
+      },
+      "tracked_bay_boundaries": [],
+      "tracked_far_lines": [],
+      "bay_landmarks": []
+    },
+    "motion": {
+      "valid": true,
+      "moving": false,
+      "pixel_motion_per_100ms": 0.09471392991064166,
+      "tracked_points": 71,
+      "source": "ground_optical_estimate",
+      "physical_stop_verified": false
+    },
+    "processing_ms": 64.8374360000048,
+    "frame_age_ms": 71.7400560000101,
+    "parking_ground_motion": {
+      "valid": true,
+      "frame_id": 2328,
+      "captured_s": 249.887194449,
+      "physical_pose_verified": false,
+      "previous_frame_id": 2327,
+      "previous_captured_s": 249.81907223,
+      "transform": [
+        [
+          0.9999989749380152,
+          -0.0014318250308353565,
+          0.0019224177526602527
+        ],
+        [
+          0.0014318250308353456,
+          0.999998974938015,
+          -0.0005073347883581825
+        ]
+      ],
+      "translation_m": 0.001988235047277293,
+      "forward_speed_mps": 0.007487818829955281,
+      "rms_m": 0.004159723385645344,
+      "tracked_points": 110,
+      "source": "bounded_calibrated_ground_motion",
+      "relocalizations": []
+    }
+  },
+  "page_heartbeat": {
+    "lease_s": 2.0,
+    "last_received_s": 249.927604249,
+    "maximum_receive_gap_s": 0.3071256919999996,
+    "received": 401,
+    "age_s": 0.0487404339999955
+  },
+  "ended_s": 250.061400532,
+  "frame_age_limit_s": 0.5,
+  "last_requested_intent": {
+    "schema_version": 1,
+    "phase": "fault",
+    "action": "neutral",
+    "esc_us": 1500,
+    "throttle_us": 1500,
+    "steering_us": 1610,
+    "reason": "当前入口尚未识别，需要先确认目标车位；暂停恢复超时，保持停止",
+    "events": [],
+    "selected_side": "left",
+    "done": false,
+    "active": false,
+    "brake_trigger": {
+      "source": "entrance_position_and_continuous_stop",
+      "distance_m": null,
+      "far_edge_y_normalized": null,
+      "measured": false
+    },
+    "field_verified": false,
+    "actual_pose_not_verified": true,
+    "parking_zone_verified": false,
+    "physical_stop_verified": false,
+    "tuning_verified": false,
+    "whole_vehicle_inside_verified": false,
+    "metric_pose": null,
+    "cached_geometry": false,
+    "geometry_age_s": null,
+    "geometry_source": null,
+    "guidance_target_px": null,
+    "guidance_phase": "locate_entry",
+    "steering_policy": "entrance_target_with_margin",
+    "entry_progress": {
+      "physical_pose_verified": false,
+      "image_corridor_is_vehicle_body": false,
+      "plan_revision": 0,
+      "bay_pose_failure": "no_current_bay_landmarks",
+      "position_failure": "entrance_line_missing",
+      "retained_reference_frame": null,
+      "ground_motion_valid": true,
+      "ground_motion_failure": null,
+      "confirmed_stage": "seek",
+      "front_crossing_confirmed": false,
+      "rear_entry_confirmed": false,
+      "stage": "locate_entry",
+      "current_position_stage": "locate_entry",
+      "current_entrance_measurement": false,
+      "entrance_position_available": false,
+      "reason": "当前入口尚未识别，需要先确认目标车位",
+      "target_m": null,
+      "margin_override": false,
+      "stop_evidence": {
+        "valid": true,
+        "moving": false,
+        "pixel_motion_per_100ms": 0.09471392991064166,
+        "tracked_points": 71,
+        "source": "ground_optical_estimate",
+        "physical_stop_verified": false,
+        "parking_stop_hysteresis": false,
+        "ground_slow_corroborated": true
+      },
+      "recovery_cause": "stop_confirmation_pending",
+      "plan_confirmed": false,
+      "pause_reason": "当前入口尚未识别，需要先确认目标车位",
+      "recovery_failure": "route_unavailable",
+      "recovery_timing": {
+        "boundary_missing_s": 1.264041321999997,
+        "settle_remaining_s": null,
+        "total_limit_remaining_s": 2.035958677999986
+      }
+    },
+    "steering_rate_us_s": 600.0,
+    "logic_revision": "parking-bay-landmark-stop-20261108",
+    "diagnostic_only": true,
+    "formal_task": false,
+    "payment_ready": false,
+    "completion_authorizes_payment": false,
+    "slow_forward_us": 1570,
+    "slowdown_available": true,
+    "slow_line_y_normalized": 0.6016713091922006,
+    "seek_timeout_s": 5,
+    "max_entry_s": 30,
+    "boundary_wait_elapsed_s": 1.264041321999997,
+    "boundary_wait_cause": "当前入口尚未识别，需要先确认目标车位",
+    "recovery_stop_frames": 12,
+    "recovery_stop_confirm_s": 0.2,
+    "recovery_timing": {
+      "boundary_missing_s": 1.264041321999997,
+      "settle_remaining_s": null,
+      "total_limit_remaining_s": 2.035958677999986
+    },
+    "near_boundary_observed": false,
+    "far_boundary_fresh": false,
+    "target_acquired": false,
+    "far_tracking_age_s": null,
+    "retarget_count": 0,
+    "retarget_reason": null,
+    "target_change": null,
+    "countersteer_limited": false,
+    "countersteer_active": false,
+    "opposite_correction_limit_us": 80,
+    "white_boundary": {
+      "observed": false,
+      "correction": null,
+      "metric_boundary_verified": false,
+      "reason": "双侧白线未连续确认",
+      "support_source": "current_entrance_route",
+      "usable": false,
+      "evidence_usable": false
+    },
+    "geometry": {},
+    "centerline_source": "historical_ground_image_reference",
+    "reference_transfer_verified": false,
+    "distance_estimate_m": null,
+    "closing_speed_estimate_mps": null
+  }
+}

@@ -6,27 +6,32 @@ only a stationary estimate. Competition-zone compliance remains unverified.
 No hardware, network, sleeping or wall-clock countdown exists in this core.
 """
 import copy
+from .runtime_timing import VISION_MAX_AGE_S, MOTION_MAX_AGE_S, MOTION_RECOVERY_S
 import json
 from pathlib import Path
 
 from .brake_parking import numeric
 from .traffic_voting import SignalFrameVote, DualSignalVotes, FAST_RED_DEFAULTS
 from .traffic_tracking import TrafficApproachGuard
+from .traffic_stop_motion import TrafficStopMotion
 
 # Compatibility for existing red-only replay scripts.
 RedFrameVote = SignalFrameVote
 
-TRAFFIC_FORWARD_MIN_US = 1501
+TRAFFIC_FORWARD_MIN_US = 1570
+TRAFFIC_STORED_MIN_US = 1501  # Read historical tuning files; effective output is floored below.
 TRAFFIC_FORWARD_MAX_US = 1625
 
 
 def approach_settings(settings):
     """One traffic-only speed ceiling for standalone and whole-route use."""
     s = copy.deepcopy(settings)
+    s['max_frame_age_s']=VISION_MAX_AGE_S
+    s['actuator_lease_s']=VISION_MAX_AGE_S
     limit = s.get('approach_speed_limit_us', 1570)
     if type(limit) is not int or not TRAFFIC_FORWARD_MIN_US <= limit <= 1575:
         raise ValueError('红绿灯低速接近上限必须为 1501–1575 μs')
-    s['pwm']['search_us'] = s['pwm']['creep_us'] = min(s['pwm']['search_us'], limit)
+    s['pwm']['search_us'] = s['pwm']['creep_us'] = min(max(TRAFFIC_FORWARD_MIN_US,s['pwm']['search_us']), limit)
     return s
 
 
@@ -38,10 +43,10 @@ def validate_settings(s):
     p = s.get('pwm', {})
     if (p.get('neutral_us') != 1500 or p.get('steering_center_us') != 1610
             or any(type(p.get(k)) is not int for k in ('search_us', 'creep_us', 'brake_us'))
-            or not TRAFFIC_FORWARD_MIN_US <= p['search_us'] <= TRAFFIC_FORWARD_MAX_US or p['creep_us'] != p['search_us']
+            or not TRAFFIC_STORED_MIN_US <= p['search_us'] <= TRAFFIC_FORWARD_MAX_US or p['creep_us'] != p['search_us']
             or p['brake_us'] != 1400):
         raise ValueError('使用已有中位和制动档；红绿灯接近 PWM 必须为 1501–1625 μs')
-    limits = {'arming_s': (3, 3), 'max_frame_age_s': (.1, .25), 'actuator_lease_s': (.1, .25),
+    limits = {'arming_s': (3, 3), 'max_frame_age_s': (.1, .5), 'actuator_lease_s': (.1, .5),
               'brake_pulse_s': (.35, .35), 'brake_release_s': (.1, .3),
               'brake_timeout_s': (1, 3), 'stop_confirm_s': (.5, 2),
               'max_verify_red_s': (1, 5),
@@ -50,8 +55,8 @@ def validate_settings(s):
     for key, (low, high) in limits.items():
         if not numeric(s.get(key)) or not low <= s[key] <= high:
             raise ValueError('红绿灯参数范围错误：'+key)
-    if type(s.get('max_brake_pulses')) is not int or not 1 <= s['max_brake_pulses'] <= 3:
-        raise ValueError('制动脉冲最多 3 次')
+    if type(s.get('max_brake_pulses')) is not int or not 1 <= s['max_brake_pulses'] <= 6:
+        raise ValueError('制动脉冲最多 6 次')
     if type(s.get('fast_red_frames',3)) is not int or s.get('fast_red_frames',3) not in (2,3):
         raise ValueError('快速红灯停车需要连续 2 或 3 个有效新帧')
     for key in ('fast_red_max_span_s','fast_red_max_gap_s','fast_red_max_age_s'):
@@ -96,6 +101,11 @@ class TrafficDrivingController:
         self.fast_red_triggered = self.fast_red_timeout_triggered = False
         self.fast_red_timeout_reasons = {}
         self.early_stop_reason = None
+        self.neutral_hold_since = None
+        self.stop_sequence_complete = False
+        self.stop_motion = TrafficStopMotion(self.s['stop_confirm_s'])
+        self.motion_state = 'unknown'
+        self.motion_reason = None
 
     def output(self, action='neutral', events=None):
         p = self.s['pwm']
@@ -115,10 +125,19 @@ class TrafficDrivingController:
                              'timeout_trigger_sources':list(self.fast_red_timeout_trigger_sources),
                              'timeout_reasons':dict(self.fast_red_timeout_reasons)},
                 'red_seen_this_round': self.red_seen, 'brake_pulses': self.brake_count,
+                'max_brake_pulses': self.s['max_brake_pulses'],
                 'red_sources_this_round':sorted(self.red_source_cameras),
                 'brake_pulse_s': self.s['brake_pulse_s'],
                 'green_action': 'speech_only',
-                'stationary_estimated': self.phase in ('verify_red', 'wait_green', 'done'),
+                'stationary_estimated': self.stop_motion.stationary,
+                'stop_sequence_complete': self.stop_sequence_complete,
+                'stop_basis': ('visual_still' if self.stop_motion.stationary else 'brake_neutral_timing')
+                              if self.stop_sequence_complete else None,
+                'neutral_hold_required_s': self.s['stop_confirm_s'],
+                'ground_motion_state': self.motion_state, 'ground_motion_reason': self.motion_reason,
+                'ground_feedback_warning': self.motion_state == 'unknown' and self.phase in ('settle','verify_red','wait_green','done'),
+                'sliding_unresolved': self.stop_motion.sliding,
+                'supplementary_brake_evidence': self.stop_motion.status(),
                 'red_verification_deadline_s':self.red_verification_deadline,
                 'pending_fault_reason':self.pending_fault_reason,
                 'physical_stop_verified': False, 'parking_zone_verified': False,
@@ -128,36 +147,66 @@ class TrafficDrivingController:
         self.phase, self.reason = 'fault', reason
         return self.output()
 
-    def _brake(self, now, reason):
+    def _brake(self, now, reason, *, repeat=False):
+        if self.brake_count >= self.s['max_brake_pulses']:
+            return self.fault('已达到本轮制动次数上限，保持中位并结束本轮')
+        event = {'event': 'brake_requested', 'reason': reason}
+        if repeat:
+            event['motion_evidence'] = self.stop_motion.status()
         self.phase, self.reason = 'brake_pulse', reason
-        self.brake_at, self.pulse_until = now, now + self.s['brake_pulse_s']
+        self.brake_at = now
+        self.stop_motion.begin_brake(preserve_slide=repeat)
+        self.pulse_until = now + self.s['brake_pulse_s']
         self.release_until = None
-        self.stop_since = None
-        self.brake_count = 1
+        self.stop_since = self.neutral_hold_since = None
+        self.stop_sequence_complete = False
+        self.brake_count += 1
         if self.red_verification_deadline is None and not self.pending_fault_reason:
             self.red_verification_deadline = now+self.s['max_verify_red_s']
         self.votes.reset_green()
         self.stable = {}
-        return self.output('brake', [{'event': 'brake_requested', 'reason': reason}])
+        return self.output('brake', [event])
+
+    def _finish_neutral_hold(self, now):
+        if self.stop_motion.blocking:
+            return False
+        if self.neutral_hold_since is None:
+            self.neutral_hold_since = now
+        if now-self.neutral_hold_since >= self.s['stop_confirm_s']-1e-9:
+            self.stop_sequence_complete = True
+        return self.stop_sequence_complete
 
     def _stop_fault(self, now, reason):
         """Transmit a bounded brake before fault closes the trial actuator."""
         self.pending_fault_reason = self.pending_fault_reason or reason
         return self._brake(now, reason)
 
+    def _begin_motion_recovery(self,now):
+        if self.brake_count >= self.s['max_brake_pulses']:
+            return self.fault('已达到本轮制动次数上限，保持中位并结束本轮')
+        self.brake_count += 1
+        self.phase='motion_recovery';self.motion_unknown_since=now
+        self.motion_recovery_brake_until=now+self.s['brake_pulse_s']
+        self.stop_since=None;self.recovery_motion_capture=None
+        self.reason='运动反馈短暂失效，有限制动后等待恢复'
+        self.votes.reset_green()
+        return self.output('brake',[{'event':'motion_recovery_started'}])
+
     def _wait_for_green(self, now, events=None):
-        # This entry requires both a genuine red cycle and a continuous still
-        # estimate. A pre-trigger safety stop must never wait for a green lamp.
+        # A real red cycle and completed brake/neutral sequence are required.
+        # Timing completion is never labelled a physical stationary measurement.
         self.votes.begin_green_wait()
         self.stable = {}
-        self.phase, self.wait_at = 'wait_green', now
-        self.reason = '本轮红灯与连续视觉停稳均已确认，等待同一灯具实际转绿'
+        self.phase = 'wait_green'
+        if self.wait_at is None:
+            self.wait_at = now
+        self.reason = '本轮红灯已确认，制动与中位保持已完成，等待同一灯具实际转绿'
         return self.output(events=events)
 
     def step(self, sample, now):
         if self.phase in ('done', 'fault'):
             return self.output()
-        if not numeric(now) or self.last_t is not None and not 0 < now - self.last_t <= .25:
+        if not numeric(now) or self.last_t is not None and not 0 < now - self.last_t <= VISION_MAX_AGE_S:
             return self.fault('控制处理间隔失效，停止本轮')
         t, fid = sample.get('captured_s'), sample.get('frame_id')
         if (sample.get('fresh') is not True or not numeric(t) or not 0 <= now-t <= self.s['max_frame_age_s']
@@ -178,14 +227,14 @@ class TrafficDrivingController:
         if not isinstance(observations, dict):
             return self.fault('缺少带来源的双摄观测')
         observations, self.approach_evidence = self.approach_guard.update(
-            observations, now, approaching=self.phase in ('arming','approach'))
+            observations, now, approaching=self.phase in ('arming','approach','motion_recovery'))
         self.signal_votes = self.votes.update(observations, now)
         if not self.signal_votes['any_fresh']:
             return self.fault('两路摄像头均无新鲜图像')
         self.raw_state = self.signal_votes['raw_state']
         self.fast_red_sources = self.signal_votes['fast_red_sources']
         self.fast_red_timeout_sources = self.signal_votes['fast_red_timeout_sources']
-        if self.phase in ('arming','approach'):
+        if self.phase in ('arming','approach','motion_recovery'):
             guard_reason = self.approach_evidence['stop_reason']
             if guard_reason:
                 self.stop_signal_seen = True
@@ -223,10 +272,17 @@ class TrafficDrivingController:
         motion = sample.get('motion') or {}
         mt = motion.get('captured_s')
         motion_fresh = (motion.get('valid') is True and numeric(mt)
-                        and 0 <= now-mt <= self.s['max_frame_age_s'])
+                        and 0 <= now-mt <= MOTION_MAX_AGE_S)
         moving = motion.get('moving') if motion_fresh else None
         if type(moving) is not bool:
             moving = None
+        self.motion_state = 'unknown' if moving is None else 'moving' if moving else 'still'
+        self.motion_reason = motion.get('reason') if moving is None else None
+        if self.phase in ('brake_pulse','settle','verify_red','wait_green'):
+            self.stop_motion.update(moving, mt, motion.get('frame_id'), now)
+            if self.stop_motion.sliding:
+                self.stop_sequence_complete = False
+                self.neutral_hold_since = None
 
         if self.phase == 'arming':
             if now-self.started < self.s['arming_s']:
@@ -245,7 +301,7 @@ class TrafficDrivingController:
             if self.signal_votes['yellow_present']:
                 return self._brake(now, '识别到黄灯，立即请求制动')
             if moving is None:
-                return self._stop_fault(now, '地面运动反馈失效，制动结束后停止本轮；不进入等绿灯')
+                return self._begin_motion_recovery(now)
             if now-self.approach_at >= self.s['max_approach_s']:
                 return self._stop_fault(now, '接近超时仍未观察到触发后的红灯，制动后停止本轮；不以计时放行')
             if moving is False:
@@ -260,71 +316,84 @@ class TrafficDrivingController:
                            '保持同一灯具跟踪，低速接近；可信红灯即制动')
             return self.output('search')
 
+        if self.phase == 'motion_recovery':
+            if self.early_stop_reason is not None or self.stop_signal_seen:
+                return self._brake(now,self.early_stop_reason or '恢复中识别到红黄灯，保持停车复核')
+            if now-self.motion_unknown_since>=MOTION_RECOVERY_S:
+                return self.fault('地面运动反馈恢复超时，保持停车')
+            if now<self.motion_recovery_brake_until:return self.output('brake')
+            if moving is False:
+                previous=getattr(self,'recovery_motion_capture',None)
+                if previous is not None and mt<=previous:return self.output()
+                if previous is None or mt-previous>MOTION_MAX_AGE_S:self.stop_since=None
+                self.recovery_motion_capture=mt
+                if self.stop_since is None:self.stop_since=mt
+                if mt-self.stop_since>=.3-1e-9:
+                    self.phase='approach';self.motion_unknown_since=None;self.no_progress_since=None
+                    self.reason='连续静止反馈已恢复，下一帧重新核对红灯后低速接近'
+                    return self.output()
+            else:self.stop_since=None;self.recovery_motion_capture=None
+            self.reason='短暂反馈丢失，保持中位等待连续有效地面反馈'
+            return self.output()
+
         if self.phase in ('brake_pulse', 'settle'):
-            if now-self.brake_at > self.s['brake_timeout_s']:
-                return self.fault('制动后未取得连续停稳估计，请检查刹车与地面画面')
             if self.phase == 'brake_pulse':
                 if now < self.pulse_until:
                     return self.output('brake')
                 self.phase, self.release_until = 'settle', now+self.s['brake_release_s']+.02
+                self.neutral_hold_since = now
+                self.stop_motion.begin_neutral(now)
             if self.pending_fault_reason:
                 return self.fault(self.pending_fault_reason)
-            if moving is False:
-                if self.stop_since is None:
-                    self.stop_since = now
-                if now-self.stop_since >= self.s['stop_confirm_s']:
-                    events=[{'event':'stationary_estimate'}]
-                    if self.red_seen:
-                        return self._wait_for_green(now, events)
-                    self.phase = 'verify_red'
-                    self.reason = '已取得连续视觉停稳，保持中位复核本轮红灯；尚未进入等绿灯'
-                    return self.output(events=events)
-            else:
-                self.stop_since = None
-                if moving is True and now >= self.release_until and self.brake_count < self.s['max_brake_pulses']:
-                    self.brake_count += 1
-                    self.phase, self.pulse_until = 'brake_pulse', now+self.s['brake_pulse_s']
-                    self.votes.reset_green()
-                    self.stable = {}
-                    self.reason = '仍检测到移动，再请求一个有限制动脉冲'
-                    return self.output('brake')
-            self.reason = '保持中位，等待连续停稳估计'
+            if self.stop_motion.sliding:
+                if self.stop_motion.rebrake_ready and now >= self.release_until:
+                    return self._brake(now, '仍检测到滑动，再请求一个有限制动脉冲', repeat=True)
+                if now-self.brake_at > self.s['brake_timeout_s']:
+                    return self.fault('制动后仍未排除已检测到的滑动，保持中位')
+                self.reason = '已检测到滑动，保持中位等待有效反馈；未知不能当作停稳'
+                return self.output()
+            if self._finish_neutral_hold(now):
+                events=[{'event':'stop_sequence_complete','physical_stop_verified':False}]
+                if self.stop_motion.stationary:
+                    events.append({'event':'stationary_estimate'})
+                if self.red_seen:
+                    return self._wait_for_green(now, events)
+                self.phase = 'verify_red'
+                self.reason = '制动与中位保持已完成，继续复核本轮红灯'
+                return self.output(events=events)
+            self.reason = ('制动已完成，保持中位；地面反馈暂不可用，继续计时并检测灯色'
+                           if moving is None else '制动已完成，继续中位保持')
             return self.output()
 
         if self.phase == 'verify_red':
             if self.pending_fault_reason:
-                if moving is not False:
-                    return self._stop_fault(now, self.pending_fault_reason)
+                if self.stop_motion.rebrake_ready:
+                    return self._brake(now, self.pending_fault_reason, repeat=True)
                 return self.fault(self.pending_fault_reason)
-            if moving is None:
-                return self._stop_fault(now, '红灯复核期间地面反馈失效，制动后停止本轮')
-            if moving is True:
-                return self._brake(now, '红灯复核期间检测到滑动，重新有限制动；复核截止时间不延长')
-            if self.red_seen:
+            if self.stop_motion.rebrake_ready:
+                return self._brake(now, '红灯复核期间检测到滑动，重新有限制动；复核截止时间不延长', repeat=True)
+            self.motion_unknown_since = None
+            if self.red_seen and self.stop_sequence_complete and not self.stop_motion.blocking:
                 return self._wait_for_green(now)
-            self.reason = '保持中位等待正式红灯证据；未确认红灯不会进入等绿灯或恢复前进'
+            self.reason = ('保持中位复核红灯；地面反馈暂不可用，继续取样'
+                           if moving is None else '保持中位等待正式红灯证据；未确认红灯不会放行')
             return self.output()
 
         if self.phase == 'wait_green':
             if now-self.wait_at >= self.s['max_wait_green_s']:
                 return self.fault('等待绿灯超时，保持停车；计时到期不能放行')
-            if moving is not False:
-                self.votes.reset_green()
-                self.stable = {}
-                if moving is True:
-                    return self._brake(now, '等待时检测到滑动，重新制动')
-                if self.motion_unknown_since is None:
-                    self.motion_unknown_since = now
-                if now-self.motion_unknown_since >= self.s['brake_timeout_s']:
-                    return self.fault('等待中地面运动反馈持续失效，停止本轮')
-                self.reason = '地面反馈暂不可用，保持中位且不累计绿灯'
-                return self.output()
+            if self.stop_motion.rebrake_ready:
+                return self._brake(now, '等待时检测到滑动，重新有限制动', repeat=True)
             self.motion_unknown_since = None
-            if self.red_seen and self.stable.get('green_confirmed') is True:
+            if (self.red_seen and self.stop_sequence_complete and not self.stop_motion.blocking
+                    and self.stable.get('green_confirmed') is True):
                 self.phase = 'done'
                 self.reason = '停车后本轮确认过红灯的同一灯具绿灯占比达标，请求播报；本轮保持中位'
                 return self.output(events=[{'event': 'speak', 'text': self.s['speech_text']}])
             self.reason = ('红绿票同时达标，红灯优先，继续停车' if self.signal_votes['conflict'] else
+                           '保持中位，等待连续新地面帧复核移动候选' if self.stop_motion.blocking else
+                           '中位保持已完成，地面反馈暂不可用；继续等待同一灯具绿灯'
+                           if moving is None else
                            f"等待本轮红灯来源的同一灯具在 {self.s['green_window_s']:g} 秒绿灯窗口达标" if self.red_seen else
                            '尚未确认本轮红灯，保持停止；不会用初始绿灯代替完整周期')
             return self.output()

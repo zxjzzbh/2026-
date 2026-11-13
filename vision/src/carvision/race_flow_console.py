@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 from .cone_trial_output import ConeTrialActuator
+from .cone_command import ConeCommandSender
 from .parking_speech import ParkingSpeech
 from .payment_console import outputs_released
 from .race_flow import RaceFlowController, load_bundle, LABELS, parking_blockers
@@ -16,6 +17,7 @@ from .brake_parking import crosswalk_trigger_reference
 from .handoff import StillnessWindow
 
 STOP_ACTIONS={'stop','emergency','finish_test','race_cancel','race_exit'}
+from .page_heartbeat import PAGE_LEASE_S as RACE_PAGE_LEASE_S
 
 
 def other_task_active(s):
@@ -44,13 +46,19 @@ class RaceFlowDrive:
         self.drive,self.states,self.root,self.live,self.clock=drive,states,Path(root),live,clock
         self.reader_factory,self.speech_factory=reader_factory,speech_factory or (lambda text:ParkingSpeech(self.root,text=text))
         self.factory=actuator_factory or self._make_actuator
+        self.execution_timing=None;self.vision_processing_s=None
         self.require_ready=require_ready
         self.lock=threading.RLock();self.cancel_event=threading.Event();self.thread=None
+        # Serialize operator transitions without blocking the worker's cleanup
+        # or the independent, lightweight page heartbeat.
+        self.transition_lock=threading.RLock();self.page_lock=threading.RLock()
         self.active=False;self.closed=False;self.controller=None;self.actuator=None;self.reader=None
         self.owner=self.token=None;self.sequence=-1;self.lease_until=0.;self.last_intent=None;self.preview=None;self.updated=None
         self.reason='遥控结束并在切换区停稳后，手动进入自动流程';self.stage='idle'
         self.speech={};self.record=None;self.error=None;self.payment_scanned=False;self.log_key=None
         self.handoff={};self.cleanup_error=None;self.record_error=None
+        self.heartbeat_sequence=-1;self.heartbeat_count=0;self.last_heartbeat_s=None;self.maximum_heartbeat_gap_s=0.
+        self.ignored_manual_stops=0;self.last_stop=None
         try:self.bundle=load_bundle(self.root,self.drive)
         except Exception as exc:self.bundle=None;self.error=str(exc)
 
@@ -58,7 +66,7 @@ class RaceFlowDrive:
         f=b['flow'];settings={'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':f['forward_us'],
             'creep_us':b['brake']['pwm']['creep_us'],'brake_us':1400},
             'brake_pulse_s':max(b['brake']['brake_pulse_s'],b['traffic']['brake_pulse_s']),
-             'brake_release_s':.1,'actuator_lease_s':.2,
+             'brake_release_s':.1,'actuator_lease_s':.5,
              'traffic_forward_us':b['traffic']['pwm']['search_us']}
         settings['cone_forward_us']=sorted({min(f['forward_us'],1570),min(f['forward_us'],1580)})
         if not parking_blockers(b):
@@ -106,7 +114,10 @@ class RaceFlowDrive:
                 'crosswalk_calibration':crosswalk_trigger_reference(self.bundle['brake']) if self.bundle else None,
                 'owner_client':self.owner,'run_token':self.token,'can_enter':self.live and not self.closed and not self.active and not self._thread_alive() and not self.error and not self.cleanup_error and not other_task_active(base) and (entry['ready'] or not self.require_ready),
                 'readiness':readiness,'start_readiness':entry,
-                'handoff':dict(self.handoff),'cleanup_error':self.cleanup_error,'record_error':self.record_error,
+                'manual_handoff_ready':base.get('mode')=='enabled' and base.get('boot_test_phase')=='ready',
+                'handoff':dict(self.handoff),'page_heartbeat':self.heartbeat_status(),
+                'ignored_manual_stops':self.ignored_manual_stops,'last_stop':self.last_stop,
+                'cleanup_error':self.cleanup_error,'record_error':self.record_error,
                 'can_report_paid':self.active and self.stage=='payment','intent':current_intent,'last_intent_before_stop':stopped_intent,
                 'parking_missing':parking_blockers(self.bundle) if self.bundle else ['configuration_unavailable'],
                 'speech':{key:handle.status() for key,handle in self.speech.items()},
@@ -124,9 +135,51 @@ class RaceFlowDrive:
     def request(self,action,payload):
         if not isinstance(payload,dict):raise ValueError('JSON object required')
         if action=='status':return self.status()
+        if action=='race_page_heartbeat':return self.page_heartbeat(payload)
+        with self.transition_lock:
+            return self._request(action,payload)
+
+    def heartbeat_status(self):
+        with self.page_lock:
+            return {'lease_s':RACE_PAGE_LEASE_S,'last_received_s':self.last_heartbeat_s,
+                    'maximum_receive_gap_s':self.maximum_heartbeat_gap_s,'received':self.heartbeat_count}
+
+    def page_heartbeat(self,payload):
+        # No full status, worker RPC, image processing or motion command here.
+        # A stalled status response must not stall supervision as well.
+        with self.page_lock:
+            now=self.clock()
+            if (self.closed or not self.active or self.cancel_event.is_set()
+                    or payload.get('client')!=self.owner or payload.get('run_token')!=self.token):
+                raise ValueError('本页未持有当前总流程控制权')
+            if now>self.lease_until:
+                raise ValueError('总流程页面心跳超过 3 秒，请重新进入自动模式')
+            seq=payload.get('heartbeat_sequence')
+            if type(seq) is not int or seq<0:raise ValueError('invalid heartbeat sequence')
+            accepted=seq>self.heartbeat_sequence
+            if accepted:
+                if self.last_heartbeat_s is not None:
+                    self.maximum_heartbeat_gap_s=max(self.maximum_heartbeat_gap_s,now-self.last_heartbeat_s)
+                self.last_heartbeat_s=now;self.heartbeat_count+=1;self.heartbeat_sequence=seq
+                self.lease_until=now+RACE_PAGE_LEASE_S
+            return {'heartbeat_ack':True,'accepted':accepted,'heartbeat_sequence':seq,
+                    'server_received_s':now,'page_lease_s':RACE_PAGE_LEASE_S}
+
+    def _request(self,action,payload):
         if action in STOP_ACTIONS:
             if self.active and action!='emergency' and payload.get('client')!=self.owner:
                 return self.status()
+            if self.active and action!='emergency':
+                manual_stop=(payload.get('control_scope')=='manual' or
+                    action=='stop' and payload.get('stop_source') in ('key_release','gamepad_release')
+                    and not payload.get('run_token'))
+                if manual_stop:
+                    self.ignored_manual_stops+=1
+                    return self.status()
+                if (payload.get('control_scope')=='race' or 'run_token' in payload) and payload.get('run_token')!=self.token:
+                    return self.status()
+            self.last_stop={'action':action,'source':payload.get('stop_source','unspecified'),
+                            'at_s':self.clock(),'stage':self.stage}
             # Switching to WeChat must not reset a running payment deadline.
             if self.active and self.stage in ('payment','complete') and action in ('stop','emergency','finish_test'):
                 if action=='emergency':
@@ -166,7 +219,10 @@ class RaceFlowDrive:
                 record.mkdir(parents=True)
                 (record/'settings.json').write_text(json.dumps(bundle,ensure_ascii=False,indent=2),encoding='utf-8')
                 self.bundle=bundle;self.owner=client;self.token=secrets.token_hex(16);self.sequence=-1
-                self.cancel_event=threading.Event();self.lease_until=self.clock()+.5;self.active=True
+                with self.page_lock:
+                    now=self.clock();self.cancel_event=threading.Event();self.lease_until=now+RACE_PAGE_LEASE_S;self.active=True
+                    self.heartbeat_sequence=-1;self.heartbeat_count=0;self.last_heartbeat_s=now;self.maximum_heartbeat_gap_s=0.
+                self.ignored_manual_stops=0;self.last_stop=None
                 self.controller=RaceFlowController(bundle,self.clock());self.stage='handoff';self.reason='正在停车并交接控制权'
                 self.handoff={'requested_s':self.clock(),'shared_executor':False}
                 self.error=None;self.speech={};self.payment_scanned=False;self.last_intent=None
@@ -179,7 +235,11 @@ class RaceFlowDrive:
                     raise
                 return self.status()
             if action=='race_keepalive':
-                self._owner(payload,self.clock());self.lease_until=self.clock()+.5;return self.status()
+                with self.page_lock:
+                    self._owner(payload,self.clock());self.lease_until=self.clock()+RACE_PAGE_LEASE_S
+                if callable(getattr(self.actuator,'refresh_page_deadline',None)):
+                    self.actuator.refresh_page_deadline(self.lease_until)
+                return self.status()
             if action=='race_report_paid':
                 self._owner(payload,self.clock(),lease=False)
                 if payload.get('operator_paid') is not True:raise ValueError('仅在队员实际完成支付后记录')
@@ -196,20 +256,32 @@ class RaceFlowDrive:
         if self.record is None:return
         core=self.controller.status(self.clock()) if self.controller else {}
         # No control identities/tokens, QR payloads or payment account data.
-        row={'event':event,'monotonic_s':self.clock(),'state':core,'intent':self.last_intent}
+        row={'event':event,'monotonic_s':self.clock(),'state':core,'intent':self.last_intent,
+             'control_timing':self.actuator.timing() if callable(getattr(self.actuator,'timing',None)) else self.execution_timing,
+             'vision_processing_s':self.vision_processing_s,'handoff':dict(self.handoff),
+             'page_heartbeat':self.heartbeat_status(),'ignored_manual_stops':self.ignored_manual_stops,
+             'last_stop':self.last_stop}
         with (self.record/'events.jsonl').open('a',encoding='utf-8') as out:out.write(json.dumps(row,ensure_ascii=False,allow_nan=False)+'\n')
         (self.record/'summary.json').write_text(json.dumps(row,ensure_ascii=False,indent=2),encoding='utf-8')
+
+    def _send_intent(self, handle, intent):
+        # Waiting at neutral must not lose ownership during camera processing.
+        # Only neutral may use page-lifetime cadence; motion keeps its lease.
+        if intent.get('action') == 'neutral' and intent.get('esc_us') == 1500:
+            intent = {**intent, 'page_deadline_s': self.lease_until}
+        return handle.send(intent)
 
     def _work(self,cancel=None,token=None,handoff_payload=None):
         cancel=self.cancel_event if cancel is None else cancel
         token=self.token if token is None else token
         payload=handoff_payload or {}
-        handle=None
+        handle=reader=None
         try:
             reader=self.reader_factory(self.states,self.bundle,self.root,self.clock);self.reader=reader
             shared=bool(callable(getattr(self.drive,'borrow_actuator',None)))
             if payload:
                 self.drive.request('stop',{'client':self.owner,'stop_source':'key_release'})
+                self.handoff['manual_stopped_s']=self.clock()
                 if not shared and not outputs_released(self.drive.status()):
                     self.drive.request('finish_test',payload)
                     deadline=self.clock()+8
@@ -218,6 +290,8 @@ class RaceFlowDrive:
                         if self.clock()>deadline:raise ValueError('原遥控清理超时，未接管串口')
             if cancel.is_set():return
             handle=self.factory(self.bundle)
+            self.handoff['executor_acquired_s']=self.clock()
+            if not isinstance(handle,ConeCommandSender):handle=ConeCommandSender(handle,clock=self.clock)
             with self.lock:
                 if cancel.is_set() or not self._current(cancel,token):return
                 self.actuator=handle
@@ -226,6 +300,8 @@ class RaceFlowDrive:
                 self.controller=RaceFlowController(self.bundle,self.clock())
                 self.stage=self.controller.stage;self.reason=self.controller.reason
                 self.handoff.update(executor_ready_s=self.clock(),shared_executor=shared)
+            if not cancel.is_set() and self.clock() <= self.lease_until:
+                self._send_intent(handle, {'action':'neutral','esc_us':1500,'steering_us':1610,'phase':'arming'})
             if shared:
                 stillness=StillnessWindow();deadline=self.clock()+3
                 self.stage='handoff';self.reason='执行器已就绪，正在核对连续静止画面'
@@ -233,10 +309,10 @@ class RaceFlowDrive:
                     now=self.clock()
                     if now>deadline:raise ValueError('交接时未取得连续静止反馈，保持停止')
                     if now>self.lease_until:raise ValueError('交接期间页面心跳中断')
-                    handle.send({'action':'neutral','esc_us':1500,'steering_us':1610})
+                    self._send_intent(handle, {'action':'neutral','esc_us':1500,'steering_us':1610})
                     sample=reader.read('arming',now)
                     if sample:
-                        if stillness.update(sample.get('motion'),now):break
+                        if stillness.update(sample.get('motion'),self.clock()):break
                     elif stillness.last is not None and now-stillness.last>.25:
                         stillness.reset()
                     cancel.wait(.01)
@@ -250,7 +326,7 @@ class RaceFlowDrive:
                 now=self.clock()
                 with self.lock:
                     if not self._current(cancel,token):return
-                    if self.stage not in ('payment','complete') and now>self.lease_until:raise ValueError('控制页心跳中断，已结束全流程')
+                    if self.stage not in ('payment','complete') and now>self.lease_until:raise ValueError('控制页心跳超过 3 秒，已结束全流程')
                     stage=self.stage
                 if stage in ('payment','complete'):
                     if handle is not None:
@@ -269,9 +345,16 @@ class RaceFlowDrive:
                 sample=reader.read(stage,now)
                 if sample is None:
                     # No old image may keep a moving actuator lease alive.
-                    limit=self.controller.frame_age_limit() if self.controller else .25
-                    if self.updated is not None and self.clock()-self.updated>limit:raise ValueError('相机停止更新，已结束全流程')
-                    cancel.wait(.005);continue
+                    limit=self.controller.frame_age_limit() if self.controller else .5
+                    reference=self.updated if self.updated is not None else self.controller.started
+                    if self.clock()-reference>limit:
+                        with self.lock:
+                            if cancel.is_set() or not self._current(cancel,token):break
+                            intent=self.controller.step(None,self.clock())
+                            self.stage=self.controller.stage;self.reason=self.controller.reason
+                            if self.stage=='fault':raise ValueError(self.reason)
+                            self.last_intent=intent;self._send_intent(handle,intent)
+                    cancel.wait(.02);continue
                 now=self.clock()
                 with self.lock:
                     if cancel.is_set() or not self._current(cancel,token):break
@@ -286,11 +369,20 @@ class RaceFlowDrive:
                             # before it reaches the actuator. Finally releases
                             # through its existing bounded brake/neutral path.
                             raise ValueError('前段已结束，停车条件待补，已停止自主流程：'+'、'.join(missing))
+                    if self.stage=='cones':
+                        nav=sample.get('navigation') or {}
+                        intent={**intent,'control_profile':'cone',
+                                'page_deadline_s':self.lease_until,
+                                'observation_s':nav.get('captured_s',sample['captured_s']),
+                                'observation_camera':nav.get('source_camera'),
+                                'observation_frame_id':nav.get('frame_id',nav.get('captured_s',sample['captured_s']))}
                     self.last_intent=intent
                     if self.stage=='fault':raise ValueError(self.reason)
                     # Linearize cancel against every hardware send.
                     if intent.get('fresh_control') is not False or intent['esc_us']<=1500:
-                        handle.send(intent)
+                        execution=self._send_intent(handle,intent)
+                        if isinstance(execution,dict):self.execution_timing=execution.get('control_timing')
+                    self.vision_processing_s=sample.get('vision_processing_s')
                     for event in intent.get('events',[]):
                         if event['event']=='speak' and event['id'] not in self.speech:
                             speech=self.speech_factory(event['text']);self.speech[event['id']]=speech;speech.start()
@@ -306,6 +398,7 @@ class RaceFlowDrive:
                     cancel.set()
         finally:
             if handle is not None:self._close_handle(handle)
+            if reader is not None and callable(getattr(reader,'close',None)):reader.close()
             with self.lock:
                 if self._current(cancel,token):
                     self.actuator=None
@@ -333,7 +426,7 @@ class RaceFlowDrive:
 
     def cancel(self,reason):
         with self.lock:
-            self.cancel_event.set()
+            with self.page_lock:self.cancel_event.set()
             if self.stage!='fault':self.reason=reason
             if self.active and self.stage!='fault':
                 self.stage='cancelled'

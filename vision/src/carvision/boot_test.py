@@ -197,10 +197,26 @@ def reviewed_manifest(root, template):
     manifest = json.loads(path.read_text())
     if manifest['pi_checks']['rc'] != 0:
         raise ValueError('software checks failed')
+    runtime_settings = []
     for item in manifest['files']:
         source = (root/item['path']).resolve()
-        if not source.is_relative_to(root.resolve()) or hashlib.sha256(source.read_bytes()).hexdigest() != item['sha256']:
-            raise ValueError('已检查的软件发生变化，请先重新核验')
+        if not source.is_relative_to(root.resolve()):
+            raise ValueError('software checks must belong to this workspace')
+        # The debug UI atomically rewrites this file when saving parameters.
+        # Validate its values, not its serialization or the previous values.
+        # Only this known editable file is exempt from the source hash check.
+        if item['path'] == 'vision/configs/cone-trial.local.json':
+            runtime_settings.append(source)
+        elif hashlib.sha256(source.read_bytes()).hexdigest() != item['sha256']:
+            raise ValueError('已检查的软件发生变化，请先重新核验：'+item['path'])
+    # Verify executable sources before importing their settings validators.
+    for source in runtime_settings:
+        from .cone_planning import load_settings
+        from .cone_navigation import validate_driving
+        try:
+            validate_driving(load_settings(source))
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            raise ValueError('避障调试参数无效，请检查后重新保存：'+str(error)) from error
     return manifest
 
 

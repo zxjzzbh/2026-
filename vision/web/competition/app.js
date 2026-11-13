@@ -10,7 +10,8 @@
     const el=id=>doc.getElementById(id), held=new Map();
     let status=null, online=false, stale=false, busy=false, manualOwned=false, manualToken=null;
     let raceToken=null, raceSequence=-1, epoch=0, lastSnapshot=-Infinity, manualSequence=0;
-    let raceQueue=Promise.resolve(), pulseBusy=false, motionBusy=false, motionGeneration=0;
+    let raceQueue=Promise.resolve(), motionBusy=false, motionGeneration=0, handoffPending=false;
+    let heartbeatSequence=-1,pollPromise=null;const heartbeatRequests=new Set();
     let releaseRequired=true, stopped=false, started=false, gamepadNeutral=false;
     let speedSequence=-1,lastSpeedAck=-1,speedToken=null,speedWanted=null,speedInFlight=null,speedBusy=false;
     const labels={handoff:'正在切换控制',arming:'自动模式初始化',wait_board:'等待发车挡板移开',crosswalk:'斑马线停车与播报',traffic:'红绿灯',cones:'两桶避障',parking_search:'寻找停车区',parking_entry:'停车入位',payment:'30 秒扫码缴费',complete:'流程结束',fault:'已停止，需检查',cancelled:'已结束自主驾驶'};
@@ -22,14 +23,17 @@
     const speedReady=()=>manualReady()&&status?.manual_speed_adjustable===true;
     const clearInput=()=>{held.clear();releaseRequired=true;motionGeneration++;gamepadNeutral=false;paintDirections();};
     function superseded() {const error=new Error('本轮控制已结束');error.superseded=true;return error;}
-    async function request(action, body={}, keepalive=false) {
-      const controller=new AbortController(), timer=later(()=>controller.abort(),2000);
+    async function request(action, body={}, keepalive=false, timeoutMs=null) {
+      // Initialization may include device checks; an HTTP timeout is not proof
+      // that the server rejected the action. Never automatically repeat motion.
+      const timeout=timeoutMs??(['enable','reset','race_enter','finish_test'].includes(action)?12000:4000);
+      const controller=new AbortController(), timer=later(()=>controller.abort(),timeout);
       try {
         const response=await http('/api/drive/'+action,{method:'POST',cache:'no-store',keepalive,signal:controller.signal,
           headers:{'Content-Type':'application/json','X-Drive-Key':bootstrap.key},
           body:JSON.stringify({client,setup_token:status?.setup_token,trial_token:status?.trial_token,...body})});
         const result=await response.json();
-        if(!response.ok){if(result.code==='control_page_rejected'){stale=true;clearInput();render();}throw new Error(result.error||'操作未确认');}
+        if(!response.ok){if(result.code==='control_page_rejected'){stale=true;clearInput();render();}const error=new Error(result.error||'操作未确认');error.rejected=response.status>=400&&response.status<500;throw error;}
         return result;
       } finally {clearLater(timer);}
     }
@@ -44,7 +48,7 @@
       if(nextSpeedToken!==speedToken){speedToken=nextSpeedToken;speedSequence=lastSpeedAck=typeof ack==='number'?ack:-1;speedWanted=null;}
       else if(typeof ack==='number'){lastSpeedAck=Math.max(lastSpeedAck,ack);speedSequence=Math.max(speedSequence,ack);}
       const nextToken=next.race_flow?.run_token||null;
-      if(nextToken!==raceToken){raceToken=nextToken;raceSequence=-1;epoch++;}
+      if(nextToken!==raceToken){raceToken=nextToken;raceSequence=-1;heartbeatSequence=-1;epoch++;}
       const claimed=next.manual_owner_client??next.owner_client;
       if(claimed!==undefined&&claimed!==null)manualOwned=claimed===client;
       else if(manualToken&&next.trial_token&&next.trial_token!==manualToken)manualOwned=false;
@@ -99,10 +103,10 @@
       const missing=missingItems(), readiness=r.readiness, startReadiness=r.start_readiness;
       const startReady=typeof startReadiness?.ready==='boolean'?startReadiness.ready:readiness?.ready;
       const parkingPending=startReady===true&&(startReadiness?.parking_ready===false||startReadiness?.scope==='through_cones');
-      el('enter-auto').disabled=debugManual||!online||stale||busy||active||foreignTask()||!r.can_enter||startReady===false;
+      el('enter-auto').disabled=debugManual||!online||stale||busy||active||foreignTask()||!r.can_enter||startReady===false||r.manual_handoff_ready===false||r.manual_handoff_ready===true&&!manualOwned;
       el('enter-auto').textContent=busy&&!active?'正在切入自主驾驶…':'已在切换区停稳 · 切入自主驾驶（F/B）';
-      el('exit-auto').disabled=!online||stale||!own;
-      el('handoff-state').textContent=r.stage==='handoff'?(r.reason||'正在停止遥控并释放原控制，随后接管。'):active?(own?'本页持有自主驾驶控制权。':'另一页面持有控制权，本页只显示状态。'):busy?'正在请求控制切换，请保持车辆静止。':'';
+      el('exit-auto').disabled=stale||!own;
+      el('handoff-state').textContent=r.stage==='handoff'?(r.reason||'正在停止遥控并释放原控制，随后接管。'):active?(own?'本页持有自主驾驶控制权。':'另一页面持有控制权，本页只显示状态。'):busy?'正在请求控制切换，请保持车辆静止。':!manualOwned||status?.mode!=='enabled'?'请先在本页启用遥控，停稳后再切入自主驾驶。':'';
       el('race-stage').textContent=r.stage_label||labels[r.stage]||'尚未启动';
       el('race-reason').textContent=r.reason||'';
       el('race-output').textContent=r.intent?`油门 ${r.intent.esc_us} μs · 转向 ${r.intent.steering_us} μs`:'';
@@ -143,33 +147,50 @@
     async function runAction(work) {
       if(busy||stale||!online)return;
       busy=true;message('');render();
-      try{return await work();}catch(error){if(!error.superseded)message(error.name==='AbortError'?'连接超时，请核对车辆状态。':error.message);}
+      try{return await work();}catch(error){
+        if(error.superseded)return;
+        if(error.name==='AbortError'||error instanceof TypeError){
+          await poll(true);
+          message(online?'请求回复未收到，已重新读取车辆状态；请按当前状态继续。':'暂时未收到车辆回复，正在重连；不会重复发送开始指令。');
+        }else message(error.message);
+      }
       finally{busy=false;render();}
     }
     async function enterAuto() {
       if(el('enter-auto').disabled||status?.application_mode==='debug')return;
-      clearInput();
-      return runAction(async()=>{
+      clearInput();const generation=++epoch;stopped=false;handoffPending=true;
+      try{return await runAction(async()=>{
         const result=await request('race_enter',{stationary_confirmed:true,in_switch_zone:true,fb_mode_confirmed:true});
-        applyStatus(result);
-      });
+        applyStatus(result,generation);
+      });}finally{handoffPending=false;}
     }
     async function stopOwned(explicit=false, source='stop_button', keepalive=false, exit=false) {
-      const ownAuto=raceOwned(), ownManual=manualOwned;
+      const ownAuto=raceOwned(), ownManual=manualOwned, token=raceToken;
+      // A deliberate stop during an unacknowledged handoff cannot yet name
+      // the new run token. Use the existing global stop path in that window.
+      const globalStop=explicit||(handoffPending&&['stop_button','window_blur','page_hidden','page_exit','gamepad_switch'].includes(source));
       clearInput();
-      if(!explicit&&!ownAuto&&!ownManual)return;
-      if(!explicit&&ownAuto&&['payment','complete'].includes(race().stage)&&!exit)return;
-      epoch++;stopped=true;
-      try{applyStatus(await request(explicit?'emergency':ownAuto?'race_cancel':'stop',{stop_source:source},keepalive));}
-      catch(error){message('停车确认未收到，请核对车辆：'+error.message);}
-      finally{stopped=false;render();}
+      if(!globalStop&&!ownAuto&&!ownManual)return;
+      if(!globalStop&&ownAuto&&['payment','complete'].includes(race().stage)&&!exit)return;
+      const generation=++epoch;stopped=true;
+      const body={stop_source:source,control_scope:ownAuto?'race':'manual',...(ownAuto?{run_token:token}:{})};
+      try{applyStatus(await request(globalStop?'emergency':ownAuto?'race_cancel':'stop',body,keepalive),generation);}
+      catch(error){if(generation===epoch)message('停车确认未收到，请核对车辆：'+error.message);}
+      finally{if(generation===epoch||!race().active)stopped=false;render();}
     }
     async function pulse() {
-      if(status?.application_mode==='debug'||!online||stale||doc.hidden||pulseBusy||stopped||!raceOwned()||['payment','complete'].includes(race().stage))return;
-      pulseBusy=true;const generation=epoch;
-      try{await raceRequest('race_keepalive');}
-      catch(error){if(!error.superseded&&generation===epoch){message(error.message);await stopOwned(false,'auto_connection_lost');}}
-      finally{pulseBusy=false;}
+      if(status?.application_mode==='debug'||stale||doc.hidden||stopped||!raceOwned()||['payment','complete'].includes(race().stage)||heartbeatRequests.size>=2)return;
+      const generation=epoch,token=raceToken,seq=++heartbeatSequence,id={};heartbeatRequests.add(id);
+      try{
+        const reply=await request('race_page_heartbeat',{run_token:token,heartbeat_sequence:seq},false,1000);
+        if(generation!==epoch||token!==raceToken)return;
+        if(reply.heartbeat_ack!==true||reply.heartbeat_sequence!==seq)throw new Error('心跳确认格式无效');
+      }catch(error){
+        if(generation!==epoch||token!==raceToken)return;
+        // A lost reply is retried. The Pi independently enforces the 3 s lease;
+        // ACKs never replace the full state or authorize a new driving session.
+        if(error.rejected&&!stale){message('正在重新核对本轮控制状态：'+error.message);void poll();}
+      }finally{heartbeatRequests.delete(id);}
     }
     async function motion() {
       if(!manualReady()||motionBusy||stopped||!held.size||doc.hidden)return;
@@ -215,12 +236,17 @@
     }
     function release(source) {if(!held.has(source))return;held.delete(source);paintDirections();
       if(!held.size)void stopOwned(false,'key_release');else void motion();}
-    async function poll() {
-      const controller=new AbortController(),timer=later(()=>controller.abort(),2000);
-      try{const response=await http('/api/drive/status',{cache:'no-store',signal:controller.signal});
-        if(!response.ok)throw new Error('状态读取失败');const next=await response.json();online=true;applyStatus(next);}
-      catch(error){online=false;render();if(manualOwned||raceOwned())void stopOwned(false,'status_connection_lost');}
-      finally{clearLater(timer);}
+    async function poll(fresh=false) {
+      if(pollPromise){await pollPromise;if(!fresh)return;}
+      const work=(async()=>{
+        const controller=new AbortController(),timer=later(()=>controller.abort(),4000);
+        try{const response=await http('/api/drive/status',{cache:'no-store',signal:controller.signal});
+          if(!response.ok)throw new Error('状态读取失败');const next=await response.json();online=true;applyStatus(next);}
+        catch(error){online=false;render();if(manualOwned&&held.size&&!raceOwned()&&!handoffPending)void stopOwned(false,'status_connection_lost');}
+        finally{clearLater(timer);}
+      })();
+      pollPromise=work;
+      try{await work;}finally{if(pollPromise===work)pollPromise=null;}
     }
     function gamepad() {
       if(!el('gamepad-enable').checked||!manualReady()||doc.hidden||!doc.hasFocus()){gamepadNeutral=false;return;}
@@ -242,7 +268,7 @@
       const pending=doc.createElement('img');let ended=false;
       const finish=ok=>{if(ended)return;ended=true;clearLater(timer);pending.onload=pending.onerror=null;
         if(ok){image.src=pending.src;image.hidden=doc.hidden;label.textContent='刚刚更新';}else{image.hidden=true;label.textContent='画面已失效';}
-        later(()=>camera(id,url),ok?150:400);};
+        later(()=>camera(id,url),ok?(race().active?400:150):400);};
       const timer=later(()=>{finish(false);pending.removeAttribute('src');},1200);
       pending.onload=()=>finish(true);pending.onerror=()=>finish(false);pending.src=url+(url.includes('?')?'&':'?')+'t='+now();
     }

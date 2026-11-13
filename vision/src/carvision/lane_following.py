@@ -5,6 +5,7 @@ line.cpp. Multi-row heading, timing, gains and PWM are this vehicle's local
 policy, not copied pixel thresholds or measured wheel angles.
 """
 from .brake_parking import numeric
+from .runtime_timing import VISION_MAX_AGE_S
 from .cone_evidence import paired_lane
 from .cone_response import combine_guidance
 from .steering import CENTER_US,ImagePD
@@ -89,7 +90,7 @@ class LaneFollower:
         if not isinstance(nav,dict) or not numeric(now) or now<self.last_now:
             raise ValueError('巡线输入或控制时钟无效')
         captured=nav.get('captured_s')
-        if not numeric(captured) or not 0<=now-captured<=.25:
+        if not numeric(captured) or not 0<=now-captured<=VISION_MAX_AGE_S:
             raise ValueError('实时巡线画面中断')
         if nav.get('ready') is False or nav.get('boundary_danger') or nav.get('action')=='stop':
             raise ValueError(nav.get('reason') or '巡线边界要求停止')

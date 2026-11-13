@@ -33,7 +33,7 @@ def validate_settings(s):
     if not (0<=s['blue_hsv_lower'][0]<=s['blue_hsv_upper'][0]<=179
             and all(0<=s['blue_hsv_lower'][i]<=s['blue_hsv_upper'][i]<=255 for i in (1,2))):raise ValueError('invalid HSV range')
     if type(s.get('confirm_frames')) is not int or not 2<=s['confirm_frames']<=8:raise ValueError('confirm_frames')
-    for k,lo,hi in [('confirm_s',.05,.5),('track_timeout_s',.2,1),('max_frame_age_s',.1,.25)]:
+    for k,lo,hi in [('confirm_s',.05,.5),('track_timeout_s',.2,1),('max_frame_age_s',.1,.5)]:
         if not numeric(s.get(k)) or not lo<=s[k]<=hi:raise ValueError(k)
     for section in ('geometry','ground','motion'):
         if not isinstance(s.get(section),dict):raise ValueError(section)

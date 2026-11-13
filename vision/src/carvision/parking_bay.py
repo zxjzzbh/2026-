@@ -13,10 +13,33 @@ import numpy as np
 
 from .autonomy_profile import GroundProjection
 from .parking_guidance import visible_far_guides
+from .parking_entry_detection import board_adjacent_entry
 from .parking_visual import validate_visual_options
+from .parking_limits import FRAME_MAX_AGE_S
+from .tape_pixels import broad_glare,tape_contrast,white_tape_mask,PROCESSING_REVISION
 
 
 def number(x):return type(x) in (int,float) and math.isfinite(x)
+
+
+def yellow_marking_mask(hsv,settings):
+    configured=cv2.inRange(hsv,tuple(settings['yellow_lower']),tuple(settings['yellow_upper']))
+    pale=cv2.inRange(hsv,(15,25,110),(65,110,255))
+    mask=cv2.bitwise_or(configured,pale)
+    mask[broad_glare(hsv)>0]=0
+    return mask
+
+
+def parking_road_context(detector,image,settings):
+    """Do not relabel pale yellow bay tape as a white road boundary."""
+    hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
+    yellow=yellow_marking_mask(hsv,settings)
+    excluded=cv2.bitwise_or(blue_board_mask(hsv,settings),
+        cv2.dilate(yellow,np.ones((3,3),np.uint8)))
+    result=detector.inspect(image,excluded)
+    result['boundary_diagnostics']['yellow_excluded_pixels']=int(cv2.countNonZero(yellow))
+    result['boundary_diagnostics']['parking_color_separation']=True
+    return result
 
 
 def validate(s):
@@ -36,7 +59,7 @@ def validate(s):
     for name,lo,hi in [('zone_length_m',1,1),('lane_width_m',.6,2),('vehicle_width_m',.1,.6),
                        ('front_extent_m',.1,.8),('rear_extent_m',.01,.4),('clearance_m',.01,.1),
                        ('blocked_blue_fraction',.005,.3),('clear_ground_fraction',.5,.95),
-                       ('selection_confirm_s',.2,2),('stop_hold_s',.4,2),('max_frame_age_s',.1,.25),('max_speed_mps',.02,.25),('max_run_s',1,60)]:
+                       ('selection_confirm_s',.2,2),('stop_hold_s',.4,2),('max_frame_age_s',.1,FRAME_MAX_AGE_S),('max_speed_mps',.02,.25),('max_run_s',1,60)]:
         if not number(s.get(name)) or not lo<=s[name]<=hi:raise ValueError('停车参数越界：'+name)
     for name in ('minimum_turn_radius_m','braking_distance_m','maximum_pose_error_m'):
         if s.get(name) is not None and (not number(s[name]) or s[name]<=0):raise ValueError(name+' must be measured positive metres or null')
@@ -151,20 +174,43 @@ def occluded_layout(yellow,white,blue):
         'blue_board_candidates':len(boards),'occluded_layout_candidates':len(candidates)}
 
 
+def blue_board_mask(hsv,s):
+    """Prefer saturated board pixels; keep the legacy band for washed boards.
+
+    Indoor cyan floor/shadows can connect a real board to the image border.
+    Choose a compact saturated component before using the broader HSV band.
+    """
+    lo=list(s['blue_lower']);hi=tuple(s['blue_upper'])
+    lo[0]=min(hi[0],max(100,lo[0]))
+    broad=cv2.inRange(hsv,tuple(lo),hi)
+    narrow=list(lo);narrow[0]=min(hi[0],max(105,narrow[0]));narrow[1]=min(hi[1],max(100,narrow[1]))
+    mask=cv2.morphologyEx(cv2.inRange(hsv,tuple(narrow),hi),cv2.MORPH_OPEN,np.ones((3,3),np.uint8))
+    h,w=mask.shape
+    for c in cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)[0]:
+        x,y,bw,bh=cv2.boundingRect(c)
+        if cv2.contourArea(c)>=.005*w*h and .5<=bw/bh<=4 and .30*h<=y+bh<=.90*h:
+            return mask
+    return broad
+
+
 def board_direction_hint(hsv,s):
     """Coarse direction cue independent of complete parking geometry.
 
     A large blue rectangle away from the bonnet suggests an obstructed side;
     the opposite side is only a recommendation, never a verified empty bay.
     """
-    h,w=hsv.shape[:2];lower=list(s['blue_lower']);lower[0]=min(s['blue_upper'][0],max(100,lower[0]))
-    mask=cv2.inRange(hsv,tuple(lower),tuple(s['blue_upper']))
-    mask=cv2.morphologyEx(mask,cv2.MORPH_OPEN,np.ones((3,3),np.uint8))
+    h,w=hsv.shape[:2]
+    mask=blue_board_mask(hsv,s)
+    # Thin blue rails can join a solid board to a door above it. Separate
+    # those connections for board-shape proposals only. The original blue
+    # mask remains unchanged for every occupancy/free-floor check.
+    mask=cv2.morphologyEx(mask,cv2.MORPH_OPEN,np.ones((9,9),np.uint8))
     red=cv2.bitwise_or(cv2.inRange(hsv,(0,55,35),(15,255,255)),cv2.inRange(hsv,(165,55,35),(179,255,255)))
     green=cv2.inRange(hsv,(40,45,35),(99,255,255))
     ground=red if s.get('surface')=='red_running_track' else green if s.get('surface')=='indoor_green' else cv2.bitwise_or(red,green)
+    ground[broad_glare(hsv)>0]=0
     contours,_=cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-    areas={'left':0.,'right':0.};boxes=[]
+    areas={'left':0.,'right':0.};boxes=[];rejected=[];yellow=None
     for contour in contours:
         x,y,bw,bh=cv2.boundingRect(contour);area=float(cv2.contourArea(contour));cx=x+bw/2
         if (area<.005*w*h or bw<.06*w or bh<.08*h or not .5<=bw/bh<=4
@@ -173,18 +219,40 @@ def board_direction_hint(hsv,s):
         # Require visible track immediately below it, not a complete bay frame.
         foot=ground[y+bh:min(h,y+bh+max(6,int(.05*h))),x+int(.1*bw):x+bw-int(.1*bw)]
         floor_support=float(np.mean(foot>0)) if foot.size else 0.
-        if floor_support<.25:continue
+        evidence='ground_below'
+        if floor_support<.25:
+            if yellow is None:
+                yellow=(yellow_marking_mask(hsv,s) if 'yellow_lower' in s and 'yellow_upper' in s
+                        else np.zeros((h,w),np.uint8))
+            # Reflected board color can cover the floor directly below it.
+            # Only the coarse direction hint may use surrounding evidence;
+            # the original blue/unknown pixels remain occupied/unknown.
+            side_width=max(12,round(bw*.75));depth=max(6,round(h*.05))
+            strips=[(max(0,x-side_width),x),(x+bw,min(w,x+bw+side_width))]
+            floor_sides=[];tape_sides=[]
+            for a,b in strips:
+                patch=ground[y+bh:min(h,y+bh+depth),a:b]
+                tape=yellow[max(0,y+bh-8):min(h,y+bh+8),a:b]
+                floor_sides.append(float(np.mean(patch>0)) if patch.size else 0.)
+                tape_sides.append(float(np.mean(np.any(tape>0,axis=0))) if tape.size else 0.)
+            if not (.45*h<=y+bh<=.85*h and min(floor_sides)>=.35 and max(tape_sides)>=.35):
+                if len(rejected)<8:rejected.append({'bbox_px':[x,y,x+bw,y+bh],
+                    'reason':'insufficient_ground_or_adjacent_tape','ground_below_fraction':floor_support,
+                    'side_ground_fractions':floor_sides,'side_tape_fractions':tape_sides})
+                continue
+            evidence='lateral_ground_and_tape'
         # A central board does not establish left/right; let the other cues
         # or explicit fallback select a side without pretending it is empty.
         side='left' if cx<w*.47 else 'right' if cx>w*.53 else None
-        boxes.append({'bbox_px':[x,y,x+bw,y+bh],'side':side,'area_fraction':area/(w*h),'ground_below_fraction':floor_support})
+        boxes.append({'bbox_px':[x,y,x+bw,y+bh],'side':side,'area_fraction':area/(w*h),
+                      'ground_below_fraction':floor_support,'support_source':evidence})
         if side:areas[side]+=area/(w*h)
     blocked=max(areas,key=areas.get);total=sum(areas.values())
-    if total<=0 or areas[blocked]/total<.68:return {'suggested_slot':None,'source':'ambiguous_blue_position','areas':areas,'boards':boxes}
+    if total<=0 or areas[blocked]/total<.68:return {'suggested_slot':None,'source':'ambiguous_blue_position','areas':areas,'boards':boxes,'rejected_boards':rejected}
     chosen='right' if blocked=='left' else 'left'
     return {'suggested_slot':chosen,'blocked_side':blocked,'source':'blue_board_position',
             'basis':'蓝色挡板主要在'+('左' if blocked=='left' else '右')+'侧，暂选另一侧；边界未必完整',
-            'areas':areas,'boards':boxes}
+            'areas':areas,'boards':boxes,'rejected_boards':rejected}
 
 
 def visible_entry_candidates(yellow,white,ground,blue,visible,hint):
@@ -212,49 +280,19 @@ def visible_entry_candidates(yellow,white,ground,blue,visible,hint):
 def contrast_markings(hsv,grey,s):
     """Recover bright washed-out tape without turning pale ground into edges."""
     contrast=cv2.morphologyEx(grey,cv2.MORPH_TOPHAT,np.ones((15,15),np.uint8))
+    # Hue is unstable when reflected yellow tape becomes nearly white.
+    pale=cv2.inRange(hsv,(0,0,235),(179,65,255))
+    pale[tape_contrast(grey)<13]=0
     edges=cv2.inRange(hsv,(0,0,140),(100,130,255));edges[contrast<13]=0
+    edges=cv2.bitwise_or(edges,pale)
     edges=cv2.morphologyEx(edges,cv2.MORPH_CLOSE,np.ones((3,3),np.uint8))
+    glare=broad_glare(hsv)>0
+    edges[glare]=0
     red=cv2.bitwise_or(cv2.inRange(hsv,(0,55,35),(15,255,245)),cv2.inRange(hsv,(165,55,35),(179,255,245)))
     green=cv2.inRange(hsv,(40,15,35),(99,255,245))
     ground=red if s.get('surface')=='red_running_track' else green if s.get('surface')=='indoor_green' else cv2.bitwise_or(red,green)
+    ground[glare]=0
     return edges,ground
-
-
-def board_adjacent_entry(edges,ground,blue,hint):
-    """A small real floor enclosure next to the board; no synthetic corners.
-
-    Far bays can occupy much less than the legacy 2% image-area cutoff. Crop
-    only the search, then require observed marking support on all four edges;
-    a crop border cannot become a parking boundary.
-    """
-    side=hint.get('suggested_slot');blocked=hint.get('blocked_side');h,w=edges.shape
-    boards=[b for b in hint.get('boards',[]) if b.get('side')==blocked]
-    if side not in ('left','right') or not boards:return []
-    x1,y1,x2,y2=max(boards,key=lambda b:b['area_fraction'])['bbox_px'];bw=x2-x1;bh=y2-y1
-    lo=max(1,x1-int(bw*1.8)) if side=='left' else max(1,x2-4)
-    hi=min(w-1,x1+4) if side=='left' else min(w-1,x2+int(bw*1.8))
-    top=max(int(h*.28),y2-int(bh*.6));bottom=min(h-2,y2+6)
-    if lo>=hi or top>=bottom:return []
-    free=ground.copy();free[cv2.dilate(cv2.bitwise_or(edges,blue),np.ones((3,3),np.uint8))>0]=0
-    region=np.zeros_like(edges);region[top:bottom,lo:hi]=255;free[region==0]=0
-    contours,_=cv2.findContours(free,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE);result=[]
-    for contour in contours:
-        if not .003*w*h<cv2.contourArea(contour)<.25*w*h:continue
-        q=cv2.approxPolyDP(contour,.03*cv2.arcLength(contour,True),True)
-        if len(q)!=4 or not cv2.isContourConvex(q):continue
-        q=_order(q[:,0,:])
-        if (q[:,0].min()<=lo+2 or q[:,0].max()>=hi-2 or q[:,1].min()<=top+2 or q[:,1].max()>=bottom-2):continue
-        if min(q[1,0]-q[0,0],q[2,0]-q[3,0])<w*.08 or min(q[0,1]-q[3,1],q[1,1]-q[2,1])<8:continue
-        supports=[_edge_support(edges,q[i],q[(i+1)%4],radius=4) for i in range(4)]
-        if min(supports)<.7 or abs(float(q[:2,1].mean())-y2)>max(10,h*.07):continue
-        mask=np.zeros_like(edges);cv2.fillConvexPoly(mask,q.astype(np.int32),255);inside=cv2.erode(mask,np.ones((3,3),np.uint8))>0
-        if inside.sum()<180:continue
-        floor=float(np.mean(ground[inside]>0));br=float(np.mean(blue[inside]>0))
-        if floor<.9 or br>.005:continue
-        result.append({'id':side,'corners_px':q.tolist(),'availability':'clear','candidate_only':True,
-            'occupancy_verified':False,'polygon_m':None,'ground_fraction':floor,'blue_inside_fraction':br,
-            'edge_support':supports,'geometry_source':'board_adjacent_contrast'})
-    return result if len(result)==1 else []
 
 
 def _clusters(values):
@@ -312,14 +350,16 @@ def detect_parking(image,s):
     original_yellow_pixels=int(cv2.countNonZero(yellow))
     # Actual H65 frames render cream tape at S~30..60. This pale-color band
     # excludes saturated green flooring and is still subject to line geometry.
-    pale=cv2.inRange(hsv,(15,25,110),(65,110,255))
-    yellow=cv2.bitwise_or(yellow,pale)
-    white=cv2.inRange(hsv,(0,0,150),(179,80,255))
-    blue=cv2.inRange(hsv,tuple(s['blue_lower']),tuple(s['blue_upper']))
+    yellow=yellow_marking_mask(hsv,s)
+    white=white_tape_mask(hsv,150,80)
+    blue=blue_board_mask(hsv,s)
     red=cv2.bitwise_or(cv2.inRange(hsv,(0,55,35),(15,255,255)),cv2.inRange(hsv,(165,55,35),(179,255,255)))
     green=cv2.inRange(hsv,(40,45,35),(99,255,255))
     grey=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY);visible=(grey>18)&(grey<250)
     blue_floor=cv2.inRange(hsv,(100,55,35),(135,255,255))
+    glare=broad_glare(hsv)>0
+    for floor_mask in (red,green,blue_floor):floor_mask[glare]=0
+    visible[glare]=False
     surface=s.get('surface','auto')
     if surface=='auto':
         # Infer the surrounding near-field surface once, rather than calling
@@ -332,7 +372,10 @@ def detect_parking(image,s):
         pixels,metric=metric_layout(yellow,white,s)
     if not pixels:pixels=pixel_layout(yellow,white)
     source='metric' if metric else 'two_visible_halves' if pixels else None
-    partial=None;diagnostics={'original_yellow_pixels':original_yellow_pixels,'yellow_pixels':int(cv2.countNonZero(yellow))}
+    partial=None;diagnostics={'original_yellow_pixels':original_yellow_pixels,'yellow_pixels':int(cv2.countNonZero(yellow)),
+                             'broad_glare_pixels':int(np.count_nonzero(glare)),
+                             'image_processing':PROCESSING_REVISION,
+                             'glare_policy':'unknown_not_free_ground'}
     if not pixels and surface!='blue_running_track':
         partial,detail=occluded_layout(yellow,white,blue);diagnostics.update(detail)
         if partial:
@@ -365,8 +408,7 @@ def detect_parking(image,s):
         if surface=='indoor_green':
             # Cyan cast on this green floor overlaps the old blue H=90 edge.
             # Match the cone pipeline's blue band instead of counting floor noise.
-            lower=list(s['blue_lower']);lower[0]=min(s['blue_upper'][0],max(100,lower[0]))
-            selected_blue=cv2.inRange(hsv,tuple(lower),tuple(s['blue_upper']))
+            selected_blue=blue
         br=float(np.mean(selected_blue[entrance]>0)) if enough else 0.
         vis=float(visible[interior].mean()) if enough else 0.
         blue_inside=float(np.mean(selected_blue[interior]>0)) if enough else 0.
@@ -393,13 +435,15 @@ def detect_parking(image,s):
     cv2.drawContours(display,contours,-1,(0,255,255),1)
     hint=board_direction_hint(hsv,s)
     ground={'red_running_track':red,'indoor_green':green,'blue_running_track':blue_floor}[surface]
-    lower=list(s['blue_lower']);lower[0]=min(s['blue_upper'][0],max(100,lower[0]))
-    strong_blue=cv2.inRange(hsv,tuple(lower),tuple(s['blue_upper']))
+    strong_blue=blue
     candidates=visible_entry_candidates(yellow,white,ground,strong_blue,visible,hint) if not slots else []
     guides=visible_far_guides(yellow,white,ground,strong_blue)
     if (not slots and not candidates) or not guides:
         contrast_edges,light_ground=contrast_markings(hsv,grey,s)
-        if not slots and not candidates:candidates=board_adjacent_entry(contrast_edges,light_ground,strong_blue,hint)
+        if not slots and not candidates:
+            diagnostics["entry_search"]={}
+            candidates=board_adjacent_entry(contrast_edges,light_ground,strong_blue,hint,
+                yellow=yellow,diagnostics=diagnostics["entry_search"])
         if not guides:guides=visible_far_guides(contrast_edges,contrast_edges,light_ground,strong_blue)
     for c in candidates:
         q=np.asarray(c['corners_px'],np.int32);cv2.polylines(display,[q],True,(0,200,0),2)

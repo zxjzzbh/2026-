@@ -2,7 +2,9 @@
 import cv2
 import numpy as np
 
-from .parking_bay import contrast_markings
+from .parking_bay import contrast_markings,blue_board_mask,yellow_marking_mask
+from .parking_edges import ParkingBoundaryTracker
+from .parking_landmarks import ParkingLandmarks
 
 
 class ParkingFarTracker:
@@ -10,6 +12,8 @@ class ParkingFarTracker:
         self.grey=None
         self.capture=self.frame=None
         self.tracks={}
+        self.boundaries=ParkingBoundaryTracker()
+        self.landmarks=ParkingLandmarks()
 
     @staticmethod
     def _features(grey,edge):
@@ -31,8 +35,8 @@ class ParkingFarTracker:
     def update(self,image,observation,frame_id,captured_s,settings):
         grey=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
         hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
-        edges,_=contrast_markings(hsv,grey,settings)
-        edges=cv2.bitwise_or(edges,cv2.inRange(hsv,tuple(settings['yellow_lower']),tuple(settings['yellow_upper'])))
+        edges,ground=contrast_markings(hsv,grey,settings)
+        edges=cv2.bitwise_or(edges,yellow_marking_mask(hsv,settings))
         support=cv2.dilate(edges,np.ones((11,11),np.uint8))
         valid=self.capture is not None and 0<captured_s-self.capture<=.25 and frame_id>self.frame and grey.shape==self.grey.shape
         tracks={};results=[]
@@ -76,4 +80,9 @@ class ParkingFarTracker:
             if points is not None and len(points)>=6:
                 tracks[side]={'edge':edge,'points':points,'seed_frame_id':frame_id,'seed_capture':captured_s}
         self.grey,self.frame,self.capture,self.tracks=grey,frame_id,captured_s,tracks
+        blue=blue_board_mask(hsv,settings)
+        observation['tracked_bay_boundaries']=self.boundaries.update(
+            image,observation,frame_id,captured_s,edges,ground,blue)
+        observation['tracked_far_lines']=results
+        observation['bay_landmarks']=self.landmarks.update(observation,frame_id,captured_s,edges,ground,blue)
         return results

@@ -6,6 +6,7 @@ Wide horizontal markings and bright blobs are not treated as lane boundaries.
 """
 import cv2
 import numpy as np
+from .tape_pixels import white_tape_mask
 
 
 def _complete_best(data,groups,tolerance,required_span,h,step):
@@ -40,7 +41,7 @@ def _complete_best(data,groups,tolerance,required_span,h,step):
 def adaptive_inner_edges(image,blue_mask,config,*,complete_small_sets=False):
     h,w=image.shape[:2]
     hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
-    mask=cv2.inRange(hsv,(0,0,config.white_v_min),(179,config.white_s_max,255))
+    mask=white_tape_mask(hsv,config.white_v_min,config.white_s_max)
     mask[blue_mask>0]=0
     first_row=round(h*config.roi_top)
     mask[:first_row]=0

@@ -3,6 +3,8 @@
 The preview service remains the sole camera owner. Parking and the original
 manual driver take UART ownership separately; mode changes never start motion.
 """
+from .page_heartbeat import PageHeartbeat
+
 import json
 import copy
 import secrets
@@ -119,6 +121,8 @@ class BrakeTrialDrive:
         self.client = self.token = self.folder = None
         self.last_sequence = -1
         self.lease_until = 0
+        self.page_link = PageHeartbeat()
+        self.page_lock = threading.RLock()
         self.arm_until = self.started = None
         self.path_mode = 'straight'
         self.latest = self.speech = self.controller = None
@@ -165,7 +169,7 @@ class BrakeTrialDrive:
             trial = {'program': 'fb-brake-v1', 'active': self.busy,
                      'frame_age_limit_ms':self.settings.get('crosswalk_max_frame_age_s',self.settings['max_frame_age_s'])*1000,
                      'actuator_lease_ms':self.settings['actuator_lease_s']*1000,
-                     'phase': self.phase, 'reason': self.reason, 'owner_client': self.client,
+                     'phase': self.phase, 'reason': self.reason, 'page_heartbeat': self.page_link.status(self.clock()), 'owner_client': self.client,
                      'run_token': self.token, 'can_prepare': not self.busy and (manual_idle or can_end_manual) and not self.closed and not self.settings_error,
                      'can_end_manual': can_end_manual, 'prepare_blocked_reason': blocked_reason,
                      'can_start': self.busy and self.phase in ('ready', 'complete'), 'esc_mode': 'F/B',
@@ -194,9 +198,20 @@ class BrakeTrialDrive:
         self.phase, self.reason = ('fault' if fault else 'cancelled'), reason
         self.stop.set()
 
+    def page_heartbeat(self, payload):
+        # Full status can inspect cameras/worker RPC; it must not block supervision.
+        with self.page_lock:
+            if (self.closed or not self.busy or self.stop.is_set()
+                    or payload.get('client') != self.client or payload.get('run_token') != self.token):
+                raise ValueError('本页未持有当前测试控制权')
+            reply = self.page_link.accept(payload, self.clock(), self.lease_until)
+            self.lease_until = self.page_link.deadline
+            return reply
+
     def request(self, action, payload):
         if not isinstance(payload, dict):
             raise ValueError('JSON object required')
+        if action == 'crosswalk_page_heartbeat':return self.page_heartbeat(payload)
         with self.lock:
             if action == 'status':
                 return self.status()
@@ -262,12 +277,13 @@ class BrakeTrialDrive:
                     raise ValueError('准备需要电调关闭并确认实物 F/B 档')
                 if self.status()['crosswalk_trial']['can_end_manual']:
                     self.drive.request('finish_test',payload)
-                self.client, self.token = client, secrets.token_hex(16)
+                with self.page_lock:
+                    self.client, self.token = client, secrets.token_hex(16)
+                    self.lease_until = self.page_link.reset(self.clock())
                 self.last_sequence = -1
                 self.phase, self.reason = 'preparing', '正在建立中位输出，请保持电调关闭'
                 self.stop = threading.Event()
                 self.busy = True
-                self.lease_until = self.clock() + .5
                 self.arm_until = self.started = self.latest = self.controller = None
                 self.active_settings = copy.deepcopy(self.settings)
                 self.round_number = 0
@@ -277,6 +293,8 @@ class BrakeTrialDrive:
                 return self.status()
             if (not self.busy or client != self.client or payload.get('run_token') != self.token):
                 raise ValueError('本轮由另一页面持有，或本轮已经结束')
+            if self.stop.is_set() or self.clock() > self.lease_until:
+                raise ValueError('控制页心跳已超时，请重新准备')
             sequence = payload.get('trial_sequence')
             if type(sequence) is not int or sequence <= self.last_sequence:
                 raise ValueError('old or invalid brake sequence')
@@ -301,7 +319,8 @@ class BrakeTrialDrive:
             elif action != 'crosswalk_keepalive':
                 raise ValueError('旧固定回零测试动作已停用')
             self.last_sequence = sequence
-            self.lease_until = self.clock() + .5
+            with self.page_lock:
+                self.lease_until = self.page_link.renew(self.clock())
             return self.status()
 
     def _work(self):
@@ -427,7 +446,7 @@ class BrakeTrialDrive:
             with self.lock:
                 self.busy = False
                 if self.folder and self.folder.is_dir():
-                    result = {'phase': self.phase, 'reason': self.reason, 'tuning_verified': False,
+                    result = {'phase': self.phase, 'reason': self.reason, 'page_heartbeat': self.page_link.status(self.clock()), 'tuning_verified': False,
                               'physical_stop_verified': False, 'parking_zone_verified': False,
                               'speech': self.speech.status() if self.speech else None}
                     try:

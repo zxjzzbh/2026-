@@ -20,7 +20,7 @@ def test_only_distinct_same_camera_frames_can_unlock_start():
     assert not gate.update(nav,1.1)
     nav=observation(1.2,cones=[])
     assert gate.update(nav,1.2)
-    assert not gate.ready(1.46)
+    assert not gate.ready(1.701)
     nav=observation(1.3,cones=[],line_state='single',line_held=True,boundary_observed=False)
     assert not gate.update(nav,1.3)
     assert gate.count==0
@@ -34,7 +34,9 @@ def test_limited_commands_reach_real_guard_without_broadening_profile(settings,p
     guard.accept({'action':'cone_'+str(pulse),'esc_us':pulse,'steering_us':1650,
                   'sequence':0,'sent_s':1.},1.)
     assert guard.esc==pulse and (4,pulse) in writes
-    guard.tick(1.201)
+    guard.tick(1.499)
+    assert guard.fault is None
+    guard.tick(1.501)
     assert guard.fault=='command lease expired'
     assert guard.esc<=1500
 

@@ -144,7 +144,7 @@ def test_missing_lines_keeps_only_current_confirmed_pixels(settings):
 
 
 def test_stale_camera_has_no_current_pixel_targets(settings):
-    track=cone();result=LowSpeedNavigator(settings).update(picture(track),observation(tracks=[track]),1.3)
+    track=cone();result=LowSpeedNavigator(settings).update(picture(track),observation(tracks=[track]),1.501)
     assert result['visual_cones']==[] and result['action']=='stop'
 
 

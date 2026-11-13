@@ -280,7 +280,7 @@ def test_formal_one_second_red_evidence_survives_fast_brake_and_stationary_trans
     stationary_seen = False
     for _ in range(23):
         result = frames.step({'primary': 'red'}, moving=False)
-        stationary_seen |= any(event['event'] == 'stationary_estimate' for event in result['events'])
+        stationary_seen |= result['stationary_estimated']
         if frames.t >= 1 + DT:
             assert result['red_seen_this_round']
             assert result['red_vote']['ready']
@@ -439,6 +439,8 @@ def test_verify_red_is_neutral_and_a_second_brake_cannot_restart_its_deadline():
     assert saw_verify
     # A renewed motion estimate can request a bounded brake, but may not
     # buy another three seconds of unconfirmed red/green waiting.
+    for _ in range(3):
+        assert frames.step({'primary':'off'}, moving=True)['action']=='neutral'
     result = frames.step({'primary':'off'}, moving=True)
     assert result['action'] == 'brake' and result['phase'] != 'wait_green'
     for _ in range(30):

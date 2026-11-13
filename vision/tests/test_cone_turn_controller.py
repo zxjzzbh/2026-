@@ -70,7 +70,7 @@ def test_initial_degraded_lane_never_moves_or_spends_a_moving_recovery_budget(st
         assert output['action']=='neutral' and output['steering_us']==1610
         assert controller.line_missing_since is None
     with pytest.raises(ValueError,match='画面'):
-        controller.step(lane(2.9,state=state),3.2)
+        controller.step(lane(2.9,state=state),3.401)
 
 
 def test_camera_switches_cannot_pool_initial_paired_frames():
@@ -105,7 +105,7 @@ def test_duplicate_control_does_not_recenter_or_refresh_the_motion_lease():
         cached=controller.step(sample,now)
         assert not cached['fresh_control'] and cached['steering_us']==output['steering_us']
         assert (controller.pd.error,controller.pd.derivative,controller.actual_steering)==before
-    guard.tick(.51)
+    guard.tick(guard.deadline+.001)
     assert guard.fault and guard.esc==1400
 
 
@@ -135,14 +135,18 @@ def test_expired_single_prediction_enters_none_budget_from_its_first_current_cap
     controller=started()
     controller.step(lane(.3,state='single',line_observed_s=.2,prediction_age_s=.16),.36)
     assert controller.line_missing_since is None  # A valid current edge is guidance.
-    for now in (.59,.79,.99,1.19,1.39,1.529):
-        captured=round(now-.06,8)
-        output=controller.step(lane(captured,state='single',line_observed_s=.2,
-                                    prediction_age_s=now-.2),now)
-        assert output['line_state']=='missing'  # A one-second budget never extends single prediction.
-        assert output['esc_us']<=1570 and controller.line_missing_since==pytest.approx(.53)
+    for now in (.59,.79,.99,1.19):
+        output=controller.step(lane(round(now-.06,8),state='single',line_observed_s=.2,
+                                   prediction_age_s=now-.2),now)
+        assert output['line_state']=='single' and output['esc_us']<=1570
+        assert controller.line_missing_since is None
+    for now in (1.39,1.59,1.79,1.99,2.19,2.329):
+        output=controller.step(lane(round(now-.06,8),state='single',line_observed_s=.2,
+                                   prediction_age_s=now-.2),now)
+        assert output['line_state']=='missing'
+        assert controller.line_missing_since==pytest.approx(1.33)
     with pytest.raises(ValueError,match='均无可靠引导超过 1 秒'):
-        controller.step(lane(1.47,state='missing'),1.53)
+        controller.step(lane(2.27,state='missing'),2.33)
 
 
 def test_stable_paired_recovery_resets_the_budget_but_keeps_limits_until_confirmed():
@@ -158,19 +162,22 @@ def test_stable_paired_recovery_resets_the_budget_but_keeps_limits_until_confirm
     assert output['paired_stable'] and controller.line_missing_since is None
     output=controller.step(lane(1.2,state='single',line_observed_s=1.1),1.2)
     assert output['esc_us']<=1570 and controller.line_missing_since is None
-    output=controller.step(lane(1.4,state='single',line_observed_s=1.1,prediction_age_s=.3),1.4)
-    assert output['line_state']=='missing' and controller.line_missing_since==pytest.approx(1.4)
+    for t in (1.4,1.6,1.8,2.):
+        output=controller.step(lane(t,state='single',line_observed_s=1.1,prediction_age_s=t-1.1),t)
+        assert output['line_state']=='single' and controller.line_missing_since is None
+    output=controller.step(lane(2.11,state='single',line_observed_s=1.1,prediction_age_s=1.01),2.11)
+    assert output['line_state']=='missing' and controller.line_missing_since==pytest.approx(2.11)
 
 
-def test_one_second_recovery_does_not_extend_camera_freshness_or_single_prediction():
+def test_one_second_single_prediction_does_not_extend_camera_freshness():
     controller=started()
     output=controller.step(lane(.45,state='single',line_observed_s=.2,prediction_age_s=.25),.45)
     assert output['line_state']=='single' and output['esc_us']<=1570
     output=controller.step(lane(.451,state='single',line_observed_s=.2,prediction_age_s=.251),.451)
-    assert output['line_state']=='missing' and output['esc_us']<=1570
+    assert output['line_state']=='single' and output['esc_us']<=1570
     assert controller.progress()['line_recovery_s']==1.
     with pytest.raises(ValueError,match='画面'):
-        controller.step(lane(.46,state='missing'),.711)
+        controller.step(lane(.46,state='missing'),.961)
 
 
 def test_single_lane_cannot_refresh_or_commit_an_old_cone_pass():

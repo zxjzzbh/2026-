@@ -1,5 +1,6 @@
 """Fresh, same-camera lane evidence shared by obstacle preparation/control."""
 from .brake_parking import numeric
+from .runtime_timing import VISION_MAX_AGE_S
 
 
 def paired_lane(nav):
@@ -23,12 +24,12 @@ class StablePairedLane:
 
     def update(self, nav, now):
         t = (nav or {}).get('captured_s')
-        if not paired_lane(nav) or not numeric(t) or not 0 <= now-t <= .25:
+        if not paired_lane(nav) or not numeric(t) or not 0 <= now-t <= VISION_MAX_AGE_S:
             self.reset()
             return False
         camera = nav.get('source_camera')
         identity = (camera, nav.get('frame_id', t))
-        if self.last is not None and (camera != self.camera or t < self.last or t-self.last > .25):
+        if self.last is not None and (camera != self.camera or t < self.last or t-self.last > VISION_MAX_AGE_S):
             self.reset()
         if identity != self.identity and (self.last is None or t > self.last):
             if self.first is None:
@@ -39,5 +40,5 @@ class StablePairedLane:
 
     def ready(self, now):
         return bool(self.first is not None and self.last is not None
-                    and 0 <= now-self.last <= .25 and self.count >= self.frames
+                    and 0 <= now-self.last <= VISION_MAX_AGE_S and self.count >= self.frames
                     and self.last-self.first >= self.duration-1e-9)

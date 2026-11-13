@@ -227,7 +227,7 @@ def test_pending_does_not_renew_real_worker_lease_or_bypass_global_emergency(rig
     now[0]=.65;cached=controller.step(lane(.6),.65)
     assert cached['fresh_control'] is False and owner.guard.deadline==deadline
     # The caller must skip cached output; status alone cannot renew the worker.
-    owner.status();now[0]=.801 if stop=='lease' else .7
+    owner.status();now[0]=deadline+.001 if stop=='lease' else .7
     if stop=='lease':owner.tick()
     else:owner.dispatch('emergency',{})
     assert not owner.active and owner.guard.esc==1400

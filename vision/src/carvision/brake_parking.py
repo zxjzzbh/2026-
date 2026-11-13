@@ -157,9 +157,12 @@ fresh frame IDs alone are not evidence that the vehicle is stationary.
 
 class BrakeParkingController:
     def __init__(self,settings,path_mode='straight',*,first_detection_stop=False,
-                 image_brake_y=None,image_creep_y=None,crosswalk=False):
+                 image_brake_y=None,image_creep_y=None,crosswalk=False,control_interval_s=.25):
         if path_mode not in ('straight','lane'):raise ValueError('invalid path mode')
         self.s,self.path_mode=settings,path_mode
+        if not numeric(control_interval_s) or not 0<control_interval_s<=.5:
+            raise ValueError('invalid control interval')
+        self.control_interval_s=control_interval_s
         self.brake_reference=brake_trigger_reference(settings)
         self.crosswalk_profile=None
         self.source_camera=None
@@ -265,7 +268,7 @@ class BrakeParkingController:
 
     def step(self,sample,now):
         if self.phase in ('done','fault'):return self.output()
-        if not numeric(now) or self.last_t is not None and not 0<now-self.last_t<=.25:
+        if not numeric(now) or self.last_t is not None and not 0<now-self.last_t<=self.control_interval_s:
             return self.fault('控制间隔失效')
         if self.started is None:self.started=now
         self.last_t=now

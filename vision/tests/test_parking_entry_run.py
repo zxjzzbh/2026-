@@ -88,8 +88,8 @@ def test_prepare_and_start_are_explicit_neutral_only_then_single_three_second_ar
     assert not opened
     run.tick(sample(.1), .1)
     assert opened[0]['pwm'] == {'neutral_us': 1500, 'steering_center_us': 1610,
-                               'search_us': 1575, 'creep_us': 1550, 'brake_us': 1400}
-    assert opened[0]['actuator_lease_s'] == .2 and opened[0]['brake_pulse_s'] == .12
+                               'search_us': 1575, 'creep_us': 1570, 'brake_us': 1400}
+    assert opened[0]['actuator_lease_s'] == .5 and opened[0]['brake_pulse_s'] == .35
     assert actuator.commands[-1]['action'] == 'neutral'
     assert run.status(base(), .15)['can_start']
     start(run)
@@ -101,7 +101,7 @@ def test_prepare_and_start_are_explicit_neutral_only_then_single_three_second_ar
         if i <= 30:
             assert actuator.commands[-1]['esc_us'] == 1500
     assert actuator.commands[-1]['action'] == 'creep'
-    assert actuator.commands[-1]['esc_us'] == 1550
+    assert actuator.commands[-1]['esc_us'] == 1570
     assert (p, b, c) == originals
     report = run.status(base(), 3.6)
     assert report['field_verified'] is False and report['parking_zone_verified'] is False
@@ -146,7 +146,7 @@ def test_invalid_prepare_has_no_session_or_hardware(change):
     assert not run.active
 
 
-@pytest.mark.parametrize('forward', [1501, 1575, 1625])
+@pytest.mark.parametrize('forward', [1570, 1575, 1625])
 def test_selected_forward_pulse_is_snapshotted_and_bounded(forward):
     run, actuator = prepared(forward_us=forward)
     assert run.s['brake']['pwm']['search_us'] == forward
@@ -188,7 +188,7 @@ def test_stale_camera_or_page_releases_actuator_and_records_failed_sample(tmp_pa
     if case == 'page_lease':
         now = .8
     elif case == 'camera_age':
-        bad['captured_s'] = -.1
+        bad['captured_s'] = -.31
     elif case == 'camera_failure':
         bad['fresh'] = False
     elif case == 'wrong_camera':
@@ -263,13 +263,13 @@ def test_independent_guard_caps_brake_duration_even_with_repeated_frames():
     send(0, 0., 'search', 1575, 1350)
     send(1, .1, 'brake', 1400, 1870)
     send(2, .15, 'brake', 1400, 1870)
-    send(3, .23, 'brake', 1400, 1870)
+    send(3, .46, 'brake', 1400, 1870)
     assert guard.brake_until is None and guard.esc == 1500
     assert (3, 1350) in writes and (3, 1870) in writes
-    send(4, .3, 'search', 1575)
-    guard.tick(.51)
+    send(4, .6, 'search', 1575)
+    guard.tick(1.11)
     assert guard.fault == 'command lease expired' and guard.esc == 1400
-    guard.tick(.64)
+    guard.tick(1.47)
     assert guard.esc == 1500
 
 
@@ -298,7 +298,8 @@ def test_duplicate_fresh_frame_renews_output_without_accumulating_entry_evidence
     assert run.active and controller.steps == 1
     assert len(actuator.commands) == 4
     assert all(c['esc_us'] == 1575 for c in actuator.commands[1:])
-    run.tick(view, .46)
+    run.command('parking_trial_keepalive', command(run, 0), .45)
+    run.tick(view, .71)
     assert run.phase == 'fault' and actuator.closed and controller.steps == 1
 
 
@@ -370,7 +371,7 @@ def test_start_refreshes_default_side_from_fresh_observer_evidence_and_records_i
 
 @pytest.mark.parametrize('change', [
     {'suggestion_source': 'history'}, {'suggestion_source': 'default_right'},
-    {'stale': True}, {'captured_s': -.1}, {'captured_s': .3}, {'captured_s': float('nan')},
+    {'stale': True}, {'captured_s': -.31}, {'captured_s': .3}, {'captured_s': float('nan')},
 ])
 def test_history_or_stale_start_evidence_preserves_prepared_side(change):
     run, _ = prepared()

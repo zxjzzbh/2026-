@@ -32,9 +32,9 @@ def inspect(context,image=None,fid=1,t=1.):
 
 def spy_prior(monkeypatch):
     original=cone_road.curve_inner_edges;calls=[]
-    def detect(image,mask,config,*,prior=None):
+    def detect(image,mask,config,*,prior=None,mask_override=None):
         calls.append(copy.deepcopy(prior))
-        return original(image,mask,config,prior=prior)
+        return original(image,mask,config,prior=prior,mask_override=mask_override)
     monkeypatch.setattr(cone_road,'curve_inner_edges',detect)
     return calls
 
@@ -57,7 +57,7 @@ def test_only_real_fresh_pair_is_available_as_next_frame_prior(settings,monkeypa
 
 @pytest.mark.parametrize('change',[
     {'fid':1,'t':1.1},{'fid':2,'t':1.},{'fid':0,'t':.9},
-    {'fid':2,'t':1.251},{'fid':True,'t':1.1},
+    {'fid':2,'t':1.501},{'fid':True,'t':1.1},
     {'fid':2,'t':float('nan')},{'fid':None,'t':1.1},
     {'fid':2,'t':None},
 ])
@@ -120,7 +120,7 @@ def test_blank_current_frame_never_becomes_cached_pair_or_renews_pair_age(settin
         result=inspect(context,blank,fid,t)
         assert not result['valid'] and result['left_inner']==result['right_inner']==[]
         assert calls[-1]['captured_s']==1. and not result['boundary_diagnostics']['history_pair_saved']
-    result=inspect(context,blank,4,1.251)
+    result=inspect(context,blank,4,1.501)
     assert calls[-1] is None and context._pair_prior is None
     assert not result['valid']
 
@@ -189,7 +189,7 @@ def test_threshold_candidates_are_merged_and_deduplicated_not_first_background_o
     current={255:[stripe(10)],220:[stripe(10),stripe(100)],
              200:[stripe(10),stripe(101),stripe(400)],180:[stripe(10),stripe(101),stripe(401)],
              160:[stripe(10),stripe(101),stripe(401)]}
-    def detect(image,mask,config,*,prior=None):
+    def detect(image,mask,config,*,prior=None,mask_override=None):
         candidates=copy.deepcopy(current[config.white_v_min])
         return [],[],np.zeros(image.shape[:2],np.uint8),{'reason':'no_supported_curve_pair'},candidates
     monkeypatch.setattr(cone_road,'curve_inner_edges',detect)
@@ -197,7 +197,8 @@ def test_threshold_candidates_are_merged_and_deduplicated_not_first_background_o
     assert not result['valid'] and result['left_inner']==result['right_inner']==[]
     xs=sorted(row['left_edge'][0][0] for row in result['boundary_candidates'])
     assert len(xs)==3 and xs[0]==10 and 100<=xs[1]<=101 and 400<=xs[2]<=401
-    assert result['boundary_diagnostics']['candidate_thresholds']==[255,220,200,180,160]
+    assert list(dict.fromkeys(result['boundary_diagnostics']['candidate_thresholds']))==[255,220,200,180,160]
+    # The illumination retry may reuse 160; its candidates must still deduplicate.
     assert result['boundary_diagnostics']['merged_candidate_count']==3
 
 
@@ -220,7 +221,7 @@ def test_background_without_supported_current_pair_stays_invalid_even_with_prior
 
 
 def test_merged_single_candidates_stay_bounded(settings,monkeypatch):
-    def detect(image,mask,config,*,prior=None):
+    def detect(image,mask,config,*,prior=None,mask_override=None):
         offset={255:0,220:1,200:2,180:3,160:4}[config.white_v_min]
         candidates=[stripe(8.+index*9.+offset*80.) for index in range(12)]
         return [],[],np.zeros(image.shape[:2],np.uint8),{'reason':'no_supported_curve_pair'},candidates
@@ -289,7 +290,7 @@ def test_threshold_attempt_budget_matches_configured_candidates_and_does_not_low
 
 
 def test_budget_exhausted_threshold_cannot_contribute_single_candidates(settings,monkeypatch):
-    def detect(image,mask,config,*,prior=None):
+    def detect(image,mask,config,*,prior=None,mask_override=None):
         budget=config.white_v_min==200
         # Deliberately include a stripe in a failed attempt to verify the
         # context boundary cannot leak even malformed budget-exhausted output.
@@ -306,7 +307,7 @@ def test_budget_exhausted_threshold_cannot_contribute_single_candidates(settings
 
 
 def test_all_exhausted_thresholds_return_no_single_or_pair_and_do_not_save_history(settings,monkeypatch):
-    def detect(image,mask,config,*,prior=None):
+    def detect(image,mask,config,*,prior=None,mask_override=None):
         return [],[],np.zeros(image.shape[:2],np.uint8),{
             'reason':'row_association_budget_exhausted','association_budget_exhausted':True},[stripe(100)]
     monkeypatch.setattr(cone_road,'curve_inner_edges',detect)

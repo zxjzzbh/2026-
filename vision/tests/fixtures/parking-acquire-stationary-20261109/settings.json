@@ -1,0 +1,410 @@
+{
+  "parking": {
+    "schema_version": 1,
+    "camera": "secondary",
+    "image_size": [
+      480,
+      360
+    ],
+    "zone_length_m": 1.0,
+    "lane_width_m": 1.25,
+    "vehicle_width_m": 0.3,
+    "front_extent_m": 0.335,
+    "rear_extent_m": 0.085,
+    "measured_geometry": {
+      "source_record": "vision/configs/vehicle-geometry-measurements-20261025.json",
+      "source": "human_user_measurements_2026-10-25",
+      "front_axle_to_front_m": 0.09,
+      "rear_axle_to_rear_m": 0.07,
+      "overall_length_m": 0.42,
+      "overall_width_m": 0.3,
+      "wheelbase_m": 0.245,
+      "wheel_track_m": 0.24,
+      "tyre_contact_width_m": 0.05,
+      "tyre_contact_length_m": 0.035,
+      "axle_and_overhang_length_m": 0.405,
+      "length_discrepancy_m": 0.015,
+      "effective_front_extent_m": 0.335,
+      "effective_rear_extent_m": 0.085,
+      "effective_rear_extent_is_measured": false,
+      "notes": "The reported rear overhang is 0.07 m. Runtime rear_extent_m stays at the conservative envelope max(0.07, 0.42 - 0.335) = 0.085 m to cover the full reported 0.42 m length. The 0.015 m discrepancy is unresolved. Dimensions do not verify clearance, ground projection, motion or pose."
+    },
+    "clearance_m": 0.02,
+    "yellow_lower": [
+      15,
+      80,
+      80
+    ],
+    "yellow_upper": [
+      40,
+      255,
+      255
+    ],
+    "blue_lower": [
+      90,
+      90,
+      50
+    ],
+    "blue_upper": [
+      135,
+      255,
+      255
+    ],
+    "blocked_blue_fraction": 0.03,
+    "clear_ground_fraction": 0.65,
+    "selection_confirm_s": 0.5,
+    "stop_hold_s": 0.5,
+    "max_frame_age_s": 0.25,
+    "max_speed_mps": 0.15,
+    "max_run_s": 30.0,
+    "perception_verified": false,
+    "ground": null,
+    "minimum_turn_radius_m": null,
+    "braking_distance_m": null,
+    "maximum_pose_error_m": null,
+    "notes": "1 m bay length from 2026 draft; existing 1.23 m lane setting retained. 2026-10-25 human body measurements: overall width 0.30 m, overall length 0.42 m, wheelbase 0.245 m, front overhang 0.09 m and rear overhang 0.07 m. Front extent is 0.335 m from the rear axle. Runtime rear extent 0.085 m is a conservative envelope covering the reported overall length, not a measured rear overhang. See measured_geometry/source record for the unresolved 0.015 m discrepancy. Clearance 2 cm and speed cap are software limits, not measured performance. Perception, ground and motion verification are unchanged.",
+    "surface": "auto",
+    "visual_entry": {
+      "ground_pose_confirmed": true,
+      "slow_forward_us": 1570,
+      "seek_timeout_s": 5,
+      "max_run_s": 30,
+      "boundary_grace_s": 0.25,
+      "boundary_wait_s": 1.2,
+      "countersteer_limit_us": 80,
+      "slow_line_y_normalized": null,
+      "stop_line_y_normalized": null
+    },
+    "lookahead_m": 0.25,
+    "final_speed_mps": 0.05,
+    "slowdown_distance_m": 0.6,
+    "maximum_tracking_error_m": 0.06,
+    "stopped_speed_mps": 0.01
+  },
+  "brake": {
+    "schema_version": 1,
+    "esc_model": "火凤凰 New Rain 480A 双向有刷电调",
+    "required_esc_mode": "F/B",
+    "camera": "secondary",
+    "image_size": [
+      480,
+      360
+    ],
+    "references": [
+      {
+        "distance_m": 0.65,
+        "far_edge_y_normalized": 0.6016713091922006,
+        "role": "approach",
+        "measured": true
+      },
+      {
+        "distance_m": 0.5,
+        "far_edge_y_normalized": 0.6545961002785515,
+        "role": "creep",
+        "measured": true
+      },
+      {
+        "distance_m": 0.25,
+        "far_edge_y_normalized": 0.7465181058495822,
+        "role": "near_distance_reference",
+        "measured": true
+      }
+    ],
+    "brake_trigger_distance_m": 0.55,
+    "pwm": {
+      "neutral_us": 1500,
+      "steering_center_us": 1610,
+      "search_us": 1575,
+      "creep_us": 1570,
+      "brake_us": 1400
+    },
+    "arming_s": 3.0,
+    "no_progress_s": 2.0,
+    "brake_pulse_s": 0.35,
+    "brake_release_s": 0.1,
+    "max_brake_pulses": 3,
+    "brake_timeout_s": 3.0,
+    "stop_confirm_s": 0.5,
+    "hold_s": 10.0,
+    "speech_text": "我是山东大学启航队的智能车，请为我加油",
+    "max_frame_age_s": 0.5,
+    "max_approach_s": 10.0,
+    "actuator_lease_s": 0.5,
+    "tuning_verified": false,
+    "notes": "Original 65/50/25 cm measurements are unchanged. Default trigger is 55 cm, interpolated from the original references. Web distance edits persist separately in brake-parking.local.json and are snapshotted at each start; a running round keeps its distance. Both forward stages remain 1575 us and arming remains 3 s. Stationary hold is 10 s with one full team announcement. Brake 1400 us and pulse timing are unchanged; physical braking performance is not verified."
+  },
+  "cone": {
+    "schema_version": 1,
+    "camera": "secondary",
+    "aux_camera": "primary",
+    "image_size": [
+      480,
+      360
+    ],
+    "target_count": 2,
+    "blue_hsv_lower": [
+      100,
+      110,
+      50
+    ],
+    "blue_hsv_upper": [
+      135,
+      255,
+      255
+    ],
+    "confirm_frames": 3,
+    "confirm_s": 0.15,
+    "track_timeout_s": 0.6,
+    "max_frame_age_s": 0.25,
+    "scene": {
+      "surface": "indoor_white_line_track",
+      "boundary_policy": "whole_vehicle_inside_white_inner_edges",
+      "red_ground_min_fraction": 0.15,
+      "blue_only_obstacles_reported": true,
+      "white_v_min": 200
+    },
+    "geometry": {
+      "measured": false,
+      "lane_width_m": 1.25,
+      "vehicle_width_m": 0.3,
+      "vehicle_length_m": 0.42,
+      "rear_axle_to_front_m": 0.335,
+      "rear_overhang_m": 0.085,
+      "cone_height_m": 0.08,
+      "cone_base_width_m": 0.075,
+      "clearance_m": null,
+      "measured_geometry": {
+        "source_record": "vision/configs/vehicle-geometry-measurements-20261025.json",
+        "source": "human_user_measurements_2026-10-25",
+        "front_axle_to_front_m": 0.09,
+        "rear_axle_to_rear_m": 0.07,
+        "overall_length_m": 0.42,
+        "overall_width_m": 0.3,
+        "wheelbase_m": 0.245,
+        "wheel_track_m": 0.24,
+        "tyre_contact_width_m": 0.05,
+        "tyre_contact_length_m": 0.035,
+        "axle_and_overhang_length_m": 0.405,
+        "length_discrepancy_m": 0.015,
+        "effective_front_extent_m": 0.335,
+        "effective_rear_extent_m": 0.085,
+        "effective_rear_extent_is_measured": false,
+        "notes": "The reported rear overhang is 0.07 m. Runtime rear_overhang_m stays at the conservative envelope max(0.07, 0.42 - 0.335) = 0.085 m to cover the full reported 0.42 m length. The 0.015 m discrepancy is unresolved. Dimensions do not verify clearance, ground projection, motion or pose."
+      }
+    },
+    "ground": {
+      "verified": false,
+      "detector_verified": false,
+      "image_size": [
+        480,
+        360
+      ],
+      "pose_us": [
+        1600,
+        1150
+      ],
+      "homography": [
+        [
+          -0.001719914438483979,
+          0.00016533935234815564,
+          0.3639539214583493
+        ],
+        [
+          -9.487806934345525e-05,
+          -0.0007147609050347506,
+          -0.37016768184374077
+        ],
+        [
+          -0.00019889022326163343,
+          -0.0050630492532325235,
+          1.0
+        ]
+      ],
+      "valid_polygon_px": [
+        [
+          156.83043015302692,
+          339.8921501998256
+        ],
+        [
+          333.37466201283524,
+          336.3141605394761
+        ],
+        [
+          326.8497023809524,
+          246.8407738095238
+        ],
+        [
+          146.44681818181817,
+          252.5222727272727
+        ]
+      ],
+      "independent_check_rms_m": 0.014248798066974693,
+      "independent_check_max_error_m": 0.02114873755797878,
+      "coordinate_frame": "rear_axle_x_right_y_forward",
+      "max_error_m": 0.03,
+      "historical_verified": true,
+      "current_pose_verified": false,
+      "reuse_source": {
+        "commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+        "path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+        "pose_us": [
+          1600,
+          1150
+        ],
+        "source_repeat_error_m": 0.02157725555847742
+      },
+      "calibration_evidence": {
+        "image_size": [
+          480,
+          360
+        ],
+        "pose_us": [
+          1600,
+          1150
+        ],
+        "points": [
+          {
+            "pixel": [
+              156.83043015302692,
+              339.8921501998256
+            ],
+            "ground_m": [
+              -0.2,
+              0.835
+            ]
+          },
+          {
+            "pixel": [
+              333.37466201283524,
+              336.3141605394761
+            ],
+            "ground_m": [
+              0.2,
+              0.835
+            ]
+          },
+          {
+            "pixel": [
+              326.8497023809524,
+              246.8407738095238
+            ],
+            "ground_m": [
+              0.5,
+              1.835
+            ]
+          },
+          {
+            "pixel": [
+              146.44681818181817,
+              252.5222727272727
+            ],
+            "ground_m": [
+              -0.5,
+              1.835
+            ]
+          }
+        ],
+        "check_points": [
+          {
+            "pixel": [
+              242.78308317302827,
+              297.3570108163748
+            ],
+            "ground_m": [
+              0,
+              1.085
+            ]
+          },
+          {
+            "pixel": [
+              239.1779891304348,
+              259.4071557971015
+            ],
+            "ground_m": [
+              0,
+              1.585
+            ]
+          },
+          {
+            "pixel": [
+              262.6210166177908,
+              274.5902737047898
+            ],
+            "ground_m": [
+              0.1,
+              1.335
+            ]
+          }
+        ],
+        "valid_polygon_px": [
+          [
+            156.83043015302692,
+            339.8921501998256
+          ],
+          [
+            333.37466201283524,
+            336.3141605394761
+          ],
+          [
+            326.8497023809524,
+            246.8407738095238
+          ],
+          [
+            146.44681818181817,
+            252.5222727272727
+          ]
+        ],
+        "camera": "secondary",
+        "measured_fixed_camera": false,
+        "accepted_error_m": 0.03,
+        "candidate_only": true,
+        "source_commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+        "source_path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+        "source_pose_us": [
+          1600,
+          1150
+        ],
+        "source_repeat_error_m": 0.02157725555847742,
+        "rear_axle_origin_adjustment_m": -0.0050000000000000044,
+        "notes": "Historical data only: assumes unchanged fixed camera and pure uncropped resize. Current pose and lane-edge coverage must be checked. This polygon does not cover both edges of the 1.23m lane. Not enabled for driving."
+      }
+    },
+    "motion": {
+      "verified": false,
+      "minimum_turn_radius_m": null,
+      "maximum_tracking_error_m": null,
+      "braking_distance_m": null,
+      "pose_feedback_verified": false
+    },
+    "notes": "2026-10-25 human measurements update body width to 0.30 m and overall length to 0.42 m; measured rear overhang 0.07 m is recorded separately from the conservative runtime 0.085 m rear envelope. Rear-axle-to-front extent is 0.245 + 0.09 = 0.335 m. See geometry.measured_geometry and its source record for wheel/tyre measurements and the unresolved 0.015 m length discrepancy. Existing lane, cone and camera settings are preserved. Clearance, ground/motion/pose validation remain incomplete; geometry.measured is not promoted.",
+    "driving": {
+      "forward_us": 1575,
+      "max_run_s": 30,
+      "max_speed_mps": 0.2,
+      "lookahead_m": 0.4,
+      "brake_pulse_s": 0.12,
+      "brake_release_s": 0.1,
+      "actuator_lease_s": 0.2,
+      "steering_radius_right_cm": null,
+      "steering_radius_left_cm": null,
+      "visual_error_bound_m": null,
+      "visual_verified_distance_m": null,
+      "fixed_camera_confirmed": false,
+      "steering_verified": false,
+      "odometry_verified": false,
+      "steering_radius_1350_cm": null,
+      "steering_radius_1870_cm": null,
+      "steering_radius_1570_cm": null,
+      "steering_radius_1650_cm": null
+    }
+  },
+  "controller_mode": "visual_trial",
+  "selected_slot": "left",
+  "prepared_slot": "right",
+  "forward_us": 1575,
+  "steering_gain": 1.25,
+  "selection_source": "blue_board_position",
+  "selection_basis": "蓝色挡板主要在右侧，暂选另一侧；边界未必完整",
+  "prepared_selection_source": "default_right",
+  "selection_captured_s": 2856.524417423
+}

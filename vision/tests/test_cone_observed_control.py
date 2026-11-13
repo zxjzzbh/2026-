@@ -143,7 +143,7 @@ def test_current_lane_and_obstacle_diagnostics_do_not_renew_cached_frame_motion(
     assert (controller.pass_gate_hits,controller.tail_powered,controller.pd.error,controller.pd.derivative)==before
     guard=ConePulseGuard(actuator_settings(controller.s),lambda *args:None,mode='F/B')
     guard.accept({**first,'sequence':0,'sent_s':.4},.4)
-    guard.tick(.61)
+    guard.tick(guard.deadline+.001)
     assert guard.fault and guard.esc==1400
 
 
@@ -153,4 +153,4 @@ def test_new_band_fields_do_not_change_gain_contact_or_camera_freshness_policy()
     assert controller.progress()['line_recovery_s']==1.
     nav=observe(navigator,.3,[target(navigator,.3,300)])
     with pytest.raises(ValueError,match='画面'):
-        controller.step(nav,.551)
+        controller.step(nav,.801)

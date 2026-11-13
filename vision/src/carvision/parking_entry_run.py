@@ -9,14 +9,28 @@ import json
 import math
 import secrets
 import time
+import threading
+from functools import wraps
 from pathlib import Path
 
 from .cone_trial_output import ConeTrialActuator
 from .parking_entry import ParkingEntryController
 from .parking_control import MetricParkingController, calibration_tables
 from .steering import LEFT_US, RIGHT_US
-from .parking_log import ParkingLog
+from .parking_log import ParkingLog, ParkingFrames
 from .parking_visual import resolve_visual_options
+from .parking_limits import FRAME_MAX_AGE_S, FORWARD_MIN_US, REVISION, VISUAL_BRAKE_PULSE_S
+
+
+from .page_heartbeat import PAGE_LEASE_S
+
+
+def serialized(method):
+    @wraps(method)
+    def invoke(self, *args, **kwargs):
+        with self.output_lock:
+            return method(self, *args, **kwargs)
+    return invoke
 
 
 EVIDENCE_SELECTION_SOURCES = frozenset(('layout', 'blocked_side', 'visible_ground', 'blue_board_position'))
@@ -53,6 +67,12 @@ def _clean(value):
 
 class ParkingEntryRun:
     def __init__(self, factory=None, log_root=None, *, async_log=False):
+        self.output_lock = threading.RLock()
+        self.heartbeat_sequence = -1
+        self.heartbeat_count = 0
+        self.last_heartbeat_s = None
+        self.maximum_heartbeat_gap_s = 0.
+        self.last_tick_s = None
         self.factory = factory or make_actuator
         self.async_log = async_log
         self.log_root = Path(log_root) if log_root else None
@@ -64,15 +84,16 @@ class ParkingEntryRun:
         self.lease_until = self.prepared_s = 0.
         self.s = self.controller = self.sample = self.intent = self.execution = None
         self.actuator = self.folder = self.log = None
+        self.frames = None
         self.last_record = None
         self.last_control_frame = None
 
-    @staticmethod
-    def _fresh(sample, now):
+    def _fresh(self, sample, now):
         if not isinstance(sample, dict) or sample.get('fresh') is not True:
             return False
         t = sample.get('captured_s')
-        return (type(t) in (int, float) and math.isfinite(t) and 0 <= now - t <= .25
+        limit=FRAME_MAX_AGE_S if (self.s or {}).get('controller_mode')=='visual_trial' else .25
+        return (type(t) in (int, float) and math.isfinite(t) and 0 <= now - t <= limit
                 and type(sample.get('frame_id')) is int
                 and sample.get('image_size') == [480, 360]
                 and sample.get('camera_id', 'secondary') == 'secondary')
@@ -85,6 +106,7 @@ class ParkingEntryRun:
             'controller_mode': (self.s or {}).get('controller_mode','metric_path'),
             'diagnostic_only':not metric,'formal_task':metric,
             'completion_authorizes_payment':metric and bool((self.intent or {}).get('payment_ready')),
+            'page_heartbeat': self.heartbeat_status(now),
             'active': self.active, 'phase': self.phase, 'reason': self.reason,
             'owner_client': self.owner, 'run_token': self.token,
             'can_prepare': not self.active and parking_base_idle(base),
@@ -103,7 +125,11 @@ class ParkingEntryRun:
             'visual_retarget_enabled': not metric and self.controller is not None,
             'forward_us': (self.s or {}).get('forward_us', 1575),
             'steering_gain': (self.s or {}).get('steering_gain', 1.25),
-            'logic_revision':'metric_parking_v1' if metric else 'parking_closed_loop_v3',
+            'logic_revision':'metric_parking_v1' if metric else REVISION,
+            'visual_logic_revision':REVISION,
+            'visual_frame_max_age_s':FRAME_MAX_AGE_S,
+            'visual_forward_min_us':FORWARD_MIN_US,
+            'visual_brake_pulse_s':VISUAL_BRAKE_PULSE_S,
             'slow_forward_us':((self.s or {}).get('brake') or {}).get('pwm',{}).get('creep_us'),
             'steering_limits_us': [RIGHT_US, LEFT_US],
             'hardware_output': bool(self.actuator and getattr(self.actuator, 'run', False)),
@@ -115,6 +141,7 @@ class ParkingEntryRun:
             'log_directory': str(self.folder) if self.folder else None,
         }
 
+    @serialized
     def prepare(self, parking_settings, brake_settings, cone_settings, base, payload, now, *, selection=None):
         if self.active or not parking_base_idle(base):
             raise ValueError('先结束遥控、斑马线、红绿灯、锥桶或完整流程，再准备停车入位')
@@ -134,8 +161,8 @@ class ParkingEntryRun:
         if mode=='metric_path' and side not in (None,'left','right'):
             raise ValueError('停车方向格式无效')
         forward = payload.get('forward_us', 1575)
-        if type(forward) is not int or not 1501 <= forward <= 1625:
-            raise ValueError('停车前进油门仅允许 1501–1625 μs 整数')
+        if type(forward) is not int or not FORWARD_MIN_US <= forward <= 1625:
+            raise ValueError('停车前进油门仅允许 1570–1625 μs 整数')
         gain = payload.get('steering_gain', 1.25)
         if type(gain) not in (int, float) or not math.isfinite(gain) or not 1 <= gain <= 3:
             raise ValueError('停车转向增益仅允许 1.0–3.0')
@@ -146,6 +173,8 @@ class ParkingEntryRun:
         brake['pwm'] = {'neutral_us': 1500, 'steering_center_us': 1610,
                         'search_us': forward, 'creep_us': forward, 'brake_us': 1400}
         if mode=='visual_trial':
+            brake.update(max_frame_age_s=FRAME_MAX_AGE_S, actuator_lease_s=.5,
+                         brake_pulse_s=VISUAL_BRAKE_PULSE_S)
             visual=resolve_visual_options(parking.get('visual_entry'),brake,forward)
             brake['pwm']['creep_us']=visual['slow_forward_us']
         if mode=='metric_path':
@@ -171,8 +200,13 @@ class ParkingEntryRun:
         self._controller(candidate)
         self.s = candidate
         self.owner, self.token = client, secrets.token_hex(16)
-        self.sequence, self.lease_until, self.prepared_s = -1, now + .5, now
-        self.active, self.phase = True, 'preparing'
+        self.sequence, self.lease_until, self.prepared_s = -1, now + PAGE_LEASE_S, now
+        self.heartbeat_sequence = -1
+        self.heartbeat_count = 0
+        self.last_heartbeat_s = now
+        self.maximum_heartbeat_gap_s = 0.
+        self.last_tick_s = now
+        self.active, self.phase = True, 'preparing' 
         self.reason = ('等待米制停车反馈；准备期间仅保持中位' if mode=='metric_path' else
                        '历史视觉诊断：等待第二路画面；结果不能证明正式入位或授权付款')
         self.controller = self.sample = self.intent = self.execution = None
@@ -186,6 +220,7 @@ class ParkingEntryRun:
                     json.dumps(_clean(self.s), ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')
                 path = self.folder / 'decisions.jsonl'
                 self.log = ParkingLog(path) if self.async_log else path.open('w', encoding='utf-8')
+                if self.async_log:self.frames=ParkingFrames(self.folder)
             except Exception:
                 self.cancel('无法创建停车入位日志', phase='fault')
                 raise
@@ -212,10 +247,47 @@ class ParkingEntryRun:
         t = selection.get('captured_s')
         if (selection.get('selected_slot') not in ('left', 'right')
                 or selection.get('suggestion_source') not in EVIDENCE_SELECTION_SOURCES
-                or type(t) not in (int, float) or not math.isfinite(t) or not 0 <= now-t <= .25):
+                or type(t) not in (int, float) or not math.isfinite(t) or not 0 <= now-t <= FRAME_MAX_AGE_S):
             return None
         return selection
 
+    def heartbeat_status(self, now=None):
+        return {'lease_s': PAGE_LEASE_S, 'last_received_s': self.last_heartbeat_s,
+                'maximum_receive_gap_s': self.maximum_heartbeat_gap_s,
+                'received': self.heartbeat_count,
+                'age_s': None if now is None or self.last_heartbeat_s is None else max(0., now-self.last_heartbeat_s)}
+
+    def _renew_page(self, now):
+        # A control request may have waited for this lock while an independent
+        # heartbeat arrived. Its older receipt time must not shorten the lease.
+        now=max(now,self.last_heartbeat_s if self.last_heartbeat_s is not None else now)
+        if self.last_heartbeat_s is not None:
+            self.maximum_heartbeat_gap_s = max(self.maximum_heartbeat_gap_s, now-self.last_heartbeat_s)
+        self.last_heartbeat_s = now
+        self.heartbeat_count += 1
+        self.lease_until = now + PAGE_LEASE_S
+
+    @serialized
+    def heartbeat(self, payload, now):
+        # Independent sequence space: reordered replies cannot block start/stop.
+        if (not isinstance(payload, dict) or not self.active
+                or payload.get('client') != self.owner or payload.get('run_token') != self.token):
+            raise ValueError('本页未持有当前停车入位控制权')
+        if now > self.lease_until:
+            self.last_tick_s = now
+            self.cancel('控制页心跳超过 3 秒，已结束停车入位', phase='fault')
+            raise ValueError(self.reason)
+        seq = payload.get('heartbeat_sequence')
+        if type(seq) is not int or seq < 0:
+            raise ValueError('invalid heartbeat sequence')
+        accepted = seq > self.heartbeat_sequence
+        if accepted:
+            self.heartbeat_sequence = seq
+            self._renew_page(now)
+        return {'heartbeat_ack': True, 'accepted': accepted, 'heartbeat_sequence': seq,
+                'server_received_s': now, 'page_lease_s': PAGE_LEASE_S}
+
+    @serialized
     def command(self, action, payload, now, *, start_selection=None):
         if not isinstance(payload, dict) or not self.active or payload.get('client') != self.owner or payload.get('run_token') != self.token:
             raise ValueError('本页未持有当前停车入位控制权')
@@ -258,12 +330,15 @@ class ParkingEntryRun:
             return
         elif action != 'parking_trial_keepalive':
             raise ValueError('未知停车入位请求')
-        self.sequence, self.lease_until = sequence, now + .5
+        self.sequence = sequence
+        self._renew_page(now)
 
+    @serialized
     def tick(self, sample, now):
         if not self.active:
             return
         self.sample = sample
+        self.last_tick_s = now
         try:
             if now > self.lease_until:
                 raise ValueError('控制页心跳中断，已结束停车入位')
@@ -307,7 +382,7 @@ class ParkingEntryRun:
             key = (sample.get('frame_id'), sample.get('captured_s'), self.phase, intent['action'])
             if self.log and not self.log.closed and key != self.last_record:
                 self.log.write(json.dumps(_clean({'now_s': now, 'intent': intent, 'sample': sample,
-                                                 'execution': self.execution}), ensure_ascii=False, allow_nan=False) + '\n')
+                                                 'execution': self.execution, 'page_heartbeat': self.heartbeat_status(now)}), ensure_ascii=False, allow_nan=False) + '\n')
                 self.log.flush()
                 self.last_record = key
             if self.phase in ('done', 'fault'):
@@ -316,6 +391,7 @@ class ParkingEntryRun:
             if self.active:
                 self.cancel(str(exc), phase='fault')
 
+    @serialized
     def cancel(self, reason, phase='cancelled'):
         try:
             if self.actuator:
@@ -328,6 +404,8 @@ class ParkingEntryRun:
             self.token = None
             if self.log and not self.log.closed:
                 self.log.close()
+            if self.frames:
+                self.frames.close();self.frames=None
             if self.folder:
                 try:
                     metric=(self.s or {}).get('controller_mode')=='metric_path'
@@ -339,6 +417,9 @@ class ParkingEntryRun:
                                'retarget_count':getattr(self.controller,'retarget_count',0),
                                'actual_pose_not_verified': (self.intent or {}).get('actual_pose_not_verified',True), 'parking_zone_verified': False,
                                'failure_sample': self.sample if phase == 'fault' else None,
+                               'page_heartbeat': self.heartbeat_status(self.last_tick_s),
+                               'ended_s': time.monotonic(),
+                               'frame_age_limit_s': FRAME_MAX_AGE_S,
                                'last_requested_intent': self.intent}
                     (self.folder / 'summary.json').write_text(
                         json.dumps(_clean(summary), ensure_ascii=False, indent=2, allow_nan=False), encoding='utf-8')

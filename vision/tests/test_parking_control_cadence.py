@@ -53,8 +53,9 @@ def test_slow_detector_does_not_starve_ready_output_but_stale_frame_stops(tmp_pa
         count=len(a.commands)
         wait_until(lambda:len(a.commands)>=count+3)
         assert w.entry.active and all(x['esc_us']==1500 for x in a.commands)
-        assert w.entry.s['brake']['actuator_lease_s']==.2
-        now[0]=.36
+        assert w.entry.s['brake']['actuator_lease_s']==.5
+        w.entry.command('parking_trial_keepalive',command(w.entry,0),.3)
+        now[0]=.61
         wait_until(lambda:a.closed)
         assert not w.entry.active and '画面' in w.entry.reason
         # New pixels alone cannot reopen a cancelled session.
@@ -67,10 +68,10 @@ def test_slow_detector_does_not_starve_ready_output_but_stale_frame_stops(tmp_pa
 
 def test_page_expiry_still_stops_with_fresh_camera(tmp_path):
     w,a,now=wrapper(tmp_path)
-    now[0]=.51;w.entry_sample=sample(.51)
+    now[0]=3.01;w.entry_sample=sample(3.01)
     w._control_tick()
     assert a.closed and not w.entry.active and '心跳' in w.entry.reason
-    assert w.entry.lease_until==.5
+    assert w.entry.lease_until==3.
     w.close()
 
 
@@ -167,7 +168,7 @@ def test_compact_keepalive_retains_authority_and_deadline_without_full_status(tm
     monkeypatch.setattr(w,'status',lambda:pytest.fail('heartbeat must not build full status'))
     ack=w.request('parking_trial_keepalive',command(w.entry,0,compact_ack=True))
     assert ack['parking_keepalive'] is True and 'parking_bay' not in ack
-    assert w.entry.lease_until==pytest.approx(.6)
+    assert w.entry.lease_until==pytest.approx(3.1)
     with pytest.raises(ValueError):w.request('parking_trial_keepalive',command(w.entry,1,compact_ack=True,client='wrong'))
-    assert w.entry.lease_until==pytest.approx(.6)
+    assert w.entry.lease_until==pytest.approx(3.1)
     w.close()

@@ -1,0 +1,53 @@
+{
+  "release": "traffic-rebrake-6-20261112",
+  "publication_date": "2026-11-13",
+  "runtime_files": 204,
+  "runtime_matches_current_local_release_byte_for_byte": true,
+  "git_text_normalization": "LF line endings; normalized hashes in source-manifest.json",
+  "public_checkout_regression": {
+    "tests": 3834,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 6,
+    "passed": 3828,
+    "seconds": 555.67
+  },
+  "test_sources_unchanged_during_run": true,
+  "offline_commands": [
+    {
+      "command": "python -m carvision autonomy-check --profile vision/configs/autonomy-pi5.json",
+      "exit_code": 0
+    },
+    {
+      "command": "python -m carvision autonomy-demo --profile vision/configs/autonomy-pi5.json --race-config vision/configs/race-2026.json --output run/publication-offline-demo",
+      "exit_code": 0
+    },
+    {
+      "command": "python tools/audit_snapshot_20261008.py",
+      "exit_code": 0
+    }
+  ],
+  "public_test_adaptations": [
+    "Use explicitly named offline field fixtures instead of private local config paths.",
+    "Update stale frame-age/heartbeat expectations to existing runtime contracts.",
+    "Forward the current mask_override argument in lane detector test doubles.",
+    "Retain deduplication checks when the illumination retry repeats a threshold."
+  ],
+  "configuration_policy": "Vehicle local overrides are not installed defaults; preserve actual calibration on deployment.",
+  "source_release_historical_checks_20261112": {
+    "local": {
+      "passed": 664,
+      "skipped": 1
+    },
+    "pi_before_deployment": {
+      "passed": 333,
+      "skipped": 1
+    },
+    "note": "Historical deployment record, not a new hardware or field test."
+  },
+  "vehicle_operations_during_this_publication": [],
+  "limitations": [
+    "Offline tests do not certify full-course physical performance.",
+    "Two existing source trailing spaces are retained to preserve source byte identity."
+  ]
+}

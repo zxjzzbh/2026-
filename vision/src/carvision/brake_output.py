@@ -47,6 +47,7 @@ def verify_neutral_readback(adapter):
 
 
 class PulseGuard:
+    MAX_LEASE_S = .5
     def __init__(self,settings,write,*,mode,forward_limit_us=1575):
         if mode!='F/B':raise ValueError('active output requires the non-reversing F/B mode')
         if type(forward_limit_us) is not int or forward_limit_us not in (1575, 1625):
@@ -56,7 +57,7 @@ class PulseGuard:
                 or any(type(p.get(k)) is not int for k in ('search_us','creep_us','brake_us'))
                 or not 1500<p['creep_us']<=p['search_us']<=forward_limit_us or not 1300<=p['brake_us']<1500
                 or not numeric(settings.get('brake_pulse_s')) or not 0<settings['brake_pulse_s']<=MAX_BRAKE_PULSE_S
-                or not numeric(settings.get('actuator_lease_s')) or not 0<settings['actuator_lease_s']<=.25
+                or not numeric(settings.get('actuator_lease_s')) or not 0<settings['actuator_lease_s']<=self.MAX_LEASE_S
                 or not numeric(settings.get('brake_release_s')) or settings['brake_release_s']<=0):
             raise ValueError('invalid local F/B actuator envelope')
         self.s,self.write=settings,write
@@ -208,6 +209,7 @@ class BrakeActuator:
         command={'sequence':self.sequence,'sent_s':time.monotonic(),'action':intent['action'],
                  'esc_us':intent['esc_us'],'steering_us':intent['steering_us']}
         self.sequence+=1
+        if 'control_profile' in intent:command['control_profile']=intent['control_profile']
         if self.run:
             if self.connection.poll():raise RuntimeError(str(self.connection.recv()))
             if not self.process.is_alive():raise RuntimeError('actuator process ended')

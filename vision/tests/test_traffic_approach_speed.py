@@ -26,12 +26,12 @@ def traffic_bundle(pulse=1570):
 
 
 @pytest.mark.parametrize('stored', [1501, 1560, 1570, 1575, 1600, 1605, 1625])
-def test_traffic_effective_speed_cap_preserves_lower_saved_values_and_input(stored):
+def test_traffic_effective_speed_cap_floors_lower_saved_values_and_input(stored):
     settings = load_settings(ROOT/'vision/configs/traffic-driving.json')
     settings['pwm']['search_us'] = settings['pwm']['creep_us'] = stored
     original = copy.deepcopy(settings)
     capped = approach_settings(settings)
-    assert capped['pwm']['search_us'] == capped['pwm']['creep_us'] == min(stored, 1570)
+    assert capped['pwm']['search_us'] == capped['pwm']['creep_us'] == 1570
     assert settings == original
     assert capped['pwm']['brake_us'] == original['pwm']['brake_us'] == 1400
     assert capped['brake_pulse_s'] == original['brake_pulse_s'] == .35
@@ -46,16 +46,16 @@ def test_saved_traffic_value_is_shared_by_trial_and_flow_without_changing_saved_
     trial = TrafficTrialDrive(SimpleNamespace(), {}, configs/'traffic-driving.json', configs/'traffic-signal.json', tmp_path)
     assert not trial.settings_error
     assert trial.settings['pwm']['search_us'] == stored
-    assert trial.active_settings['pwm']['search_us'] == min(stored,1570)
+    assert trial.active_settings['pwm']['search_us'] == 1570
     bundle = load_bundle(tmp_path)
-    assert bundle['traffic']['pwm']['search_us'] == min(stored,1570)
+    assert bundle['traffic']['pwm']['search_us'] == 1570
     assert bundle['flow']['forward_us'] == 1600
     assert json.loads(saved.read_text(encoding='utf-8'))['forward_us'] == stored
 
 
 def test_traffic_cap_does_not_change_other_task_settings():
     low, high = traffic_bundle(1560), traffic_bundle(1600)
-    assert low['traffic']['pwm']['search_us'] == 1560
+    assert low['traffic']['pwm']['search_us'] == 1570
     assert high['traffic']['pwm']['search_us'] == 1570
     for task in ('flow','brake','cones','parking','departure'):
         assert low[task] == high[task]
@@ -72,7 +72,7 @@ def test_repeated_prepare_is_idempotent_without_rewriting_raw_traffic_value(stor
     once = prepare_bundle(raw)
     twice = prepare_bundle(once)
     assert once == twice and raw == original
-    assert twice['traffic']['pwm']['search_us'] == min(stored,1570)
+    assert twice['traffic']['pwm']['search_us'] == 1570
     assert raw['traffic']['pwm']['search_us'] == stored
 
 
@@ -84,7 +84,7 @@ def test_flow_first_traffic_observation_and_lane_guidance_keep_traffic_speed(sto
     frames = Frames(controller)
     result = frames.step(color='off',moving=True)
     assert result['action'] == 'traffic_approach'
-    assert result['esc_us'] == min(stored,1570)
+    assert result['esc_us'] == 1570
     assert result['phase'] == 'traffic'
 
 
@@ -95,7 +95,7 @@ def test_bridge_into_traffic_uses_traffic_speed_before_first_lamp_observation():
            'ego_fraction':.5, 'half_envelope':.20, 'lane_bounds_px':[[100,380],[50,430]],
            'cones':[], 'uncertain':[], 'source_camera':'secondary'}
     result = controller._advance('traffic',.1,'test',{'navigation':nav},{})
-    assert result['action'] == 'traffic_approach' and result['esc_us'] == 1560
+    assert result['action'] == 'traffic_approach' and result['esc_us'] == 1570
 
 
 def test_shared_executor_accepts_capped_traffic_then_original_cone_speed(rig):

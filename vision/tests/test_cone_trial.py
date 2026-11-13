@@ -182,11 +182,14 @@ def test_real_cache_reader_keeps_sources_distinct_and_expires(settings):
     reader=ConeCamera(states,settings,lambda:now[0])
     result=reader.read()
     assert result['cameras']['primary']['frame_id']==42 and result['cameras']['secondary']['frame_id']==3
-    assert cv2.imdecode(np.frombuffer(reader.preview,np.uint8),1).shape==(360,960,3)
+    with reader.encoder.condition:
+        assert reader.encoder.condition.wait_for(lambda:reader.encoder.latest is not None,1.)
+    assert cv2.imdecode(np.frombuffer(reader.encoder.latest,np.uint8),1).shape==(360,960,3)
     assert result['physical_cones_passed'] is None and not result['hardware_output']
     assert reader.read() is None
-    now[0]=1.3
+    now[0]=1.501
     with pytest.raises(ValueError,match='新鲜'):reader.read()
+    reader.close()
 
 
 class Driver:

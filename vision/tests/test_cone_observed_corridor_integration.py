@@ -128,9 +128,9 @@ def test_outside_observed_band_can_extend_only_existing_lock_through_real_race_w
     assert output['esc_us']>1500 and not output['tail_clearance_verified']
     assert owner.guard.esc==output['esc_us']
     # Changing projection scope does not extend the independently frozen lease.
-    now[0]=.601;owner.tick()
+    now[0]=.901;owner.tick()
     assert not owner.active and owner.guard.esc==1400
-    now[0]=.952;owner.tick();assert owner.guard is None
+    now[0]=1.252;owner.tick();assert owner.guard is None
     assert all(entry[3]<=.2 for entry in backend.writes if entry[0]=='motion')
 
 

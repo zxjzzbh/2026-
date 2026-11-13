@@ -88,7 +88,7 @@ def test_duplicate_secondary_frames_never_count_as_independent_recovery():
 def test_missing_single_or_stale_secondary_breaks_the_recovery_sequence(interruption):
     run=Selection();run.on_primary()
     for t in (.1,.2):run.update(t,view('secondary',t),view('primary',t))
-    when=.5 if interruption=='stale' else .3
+    when=.701 if interruption=='stale' else .3
     secondary=(None if interruption=='absent' else view('secondary',.2) if interruption=='stale'
                else view('secondary',when,state=interruption))
     assert run.update(when,secondary,view('primary',when))['source_camera']=='primary'
@@ -102,7 +102,7 @@ def test_missing_single_or_stale_secondary_breaks_the_recovery_sequence(interrup
 
 @pytest.mark.parametrize('primary_state',['absent','missing','single','stale','danger'])
 def test_sole_reliable_secondary_pair_is_used_immediately_when_primary_is_unreliable(primary_state):
-    run=Selection();run.on_primary();t=.4 if primary_state=='stale' else .1
+    run=Selection();run.on_primary();t=.501 if primary_state=='stale' else .1
     primary=(None if primary_state=='absent' else view('primary',0.) if primary_state=='stale'
              else view('primary',t,boundary_danger=True) if primary_state=='danger'
              else view('primary',t,state=primary_state))

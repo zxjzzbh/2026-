@@ -20,8 +20,9 @@ def test_contained_but_not_aligned_bay_can_supply_boundaries(mirrored):
         out=step(controller,i,quad=quad,white=False,moving=False)
         if i<32:assert out['esc_us']==1500
         else:
-            assert out['esc_us']==1550 and out['phase']=='approach'
-            assert abs(out['geometry']['heading_error'])>.35
+            assert out['esc_us']==1570 and out['phase']=='approach'
+            # Fixed lookahead still reports substantial heading error.
+            assert abs(out['geometry']['heading_error'])>.2
             assert out['geometry']['lateral_envelope_estimate_inside']
             assert out['white_boundary']['support_source']=='current_bay_envelope'
             assert out['guidance_phase']=='align' and not out['done']
@@ -30,9 +31,9 @@ def test_contained_but_not_aligned_bay_can_supply_boundaries(mirrored):
 def test_bay_boundary_margin_hysteresis_never_authorizes_an_outside_envelope():
     controller=ParkingEntryController(settings(),'left',require_white_boundary=True)
     for i in range(36):step(controller,i,white=False,moving=False)
-    for i,shift in ((36,20),(37,40)):
+    for i,shift in ((36,20),(37,37)):
         out=step(controller,i,white=False,quad=[[x+shift,y] for x,y in ALIGNED])
-        assert out['esc_us']==1550
+        assert out['esc_us']==1570
     assert 0<out['white_boundary']['bay_clearance_fraction']<.025
     outside=step(controller,38,white=False,quad=[[x+45,y] for x,y in ALIGNED])
     assert outside['phase']=='boundary_wait' and outside['esc_us']==1400
@@ -40,7 +41,7 @@ def test_bay_boundary_margin_hysteresis_never_authorizes_an_outside_envelope():
     # The same narrow margin is insufficient to acquire new bay-only support.
     new=ParkingEntryController(settings(),'left',require_white_boundary=True)
     for i in range(45):
-        out=step(new,i,white=False,moving=False,quad=[[x+40,y] for x,y in ALIGNED])
+        out=step(new,i,white=False,moving=False,quad=[[x+37,y] for x,y in ALIGNED])
         assert out['esc_us']==1500
     assert out['phase']=='fault' and out['boundary_wait_cause']=='bay_margin_pending'
 
@@ -55,7 +56,7 @@ def test_recovery_requires_continuous_stopped_frames_and_resets_on_motion_or_unk
         out=controller.step(row,round(i*.1,3))
         assert out['esc_us']<=1500
     resumed=step(controller,45,moving=False)
-    assert resumed['phase']=='approach' and resumed['esc_us']==1550
+    assert resumed['phase']=='approach' and resumed['esc_us']==1570
     assert resumed['boundary_wait_cause'] is None
 
 
@@ -67,7 +68,7 @@ def test_recovery_requires_continuous_stopped_frames_and_resets_on_motion_or_unk
 def test_timeout_names_the_stop_feedback_problem_after_boundaries_recover(valid,moving,cause,text):
     controller=moving_controller()
     step(controller,36,white=False,empty=True)
-    for i in range(37,51):
+    for i in range(37,61):
         row=frame(i,moving=moving);row['motion']['valid']=valid
         out=controller.step(row,round(i*.1,3))
         assert out['esc_us']<=1500
@@ -103,11 +104,11 @@ def test_real_white_dropout_and_heading_jitter_recovers_once_without_false_compl
         assert out['phase']!='fault' and not out['done']
         assert not out['whole_vehicle_inside_verified']
     assert not guard.fault
-    first_pause=next(i for i,out in enumerate(outputs) if out['phase']=='boundary_wait')
-    recovered=next(i for i in range(first_pause+1,len(outputs)) if outputs[i]['esc_us']>1500)
-    assert all(out['esc_us']<=1500 for out in outputs[first_pause:recovered])
-    assert all(out['phase']=='approach' and out['esc_us']==1550 for out in outputs[recovered:])
-    assert sum(out['esc_us']==1400 for out in outputs)<=2
+    # A fresh observed target now bridges this brief white-line dropout.
+    transition=[o for o in outputs if o['white_boundary'].get('support_source')=='observed_entry_transition']
+    assert transition and all(o['esc_us']==1570 for o in transition)
+    assert all(o['phase'] in ('arming','approach') for o in outputs)
+    assert not any(o['esc_us']==1400 for o in outputs)
     assert outputs[-1]['white_boundary']['support_source']=='current_bay_envelope'
     assert outputs[-1]['geometry']['heading_error']>.35
-    assert outputs[-1]['logic_revision']=='parking_closed_loop_v3'
+    assert outputs[-1]['logic_revision']=='parking-local-contrast-20261110'

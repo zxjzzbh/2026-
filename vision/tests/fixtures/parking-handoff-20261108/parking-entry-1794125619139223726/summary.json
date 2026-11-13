@@ -1,0 +1,343 @@
+{
+  "phase": "fault",
+  "reason": "控制页心跳中断，已结束停车入位",
+  "field_verified": false,
+  "controller_mode": "visual_trial",
+  "diagnostic_only": true,
+  "formal_task": false,
+  "completion_authorizes_payment": false,
+  "final_selected_side": "left",
+  "retarget_count": 0,
+  "actual_pose_not_verified": true,
+  "parking_zone_verified": false,
+  "failure_sample": {
+    "fresh": true,
+    "frame_id": 2938,
+    "captured_s": 1671.190849564,
+    "camera_id": "secondary",
+    "image_size": [
+      480,
+      360
+    ],
+    "parking": {
+      "layout_found": false,
+      "layout_complete": false,
+      "layout_source": null,
+      "diagnostics": {
+        "original_yellow_pixels": 146,
+        "yellow_pixels": 11055,
+        "visible_quad_candidates": 0,
+        "blue_board_candidates": 1,
+        "occluded_layout_candidates": 0
+      },
+      "metric_geometry": false,
+      "slots": [],
+      "ground_surface": "indoor_green",
+      "direction_hint": {
+        "suggested_slot": "left",
+        "blocked_side": "right",
+        "source": "blue_board_position",
+        "basis": "蓝色挡板主要在右侧，暂选另一侧；边界未必完整",
+        "areas": {
+          "left": 0.0,
+          "right": 0.12279513888888889
+        },
+        "boards": [
+          {
+            "bbox_px": [
+              313,
+              150,
+              480,
+              287
+            ],
+            "side": "right",
+            "area_fraction": 0.12279513888888889,
+            "ground_below_fraction": 0.5625514403292181
+          }
+        ]
+      },
+      "entry_candidates": [
+        {
+          "id": "left",
+          "corners_px": [
+            [
+              108.0,
+              272.0
+            ],
+            [
+              267.0,
+              278.0
+            ],
+            [
+              287.0,
+              223.0
+            ],
+            [
+              196.0,
+              220.0
+            ]
+          ],
+          "availability": "clear",
+          "candidate_only": true,
+          "occupancy_verified": false,
+          "polygon_m": null,
+          "ground_fraction": 0.9918833608898241,
+          "blue_inside_fraction": 0.0,
+          "edge_support": [
+            1.0,
+            0.7413793103448276,
+            1.0,
+            1.0
+          ],
+          "geometry_source": "board_adjacent_contrast"
+        }
+      ],
+      "entry_guides": [],
+      "reason": "黄线未形成可确认车位；需看到空闲半区近/远边与分隔线",
+      "perception_verified": false,
+      "hardware_output": false,
+      "road_context": {
+        "valid": false,
+        "white_lines_detected": false,
+        "red_ground_supported": false,
+        "boundary_diagnostics": {
+          "detector": "adaptive_paired_rows",
+          "paired_candidates": 1,
+          "support_rows": 0,
+          "roi_top": 0.38,
+          "white_v_min": 200,
+          "white_s_max": 70,
+          "reason": "too_few_observed_pairs",
+          "baseline_reason": "insufficient_boundary_pairs",
+          "threshold_search_order": [
+            200,
+            180
+          ],
+          "configured_white_v_min": 200,
+          "effective_white_v_min": 200,
+          "threshold_fallback_used": false,
+          "threshold_attempts": [
+            {
+              "white_v_min": 200,
+              "valid": false,
+              "white_lines_detected": false,
+              "reason": "insufficient_boundary_pairs"
+            },
+            {
+              "white_v_min": 180,
+              "valid": false,
+              "white_lines_detected": false,
+              "reason": "insufficient_boundary_pairs"
+            }
+          ],
+          "max_threshold_attempts": 2,
+          "yellow_excluded_pixels": 11055,
+          "parking_color_separation": true
+        },
+        "red_ground_required": false,
+        "ground_color": null,
+        "ground_supported": true,
+        "ground_fraction": 0.0,
+        "blue_ground_fraction": 0.0,
+        "obstacle_color": "blue",
+        "red_ground_fraction": 0.0,
+        "left_inner": [],
+        "right_inner": [],
+        "reason": "insufficient_boundary_pairs",
+        "boundary_policy": "whole_vehicle_inside_white_inner_edges",
+        "metric_boundary_verified": false
+      },
+      "tracked_bay_boundaries": [
+        {
+          "id": "left",
+          "corners_px": [
+            [
+              86.0050048828125,
+              271.7267150878906
+            ],
+            [
+              292.8652648925781,
+              279.14959716796875
+            ],
+            [
+              290.2818298339844,
+              217.43544006347656
+            ],
+            [
+              190.83839416503906,
+              215.3410186767578
+            ]
+          ],
+          "availability": "clear",
+          "source": "current_tracked_bay_edges",
+          "frame_id": 2938,
+          "captured_s": 1671.190849564,
+          "edge_support": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "tracked_points": 62,
+          "ground_fraction": 0.9194451853827688,
+          "blue_inside_fraction": 0.0,
+          "near_boundary_observed": true,
+          "far_boundary_observed": true,
+          "occupancy_verified": false
+        }
+      ],
+      "tracked_far_lines": [
+        {
+          "id": "left",
+          "source": "optical_flow_far_edge",
+          "edge_px": [
+            [
+              195.39239501953125,
+              220.19168090820312
+            ],
+            [
+              279.4521179199219,
+              220.55743408203125
+            ]
+          ],
+          "frame_id": 2938,
+          "captured_s": 1671.190849564,
+          "tracked_points": 36,
+          "marking_support": 1.0,
+          "seed_frame_id": 2936,
+          "seed_age_s": 0.20001269499994123,
+          "occupancy_verified": false
+        }
+      ]
+    },
+    "motion": {
+      "valid": true,
+      "moving": true,
+      "pixel_motion_per_100ms": 5.23621446332003,
+      "tracked_points": 86,
+      "source": "ground_optical_estimate",
+      "physical_stop_verified": false
+    },
+    "processing_ms": 84.02499999988322,
+    "frame_age_ms": 102.38904499988166
+  },
+  "ended_s": 1671.748754537,
+  "frame_age_limit_s": 0.5,
+  "last_requested_intent": {
+    "schema_version": 1,
+    "phase": "approach",
+    "action": "creep",
+    "esc_us": 1570,
+    "steering_us": 1628,
+    "reason": "结合远近中心偏差回正，对齐左车位",
+    "events": [],
+    "brake_pulses": 0,
+    "brake_pulse_s": 0.35,
+    "brake_trigger": {
+      "distance_m": null,
+      "far_edge_y_normalized": 0.6545961002785515,
+      "measured": false,
+      "source": "legacy_secondary_reference_transfer"
+    },
+    "calibration_id": null,
+    "source_camera": null,
+    "distance_disagreement": null,
+    "distance_estimate_m": null,
+    "closing_speed_estimate_mps": null,
+    "hold_remaining_s": null,
+    "stop_stage": "original_operation",
+    "first_detection_handled": false,
+    "first_detection_pause_s": null,
+    "physical_stop_verified": false,
+    "parking_zone_verified": false,
+    "tuning_verified": false,
+    "throttle_us": 1570,
+    "selected_side": "left",
+    "done": false,
+    "active": true,
+    "field_verified": false,
+    "actual_pose_not_verified": true,
+    "whole_vehicle_inside_verified": false,
+    "metric_pose": null,
+    "cached_geometry": false,
+    "geometry_age_s": 0.0,
+    "geometry_source": "tracked_bay_edges",
+    "guidance_target_px": null,
+    "guidance_phase": "align",
+    "steering_policy": "bay_center_heading_pd",
+    "steering_rate_us_s": 600.0,
+    "logic_revision": "parking-edge-continuity-20261108",
+    "diagnostic_only": true,
+    "formal_task": false,
+    "payment_ready": false,
+    "completion_authorizes_payment": false,
+    "slow_forward_us": 1570,
+    "slowdown_available": true,
+    "slow_line_y_normalized": 0.6016713091922006,
+    "seek_timeout_s": 5,
+    "max_entry_s": 30,
+    "boundary_wait_elapsed_s": null,
+    "boundary_wait_cause": null,
+    "recovery_stop_frames": 0,
+    "recovery_stop_confirm_s": 0.2,
+    "recovery_timing": {
+      "boundary_missing_s": null,
+      "settle_remaining_s": null,
+      "total_limit_remaining_s": null
+    },
+    "near_boundary_observed": true,
+    "far_boundary_fresh": true,
+    "target_acquired": true,
+    "far_tracking_age_s": 0.0,
+    "retarget_count": 0,
+    "retarget_reason": null,
+    "target_change": null,
+    "countersteer_limited": false,
+    "countersteer_active": false,
+    "opposite_correction_limit_us": 80,
+    "white_boundary": {
+      "observed": false,
+      "correction": null,
+      "metric_boundary_verified": false,
+      "reason": "由连续新鲜车位边界补充白线；低输出修正，未作米制验证",
+      "evidence_usable": true,
+      "bay_clearance_fraction": 0.030997463305308573,
+      "support_source": "current_bay_envelope",
+      "usable": true
+    },
+    "geometry": {
+      "far_edge_y_normalized": 0.5949820940873085,
+      "near_edge_y_normalized": 0.7470283189523851,
+      "lateral_envelope_estimate_inside": true,
+      "envelope_checks": [
+        {
+          "row_px": 224.51549072265624,
+          "left_px": 171.53659057617188,
+          "right_px": 290.9820251464844,
+          "center_px": 233.19483708741345,
+          "envelope_half_width_px": 32.489158203125,
+          "inside": true
+        },
+        {
+          "row_px": 257.26624755859376,
+          "left_px": 110.58135223388672,
+          "right_px": 291.0138244628906,
+          "center_px": 236.3432430795969,
+          "envelope_half_width_px": 49.077632446289066,
+          "inside": true
+        }
+      ],
+      "steering_error": -0.025282977090893555,
+      "lateral_error": -0.18800139335098334,
+      "heading_error": 0.3615964805779773,
+      "image_aligned": false,
+      "actual_pose_not_verified": true,
+      "availability": "clear",
+      "geometry_source": "tracked_bay_edges",
+      "near_boundary_observed": true,
+      "far_boundary_fresh": true
+    },
+    "centerline_source": "historical_ground_image_reference",
+    "reference_transfer_verified": false
+  }
+}

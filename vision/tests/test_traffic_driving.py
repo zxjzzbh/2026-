@@ -178,7 +178,7 @@ def test_configured_threshold_confirms_red_after_quick_stop_before_green_complet
         assert row['red_vote']['red_percent'] < threshold
         for observed_red_frames in range(4, red_frames+1):
             row = r.step('red')
-            assert row['action'] != 'search' and row['events'] == []
+            assert row['action'] != 'search' and not any(e['event']=='speak' for e in row['events'])
             assert row['red_seen_this_round'] is (observed_red_frames == red_frames)
         assert row['red_vote']['red_frames'] == red_frames
         assert row['red_vote']['red_percent'] >= threshold
@@ -236,6 +236,7 @@ def test_flicker_resets_green_confirmation_and_motion_restarts_braking():
     for _ in range(5): r.step('green')
     r.step('red')
     for _ in range(5): assert r.step('green')['action'] == 'neutral'
+    for _ in range(2): assert r.step('green', moving=True)['action'] == 'neutral'
     assert r.step('green', moving=True)['action'] == 'brake'
     r.until('wait_green', 'green')
     for _ in range(6): assert r.step('green')['action'] == 'neutral'
@@ -284,7 +285,7 @@ def test_stale_ground_feedback_brakes_and_never_grants_green():
 
 def test_camera_time_gap_causes_fault():
     r = Run(); r.step()
-    assert r.step(dt=.3)['phase'] == 'fault'
+    assert r.step(dt=.51)['phase'] == 'fault'
 
 
 def test_another_fixture_cannot_use_previous_red_to_release():
@@ -337,7 +338,7 @@ def test_traffic_approach_caps_the_configured_tuning_value(pulse):
     r = Run('off');r.c.s['pwm']['search_us']=r.c.s['pwm']['creep_us']=pulse
     r.c=TrafficDrivingController(r.c.s)
     row=r.until('approach',moving=True)
-    assert row['esc_us']==min(pulse,1570) and row['steering_us']==1610
+    assert row['esc_us']==1570 and row['steering_us']==1610
     r.until('brake_pulse','red',True)
     assert r.rows[-1]['esc_us']==1400
 

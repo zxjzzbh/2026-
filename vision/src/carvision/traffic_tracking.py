@@ -5,7 +5,7 @@ cropping and fixture loss are not a photoelectric gate or distance sensor.
 Missing, cropped or ambiguous lamps never become formal red/green votes.
 """
 from .brake_parking import numeric
-from .traffic_signal import _iou, _reference_geometry
+from .traffic_signal import _iou, _reference_geometry, stop_reference_geometry
 
 
 def fixture_box(signal):
@@ -107,7 +107,7 @@ class TrafficApproachGuard:
                                        'bbox_xyxy':signal.get('stop_only_box')})
                     color = (signal.get('stop_only_color')
                              if box is not None and track.box is not None
-                             and _reference_geometry(box,track.box)['matched'] else None)
+                             and stop_reference_geometry(box,track.box) else None)
                 if color in ('red','yellow'):
                     stop_color_sources.append(camera)
                 if (approaching and ordered and color in ('red','yellow')

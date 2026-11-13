@@ -55,7 +55,7 @@ def test_loss_after_motion_brakes_immediately_and_latches_when_lines_return():
     assert out['esc_us'] > 1500
     out = c.step(frame(31, {}), 3.1)
     assert out['esc_us'] == 1400 and out['phase'] == 'boundary_wait'
-    for i in range(32, 45):
+    for i in range(32, 56):
         out = c.step(frame(i, road()), i*.1)
         assert out['esc_us'] <= 1500
     assert out['phase'] == 'fault' and out['esc_us'] == 1500
@@ -69,7 +69,8 @@ def test_real_departure_replay_stops_before_continuing_with_unusable_boundaries(
         out = c.step(r['sample'], r['now_s'])
         if out['esc_us'] > 1500:
             moved = True
-            assert out['white_boundary']['observed'] is True
+            assert (out['white_boundary']['observed'] is True or
+                    out['white_boundary']['support_source']=='observed_entry_transition')
             assert not stopped
         if moved and out['phase'] in ('boundary_wait','safety_brake', 'fault'):
             stopped = True

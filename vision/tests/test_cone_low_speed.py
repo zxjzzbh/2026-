@@ -61,8 +61,8 @@ def test_debug_throttle_reaches_shared_guard_and_retains_watchdog(settings,pulse
     guard=ConePulseGuard(actuator_settings(s),lambda *v:writes.append(v),mode='F/B')
     guard.accept({**intent,'sequence':0,'sent_s':3.1},3.1)
     assert writes[-2:]==[(3,1610),(4,pulse)]
-    guard.tick(3.31);assert guard.fault and guard.esc==1400
-    guard.tick(3.45);assert writes[-2:]==[(4,1500),(3,1610)]
+    guard.tick(guard.deadline+.001);assert guard.fault and guard.esc==1400
+    guard.tick(guard.emergency_until+.001);assert writes[-2:]==[(4,1500),(3,1610)]
     assert 'id="cone-test-forward" type="number" min="1501" max="1625" step="1" value="1600"' in HTML
 
 
@@ -225,7 +225,7 @@ def test_boundary_warnings_are_not_frame_loss_or_departure(settings,case):
     if case=='lost':data['road_context']['valid']=False
     if case=='near_edge':data['road_context']['left_inner']=[[225.,y] for y in np.linspace(180,260,12)]
     if case=='crossed':data['road_context']['left_inner']=[[400.,y] for y in np.linspace(180,260,12)]
-    if case=='stale':now=1.4
+    if case=='stale':now=1.501
     result=LowSpeedNavigator(trial_settings(settings)).update(np.zeros((360,480,3),np.uint8),data,now)
     if case=='stale':assert not result['ready'] and result['action']=='stop'
     else:
@@ -489,7 +489,7 @@ def test_lane_memory_expires_from_real_observation_not_reused_frame(settings):
 def test_stale_camera_is_not_rescued_by_line_memory(settings):
     nav=DualLowSpeedNavigator(trial_settings(settings));images={'secondary':np.zeros((360,480,3),np.uint8)}
     nav.update_views(images,{'secondary':row()},1.)
-    result=nav.update_views(images,{'secondary':row()},1.4)
+    result=nav.update_views(images,{'secondary':row()},1.501)
     assert not result['ready'] and result['captured_s']==1.
 
 
@@ -597,7 +597,7 @@ def test_line_search_does_not_bypass_camera_or_visible_boundary_guards(settings,
     data=observation(3.1,cones=[]);data.pop('lane_bounds_px')
     assert ctl.step(data,3.1)['action']=='search'
     data=observation(3.2,cones=[])
-    if hazard=='camera':data['captured_s']=2.8
+    if hazard=='camera':data['captured_s']=2.699
     else:data.update(boundary_danger=True,reason='白线保护')
     with pytest.raises(ValueError):ctl.step(data,3.2)
 
@@ -665,7 +665,9 @@ def test_low_speed_session_closes_on_line_recovery_timeout(settings,tmp_path):
         data.update(line_missing=True,line_state='missing',boundary_observed=False)
         return data
     run.tick(lost(1.1),1.1)
-    assert made and run.phase=='ready'
+    assert made and run.phase=='preparing'
+    run.tick(lost(1.12),1.12)
+    assert run.phase=='ready'
     assert not run.status(settings,{},1.1)['can_start']
     with pytest.raises(ValueError,match='连续可靠'):
         run.command('cone_start',{'client':'page','run_token':run.token,'trial_sequence':1,
@@ -720,9 +722,10 @@ def test_experimental_session_is_exclusive_leased_and_never_implicitly_starts(se
         'fb_mode_confirmed':True,'esc_on_static':True,'field_ready':True},1.35)
     run.tick(observation(1.4),1.4)
     assert all(i['action']=='neutral' for i in created[0].intents)
-    run.tick(observation(1.95),1.95)
+    expired=run.lease_until+.001
+    run.tick(observation(expired),expired)
     assert not run.active and created[0].closed and run.phase=='fault'
-    with pytest.raises(ValueError):run.command('cone_start',{},2.)
+    with pytest.raises(ValueError):run.command('cone_start',{},expired+.1)
 
 
 def test_normal_mode_still_requires_calibration(settings,tmp_path):

@@ -232,10 +232,13 @@ def test_unverified_parking_stops_before_entry_and_never_starts_payment(bundle):
 
 def test_stale_input_and_repeated_batches_cannot_keep_driving(bundle):
     c=RaceFlowController(bundle,0.)
-    assert c.step({'sequence':1,'captured_s':0.},1.)['phase']=='fault'
+    assert c.step({'sequence':1,'captured_s':0.},1.)['esc_us']==1500
+    assert c.step(None,2.51)['phase']=='fault'
     c=RaceFlowController(bundle,0.);s={'sequence':1,'captured_s':.1}
     assert c.step(s,.1)['esc_us']==1500 and c.step(s,.2) is None
-    assert c.step(s,.4)['phase']=='fault'
+    assert c.step(s,.4) is None
+    assert c.step(s,.7)['esc_us']==1500
+    assert c.step(s,2.21)['phase']=='fault'
     c=RaceFlowController(bundle,0.);c.step({'sequence':2,'captured_s':.1},.1)
     assert c.step({'sequence':1,'captured_s':.2},.2)['phase']=='fault'
 
@@ -273,7 +276,7 @@ def test_explicit_handoff_releases_manual_and_blocks_parallel_trials(bundle,tmp_
     for action in ('command','traffic_prepare','crosswalk_prepare','cone_prepare','parking_bay_observe'):
         with pytest.raises(ValueError,match='占用'):flow.request(action,{'client':'operator'})
     with pytest.raises(ValueError,match='未持有'):flow.request('race_keepalive',{'client':'other','run_token':flow.token,'race_sequence':1})
-    now[0]=2.
+    now[0]=flow.lease_until+.001
     with pytest.raises(ValueError,match='超时'):flow.request('race_keepalive',{'client':'operator','run_token':flow.token,'race_sequence':1})
     flow.request('race_exit',{'client':'operator'});assert not flow.active
     flow.request('traffic_prepare',{});assert base.calls[-1]=='traffic_prepare'
@@ -301,13 +304,13 @@ def test_worker_closes_sole_actuator_when_camera_stops_updating(bundle,tmp_path,
         def read(self,*args):
             self.count+=1
             if self.count==1:return {'sequence':1,'captured_s':1.}
-            now[0]=1.3;return None
+            now[0]+=.3;return None
     flow=RaceFlowDrive(Base(),{},tmp_path,live=True,clock=lambda:now[0],actuator_factory=lambda _:actuator,reader_factory=Reader)
-    flow.active=True;flow.stage='arming';flow.lease_until=2.;flow.controller=RaceFlowController(bundle,1.)
+    flow.active=True;flow.stage='arming';flow.lease_until=10.;flow.controller=RaceFlowController(bundle,1.)
     flow._work()
     assert actuator.closed and not flow.active and flow.stage=='fault'
     assert output and all(i['esc_us']==1500 for i in output)
-    assert '相机' in flow.reason
+    assert '画面' in flow.reason and '超时' in flow.reason
 
 
 def test_slow_actuator_startup_does_not_consume_neutral_arming_time(bundle,tmp_path,monkeypatch):
@@ -377,11 +380,12 @@ def test_cached_reader_rejects_duplicate_and_stale_frames_without_opening_camera
     states={k:SimpleNamespace(condition=threading.RLock(),raw_jpeg=data,raw_frame_id=1,
                              raw_received_ms=1000.,state='ok') for k in ('primary','secondary')}
     reader=RaceFlowCamera(states,bundle,ROOT,lambda:now[0])
-    first=reader.read('arming',1.)
-    assert first['sequence']==1 and first['captured_s']==1. and reader.preview
-    assert reader.read('arming',1.) is None
-    now[0]=1.3
-    with pytest.raises(ValueError):reader.read('arming',1.3)
+    first=reader.read('cones',1.)
+    assert first['sequence']==1 and first['captured_s']==1.
+    assert reader.read('cones',1.) is None
+    now[0]=1.51
+    assert reader.read('cones',1.51) is None
+    reader.close()
 
 
 def test_partial_layout_invalidates_old_metric_map_before_next_missing_frame():

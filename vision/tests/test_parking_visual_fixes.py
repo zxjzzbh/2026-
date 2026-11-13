@@ -27,7 +27,7 @@ def step(controller,i,**kwargs):
 def moving_controller(**kwargs):
     controller=ParkingEntryController(settings(),'left',require_white_boundary=True,**kwargs)
     for i in range(36):out=step(controller,i)
-    assert out['esc_us']==1550
+    assert out['esc_us']==1570
     return controller
 
 
@@ -35,7 +35,7 @@ def test_fresh_continuous_bay_covers_white_dropout_without_ending_session():
     controller=moving_controller()
     for i in range(36,45):
         out=step(controller,i,white=False)
-        assert out['phase']=='approach' and out['esc_us']==1550
+        assert out['phase']=='approach' and out['esc_us']==1570
         assert out['white_boundary']['support_source']=='current_bay_envelope'
         assert out['white_boundary']['usable'] and not out['white_boundary']['observed']
         assert not out['whole_vehicle_inside_verified'] and not out['reference_transfer_verified']
@@ -49,14 +49,14 @@ def test_start_with_only_current_bay_waits_for_several_fresh_observations():
     confirmed=step(controller,32,white=False,moving=False)
     assert first['phase']==second['phase']=='boundary_wait'
     assert first['esc_us']==second['esc_us']==1500
-    assert confirmed['esc_us']==1550 and confirmed['phase']=='approach'
+    assert confirmed['esc_us']==1570 and confirmed['phase']=='approach'
 
 
 def test_short_white_grace_requires_current_bay_not_a_cached_target():
     controller=ParkingEntryController(settings(),'left',require_white_boundary=True)
     for i in range(31):step(controller,i)
     blink=step(controller,31,white=False)
-    assert blink['esc_us']==1550
+    assert blink['esc_us']==1570
     assert blink['white_boundary']['support_source']=='recent_white_and_current_bay'
     lost=step(controller,32,white=False,empty=True)
     assert lost['phase']=='boundary_wait' and lost['esc_us']==1400
@@ -86,7 +86,7 @@ def test_boundary_recovery_waits_for_brake_release_and_stopped_feedback():
         pending=step(controller,i,moving=False)
         assert pending['esc_us']==1500 and pending['phase']=='boundary_wait'
     resumed=step(controller,41,moving=False)
-    assert resumed['esc_us']==1550 and resumed['phase']=='approach'
+    assert resumed['esc_us']==1570 and resumed['phase']=='approach'
     assert resumed['steering_us']==1610
 
 
@@ -135,14 +135,14 @@ def test_alignment_can_correct_opposite_direction_before_already_aligned(side,in
         previous=out['steering_us']
     assert not out['geometry']['image_aligned']
     assert direction*(out['steering_us']-1610)>30
-    assert out['steering_us']==from_offset(controller.pd.output)
-    assert 1530<=out['steering_us']<=1690 and out['esc_us']==1550
+    assert out['steering_us']==max(1530,min(1690,from_offset(controller.pd.output)))
+    assert 1530<=out['steering_us']<=1690 and out['esc_us']==1570
 
 
 def test_seek_and_total_deadlines_survive_new_geometry_and_replanning():
     controller=ParkingEntryController(settings(),'left',require_white_boundary=True)
     outputs=[step(controller,i,empty=True) for i in range(101)]
-    assert all(o['esc_us']==1550 for o in outputs[30:80])
+    assert all(o['esc_us']==1570 for o in outputs[30:80])
     assert outputs[80]['esc_us']==1400
     assert all(o['esc_us']==1500 for o in outputs[83:])
     assert '寻位超时' in outputs[-1]['reason']
@@ -162,9 +162,9 @@ def test_slowdown_precedes_stop_row_and_matches_frozen_actuator_pulses():
         out=step(controller,i,side='right',quad=q)
         guard.accept({**out,'sent_s':i*.1,'sequence':i},i*.1)
         if i==30:assert out['esc_us']==1575 and out['action']=='search'
-    assert out['esc_us']==1550 and out['action']=='creep'
-    assert not guard.fault and (4,1550) in writes
-    assert controller.s['pwm']['search_us']==1575 and controller.s['pwm']['creep_us']==1550
+    assert out['esc_us']==1570 and out['action']=='creep'
+    assert not guard.fault and (4,1570) in writes
+    assert controller.s['pwm']['search_us']==1575 and controller.s['pwm']['creep_us']==1570
 
 
 def test_custom_parking_stop_row_does_not_rewrite_or_claim_legacy_distances():
@@ -175,7 +175,7 @@ def test_custom_parking_stop_row_does_not_rewrite_or_claim_legacy_distances():
     for i,y in enumerate((195,210,225,235,250,265,270),31):
         q=[[100,345],[380,345],[330,y],[150,y]]
         out=step(controller,i,quad=q)
-        if y==235:assert out['esc_us']==1550
+        if y==235:assert out['esc_us']==1570
     assert out['phase']=='brake_pulse' and out['esc_us']==1400
     assert out['brake_trigger']['far_edge_y_normalized']==.75
     assert out['brake_trigger']['distance_m'] is None and not out['brake_trigger']['measured']
@@ -208,9 +208,9 @@ def test_visual_slow_pulse_is_frozen_before_actuator_is_created():
     run.prepare(parking,brake,cone,base(),preparation(),0.)
     assert not opened
     run.tick(frame(1,side='right',moving=False),.1)
-    assert opened[0]['pwm']['creep_us']==1545
+    assert opened[0]['pwm']['creep_us']==1570
     parking['visual_entry']['slow_forward_us']=1600
-    assert run.s['brake']['pwm']['creep_us']==1545
+    assert run.s['brake']['pwm']['creep_us']==1570
     run.cancel('test ended')
 
 
@@ -222,5 +222,9 @@ def test_real_white_loss_failures_pause_instead_of_ending_on_the_first_missing_f
         for row in case['rows']:
             out=controller.step(row['sample'],row['now_s'])
             assert out['phase']!='fault'
-        assert out['phase']=='boundary_wait' and out['esc_us']<=1500
+        if out['esc_us']>1500:
+            assert out['white_boundary']['support_source']=='observed_entry_transition'
+            assert out['esc_us']==1570 and controller.handoff_since is not None
+            assert row['now_s']-controller.handoff_since<.8
+        else:assert out['phase']=='boundary_wait'
         assert not out['done'] and not out['whole_vehicle_inside_verified']

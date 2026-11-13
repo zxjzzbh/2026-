@@ -13,6 +13,7 @@ import cv2
 import numpy as np
 
 from .traffic_lamps import _color
+from .traffic_fixture_geometry import arc_anchors,radial_edges,red_spill_supported
 
 DEFAULTS = {'schema_version':1,'algorithm':'fixture_photometry_v1',
             'min_emission_value':230.0,'min_brightness_margin':25.0,
@@ -121,6 +122,17 @@ def _reference_geometry(box,reference):
             'matched':overlap>=.25 and .5<=width<=2 and .5<=height<=2 and .5<=area<=2}
 
 
+def stop_reference_geometry(box,reference):
+    """A bounded grown fixture may request braking, never establish green identity."""
+    geometry=_reference_geometry(box,reference)
+    diagonal=math.hypot(reference[2]-reference[0],reference[3]-reference[1])
+    drift=math.hypot(box[0]+box[2]-reference[0]-reference[2],
+                     box[1]+box[3]-reference[1]-reference[3])/2
+    return (geometry['matched'] or geometry['iou']>=.08
+            and .75<=geometry['width_ratio']<=2.2 and .75<=geometry['height_ratio']<=2.2
+            and .75<=geometry['area_ratio']<=4 and drift<=.75*diagonal)
+
+
 class TrafficSignalDetector:
     def __init__(self,profile=None):self.profile=load_profile() if profile is None else profile
 
@@ -134,6 +146,13 @@ class TrafficSignalDetector:
                 raise ValueError('reference_box must be a finite increasing image-space box')
             reference_box=list(reference_box)
         h,w=image.shape[:2];hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV);anchors=_round_candidates(image,hsv)
+        red_cores=[]
+        for x,y,r,_ in anchors:
+            f=_features(hsv,x,y,r,0,anchors)
+            if f and f['white_fraction']>=.6 and f['halo_fraction']>=.12 and f['distributed_halo']:
+                red_cores.append((x,y,r))
+        anchors+=arc_anchors(image,red_cores[:3])
+        gradients=radial_edges(image) if red_cores else None
         proposals=[];seen=set()
         for first,second in combinations(sorted(anchors),2):
             if max(first[2],second[2])/min(first[2],second[2])>1.8:continue
@@ -150,14 +169,16 @@ class TrafficSignalDetector:
                 fs=[_features(hsv,x,y,radius,k,anchors) for k,(x,y) in enumerate(centers)]
                 if any(f is None for f in fs):continue
                 evidence=[f['shape_support'] or (f['white_fraction']>.45 and f['halo_fraction']>.04) for f in fs]
-                if not all(evidence):continue
                 color_support=sum(f['color_fraction']>.12 or f['halo_fraction']>.1 for f in fs)
-                if color_support<2:continue
+                red_recovery=bool(gradients is not None and (not all(evidence) or color_support<2)
+                    and red_spill_supported(fs,centers,radius,gradients))
+                if (not all(evidence) or color_support<2) and not red_recovery:continue
                 bbox=[max(0,int(centers[0][0]-radius*1.3)),max(0,int(min(y for x,y in centers)-radius*1.3)),
                       min(w,int(centers[-1][0]+radius*1.3+1)),min(h,int(max(y for x,y in centers)+radius*1.3+1))]
                 score=sum(min(f['color_fraction'],.8)+min(f['halo_fraction'],.3)+.3*f['shape_support'] for f in fs)
                 score+=min(radius/100,.3)
-                proposals.append({'bbox':bbox,'centers':centers,'radius':radius,'features':fs,'score':score})
+                proposals.append({'bbox':bbox,'centers':centers,'radius':radius,'features':fs,
+                                  'score':score,'red_recovery':red_recovery})
         proposals.sort(key=lambda p:p['score'],reverse=True)
         groups=[]
         for p in proposals:
@@ -173,9 +194,15 @@ class TrafficSignalDetector:
             # Geometry selects the identity first; a brighter remote fixture
             # cannot win over the already acquired lamp. No matches stay lost.
             matched.sort(key=lambda row:(row[1]['iou'],row[0]['score']),reverse=True)
+            # Strong white-core red plus its current dark neighbours can stop
+            # on a bounded scale change. It cannot update the locked fixture
+            # or create red/green votes. Ordinary candidates keep strict gates.
+            stop_only=[group for group in groups if group.get('red_recovery')
+                       and stop_reference_geometry(group['bbox'],reference_box)] if not matched else []
             groups=[row[0] for row in matched]
             diagnostics['reference_match_count']=len(matched)
             if matched:diagnostics['selected_reference_geometry']=matched[0][1]
+            elif len(stop_only)==1:groups=[{**stop_only[0],'stop_only_reference':True}]
         result={'schema_version':1,'state':'unknown','signal_for_race':'unknown','fixture_detected':bool(groups),
                 'bbox_xyxy':None,'lamp_features':[],
                 'reason':'no_supported_fixture' if reference_box is None else 'tracked_fixture_missing',
@@ -186,6 +213,7 @@ class TrafficSignalDetector:
             result.update(bbox_xyxy=g['bbox'],lamp_features=fs,lamp_centers=g['centers'],lamp_radius_px=g['radius'])
             active=[]
             for i,f in enumerate(fs):
+                if g.get('red_recovery') and i!=0:continue
                 margin=self.profile['min_brightness_margin']
                 if f['white_fraction']<.3:
                     margin=max(margin,self.profile['nonwhite_min_brightness_margin'])
@@ -200,7 +228,12 @@ class TrafficSignalDetector:
                 result['reason']='multiple_fixture_candidates'
             elif len(active)==1:
                 state=('red','yellow','green')[active[0]]
-                result.update(state=state,signal_for_race=state,reason='position_and_emission_agree')
+                result.update(state=state,signal_for_race=state,
+                    reason='bloomed_red_with_current_fixture_edges' if g.get('red_recovery') else 'position_and_emission_agree')
+                if g.get('stop_only_reference'):
+                    result.update(state='unknown',signal_for_race='unknown',fixture_detected=False,
+                                  bbox_xyxy=None,reason='tracked_fixture_missing',
+                                  stop_only_color='red',stop_only_box=g['bbox'])
             elif max(vs)<self.profile['off_max_value'] and all(f['color_fraction']>.12 for f in fs):
                 result.update(state='off',reason='fixture_present_without_emission')
             else:result['reason']='ambiguous_emission'

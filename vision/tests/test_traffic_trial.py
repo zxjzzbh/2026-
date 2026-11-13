@@ -180,7 +180,7 @@ def test_start_requires_fresh_camera_and_owner_but_not_visible_lamp(trial):
     with pytest.raises(ValueError): w.request('traffic_keepalive', owned(w))
     assert w.lease_until == before
     w.request('traffic_keepalive', owned(w, 1))
-    assert w.lease_until == now[0]+.5
+    assert w.lease_until == now[0]+3.
 
 
 def test_start_accepts_detected_unlit_fixture_before_external_sensor_trigger(trial):
@@ -300,28 +300,35 @@ def test_camera_uses_existing_states_and_fails_on_stale_secondary():
     sample = reader.read(1)
     assert sample['frame_id'] == 1 and sample['signal']['state'] == 'unknown'
     assert sample['camera_id']=='dual'
-    assert reader.preview and reader.read(1.1) is None
+    with reader.encoder.condition:
+        assert reader.encoder.condition.wait_for(lambda:reader.encoder.latest is not None,1.)
+    assert reader.read(1.1) is None
     p.raw_frame_id, p.raw_received_ms = 2, 1300
     assert set(reader.read(1.3)['camera_observations'])=={'primary'}
+    reader.close()
 
 
-def test_decision_and_motion_use_same_secondary_frame_even_if_primary_is_broken():
+def test_decision_and_independent_motion_use_secondary_cache_even_if_primary_is_broken():
     def state(value,fid):
         _,jpg=cv2.imencode('.jpg',np.full((360,480,3),value,np.uint8))
         return SimpleNamespace(condition=threading.RLock(),raw_jpeg=jpg.tobytes(),raw_frame_id=fid,
                                raw_received_ms=1000,state='ok')
     primary,secondary=state(20,90),state(180,7)
     primary.state='error'
-    reader=TrafficCamera({'primary':primary,'secondary':secondary},load_settings(CONFIG),None)
+    clock=[1.]
+    reader=TrafficCamera({'primary':primary,'secondary':secondary},load_settings(CONFIG),None,clock=lambda:clock[0])
+    reader.motion_cache.sample_once()
     reader.detectors['secondary']=SimpleNamespace(detect=lambda image, **kw:{'state':'red' if image.mean()>100 else 'green','bbox_xyxy':None})
     sample=reader.read(1)
     assert sample['camera_id']=='dual' and sample['camera_observations']['secondary']['frame_id']==7 and sample['signal']['state']=='red'
     assert reader.jpegs['secondary']==secondary.raw_jpeg and sample['motion']['captured_s']==sample['captured_s']
     assert reader.read(1.1) is None  # A changing primary cannot renew the decision.
     secondary.raw_frame_id=8;secondary.raw_received_ms=1100
+    clock[0]=1.1
     assert reader.read(1.1)['camera_observations']['secondary']['frame_id']==8
     secondary.state='error'
     with pytest.raises(ValueError,match='两路'):reader.read(1.2)
+    reader.close()
 
 
 def test_either_camera_can_supply_frames_and_only_secondary_supplies_motion():
@@ -354,11 +361,14 @@ def test_both_streams_use_original_classifier_profile_and_keep_independent_ids()
     assert sample['camera_observations']['secondary']['signal']['state']=='red'
     assert sample['camera_observations']['primary']['frame_id']==90
     assert sample['camera_observations']['secondary']['frame_id']==7
-    assert cv2.imdecode(np.frombuffer(reader.preview,np.uint8),cv2.IMREAD_COLOR).shape[:2]==(360,960)
+    with reader.encoder.condition:
+        assert reader.encoder.condition.wait_for(lambda:reader.encoder.latest is not None,1.)
+    assert cv2.imdecode(np.frombuffer(reader.encoder.latest,np.uint8),cv2.IMREAD_COLOR).shape[:2]==(360,960)
     assert reader.read(1.01) is None
     primary.raw_frame_id=91;primary.raw_received_ms=1100
     sample=reader.read(1.1)
     assert seen==[20,180,20] and sample['camera_observations']['secondary']['frame_id']==7
+    reader.close()
 
 
 def test_secondary_published_during_primary_processing_is_not_mistaken_for_future_frame(monkeypatch):

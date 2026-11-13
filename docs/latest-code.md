@@ -1,17 +1,17 @@
 # 最新代码与固定源码包
 
-主线最近同步：2026-10-28；代码来源为2026-10-26最后本地修复版。
+主线同步日期：2026-11-13；当前版本：**`traffic-rebrake-6-20261112`**。
 
-当前完整代码请使用 `main` 或下载 main ZIP。10月20日 r5 仍是最近一个固定发布包，它不会自动包含本次同步；旧标签和附件保持原样。
+这次上传的是 11 月 12 日已部署核验的完整当前代码，包含红绿灯六次制动、连续新帧补刹确认以及此前累计修复。当前版本从 `main` 或 main ZIP 获取；10 月的固定标签/附件均为历史，不会自动包含这些修改。
 
-本次只有仓库上传，未部署车辆。范围和独立下载验证见[本次同步记录](imports/2026-10-26-local-fix/README.md)。
+[同步范围、文件校验与验证](imports/2026-11-13-current-release/README.md)。本次仅上传 GitHub，没有重新部署或操作车辆；全流程实车验收尚未完成。
 
 ## 哪一份是最新代码
 
 | 版本 | 用途 | 获取方式 |
 | --- | --- | --- |
 | `main` | 持续更新的最新已合并代码；队员日常开发统一入口 | [浏览源码](https://github.com/zxjzzbh/2026-/tree/main) · [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip) |
-| `source-2026-10-20-r5` | 最新固定快照：PR #10停车修复版与r4完整主线 | [发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r5) · [smartcar-source-20261020-r5.zip](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r5/smartcar-source-20261020-r5.zip) · [SHA256](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r5/smartcar-source-20261020-r5.zip.sha256) |
+| `source-2026-10-20-r5` | 历史固定快照：不含 11 月当前更新 | [发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r5) · [smartcar-source-20261020-r5.zip](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r5/smartcar-source-20261020-r5.zip) · [SHA256](https://github.com/zxjzzbh/2026-/releases/download/source-2026-10-20-r5/smartcar-source-20261020-r5.zip.sha256) |
 | `source-2026-10-20-r4` | 历史快照：包含PR #9，不含本次parking_closed_loop_v2修复 | [历史发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r4) |
 | `source-2026-10-20-r3` | 历史快照：包含光流修复，不含PR #9实车模块导入 | [历史发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r3) |
 | `source-2026-10-20-r2` | 历史快照：含 PR #6 停车改进，仍有旧自主框架的光流点对异常 | [历史发布页](https://github.com/zxjzzbh/2026-/releases/tag/source-2026-10-20-r2) |
@@ -26,7 +26,7 @@
 
 `r5` 保留 [PR #6](https://github.com/zxjzzbh/2026-/pull/6) 的功能和r3光流修复。使用新标签和包名区分版本，不覆盖旧包；光流修复边界见 [验证记录](reviews/2026-10-20-ground-flow-fix.md)。
 
-## 这份源码包包含什么
+## 历史 r5 固定包包含什么
 
 - `vision/` 的完整主线应用：双摄、5G 网页遥控、比赛分项、完整流程、停车入位试验与自主框架。
 - PR #6 新增的路径跟踪入库、实测速度/曲率到 PWM 转换、白线丢失停车、远线跟踪和独立控制续期。

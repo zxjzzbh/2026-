@@ -1,0 +1,1777 @@
+[
+  {
+    "frame_id": 2526,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2527,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2528,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 0.9969485614646905,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2529,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 0.9995669120831528,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2530,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 0.9931682322801024,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2531,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2532,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2533,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2534,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            210.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2535,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            211.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2536,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            210.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2537,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2538,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            210.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2539,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2540,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 0.9969918349806618,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2541,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2542,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2543,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2544,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            211.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          0.9655172413793104,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2545,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2546,
+    "original": 0,
+    "expanded": 0,
+    "candidates": []
+  },
+  {
+    "frame_id": 2547,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2548,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2549,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2550,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2551,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2552,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2553,
+    "original": 0,
+    "expanded": 0,
+    "candidates": []
+  },
+  {
+    "frame_id": 2554,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            210.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 0.9970288624787776,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2555,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2556,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 0.9970111016225448,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2557,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2558,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            210.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2559,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            210.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2560,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2561,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 0.9969918349806618,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2562,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2563,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2564,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2565,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2566,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            210.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 0.9970476592155209,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2567,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2568,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            214.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            153.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2569,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            210.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  },
+  {
+    "frame_id": 2570,
+    "original": 0,
+    "expanded": 1,
+    "candidates": [
+      {
+        "id": "left",
+        "corners_px": [
+          [
+            100.0,
+            243.0
+          ],
+          [
+            212.0,
+            238.0
+          ],
+          [
+            222.0,
+            211.0
+          ],
+          [
+            152.0,
+            213.0
+          ]
+        ],
+        "availability": "clear",
+        "candidate_only": true,
+        "occupancy_verified": false,
+        "polygon_m": null,
+        "ground_fraction": 1.0,
+        "blue_inside_fraction": 0.0,
+        "edge_support": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "geometry_source": "board_adjacent_contrast"
+      }
+    ]
+  }
+]

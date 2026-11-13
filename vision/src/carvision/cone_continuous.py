@@ -15,6 +15,7 @@ from .steering import CENTER_US
 from .lane_following import SteeringController,advance_steering
 from .cone_guidance import CurrentTargetEvidence,GuidanceBudgets,strict_visual,TARGET_ONLY_MAX_S,NO_GUIDANCE_MAX_S
 import copy
+from .runtime_timing import VISION_MAX_AGE_S
 
 
 OBSTACLE_LINE_RECOVERY_S=NO_GUIDANCE_MAX_S
@@ -103,7 +104,7 @@ class ContinuousConeController(LowSpeedController):
         if paired_lane(nav):return 'paired'
         age=nav.get('prediction_age_s',nav.get('line_age_s'))
         if (nav.get('line_state')=='single' and not nav.get('line_missing')
-                and numeric(age) and 0<=age<=.25 and numeric(nav.get('ego_fraction'))):
+                and numeric(age) and 0<=age<=OBSTACLE_LINE_RECOVERY_S and numeric(nav.get('ego_fraction'))):
             return 'single'
         return 'missing'
 
@@ -342,7 +343,7 @@ class ContinuousConeController(LowSpeedController):
     def step(self,nav,now):
         if not numeric(now) or now<self.last_step:raise ValueError('控制时钟异常，结束本轮')
         dt=now-self.last_step
-        if not nav or not numeric(nav.get('captured_s')) or not 0<=now-nav['captured_s']<=.25:
+        if not nav or not numeric(nav.get('captured_s')) or not 0<=now-nav['captured_s']<=VISION_MAX_AGE_S:
             raise ValueError('实时相机画面中断，结束本轮')
         if not nav.get('experimental'):raise ValueError('持续绕桶画面格式不匹配')
         source=nav.get('source_camera');captured=nav['captured_s'];fid=nav.get('frame_id',captured)

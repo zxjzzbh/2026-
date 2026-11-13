@@ -10,6 +10,8 @@ from .cone_boundaries import adaptive_inner_edges
 from .cone_corridor import curve_inner_edges,fit_boundary,measured_corridor
 from .cone_vision import obstacle_color
 from .brake_output import numeric
+from .runtime_timing import LANE_HISTORY_MAX_GAP_S
+from .tape_pixels import PROCESSING_REVISION,local_tape_image,broad_glare,shadow_white_mask
 
 # Legacy surfaces keep three additional passes. Indoor turn guidance may make
 # one final 160 candidate pass; saved settings and geometric checks stay fixed.
@@ -56,6 +58,8 @@ class ConeRoadContext:
         if type(threshold) is not int or not 0<=threshold<=255:raise ValueError('白线亮度阈值必须为 0–255 的整数')
         config=replace(config,white_v_min=threshold,white_s_max=70,
                        roi_top=.60 if camera=='primary' else .38)
+        if self.turn_aware and settings.get('scene',{}).get('surface')=='red_running_track':
+            config=replace(config,roi_top=.30 if camera=='primary' else .48)
         if settings.get('scene',{}).get('surface')=='indoor_white_line_track':
             # In the fixed H65 view the nearby white edges leave the image
             # above the car bonnet. Fit the observed mid-ground, not the bonnet.
@@ -74,6 +78,7 @@ class ConeRoadContext:
                 roi=.38 if camera=='primary' else .53
                 config=replace(config,roi_top=roi,sample_top=max(config.sample_top,roi))
         self.lane=LaneDetector(config)
+        self._threshold_hint=None
 
     def _history(self,image,frame_id,captured_s):
         shape=tuple(image.shape[:2]);previous=self._previous_frame
@@ -86,7 +91,7 @@ class ConeRoadContext:
             return None,False,'missing_or_invalid_frame_metadata'
         current=(frame_id,captured_s,shape)
         increasing=(previous is None or frame_id>previous[0] and captured_s>previous[1])
-        continuous=(previous is None or shape==previous[2] and captured_s-previous[1]<=.25)
+        continuous=(previous is None or shape==previous[2] and captured_s-previous[1]<=LANE_HISTORY_MAX_GAP_S)
         if not increasing or not continuous:
             self._pair_prior=None
             # A camera restart starts a new epoch. Its first frame earns no
@@ -96,7 +101,7 @@ class ConeRoadContext:
         self._previous_frame=current
         prior=self._pair_prior
         usable=bool(prior and prior['shape']==shape and prior['camera']==self.camera
-                    and prior['frame_id']<frame_id and 0<captured_s-prior['captured_s']<=.25)
+                    and prior['frame_id']<frame_id and 0<captured_s-prior['captured_s']<=LANE_HISTORY_MAX_GAP_S)
         if not usable:self._pair_prior=None
         return copy.deepcopy(prior) if usable else None,True,'current_frame'
 
@@ -152,11 +157,19 @@ class ConeRoadContext:
         if (self.turn_aware and self.s.get('scene',{}).get('surface')=='indoor_white_line_track'
                 and configured>=160):fallbacks=fallbacks+(160,)
         fallbacks=tuple(value for value in fallbacks if value<configured)
-        result=self._inspect_threshold(image,blue_mask,self.lane,prior=prior)
-        candidates=[(result,configured)]
-        attempts=[{'white_v_min':configured,'valid':result['valid'],
+        order=[configured,*fallbacks]
+        if self.turn_aware and self._threshold_hint in order:
+            order.remove(self._threshold_hint);order.insert(0,self._threshold_hint)
+        first=order[0];fallbacks=order[1:]
+        first_lane=self.lane if first==configured else LaneDetector(replace(self.lane.config,white_v_min=first))
+        dark_track=bool(self.turn_aware and self.s.get('scene',{}).get('surface')=='red_running_track'
+                    and np.median(np.max(image[int(image.shape[0]*.55):],axis=2))<180)
+        shadow_mask=shadow_white_mask(image) if dark_track else None
+        result=self._inspect_threshold(image,blue_mask,first_lane,prior=prior,paint_mask=shadow_mask)
+        candidates=[(result,first)]
+        attempts=[{'white_v_min':first,'valid':result['valid'],
                    'white_lines_detected':result['white_lines_detected'],'reason':result['reason']}]
-        effective=configured
+        effective=first
         single_candidate=None
         # A detected pair rejected by the ground check must stay rejected;
         # lowering brightness is a remedy for missing paint, not missing road.
@@ -176,6 +189,18 @@ class ConeRoadContext:
                     single_candidate=(candidate,threshold)
             if not result['valid'] and single_candidate:
                 result,effective=single_candidate
+        illumination_retry=False
+        if not result['white_lines_detected']:
+            # Retry shadowed tape once after the existing threshold search.
+            # Ground support still comes from the original image, and the
+            # current stripe widths, continuity and exclusions are unchanged.
+            threshold=min(order)
+            lane=LaneDetector(replace(self.lane.config,white_v_min=threshold))
+            candidate=self._inspect_threshold(image,blue_mask,lane,prior=prior,
+                                              paint_image=local_tape_image(image))
+            illumination_retry=True
+            candidates.append((candidate,threshold))
+            if candidate['valid']:result,effective=candidate,threshold
         if self.turn_aware:
             result['boundary_candidates']=self._merge_candidates(candidates,image.shape,prior)
             result['boundary_diagnostics'].update(merged_candidate_count=len(result['boundary_candidates']),
@@ -192,21 +217,26 @@ class ConeRoadContext:
                     'right_inner':copy.deepcopy(result['right_inner'])}
                 saved=self._pair_prior is not None and self._pair_prior['frame_id']==frame_id
             result['boundary_diagnostics']['history_pair_saved']=saved
-        result['boundary_diagnostics'].update(configured_white_v_min=configured,
+        if self.turn_aware and result['valid']:self._threshold_hint=effective
+        result['boundary_diagnostics'].update(threshold_search_order=order,configured_white_v_min=configured,
+            shadow_ridge_proposals=dark_track,
+            image_processing=PROCESSING_REVISION,
+            illumination_retry=illumination_retry,
             effective_white_v_min=effective,threshold_fallback_used=effective!=configured,
             threshold_attempts=attempts,max_threshold_attempts=1+len(fallbacks))
         return result
 
-    def _inspect_threshold(self,image,blue_mask,detector,*,prior=None):
+    def _inspect_threshold(self,image,blue_mask,detector,*,prior=None,paint_image=None,paint_mask=None):
         """Select the explicit cone model, then apply the shared ground check."""
+        paint=image if paint_image is None else paint_image
         if self.turn_aware:
-            left,right,white,diagnostics,candidates=curve_inner_edges(image,blue_mask,detector.config,prior=prior)
+            left,right,white,diagnostics,candidates=curve_inner_edges(paint,blue_mask,detector.config,prior=prior,mask_override=paint_mask)
             if diagnostics.get('association_budget_exhausted'):
                 left,right,candidates=[],[],[]
             enough=bool(left)
             failure_reason=diagnostics['reason']
         else:
-            road=image.copy();road[blue_mask>0]=0
+            road=paint.copy();road[blue_mask>0]=0
             lane,white=detector.detect(road)
             candidates=[]
             left=[];right=[]
@@ -221,7 +251,7 @@ class ConeRoadContext:
             if not enough or self.thorough_boundary_search:
                 baseline_diagnostics=diagnostics
                 adaptive_left,adaptive_right,adaptive_white,diagnostics=adaptive_inner_edges(
-                    image,blue_mask,detector.config,complete_small_sets=self.thorough_boundary_search)
+                    paint,blue_mask,detector.config,complete_small_sets=self.thorough_boundary_search)
                 diagnostics['baseline_reason']=lane.reason
                 if adaptive_left:
                     left,right,white=adaptive_left,adaptive_right,adaptive_white;enough=True
@@ -246,9 +276,38 @@ class ConeRoadContext:
                     if ground_color=='blue' and support.any() else 0.)
         ground_ratio=blue_ratio if ground_color=='blue' else ratio
         ground_supported=ground_color is None or ground_ratio>=threshold
+        neutral_floor=False
+        if paint_mask is not None and enough and ground_color=='red' and not ground_supported:
+            # Outdoor white balance can render red rubber nearly grey. Accept
+            # that uncertainty only with two current, converging paint ridges;
+            # a colored wrong floor or a constant-width background frame fails.
+            hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
+            neutral=(hsv[:,:,1]<55)&(hsv[:,:,2]>=40)&(hsv[:,:,2]<220)
+            neutral_fraction=float(np.mean(neutral[support])) if support.any() else 0.
+            span=left[-1][1]-left[0][1]
+            top=right[0][0]-left[0][0];bottom=right[-1][0]-left[-1][0]
+            neutral_floor=bool(neutral_fraction>=.70 and span>=image.shape[0]*.12
+                and left[-1][0]<left[0][0]-span*.3 and right[-1][0]>right[0][0]+span*.3
+                and bottom>image.shape[1]*.45 and bottom-top>span)
+            ground_supported=neutral_floor
+            diagnostics['low_chroma_floor_fraction']=neutral_fraction
+        diagnostics['ground_support_source']=('low_chroma_perspective_corridor' if neutral_floor
+                                              else 'configured_surface_color' if ground_supported else 'unconfirmed')
+        if paint_image is not None:
+            # A contrast retry must not promote cabinet/table edges. Require
+            # visible original track color inside this pair at the same rows,
+            # rather than borrowing ground from the bottom of the image.
+            hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
+            floor=(blue_ground_mask(image) if ground_color=='blue' else red if ground_color=='red'
+                   else cv2.inRange(hsv,(40,15,35),(99,255,245)))
+            floor[broad_glare(hsv)>0]=0
+            local_floor=float(np.mean(floor[support]>0)) if support.any() else 0.
+            ground_supported=ground_supported and enough and local_floor>=.30
+            diagnostics['contrast_original_ground_fraction']=local_floor
         valid=bool(enough and ground_supported)
         reason=failure_reason
-        if valid:reason='white_inner_edges_on_'+ground_color+'_track' if ground_color else 'white_inner_edges_on_indoor_track'
+        if valid:reason=('white_inner_edges_on_low_chroma_track' if neutral_floor else
+                         'white_inner_edges_on_'+ground_color+'_track' if ground_color else 'white_inner_edges_on_indoor_track')
         elif enough and ground_color:reason=ground_color+'_ground_not_confirmed'
         return {'valid':valid,'white_lines_detected':bool(enough),'red_ground_supported':red_supported,
                 'boundary_diagnostics':diagnostics,
@@ -283,5 +342,6 @@ class ConeRoadContext:
                     hi=float(np.interp(y,[p[1] for p in right],[p[0] for p in right]))
                     row['boundary_relation']='inside' if lo<x<hi else 'outside'
             row['scene_supported']=row['boundary_relation']=='inside' and (
-                color is None or row['ground_near_base']>=.15)
+                color is None or row['ground_near_base']>=.15 or
+                context.get('boundary_diagnostics',{}).get('ground_support_source')=='low_chroma_perspective_corridor')
         return detections

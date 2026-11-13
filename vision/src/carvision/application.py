@@ -159,6 +159,16 @@ class DebugApplication:
         if not isinstance(payload,dict):raise ValueError('JSON object required')
         if action == 'status':
             return self.status()
+        if action in ('crosswalk_page_heartbeat', 'traffic_page_heartbeat'):
+            if self.closed:raise ValueError('调试服务已关闭')
+            key = 'brake' if action == 'crosswalk_page_heartbeat' else 'traffic'
+            return self.tasks[key].page_heartbeat(payload)
+        if action == 'parking_page_heartbeat':
+            if self.closed:raise ValueError('调试服务已关闭')
+            return self.tasks['parking'].page_heartbeat(payload)
+        if action == 'cone_page_heartbeat':
+            if self.closed:raise ValueError('调试服务已关闭')
+            return self.tasks['cones'].page_heartbeat(payload)
         with self.lock:
             if self.closed:raise RuntimeError('调试服务已关闭')
             state = self.status()

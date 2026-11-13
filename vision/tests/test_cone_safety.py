@@ -149,7 +149,7 @@ def test_default_contact_continue_keeps_the_current_camera_freshness_limit(setti
     controller=ContinuousConeController(trial_settings(settings),0.,initialized=True)
     warm_continuous(controller)
     with pytest.raises(ValueError,match='画面'):
-        controller.step(observation(.4,cones=[]),.651)
+        controller.step(observation(.4,cones=[]),.901)
 
 
 @pytest.mark.parametrize('stop',['lease','emergency'])
@@ -161,7 +161,7 @@ def test_contact_continue_still_uses_shared_worker_lease_and_global_emergency(st
     blocked={'id':'wide','fraction':.5,'half_width':.35,'y_fraction':.55,'near':False}
     now[0]=t;intent=controller.step(observation(t,cones=[blocked]),t);handle.send(intent)
     assert owner.active and owner.guard.esc==intent['esc_us']>1500
-    now[0]=.601 if stop=='lease' else .41
+    now[0]=owner.guard.deadline+.001 if stop=='lease' else .41
     if stop=='lease':owner.tick()
     else:owner.dispatch('emergency',{})
     assert not owner.active and owner.guard.esc==1400

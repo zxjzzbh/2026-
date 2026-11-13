@@ -1,12 +1,14 @@
 """Phase-aware perception over the console's existing camera caches only."""
 import copy
+from .motion_cache import GroundMotionCache
+from .preview_encoding import PreviewEncoder
+from .runtime_timing import VISION_MAX_AGE_S
 import time
 
 import cv2
 import numpy as np
 
 from .brake_trial import TrialCamera
-from .brake_parking import GroundMotionEstimate
 from .traffic_trial import TrafficCamera
 from .traffic_signal import load_profile
 from .cone_observer import ConeCamera
@@ -35,9 +37,11 @@ class RaceFlowCamera:
         self.road_frames={};self.mask_zebra=False
         self.crosswalk=TrialCamera(states,bundle['brake'],clock=self.clock)
         self.traffic=TrafficCamera(states,bundle['traffic'],load_profile(root/'vision/configs/traffic-signal.json'),clock)
-        self.parking=ParkingWorldFeed(bundle);self.motion=GroundMotionEstimate();self.motion_result={}
-        self.board={};self.board_ids={};self.last_secondary=None;self.last_crosswalk=None;self.last_traffic=None
+        self.parking=ParkingWorldFeed(bundle);self.motion_result={}
+        self.board={};self.board_ids={};self.last_crosswalk=None;self.last_traffic=None
         self.preview=None;self.sequence=0;self.latest=None
+        self.motion_cache=GroundMotionCache(states,clock=clock)
+        self.encoder=PreviewEncoder()
 
     def set_avoidance_target(self,camera,identifier):
         self.navigator.set_avoidance_target(camera if identifier else None,identifier or None)
@@ -74,14 +78,32 @@ class RaceFlowCamera:
                     x1,y1,x2,y2=track['bbox_xyxy'];cv2.rectangle(display,(x1,y1),(x2,y2),(255,160,40),2)
             cv2.putText(display,camera.upper()+' / '+stage,(8,22),cv2.FONT_HERSHEY_SIMPLEX,.45,(240,240,240),1)
             panes.append(self.navigator.draw_camera(camera,display) if ready else display)
-        ok,jpg=cv2.imencode('.jpg',np.concatenate(panes,axis=1))
-        self.preview=jpg.tobytes() if ok else None
+        self.preview=self.encoder.submit(np.concatenate(panes,axis=1))
+
+    def close(self):
+        self.motion_cache.close()
+        self.encoder.close()
+        self.traffic.close()
+        if callable(getattr(self.cones,'close',None)):self.cones.close()
+
+    def _arming_sample(self):
+        motion=self.motion_cache.snapshot()
+        stamp=motion.get('captured_s')
+        if stamp is None or stamp==getattr(self,'arming_stamp',None):return None
+        self.arming_stamp=stamp;self.sequence+=1
+        return {'sequence':self.sequence,'captured_s':stamp,'motion':motion}
 
     def read(self,stage,now):
+        self.motion_cache.snapshot()
+        if stage=='arming':return self._arming_sample()
         # Keep one curve model throughout the reader lifetime. Only new frames
         # receive the stage's paper-stripe mask, before their single road fit.
         self.mask_zebra=stage in ('crosswalk','traffic')
-        changed=self.cones.read(road_mask_filter=self._road_mask,render=False)
+        self.navigator.set_single_recovery_limit(1. if stage=='cones' else .25)
+        try:changed=self.cones.read(road_mask_filter=self._road_mask,render=False)
+        except ValueError as exc:
+            if str(exc)=='两路摄像头均无新鲜画面':return None
+            raise
         if changed is None:return None
         rows=copy.deepcopy(self.cones.rows);images=self.cones.images
         lane_rows={camera:row for camera,row in rows.items()
@@ -89,12 +111,9 @@ class RaceFlowCamera:
         lane_images={camera:images[camera] for camera in lane_rows}
         navigation=self.navigator.update_views(lane_images,lane_rows,self.clock())
         secondary=lane_rows.get('secondary')
-        if secondary and secondary['frame_id']!=self.last_secondary:
-            self.motion_result={**self.motion.update(images['secondary'],secondary['frame_id'],secondary['captured_s']),
-                                'captured_s':secondary['captured_s']}
-            self.last_secondary=secondary['frame_id']
+        self.motion_result=self.motion_cache.snapshot()
         self.sequence+=1
-        sample={'sequence':self.sequence,'captured_s':max(r['captured_s'] for r in rows.values()),
+        sample={'vision_processing_s':changed.get('vision_processing_s'),'sequence':self.sequence,'captured_s':max(r['captured_s'] for r in rows.values()),
                 'navigation':copy.deepcopy(navigation),'motion':dict(self.motion_result)}
         parking_preview=stage in ('parking_search','parking_entry') and secondary is not None
         # Traffic/parking provide the final preview themselves; avoid encoding
@@ -111,16 +130,17 @@ class RaceFlowCamera:
             value=self.crosswalk.read(self.clock())
             if value is not None:self.last_crosswalk=value
             sample['crosswalk']=copy.deepcopy(self.last_crosswalk)
+            if sample['crosswalk']:sample['crosswalk']['motion']=self.motion_cache.snapshot()
         elif stage=='traffic':
             value=self.traffic.read(self.clock())
             if value is not None:self.last_traffic=value
             sample['traffic']=copy.deepcopy(self.last_traffic)
+            if sample['traffic']:sample['traffic']['motion']=self.motion_cache.snapshot()
             self.preview=self.traffic.preview
         elif stage in ('parking_search','parking_entry') and secondary:
             view,display=detect_parking(images['secondary'],self.b['parking'])
             sample['parking_view']=view
             sample['parking']=self.parking.update(images['secondary'],secondary,view,self.clock())
-            ok,jpg=cv2.imencode('.jpg',display)
-            if ok:self.preview=jpg.tobytes()
+            self.preview=self.encoder.submit(display)
         self.latest=sample
         return sample

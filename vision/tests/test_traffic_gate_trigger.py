@@ -88,7 +88,7 @@ def test_first_trustworthy_red_after_untriggered_approach_brakes_in_that_batch(c
     assert output['phase']!='wait_green' and output['physical_stop_verified'] is False
 
 
-def test_wait_green_requires_both_formal_red_and_continuous_stationary_evidence():
+def test_wait_green_requires_formal_red_and_completed_stop_without_known_sliding():
     run = LightRun()
     run.approach('off')
     first = run.step('red',True)
@@ -98,8 +98,12 @@ def test_wait_green_requires_both_formal_red_and_continuous_stationary_evidence(
         assert output['phase']!='wait_green' and output['esc_us']<=1500
     assert output['red_seen_this_round']
     stopped = run.until('wait_green','red',False,limit=18)
-    assert stopped['red_seen_this_round'] and stopped['stationary_estimated']
+    assert stopped['red_seen_this_round'] and stopped['stop_sequence_complete']
+    assert not stopped['sliding_unresolved']
     assert stopped['esc_us']==1500
+    # The visual estimate is recorded separately from the completed timed hold.
+    for _ in range(6): stopped = run.step('red',False)
+    assert stopped['phase']=='wait_green' and stopped['stationary_estimated']
 
 
 def test_a_single_red_then_only_green_cannot_fake_formal_red_or_resume():
@@ -156,7 +160,7 @@ def test_red_verification_deadline_stays_anchored_to_first_stop_after_rebraking(
     # Camera-motion estimates can cause more pulses; those do not buy a new
     # three-second formal-red verification window.
     for index in range(40):
-        output = run.step('off',index in (0,10))
+        output = run.step('off',index in (0,1,2,10,11,12))
         assert output['esc_us']<=1500 and not output['red_seen_this_round']
         if output['phase']=='fault':break
     assert output['phase']=='fault' and run.t-first_stop<=3.1+1e-8
@@ -169,8 +173,10 @@ def test_rebrake_at_2_9_seconds_finishes_its_finite_pulse_without_extending_red_
     first_stop = run.t
     deadline = run.rows[-1][1]['red_verification_deadline_s']
     run.until('verify_red','off',False,limit=16)
-    while run.t-first_stop<2.8-1e-8:
+    while run.t-first_stop<2.6-1e-8:
         assert run.step('off',False)['phase']=='verify_red'
+    for offset in (2.7,2.8):
+        assert run.step('off',True,dt=round(first_stop+offset-run.t,8))['action']=='neutral'
     output = run.step('off',True,dt=round(first_stop+2.9-run.t,8))
     assert output['action']=='brake' and output['red_verification_deadline_s']==deadline
     rebrake = run.t

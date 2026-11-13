@@ -222,6 +222,6 @@ def test_flow_search_change_keeps_independent_zebra_configuration_and_other_cont
     assert prepared['brake']['hold_s'] == 10
     assert prepared['traffic']['green_action'] == 'speech_only'
     assert prepared['flow']['payment_window_s'] == 30
-    assert prepared['flow']['max_frame_age_s'] == .25
+    assert prepared['flow']['max_frame_age_s'] == .5
     assert prepared['flow']['page_lease_s'] == .5
     assert prepared['parking'] == bundle['parking']

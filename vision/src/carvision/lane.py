@@ -8,6 +8,7 @@ import numpy as np
 
 from .config import LaneConfig
 from .results import LaneResult
+from .tape_pixels import white_tape_mask
 
 
 def _runs(row, min_pixels, max_pixels):
@@ -25,7 +26,7 @@ class LaneDetector:
         c = self.config
         h, w = image.shape[:2]
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, (0, 0, c.white_v_min), (179, c.white_s_max, 255))
+        mask = white_tape_mask(hsv,c.white_v_min,c.white_s_max)
         mask[:int(c.roi_top * h)] = 0
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
         samples = []

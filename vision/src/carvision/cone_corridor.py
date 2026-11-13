@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 import cv2
 import numpy as np
+from .tape_pixels import white_tape_mask
 
 
 SINGLE_MAX_AGE_S = .25
@@ -100,14 +101,15 @@ def measured_corridor(context, shape):
     return _check_pair(left, right, shape, short=short)
 
 
-def recover_single(context, shape, captured_s, paired, *, now_s=None):
+def recover_single(context, shape, captured_s, paired, *, now_s=None, max_age_s=SINGLE_MAX_AGE_S):
     """Associate one current stripe to a recent actual pair, without refreshing it."""
     if not paired or not context.get('turn_aware') or not context.get('ground_supported'):
         raise ValueError('无可信同路单边恢复参考')
     reference_s, old = paired
     age = max(captured_s, captured_s if now_s is None else now_s) - reference_s
-    if not 0 < age <= SINGLE_MAX_AGE_S + 1e-9:
-        raise ValueError('单边恢复超过 0.25 秒')
+    if not 0 < max_age_s <= 1.:raise ValueError('invalid single-edge recovery limit')
+    if not 0 < age <= max_age_s + 1e-9:
+        raise ValueError(f'单边恢复超过 {max_age_s:g} 秒')
     h, w = shape[:2]
     matches = []
     for candidate in context.get('boundary_candidates', [])[:12]:
@@ -254,16 +256,74 @@ def _paint_paths(mask, config, *, diagnostics=None):
     return [list(reversed(path)) for path,cost in finished[:24]]
 
 
-def curve_inner_edges(image, obstacle_mask, config, *, prior=None):
+def _segment_paths(mask,config,diagnostics):
+    """Bound shadow proposals by measured segments, retaining actual row runs.
+
+    A segment selects a neighborhood only. Missing rows stay missing and every
+    returned stripe still passes the original curve and flank validation.
+    """
+    h,w=mask.shape;step=max(2,round(h/120))
+    segments=cv2.HoughLinesP(mask,1,np.pi/180,30,minLineLength=h*.14,maxLineGap=6)
+    paths=[];seen=[]
+    diagnostics.update(association_policy='current_segment_supported_rows',association_budget_exhausted=False,
+                       max_segment_proposals=32,association_fit_attempts=0)
+    if segments is None:return paths
+    candidates=sorted(segments[:,0].tolist(),key=lambda p:abs(p[3]-p[1]),reverse=True)
+    for x1,y1,x2,y2 in candidates[:32]:
+        if abs(y2-y1)<h*.09 or abs(x2-x1)>6*abs(y2-y1):continue
+        low=max(round(h*config.roi_top),min(y1,y2));high=min(round(h*.90),max(y1,y2))
+        origin=round(h*config.roi_top)
+        low=origin+int(np.ceil((low-origin)/step))*step
+        slope=(x2-x1)/(y2-y1);path=[]
+        for y in range(low,high+1,step):
+            row=(mask[max(0,y-1):min(h,y+2)]>0).mean(axis=0)>=.5
+            changes=np.diff(np.pad(row.astype(np.int8),(1,1)))
+            runs=[(int(a),int(b)) for a,b in zip(np.flatnonzero(changes==1),np.flatnonzero(changes==-1))
+                  if max(2,round(w*config.min_run_fraction))<=b-a<=round(w*config.max_run_fraction)]
+            predicted=x1+(y-y1)*slope
+            eligible=[(a,b) for a,b in runs if a-5<=predicted<=b+5]
+            if eligible:
+                a,b=min(eligible,key=lambda run:abs((run[0]+run[1])/2-predicted))
+                path.append((y,a,b))
+        if len(path)<8 or path[-1][0]-path[0][0]<h*.09:continue
+        # An occluder can join the paint at a segment end. Fit several bounded
+        # current subsets, then retain measured inliers instead of extrapolating.
+        points=np.asarray(path,float);length=len(points);qualified=[]
+        for start,end in ((0,length),(0,round(length*.75)),(round(length*.25),length),
+                          (round(length*.12),round(length*.88))):
+            subset=points[start:end]
+            if len(subset)<8:continue
+            coefficients=np.polyfit(subset[:,0]/h,subset[:,1:],2)
+            design=np.column_stack(((points[:,0]/h)**2,points[:,0]/h,np.ones(length)))
+            residual=np.max(np.abs(design@coefficients-points[:,1:]),axis=1)
+            keep=residual<=max(3.,w*.008)
+            if keep.sum()>=max(8,length*.7):qualified.append((int(keep.sum()),keep))
+        if qualified:
+            _,keep=max(qualified,key=lambda row:row[0])
+            path=[point for point,valid in zip(path,keep) if valid]
+        model={y:(a+b)/2 for y,a,b in path}
+        duplicate=False
+        for old in seen:
+            common=old.keys()&model.keys()
+            if len(common)>=6 and np.median([abs(old[y]-model[y]) for y in common])<4:
+                duplicate=True;break
+        if not duplicate:paths.append(path);seen.append(model)
+        if len(paths)>=12:break
+    return paths
+
+
+def curve_inner_edges(image, obstacle_mask, config, *, prior=None, mask_override=None):
     h, w = image.shape[:2]
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, (0, 0, config.white_v_min), (179, config.white_s_max, 255))
+    mask = (white_tape_mask(hsv,config.white_v_min,config.white_s_max)
+            if mask_override is None else mask_override.copy())
     mask[obstacle_mask > 0] = 0
     mask[:round(h * config.roi_top)] = 0
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
     candidates = []
     association={}
-    paths=_paint_paths(mask,config,diagnostics=association)
+    paths=(_paint_paths(mask,config,diagnostics=association) if mask_override is None
+           else _segment_paths(mask,config,association))
     paint_checked=paint_rejected=paint_no_flank_rows=0;paint_support=[]
     for path in paths:
         if len(path) < 8:
@@ -304,7 +364,9 @@ def curve_inner_edges(image, obstacle_mask, config, *, prior=None):
         candidates.append({'left_edge': left, 'right_edge': right})
         if len(candidates) == 12:
             break
-    pairs = []
+    pairs = [];pair_rejections={}
+    def reject(reason):
+        pair_rejections[reason]=pair_rejections.get(reason,0)+1
     for i, first in enumerate(candidates):
         for second in candidates[i + 1:]:
             # Determine left/right by their actual common rows, not image centre.
@@ -312,6 +374,7 @@ def curve_inner_edges(image, obstacle_mask, config, *, prior=None):
             two = {p[1]: (l[0], p[0]) for l, p in zip(second['left_edge'], second['right_edge'])}
             ys = sorted(one.keys() & two.keys())
             if len(ys) < 8 or ys[-1] - ys[0] < h * .09:
+                reject('insufficient_common_rows')
                 continue
             if np.median([sum(one[y]) - sum(two[y]) for y in ys]) > 0:
                 one, two = two, one
@@ -319,20 +382,29 @@ def curve_inner_edges(image, obstacle_mask, config, *, prior=None):
             right = [[two[y][0], y] for y in ys]
             widths = np.asarray(right)[:, 0] - np.asarray(left)[:, 0]
             if np.any(widths <= w * config.min_width_fraction) or np.any(widths >= w * config.max_width_fraction):
-                continue
+                usable=(widths>w*config.min_width_fraction)&(widths<w*config.max_width_fraction)
+                groups=np.split(np.flatnonzero(usable),np.flatnonzero(np.diff(np.flatnonzero(usable))>1)+1)
+                indices=max(groups,key=len) if groups else []
+                if len(indices)<8 or ys[indices[-1]]-ys[indices[0]]<h*.09:
+                    reject('corridor_width');continue
+                left=[left[i] for i in indices];right=[right[i] for i in indices]
+                ys=[ys[i] for i in indices];widths=widths[indices]
             span = ys[-1] - ys[0];density = len(ys) / (span / max(2, round(h / 120)) + 1)
             short = span < h * .12
             if density < (.8 if short else .65) or (short and len(ys) < 10):
+                reject('sparse_pair')
                 continue
             try:
                 lc = fit_boundary(left, image.shape, residual_limit=max(3., w * .012), minimum_span=h * .09)
                 rc = fit_boundary(right, image.shape, residual_limit=max(3., w * .012), minimum_span=h * .09)
                 _check_pair(lc, rc, image.shape, short=short)
-            except ValueError:
+            except ValueError as exc:
+                reject(str(exc))
                 continue
             if short:
                 # Preserve the extra evidence for a very short observed band.
                 if widths[-1] - widths[0] < span * .5 or max(lc.residual, rc.residual) > max(2., w * .005):
+                    reject('short_span_geometry')
                     continue
             score = (len(ys), span, -max(lc.residual, rc.residual))
             pairs.append((score,left,right,short,max(lc.residual,rc.residual),lc,rc))
@@ -343,7 +415,8 @@ def curve_inner_edges(image, obstacle_mask, config, *, prior=None):
         'association_policy':'near_to_far_bounded_rows','max_active_paths':32,
         'max_runs_per_row':24,'max_branches_per_run':2,'max_pair_combinations':66,
         'path_count':len(paths),'pair_combinations':len(candidates)*(len(candidates)-1)//2,
-        'valid_pair_count':len(pairs),'prior_used':False,'prior_reason':'not_provided',**association}
+        'valid_pair_count':len(pairs),'pair_rejections':pair_rejections,
+        'prior_used':False,'prior_reason':'not_provided',**association}
     diagnostics.update(paint_evidence_policy='current_bright_ridge_both_flanks',
         paint_min_contrast_v=10.,paint_min_supported_row_fraction=.70,
         paint_paths_checked=paint_checked,paint_paths_rejected=paint_rejected,

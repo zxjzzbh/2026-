@@ -109,7 +109,7 @@ def test_start_and_heartbeat_require_owner_round_and_monotonic_sequence(trial):
     with pytest.raises(ValueError): w.request('crosswalk_keepalive', owned(w))
     assert w.lease_until == before
     w.request('crosswalk_keepalive', owned(w, 1))
-    assert w.lease_until == now[0]+.5
+    assert w.lease_until == now[0]+3.
     with pytest.raises(ValueError):
         w.request('crosswalk_start', owned(w, 2, fb_mode_confirmed=True, esc_on_static=True, field_ready=True))
 
