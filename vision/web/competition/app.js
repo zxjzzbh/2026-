@@ -107,7 +107,8 @@
       const parkingPending=startReady===true&&(startReadiness?.parking_ready===false||startReadiness?.scope==='through_cones');
       el('enter-auto').disabled=debugManual||!online||stale||busy||active||foreignTask()||!r.can_enter||startReady===false||r.manual_handoff_ready===false||r.manual_handoff_ready===true&&!manualOwned;
       el('enter-auto').textContent=busy&&!active?'正在切入自主驾驶…':
-        parkingPending&&offlineRace()?'已在切换区停稳 · 联调到两桶（F/B）':'已在切换区停稳 · 切入自主驾驶（F/B）';
+        offlineRace()&&startReady===false?'比赛条件未齐备 · 暂不可启动':
+        parkingPending?'已在切换区停稳 · 联调到两桶（F/B）':'已在切换区停稳 · 切入自主驾驶（F/B）';
       el('exit-auto').disabled=stale||!own;
       el('handoff-state').textContent=r.stage==='handoff'?(r.reason||'正在停止遥控并释放原控制，随后接管。'):
         active&&offlineRace()?(r.stage==='wait_board'?'车端已接管。请关闭遥控链路，再移开挡板。':
@@ -119,7 +120,7 @@
       el('race-output').textContent=r.intent?`油门 ${r.intent.esc_us} μs · 转向 ${r.intent.steering_us} μs`:'';
       for(const item of doc.querySelectorAll('[data-stage]'))item.classList.toggle('active',item.dataset.stage.split(' ').includes(r.stage));
       el('readiness-title').textContent=parkingPending?`停车条件待补${missing.length?`（${missing.length}项）`:''} · 前段可启动，两桶避障后停车`:
-        startReadiness?.ready===false?'前段启动条件未就绪':missing.length?`自主驾驶仍缺 ${missing.length} 项条件`:(readiness?.ready===true?'自主驾驶条件已齐备':'等待自主驾驶条件检查');
+        startReadiness?.ready===false?(offlineRace()?'正式比赛启动条件未就绪':'前段启动条件未就绪'):missing.length?`自主驾驶仍缺 ${missing.length} 项条件`:(readiness?.ready===true?'自主驾驶条件已齐备':'等待自主驾驶条件检查');
       el('readiness-missing').replaceChildren();
       for(const text of missing){const item=doc.createElement('li');item.textContent=text;el('readiness-missing').append(item);}
       el('readiness-details').open=missing.length>0;

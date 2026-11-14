@@ -237,7 +237,8 @@ class ParkingEntryRun:
             vehicle_width_m=p['vehicle_width_m'], front_extent_m=p['front_extent_m'],
             rear_extent_m=p['rear_extent_m'], zone_length_m=p['zone_length_m'],
             half_width_m=p['lane_width_m'] / 2, ground=ground,
-            require_white_boundary=True,visual_options=p.get('visual_entry'))
+            require_white_boundary=True,visual_options=p.get('visual_entry'),
+            boundary_tape_width_m=p.get('boundary_tape_width_m',0.))
 
     @staticmethod
     def _fresh_selection(selection, now):

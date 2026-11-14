@@ -140,12 +140,13 @@ def test_competition_keeps_running_after_link_loss_with_fresh_local_frames(activ
     assert closed==[True]
 
 
-def test_competition_reports_partial_scope_before_any_handoff(active_flow):
+def test_competition_requires_full_scope_before_any_handoff(active_flow):
     flow,_,calls=active_flow
     flow.offline_competition=True
     flow.active=False
     report=flow.status()['race_flow']
-    assert report['parking_missing'] and report['start_readiness']['scope']=='through_cones'
+    assert report['parking_missing'] and report['start_readiness']['scope']=='full_race'
+    assert not report['start_readiness']['ready'] and not report['can_enter']
     assert not calls and not flow.active
 
 

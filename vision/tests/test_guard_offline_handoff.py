@@ -48,6 +48,22 @@ def test_bench_guard_cannot_enable_autonomy():
     with pytest.raises(ValueError):state.request({'action':'control_mode','autonomous':True})
 
 
+def test_failed_guardian_mode_ack_latches_handoff_and_never_starts_motion(rig):
+    def fail_mode(enabled):raise RuntimeError('mode acknowledgement missing')
+    rig[2].set_autonomous=fail_mode
+    with pytest.raises(RuntimeError,match='acknowledgement'):borrow(rig)
+    assert rig[3].mode=='fault' and not rig[4].active and rig[4].handoff_fault
+    assert not any(row[0]=='motion' for row in rig[2].writes)
+    with pytest.raises(ValueError,match='重新准备'):rig[4].dispatch('enable',{'client':'operator-1'})
+
+
+def test_backend_requires_explicit_guardian_mode_ack():
+    backend=pi5_pwm.Pi5ContinuousBackend.__new__(pi5_pwm.Pi5ContinuousBackend)
+    backend.ground_continuous_trial=True
+    backend.rpc=lambda *args,**kw:{'ok':True}
+    with pytest.raises(RuntimeError,match='acknowledge'):backend.set_autonomous(True)
+
+
 def test_autonomous_guard_cannot_use_manual_high_speed_range():
     state,_,pwm=continuous_state()
     state.request({'action':'control_mode','autonomous':True})

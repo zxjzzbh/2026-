@@ -27,16 +27,15 @@ def other_task_active(s):
         or (s.get('parking_payment') or {}).get('motion_locked'))
 
 
-def start_readiness(bundle, parking):
-    """Entry configuration and later metric parking are separate requirements.
-
-    Existing stage controllers still enforce live image/motion checks. Missing
-    parking calibration neither qualifies that stage nor blocks earlier tasks.
-    """
+def start_readiness(bundle, parking, *, full_race_required=False):
+    """Formal competition needs every stage; diagnostics can run the prefix."""
     if bundle is None:
         return {'ready':False, 'missing':list(parking['missing']),
                 'scope':'unavailable', 'parking_ready':False}
     ready = parking['ready']
+    if full_race_required and not ready:
+        return {'ready':False, 'missing':list(parking['missing']),
+                'scope':'full_race', 'parking_ready':False}
     return {'ready':True, 'missing':[], 'parking_ready':ready,
             'scope':'full_race' if ready else 'through_cones'}
 
@@ -49,7 +48,7 @@ class RaceFlowDrive:
         self.reader_factory,self.speech_factory=reader_factory,speech_factory or (lambda text:ParkingSpeech(self.root,text=text))
         self.factory=actuator_factory or self._make_actuator
         self.execution_timing=None;self.vision_processing_s=None
-        self.require_ready=require_ready
+        self.require_ready=require_ready or offline_competition
         self.offline_competition=offline_competition
         self.lock=threading.RLock();self.cancel_event=threading.Event();self.thread=None
         # Serialize operator transitions without blocking the worker's cleanup
@@ -62,8 +61,16 @@ class RaceFlowDrive:
         self.handoff={};self.cleanup_error=None;self.record_error=None
         self.heartbeat_sequence=-1;self.heartbeat_count=0;self.last_heartbeat_s=None;self.maximum_heartbeat_gap_s=0.
         self.ignored_manual_stops=0;self.last_stop=None
-        try:self.bundle=load_bundle(self.root,self.drive)
+        try:self.bundle=self._load_bundle()
         except Exception as exc:self.bundle=None;self.error=str(exc)
+
+    def _load_bundle(self):
+        bundle=load_bundle(self.root,self.drive)
+        parking=bundle['parking']
+        if self.offline_competition and (parking.get('zone_length_m')!=1.5
+                or parking.get('boundary_tape_width_m')!=.1):
+            raise ValueError('正式比赛停车区须为 1.5 m、胶带宽度须为 0.1 m；请核对实际生效的 parking-bay.local.json，保留实测标定')
+        return bundle
 
     def _make_actuator(self,b):
         f=b['flow'];settings={'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':f['forward_us'],
@@ -110,7 +117,7 @@ class RaceFlowDrive:
                 current_intent={**(current_intent or {}),'action':'neutral','esc_us':1500,
                                 'steering_us':1610,'reason':self.error or self.reason}
             readiness=self.readiness()
-            entry=start_readiness(self.bundle, readiness)
+            entry=start_readiness(self.bundle, readiness,full_race_required=self.offline_competition)
             report={**core,'stage':self.stage,'stage_label':LABELS.get(self.stage,self.stage),'reason':self.error or self.reason,
                 'active':self.active,'live_enabled':self.live,'hardware_output':None if self.cleanup_error else bool(self.actuator and self.actuator.run),
                 'configuration_error':self.error,
@@ -223,9 +230,9 @@ class RaceFlowDrive:
                     raise ValueError('请在切换区停稳，保持 F/B 后进入自动模式')
                 client=payload.get('client')
                 if not isinstance(client,str) or not 1<=len(client)<=128:raise ValueError('页面身份无效')
-                bundle=load_bundle(self.root,self.drive)
+                bundle=self._load_bundle()
                 readiness=parking_readiness(bundle)
-                entry=start_readiness(bundle,readiness)
+                entry=start_readiness(bundle,readiness,full_race_required=self.offline_competition)
                 if self.require_ready and not entry['ready']:
                     raise ValueError('自主驾驶启动条件尚未就绪：'+'、'.join(entry['missing']))
                 # Release the authenticated manual session before acquiring UART.
