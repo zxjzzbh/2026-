@@ -1,6 +1,14 @@
 # 最新代码与固定源码包
 
-2026-11-14 同步的主线版本为 **`parking-selection-confirm-20261114`**。
+## 本次规则修复候选
+
+版本 **`rules-corrections-20261114`** 位于 [PR #11](https://github.com/zxjzzbh/2026-/pull/11)。该候选包含自主接管、停车测量与正式入口检查修复；合并状态以 PR 为准。候选提交和运行文件校验见 [版本记录](imports/2026-11-14-rules-corrections/README.md)，完整处理结果见 [整改交付](reviews/2026-11-14-rules-corrections.md)。
+
+下载候选：[修复分支 ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/fix/race-rules-handoff-20261114.zip)。该入口随修复分支更新；需要复现时使用版本记录中的固定提交。`main` ZIP 只包含已合并改动。
+
+## 主线同步基线
+
+2026-11-14 本次修复前同步的主线版本为 **`parking-selection-confirm-20261114`**。
 
 从 `main` 或 main ZIP 获取此次同步的停车视觉选位、比赛流程和规则修复。10 月的固定标签及附件记录当时的版本。
 
