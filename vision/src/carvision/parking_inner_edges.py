@@ -25,7 +25,10 @@ def inner_line(markings, ground, a, b, center, *, radius=16, minimum_alignment=.
         positions=np.flatnonzero(indices)
         if len(positions):
             k=positions[np.argmin(np.abs(offsets[positions]))]
-            points.append(origin+(offsets[k]+1.)*normal)
+            # Mask evidence belongs to this rounded image pixel. Reusing the
+            # fractional prediction here feeds its phase error into the next
+            # frame and eventually loses a still-visible tape boundary.
+            points.append(coords[index,k+1].astype(np.float32))
             sections.append(min(2,index*3//len(origins)))
     if len(points)<max(12,len(origins)*.55):return None
     points=np.asarray(points,np.float32)

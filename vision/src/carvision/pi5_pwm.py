@@ -232,6 +232,7 @@ class GuardState:
         if manual_forward_speed and (neutral_only or getattr(pwm, 'manual_forward_speed_enabled', False) is not True):
             raise ValueError('adjustable forward throttle requires the continuous S3/S4 UART scope')
         self.manual_forward_speed = manual_forward_speed
+        self.autonomous = False
         self.expires = clock() + 1.5  # bounded startup handshake
         self.motion_until = None
         self.fault = None
@@ -257,6 +258,8 @@ class GuardState:
             pulse = data.get('pulse')
             from .manual_speed import valid_manual_pulse
             allowed_pulse = (type(pulse) is int and pulse in (1575, 1300)) or (self.manual_forward_speed and valid_manual_pulse(pulse))
+            if self.autonomous:
+                allowed_pulse = type(pulse) is int and (pulse == 1400 or 1570 <= pulse <= 1625)
             if (self.neutral_only or type(duration) not in (int, float)
                     or not math.isfinite(duration) or not .02 <= duration <= .8
                     or not allowed_pulse):
@@ -273,10 +276,16 @@ class GuardState:
             self.pwm.turn(data.get('pulse'))
         elif action == 'steering_idle':
             self.pwm.steering_idle()
+        elif action == 'control_mode':
+            enabled = data.get('autonomous')
+            if (not self.manual_forward_speed or type(enabled) is not bool
+                    or self.motion_until is not None):
+                raise ValueError('control mode requires a neutral continuous worker and explicit boolean')
+            self.autonomous = enabled
         elif action not in ('check', 'shutdown'):
             raise ValueError('invalid PWM guardian request')
         self.expires = self.clock() + .25
-        return {'ok': True, 'fault': self.fault}
+        return {'ok': True, 'fault': self.fault, 'autonomous': self.autonomous}
 
 
 class RasAdapterPWM(ScopedPWM):
@@ -422,13 +431,18 @@ def guard_main(args):
                     raise RuntimeError('Pi 5 power/boot changed')
                 power_at = time.monotonic() + .25
             if continuous and time.monotonic() >= network_at:
-                route = json.loads(subprocess.check_output(['ip', '-j', 'route', 'get', '1.1.1.1'], text=True, timeout=.2))[0]
                 temperature = subprocess.check_output(['vcgencmd', 'measure_temp'], text=True, timeout=.2)
-                if (route.get('dev') != 'usb0'
+                if float(temperature.split('=')[1].split("'")[0]) >= 70:
+                    raise RuntimeError('Pi 5 temperature changed; output stopped')
+                # The local ownership handshake, never a browser heartbeat,
+                # retires the manual network guard. Power/temperature and the
+                # finite command lease remain active throughout autonomy.
+                if not state.autonomous:
+                    route = json.loads(subprocess.check_output(['ip', '-j', 'route', 'get', '1.1.1.1'], text=True, timeout=.2))[0]
+                    if (route.get('dev') != 'usb0'
                         or Path('/sys/class/net/usb0/carrier').read_text().strip() != '1'
-                        or any(not interface_is_inactive(n) for n in ('eth0', 'wlan0'))
-                        or float(temperature.split('=')[1].split("'")[0]) >= 70):
-                    raise RuntimeError('5G route or temperature changed; manual output stopped')
+                        or any(not interface_is_inactive(n) for n in ('eth0', 'wlan0'))):
+                        raise RuntimeError('5G route changed; manual output stopped')
                 network_at = time.monotonic()+2
             readable, _, _ = select.select([sys.stdin.fileno()], [], [], .01)
             if not readable:
@@ -444,6 +458,8 @@ def guard_main(args):
                 request = json.loads(line)
                 try:
                     reply(state.request(request))
+                    if request.get('action') == 'control_mode':
+                        network_at = 0  # Recheck manual conditions immediately on release.
                 except Exception as exc:
                     pwm.neutral()
                     reply({'error': str(exc)})
@@ -654,6 +670,13 @@ class Pi5BenchBackend:
 
     def check(self):
         self.rpc('check')
+
+    def set_autonomous(self, enabled):
+        if not self.ground_continuous_trial or type(enabled) is not bool:
+            raise ValueError('autonomous handoff requires the continuous worker')
+        reply = self.rpc('control_mode', autonomous=enabled)
+        if reply.get('autonomous') is not enabled:
+            raise RuntimeError('guardian did not acknowledge control mode')
 
     def close(self):
         if self.closed:

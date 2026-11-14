@@ -23,7 +23,8 @@ def main():
     def make_server(address,state,secondary=None,drive=None):
         if drive is None or secondary is None:raise ValueError('完整流程需要原控制服务及双摄缓存')
         extend_controls(manual_controls)
-        full=RaceFlowDrive(drive,{'primary':state,'secondary':secondary},ROOT,live=live);wrappers.append(full)
+        full=RaceFlowDrive(drive,{'primary':state,'secondary':secondary},ROOT,live=live,
+                           offline_competition=True);wrappers.append(full)
         return add_page(add_endpoints(original(address,state,secondary,full),full),competition)
     web_preview.make_server=make_server
     try:return serve_parking_payment.main()

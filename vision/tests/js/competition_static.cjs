@@ -125,6 +125,13 @@ const active=(stage='cones',token='token',owner='page')=>snapshot({...base(),rac
  api.applyStatus(status);
  assert.equal(nodes.get('enter-auto').disabled,true,'explicit new start failure overrides old full readiness true');
  assert.match(nodes.get('readiness-title').textContent,/启动条件未就绪/);
+ status=throughCones();status.race_flow.offline_autonomy=true;status.race_flow.can_enter=false;
+ status.race_flow.start_readiness={ready:false,missing:blockers,scope:'full_race',parking_ready:false};api.applyStatus(status);
+ const beforeFormalDenied=requests.length;
+ assert.equal(nodes.get('enter-auto').disabled,true);
+ assert.match(nodes.get('enter-auto').textContent,/暂不可启动/);
+ assert.equal(nodes.get('readiness-title').textContent,'正式比赛启动条件未就绪');
+ await api.enterAuto();assert.equal(requests.length,beforeFormalDenied,'formal readiness rejects before any handoff request');
  status=base();status.race_flow.start_readiness={ready:true,missing:[],scope:'full_race',parking_ready:true};api.applyStatus(status);
  assert.equal(nodes.get('enter-auto').disabled,false);
  assert.equal(nodes.get('readiness-title').textContent,'自主驾驶条件已齐备');

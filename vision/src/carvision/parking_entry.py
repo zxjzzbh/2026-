@@ -38,7 +38,8 @@ class ParkingEntryController:
     def __init__(self, brake_settings, selected_side='right', *, forward_us=1575,
                  steering_gain=1., vehicle_width_m=.295, front_extent_m=.335,
                  rear_extent_m=.085, zone_length_m=1., half_width_m=.625,
-                 ground=None, require_white_boundary=False, visual_options=None):
+                 ground=None, require_white_boundary=False, visual_options=None,
+                 boundary_tape_width_m=0.):
         if selected_side not in ('left', 'right'):
             raise ValueError('selected_side must be left or right')
         if type(forward_us) is not int or not FORWARD_MIN_US <= forward_us <= 1625:
@@ -48,7 +49,13 @@ class ParkingEntryController:
         dimensions=(vehicle_width_m, front_extent_m, rear_extent_m, zone_length_m, half_width_m)
         if not all(numeric(v) and v > 0 for v in dimensions):
             raise ValueError('vehicle and bay dimensions must be positive')
-        if vehicle_width_m + .04 >= half_width_m or front_extent_m + rear_extent_m + .04 >= zone_length_m:
+        if not numeric(boundary_tape_width_m) or not 0 <= boundary_tape_width_m <= .1:
+            raise ValueError('invalid parking tape width')
+        # Tracking refits the tape/floor transitions, not tape centres. Keep
+        # the full lane width separately for white-boundary steering checks.
+        inner_width=half_width_m-boundary_tape_width_m/2
+        inner_length=zone_length_m-2*boundary_tape_width_m
+        if vehicle_width_m + .04 >= inner_width or front_extent_m + rear_extent_m + .04 >= inner_length:
             raise ValueError('vehicle does not fit the supplied bay dimensions')
         self.s=copy.deepcopy(brake_settings)
         if self.s.get('camera') != 'secondary' or self.s.get('image_size') != [480, 360] or self.s.get('required_esc_mode') != 'F/B':
@@ -76,12 +83,12 @@ class ParkingEntryController:
         self.brake_reference={'distance_m':None,'far_edge_y_normalized':self.visual['stop_line_y_normalized'],
                               'measured':False,'source':self.visual['reference_source']}
         self.side, self.gain=selected_side, float(steering_gain)
-        self.width_ratio=vehicle_width_m/half_width_m
-        self.clearance_ratio=.02/half_width_m
+        self.width_ratio=vehicle_width_m/inner_width
+        self.clearance_ratio=.02/inner_width
         self.vehicle_length=front_extent_m+rear_extent_m
         self.track_width=half_width_m*2
         self.body_width=vehicle_width_m
-        self.zone_length=zone_length_m
+        self.zone_length=inner_length
         self.center_h=None
         if ground is not None and ground.get('homography') is not None:
             h=np.asarray(ground['homography'], dtype=float)
@@ -90,7 +97,7 @@ class ParkingEntryController:
                 raise ValueError('invalid secondary image-centre reference')
             self.center_h=h
         self.route=(ParkingRoute(ground,width=vehicle_width_m,front=front_extent_m,
-                    rear=rear_extent_m,bay_width=half_width_m,bay_length=zone_length_m,
+                    rear=rear_extent_m,bay_width=inner_width,bay_length=inner_length,
                     brake_s=self.s['brake_pulse_s'],acquire_timeout_s=self.visual['seek_timeout_s'])
                     if self.visual['ground_pose_confirmed'] else None)
         self.phase='arming' 
