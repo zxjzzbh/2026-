@@ -228,7 +228,13 @@ def test_small_distant_target_never_demands_immediate_endpoint_even_with_high_ga
         assert output['small_target_limited']
 
 
-@pytest.mark.parametrize('forward',[1501,1550,1575,1600,1625])
+@pytest.mark.parametrize('forward',[1501,1550,1569])
+def test_throttle_below_measured_starting_floor_is_rejected(forward):
+    with pytest.raises(ValueError,match='1570'):
+        started(forward=forward)
+
+
+@pytest.mark.parametrize('forward',[1570,1575,1600,1625])
 def test_turning_and_degraded_commands_never_exceed_selected_throttle_and_use_frozen_guard(forward):
     controller=started(forward=forward)
     guard=ConePulseGuard(actuator_settings(controller.s),lambda *args:None,mode='F/B')

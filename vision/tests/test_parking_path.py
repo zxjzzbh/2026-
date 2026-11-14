@@ -22,7 +22,7 @@ def measured_settings():
     s=calibrated()
     s['motion_calibration']={'verified':True,'source':'synthetic test fixture, NOT field data',
         'speed_pwm':[{'speed_mps':v,'pwm_us':p} for v,p in
-                     ((.05,1540),(.075,1550),(.1,1560),(.125,1570),(.15,1575))],
+                     ((.05,1570),(.075,1580),(.1,1590),(.125,1600),(.15,1610))],
         'curvature_pwm':[{'curvature_1pm':k,'pwm_us':p} for k,p in
                          ((-2.5,1870),(-1.,1730),(0.,1610),(1.,1510),(2.5,1350))]}
     return validate(s)
@@ -125,9 +125,9 @@ def test_feedback_loss_after_selection_latches_stop_and_never_resumes(mutation):
     assert m.step(sample(8,.8),.8)['action']=='stop'
 
 
-def test_delayed_control_with_fresh_images_cannot_resume():
+def test_fresh_control_within_supported_cadence_keeps_selected_path():
     m=selected_mission()
-    assert m.step(sample(7,1.),1.)['phase']=='fault'
+    assert m.step(sample(7,1.),1.)['action']=='follow_path'
 
 
 def test_actual_command_arc_is_checked_in_addition_to_reference_path():
@@ -164,7 +164,7 @@ def test_speed_is_not_old_fixed_throttle_and_no_curve_extrapolation():
     s=measured_settings()
     d={'action':'follow_path','reason':'test','target_speed_mps':.08,'target_curvature_1pm':.5}
     out=parking_intent(d,s)
-    assert out['esc_us']==1550 and out['command_speed_mps']==.075 and out['steering_us']==1560
+    assert out['esc_us']==1580 and out['command_speed_mps']==.075 and out['steering_us']==1560
     with pytest.raises(ValueError,match='禁止外推'):
         parking_intent({**d,'target_curvature_1pm':3.},s)
 
@@ -207,16 +207,16 @@ def test_parking_pwm_whitelist_does_not_open_the_original_guard_profile():
 
 def test_parking_whitelist_keeps_original_profile_and_brake_deadline():
     s={'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':1600,'creep_us':1575,'brake_us':1400},
-       'parking_forward_us':[1540,1560],'brake_pulse_s':.12,'brake_release_s':.1,'actuator_lease_s':.2}
+       'parking_forward_us':[1570,1590],'brake_pulse_s':.12,'brake_release_s':.1,'actuator_lease_s':.2}
     original=copy.deepcopy(s);writes=[]
     guard=ConePulseGuard(s,lambda ch,v:writes.append((ch,v)),mode='F/B')
     def send(seq,t,action,esc):
         guard.accept({'sequence':seq,'sent_s':t,'action':action,'esc_us':esc,'steering_us':1610},t)
-    send(1,1.,'parking_1540',1540)
-    assert guard.esc==1540 and guard.s==original and s==original
+    send(1,1.,'parking_1570',1570)
+    assert guard.esc==1570 and guard.s==original and s==original
     send(2,1.1,'search',1600)
     assert guard.esc==1600
-    send(3,1.2,'parking_1560',1560)
+    send(3,1.2,'parking_1590',1590)
     send(4,1.3,'brake',1400)
     send(5,1.4,'brake',1400)
     guard.tick(1.43)

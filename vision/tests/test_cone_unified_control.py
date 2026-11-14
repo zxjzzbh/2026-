@@ -85,16 +85,17 @@ class Output:
     def close(self):self.closed=True
 
 
-def test_263ms_is_accepted_but_repeat_frame_cannot_extend_500ms(settings):
+def test_263ms_is_accepted_but_repeat_frame_cannot_extend_decision_or_hide_expired_image(settings):
     clock=[1.263];output=Output();sender=ConeCommandSender(output,clock=lambda:clock[0],threaded=False)
     run=ConeRun();run.active=True;run.phase='driving';run.profile=PROFILE;run.s=settings
     run.lease_until=10.;run.actuator=sender
     run.controller=ContinuousConeController(settings,1.,initialized=True)
     row={**nav(1.),'experimental':True,'ready':True,'frame_id':7,'reason':'白线暂缺'}
     run.tick(row,clock[0])
-    assert run.active and run.phase=='driving' and sender.deadline==pytest.approx(1.5)
+    assert run.active and run.phase=='driving' and sender.deadline==pytest.approx(2.013)
+    assert sender.timing()['source_valid_until_s']==pytest.approx(1.5)
     clock[0]=1.49;run.tick(row,clock[0])
-    assert run.active and sender.deadline==pytest.approx(1.5)
+    assert run.active and sender.deadline==pytest.approx(2.013)
     clock[0]=1.501;run.tick(row,clock[0])
     assert not run.active and output.closed and run.phase=='fault'
     assert '500 ms' in run.reason and '白线暂缺' not in run.reason

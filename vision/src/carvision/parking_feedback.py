@@ -6,6 +6,7 @@ from .cone_navigation import ConeOdometry
 from .parking_control import parking_blockers
 from .cone_vision import BlueConeDetector, ImageConeTracker
 from .cone_road import ConeRoadContext
+from .runtime_timing import RACE_CONTROL_WINDOW_S
 
 
 class ParkingWorldFeed:
@@ -19,7 +20,7 @@ class ParkingWorldFeed:
         self.b=bundle;self.odo=None;self.map=None;self.map_at=None;self.last_id=None
         if not parking_blockers(bundle):
             settings=copy.deepcopy(bundle['cones']);settings['ground']=copy.deepcopy(bundle['parking']['ground'])
-            self.odo=ConeOdometry(settings)
+            self.odo=ConeOdometry(settings,max_sample_gap_s=RACE_CONTROL_WINDOW_S)
 
     def update(self,image,row,view,now):
         if self.odo is None or row['frame_id']==self.last_id:return None

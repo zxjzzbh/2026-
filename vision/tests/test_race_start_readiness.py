@@ -8,7 +8,7 @@ import pytest
 from carvision import race_flow_console
 from carvision.race_flow import RaceFlowController, load_bundle
 from carvision.parking_control import parking_readiness
-from test_race_flow import Frames, measured_bundle, parking_sample
+from test_race_flow import Frames, measured_bundle, parking_sample, finish_parking_from_pwm
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -54,14 +54,33 @@ def entry_payload(**changes):
 
 @pytest.fixture
 def make_drive(tmp_path, monkeypatch):
-    def create(*, bundle=None, base=None, live=True):
+    def create(*, bundle=None, base=None, live=True, offline_competition=False):
         bundle = load_bundle(ROOT) if bundle is None else bundle
         monkeypatch.setattr(race_flow_console, 'load_bundle', lambda *args:copy.deepcopy(bundle))
         monkeypatch.setattr(race_flow_console.threading, 'Thread', InertThread)
         drive = race_flow_console.RaceFlowDrive(base or Base(), {}, tmp_path, live=live,
-            clock=lambda:1., actuator_factory=lambda _:pytest.fail('status/entry must not open hardware'))
+            clock=lambda:1., actuator_factory=lambda _:pytest.fail('status/entry must not open hardware'),
+            offline_competition=offline_competition)
         return drive, bundle
     return create
+
+
+def test_formal_competition_rejects_incomplete_route_before_taking_control(make_drive):
+    drive, bundle = make_drive(offline_competition=True)
+    report = drive.status()['race_flow']
+    assert not report['can_enter'] and not report['start_readiness']['ready']
+    assert report['start_readiness']['scope'] == 'through_cones'
+    with pytest.raises(ValueError, match='启动条件'):
+        drive.request('race_enter', entry_payload())
+    assert drive.thread is None and drive.actuator is None and not drive.active
+    assert not drive.drive.calls and drive.bundle == bundle
+
+
+def test_full_route_configuration_is_ready_for_formal_competition(make_drive):
+    calibrated = measured_bundle(load_bundle(ROOT))
+    drive, _ = make_drive(bundle=calibrated, offline_competition=True)
+    report = drive.status()['race_flow']
+    assert report['can_enter'] and report['start_readiness']['scope'] == 'full_race'
 
 
 def test_thirteen_real_parking_gaps_allow_stage_scoped_entry_without_fake_calibration(make_drive):
@@ -186,9 +205,7 @@ def test_measured_parking_enables_full_scope_and_can_complete_payment(make_drive
     for _ in range(10):
         frames.step(parking=parking_sample)
     assert controller.parking.selected == 'right' and controller.parking.path
-    for pose in controller.parking.path[1:]:
-        frames.step(dt=.15, parking=lambda t,i:parking_sample(t,i,pose,.10), moving=True)
-    frames.until('payment', parking=lambda t,i:parking_sample(t,i,controller.parking.path[-1],0.))
+    finish_parking_from_pwm(frames)
     assert controller.payment_started == frames.t and frames.outputs[-1][1]['esc_us'] == 1500
     controller.report_paid(frames.t+1)
     assert controller.stage == 'complete' and controller.paid_in_time

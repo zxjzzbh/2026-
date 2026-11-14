@@ -1,0 +1,53 @@
+{
+  "release": "race-control-consistency-20261114",
+  "local_validation": {
+    "tests": 4039,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 6,
+    "passed": 4033,
+    "elapsed_s": 279.969,
+    "skips": [
+      {
+        "test": "vision.tests.test_cone_slalom::test_deployment_respects_other_live_tasks_and_calibration",
+        "reason": "PC deployment helper is not installed on the car"
+      },
+      {
+        "test": "vision.tests.test_crosswalk_observation::test_actual_fixed_scene_with_three_depth_markers_does_not_start_a_crosswalk",
+        "reason": "Original stationary 40/50/65 cm capture files are not installed in this environment"
+      },
+      {
+        "test": "vision.tests.test_manual_drive::test_ended_worker_has_readable_error_and_cannot_be_reenabled",
+        "reason": "Pi worker uses Unix sockets"
+      },
+      {
+        "test": "vision.tests.test_race_flow::test_deployment_check_never_opens_ssh_and_preserves_launcher_arguments",
+        "reason": "PC deployment helper is not installed on the car"
+      },
+      {
+        "test": "vision.tests.test_rasadapter5::test_close_drains_last_neutral_frame_before_restoring_baud",
+        "reason": "could not import 'termios': No module named 'termios'"
+      },
+      {
+        "test": "vision.tests.test_worker_endpoint::test_worker_status_connects_with_long_round_record_path",
+        "reason": "actual Linux Unix-socket transport check"
+      }
+    ]
+  },
+  "source_input_hashes_verified": true,
+  "runtime_file_count": 204,
+  "public_checkout_validation": {
+    "tests": 4039,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 6,
+    "passed": 4033,
+    "seconds": 214.706
+  },
+  "pi_deployed": false,
+  "physical_vehicle_tested": false,
+  "limitations": "Offline validation only. Windows platform, deployment-helper and missing original capture checks may be skipped. Complete dynamic parking calibration remains unverified.",
+  "public_sources_unchanged_during_tests": true,
+  "runtime_matches_latest_local_source": true,
+  "git_normalization": "LF text line endings only"
+}

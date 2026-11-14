@@ -7,5 +7,6 @@ MOTION_RECOVERY_S = 1.5
 
 # The local sender keeps the 500 ms actuator lease alive at 50 ms cadence.
 # This is a computation window for already accepted race decisions, not a
-# longer capture-age allowance. Cone/parking outputs retain capture expiry.
+# longer capture-age allowance. Every task checks real evidence at acceptance;
+# parking planning also reserves travel during this bounded decision window.
 RACE_CONTROL_WINDOW_S = .75

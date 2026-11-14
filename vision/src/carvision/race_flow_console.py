@@ -26,17 +26,18 @@ def other_task_active(s):
         or (s.get('parking_payment') or {}).get('motion_locked'))
 
 
-def start_readiness(bundle, parking):
-    """Entry configuration and later metric parking are separate requirements.
+def start_readiness(bundle, parking, *, full_race=False):
+    """Check full-route capability before the competition takes control.
 
-    Existing stage controllers still enforce live image/motion checks. Missing
-    parking calibration neither qualifies that stage nor blocks earlier tasks.
+    Explicit noncompetition trials may still exercise the prefix. Neither path
+    upgrades calibration or promises a parking stage that cannot execute.
     """
     if bundle is None:
         return {'ready':False, 'missing':list(parking['missing']),
                 'scope':'unavailable', 'parking_ready':False}
     ready = parking['ready']
-    return {'ready':True, 'missing':[], 'parking_ready':ready,
+    return {'ready':ready or not full_race,
+            'missing':list(parking['missing']) if full_race and not ready else [], 'parking_ready':ready,
             'scope':'full_race' if ready else 'through_cones'}
 
 
@@ -109,7 +110,7 @@ class RaceFlowDrive:
                 current_intent={**(current_intent or {}),'action':'neutral','esc_us':1500,
                                 'steering_us':1610,'reason':self.error or self.reason}
             readiness=self.readiness()
-            entry=start_readiness(self.bundle, readiness)
+            entry=start_readiness(self.bundle, readiness, full_race=self.offline_competition)
             report={**core,'stage':self.stage,'stage_label':LABELS.get(self.stage,self.stage),'reason':self.error or self.reason,
                 'active':self.active,'live_enabled':self.live,'hardware_output':None if self.cleanup_error else bool(self.actuator and self.actuator.run),
                 'configuration_error':self.error,
@@ -225,7 +226,7 @@ class RaceFlowDrive:
                 if not isinstance(client,str) or not 1<=len(client)<=128:raise ValueError('页面身份无效')
                 bundle=load_bundle(self.root,self.drive)
                 readiness=parking_readiness(bundle)
-                entry=start_readiness(bundle,readiness)
+                entry=start_readiness(bundle,readiness,full_race=self.offline_competition)
                 if self.require_ready and not entry['ready']:
                     raise ValueError('自主驾驶启动条件尚未就绪：'+'、'.join(entry['missing']))
                 # Release the authenticated manual session before acquiring UART.
@@ -311,8 +312,7 @@ class RaceFlowDrive:
                 if self.controller.stage in ('cones','parking_entry'):brake_pulse_s = .12
             return handle.send_race(intent, run_until=self.controller.started+self.bundle['flow']['max_run_s'],
                                     evidence_until=evidence_until, recovering=intent.get('control_recovering', False),
-                                    recovered=intent.get('control_recovered', False), brake_pulse_s=brake_pulse_s,
-                                    expire_at_evidence=self.controller.stage in ('cones', 'parking_entry'))
+                                    recovered=intent.get('control_recovered', False), brake_pulse_s=brake_pulse_s)
         # Waiting at neutral must not lose ownership during camera processing.
         # Only neutral may use page-lifetime cadence; motion keeps its lease.
         if intent.get('action') == 'neutral' and intent.get('esc_us') == 1500:

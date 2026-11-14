@@ -26,22 +26,22 @@ class ConePulseGuard(PulseGuard):
     MAX_LEASE_S = CONE_COMMAND_LEASE_S
     def __init__(self,settings,write,*,mode,right_us=RIGHT_US,left_us=LEFT_US):
         validate_limits(right_us,left_us)
-        if not 1500<settings.get('pwm',{}).get('search_us',0)<=1625:
-            raise ValueError('锥桶测试油门上限为 1625 μs')
+        if not 1570<=settings.get('pwm',{}).get('creep_us',0)<=settings.get('pwm',{}).get('search_us',0)<=1625:
+            raise ValueError('锥桶前进档须在 1570–1625 μs')
         self.base_lease_s=settings['actuator_lease_s']
         self.right_us,self.left_us=right_us,left_us;self.actual_steering=1610;self.actual_write=write
         pulses=settings.get('parking_forward_us',[])
         if (not isinstance(pulses,list) or len(pulses)>32 or
-                any(type(p) is not int or not 1501<=p<=1625 for p in pulses)):
-            raise ValueError('parking forward whitelist exceeds existing F/B envelope')
+                any(type(p) is not int or not 1570<=p<=1625 for p in pulses)):
+            raise ValueError('parking forward whitelist must remain within 1570..1625 us')
         self.parking_pulses=tuple(pulses)
         traffic=settings.get('traffic_forward_us')
-        if traffic is not None and (type(traffic) is not int or not 1501<=traffic<=1575):
+        if traffic is not None and (type(traffic) is not int or not 1570<=traffic<=1575):
             raise ValueError('traffic approach setpoint exceeds its low-speed envelope')
         self.traffic_pulse=traffic
         cone=settings.get('cone_forward_us',[])
         if (not isinstance(cone,list) or len(cone)>2
-                or any(type(p) is not int or not 1501<=p<=min(1580,settings['pwm']['search_us']) for p in cone)):
+                or any(type(p) is not int or not 1570<=p<=min(1580,settings['pwm']['search_us']) for p in cone)):
             raise ValueError('cone recovery setpoints must stay below the frozen forward envelope')
         self.cone_pulses=tuple(cone)
         super().__init__(settings,self._write,mode=mode,forward_limit_us=1625)

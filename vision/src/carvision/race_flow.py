@@ -174,7 +174,8 @@ class RaceFlowController:
         self.reason='保持中位 3 秒，随后等待蓝色发车挡板';self.last_t=None;self.last_seq=None
         self.controller=None;self.departure=DepartureSequence(self.b['departure'].get('clear_confirm_s',DEFAULT_CLEAR_CONFIRM_S))
         self.guide=None;self.last_module_id=None;self.last_intent=None;self.events=[];self.transitions=[]
-        self.parking=ParkingTask(self.b['parking'],self.b['cones'],require_ready=False);self.parking_wait=None
+        self.parking=ParkingTask(self.b['parking'],self.b['cones'],require_ready=False,
+                                 max_control_gap_s=RACE_CONTROL_WINDOW_S);self.parking_wait=None
         self.payment_started=None;self.paid=False;self.paid_in_time=False;self.last_drive=False;self.audio_wait=None;self.stationary_since=None
         self.passed_cone_ids=set()
         self.vision_recovery_started=None
@@ -299,14 +300,44 @@ class RaceFlowController:
             if pause['needs_lane']:
                 fresh = fresh and paired_lane(nav) and numeric(lane_t) and 0 <= now-lane_t <= VISION_MAX_AGE_S
         motion = motion if motion is not None else (sample or {}).get('motion') or {}
+        parking_still = None
         if self.stage == 'parking_entry' and fresh:
             parking = sample['parking']
             speed = parking.get('speed_mps')
             pose = parking.get('pose') or {}
-            motion = {'captured_s': pose.get('captured_s'),
-                      'valid': pose.get('verified') is True and numeric(speed)
-                               and parking.get('obstacle_region_verified') is True,
-                      'moving': not numeric(speed) or abs(speed)>self.b['parking']['stopped_speed_mps']}
+            pose_stamp = pose.get('captured_s')
+            settings = self.b['parking']
+            pose_valid = (pose.get('verified') is True
+                          and all(numeric(pose.get(key)) for key in
+                                  ('x_m','y_m','yaw_rad','error_bound_m','captured_s'))
+                          and 0 <= now-pose_stamp <= settings['max_frame_age_s']
+                          and numeric(settings.get('maximum_pose_error_m'))
+                          and 0 <= pose['error_bound_m'] <= settings['maximum_pose_error_m']
+                          and parking.get('coordinate_frame') == 'parking_road_world'
+                          and parking.get('obstacle_region_verified') is True
+                          and numeric(speed) and numeric(settings.get('max_speed_mps'))
+                          and abs(speed) <= settings['max_speed_mps'])
+            independent_stamp = motion.get('captured_s')
+            moving_independently = (motion.get('valid') is True and motion.get('moving') is True
+                                    and numeric(independent_stamp)
+                                    and 0 <= now-independent_stamp <= MOTION_MAX_AGE_S)
+            moving_pose = (pose.get('verified') is True and numeric(pose_stamp)
+                           and 0 <= now-pose_stamp <= settings['max_frame_age_s']
+                           and numeric(speed) and abs(speed) > settings['stopped_speed_mps'])
+            if moving_independently or moving_pose:
+                stamps = ([independent_stamp] if moving_independently else []) + ([pose_stamp] if moving_pose else [])
+                pause['parking_motion_conflict_after'] = max(
+                    max(stamps), pause.get('parking_motion_conflict_after', -math.inf))
+            fresh = fresh and pose_valid and not moving_independently and not moving_pose
+            if fresh:
+                parking_still = continuous_stillness(motion, now)
+                conflict = pause.get('parking_motion_conflict_after')
+                if parking_still is not None and conflict is not None and parking_still[0] <= conflict:
+                    parking_still = None
+            # Slow parking calculations cannot reconstruct a continuous stop
+            # from isolated poses. Preserve the independent sampler's original
+            # interval, but corroborate it with current valid parking feedback.
+            motion = {'captured_s': pose_stamp, 'valid': fresh, 'moving': not fresh}
         previous = pause['frame']
         if fresh and stamp >= pause['at'] and (previous is None or stamp > previous[2] and identity != previous):
             if previous is not None and stamp-previous[2]>max(limit,RACE_CONTROL_WINDOW_S):
@@ -321,7 +352,7 @@ class RaceFlowController:
         pause['lane_age_s'] = now-nav['captured_s'] if numeric(nav.get('captured_s')) else None
         stopped = self.stage in ('arming', 'wait_board') or self.control_stillness.update(
             motion if numeric(motion_stamp) and motion_stamp >= pause['at'] else None, now)
-        still = continuous_stillness(motion, now)
+        still = parking_still if self.stage == 'parking_entry' else continuous_stillness(motion, now)
         if still is not None and still[1]-max(still[0], pause['until']) >= .3-1e-9:
             stopped = True
         if stopped and fresh and lane_ready and pause['hits']>=2 and now>=pause['until']+.1:
@@ -522,6 +553,11 @@ class RaceFlowController:
         if sample.get('sequence')==self.last_seq:return None
         self.last_seq=sample.get('sequence')
         motion = motion or {}
+        # The independent sampler may have advanced while vision was working.
+        # Give the task the same original-timestamp motion row used by recovery;
+        # never refresh image or motion timestamps to the decision time.
+        if self.stage in ('crosswalk','traffic') and isinstance(sample.get(self.stage),dict):
+            sample={**sample,self.stage:{**sample[self.stage],'motion':dict(motion)}}
         if not self.recover_gaps and self.stage not in ('arming','wait_board') and motion.get('valid') is True and 0<=now-motion.get('captured_s',-1e9)<=.25:
             if motion.get('moving') is True:self.stationary_since=None
             elif motion.get('moving') is False:

@@ -10,6 +10,7 @@ import numpy as np
 
 from .parking_bay import bay_tape_center_length, number,readiness,validate
 from .parking_path import entry_curve, pursuit, arc_poses
+from .runtime_timing import RACE_CONTROL_WINDOW_S
 
 
 def bounds(slot):
@@ -55,7 +56,22 @@ def contained(pose,box,s,pad):
     return bool(np.all(p[:,0]>=x0) and np.all(p[:,0]<=x1) and np.all(p[:,1]>=y0) and np.all(p[:,1]<=y1))
 
 
-def plan_entry(slots,chosen,pose,s):
+def command_arc_clear(pose,boxes,chosen,s,curvature,horizon):
+    """Check the actual command and straight braking fallback in one place."""
+    corner_radius=math.hypot(s['vehicle_width_m']/2,max(s['front_extent_m'],s['rear_extent_m']))
+    pad=s['clearance_m']+pose['error_bound_m']+.005*(1+corner_radius*abs(curvature))
+    x0,y0,x1,y1=boxes[chosen]
+    for curve in (curvature,0.):
+        for predicted in arc_poses(pose,curve,horizon):
+            swept=body(predicted,s,pad)
+            if (swept[:,0].min()<boxes['left'][0] or swept[:,0].max()>boxes['right'][2]
+                    or swept[:,1].max()>y1 or swept[:,1].max()>=y0 and
+                    (swept[:,0].min()<x0 or swept[:,0].max()>x1)):
+                return False
+    return True
+
+
+def plan_entry(slots,chosen,pose,s,*,max_control_gap_s=0.):
     _,bs=layout(slots,s);box=bs[chosen];x0,y0,x1,y1=box
     if not all(number(pose.get(k)) for k in ('x_m','y_m','yaw_rad')) or abs(pose['yaw_rad'])>.35:
         raise ValueError('入位初始位姿无效或航向偏差超过 0.35 rad')
@@ -72,15 +88,23 @@ def plan_entry(slots,chosen,pose,s):
         if p[:,1].max()>=y0 and (p[:,0].min()<x0 or p[:,0].max()>x1):raise ValueError('入口处整车会压分隔线或进入遮挡半区')
         if p[:,1].max()>y1:raise ValueError('路径越过停车区末端')
     # There must still be a full-car-inside braking corridor before the goal.
-    if goal-s['braking_distance_m']-s['max_speed_mps']*s['max_frame_age_s']-s['maximum_pose_error_m']<y0+s['rear_extent_m']+pad:
+    reaction_s=s['max_frame_age_s']+max_control_gap_s
+    if goal-s['braking_distance_m']-s['max_speed_mps']*reaction_s-s['maximum_pose_error_m']<y0+s['rear_extent_m']+pad:
         raise ValueError('当前制动距离超过车位内余量，需降低实测接近速度')
     if not contained(path[-1],box,s,pad):raise ValueError('目标位置无法容纳整车')
     return path
 
 
 class ParkingMission:
-    def __init__(self,settings):
+    def __init__(self,settings,*,max_control_gap_s=RACE_CONTROL_WINDOW_S):
         self.s=validate(settings);self.phase='observe';self.selected=None;self.pending=None;self.pending_since=None;self.pending_count=0
+        if not number(max_control_gap_s) or not 0<max_control_gap_s<=RACE_CONTROL_WINDOW_S:
+            raise ValueError('停车控制周期必须为正且不超过已支持的比赛周期')
+        # A fresh image may arrive after a slow computation. Its age and the
+        # interval between results are different quantities; never refresh a
+        # pose timestamp to make it pass the camera-age check.
+        self.max_control_gap_s=max_control_gap_s
+        self.reaction_s=self.s['max_frame_age_s']+max_control_gap_s
         self.last_t=None;self.last_id=None;self.path=[];self.selected_bounds=None;self.still_since=None;self.brake_since=None
         self.previous_pose=None
         self.enter_started=None;self.stall_since=None
@@ -88,11 +112,17 @@ class ParkingMission:
         self.tracking={}
         self.last_now=None
         self.replan_required=False
+        self.recovery_count=0
+        self.recovery_since=None
+        self.forward_context=None
 
     def recover_control(self):
+        self.forward_context=None
         self.last_now=self.last_t=None
         self.pending=self.pending_since=self.still_since=self.stall_since=None
         self.pending_count=0
+        self.recovery_count=0
+        self.recovery_since=None
         if self.selected:
             self.replan_required=True
 
@@ -106,11 +136,28 @@ class ParkingMission:
         if self.selected:self.phase='fault'
         return self._result('brake' if self.selected else 'stop',reason)
 
+    def check_final_command(self,curvature,speed,now,captured_s):
+        """Reject a slew/quantization result that no longer fits the live bay."""
+        current=self.forward_context
+        valid=(current is not None and numeric_command(curvature,speed,self.s)
+               and number(now) and captured_s==current['captured_s']
+               and 0<=now-captured_s<=self.s['max_frame_age_s']
+               and 0<=now-current['pose']['captured_s']<=self.s['max_frame_age_s'])
+        if not valid:
+            self.phase='fault';return self._result('brake','最终停车指令缺少对应的新鲜位姿或有效实测曲率')
+        horizon=(self.s['braking_distance_m']+max(current['speed'],speed,0.)*self.reaction_s
+                 +current['pose']['error_bound_m'])
+        if not command_arc_clear(current['pose'],current['boxes'],self.selected,self.s,curvature,horizon):
+            self.phase='fault';return self._result('brake','最终转向PWM的制动扫掠区越界，保持停止')
+        return None
+
     def step(self,sample,now):
+        self.forward_context=None
         if self.phase=='fault':return self._result('stop','需重新开始本轮停车')
-        if (not number(now) or self.last_now is not None and
-                (now<=self.last_now or self.selected and now-self.last_now>self.s['max_frame_age_s'])):
-            self.phase='fault';return self._result('brake' if self.selected else 'stop','停车控制时钟或间隔失效')
+        if not number(now) or self.last_now is not None and now<=self.last_now:
+            self.phase='fault';return self._result('brake' if self.selected else 'stop','停车控制时钟无效或倒退')
+        if self.last_now is not None and now-self.last_now>self.max_control_gap_s+1e-9:
+            self.recover_control()
         self.last_now=now
         if not isinstance(sample,dict):
             self.phase='fault';return self._result('stop','停车观测格式无效')
@@ -118,10 +165,8 @@ class ParkingMission:
         if (not number(now) or not number(t) or type(fid) is not int or not 0<=now-t<=self.s['max_frame_age_s']
                 or self.last_t is not None and (t<=self.last_t or fid<=self.last_id)):
             self.phase='fault';return self._result('stop','图像或反馈时间无效，停车并重新准备')
-        if self.last_t is not None and t-self.last_t>self.s['max_frame_age_s']:
-            self.pending=None;self.pending_since=None;self.pending_count=0;self.still_since=None
-            if self.selected:
-                self.phase='fault';return self._result('brake','反馈有中断，不能沿旧路径继续入位')
+        if self.last_t is not None and t-self.last_t>self.max_control_gap_s+1e-9:
+            self.recover_control()
         self.last_t,self.last_id=t,fid
         if self.enter_started is not None and self.phase!='parked' and now-self.enter_started>self.s['max_run_s']:
             self.phase='fault';return self._result('brake','本轮入位超过时限，停止并重新准备')
@@ -159,7 +204,7 @@ class ParkingMission:
             if self.pending!=chosen:self.pending=chosen;self.pending_since=t;self.pending_count=0
             self.pending_count+=1
             if self.pending_count<3 or t-self.pending_since<self.s['selection_confirm_s']:return self._result('stop','正在连续确认未遮挡半区',candidate_slot=chosen)
-            try:self.path=plan_entry(list(slots.values()),chosen,pose,self.s)
+            try:self.path=plan_entry(list(slots.values()),chosen,pose,self.s,max_control_gap_s=self.max_control_gap_s)
             except ValueError as exc:return self._result('stop',str(exc))
             self.selected=chosen;self.selected_bounds=bs[chosen];self.phase='entering';self.enter_started=now
         if max(abs(a-b) for a,b in zip(self.selected_bounds,bs[chosen]))>.05:
@@ -173,12 +218,19 @@ class ParkingMission:
             self.phase='fault';return self._result('brake','实际车身扫过范围越过选中半区，立即停车')
         if self.replan_required:
             if abs(speed)>self.s['stopped_speed_mps']:
+                self.recovery_count=0;self.recovery_since=None
                 return self._result('brake','重新规划前等待车辆停稳')
+            # A pause invalidates the old forward route. Re-observe the same
+            # bay and stopped pose before making a new whole-body route check.
+            if self.recovery_since is None:self.recovery_since=t
+            self.recovery_count+=1
+            if self.recovery_count<3 or t-self.recovery_since<self.s['selection_confirm_s']:
+                return self._result('hold','停车恢复中：重新确认当前位姿与原车位')
             if inside and abs(pose['yaw_rad'])<=.10:
                 self.phase='braking'
                 self.brake_since=now
             else:
-                try:self.path=plan_entry(list(slots.values()),chosen,pose,self.s)
+                try:self.path=plan_entry(list(slots.values()),chosen,pose,self.s,max_control_gap_s=self.max_control_gap_s)
                 except ValueError as exc:return self._result('stop',str(exc))
                 self.phase='entering'
                 self.progress_m=0.
@@ -188,7 +240,7 @@ class ParkingMission:
         if self.tracking['tracking_error_m']>self.s['maximum_pose_error_m']+self.s['maximum_tracking_error_m']:
             self.phase='fault';return self._result('brake','实际位姿偏离已校核路径')
         remaining=self.tracking['remaining_m']
-        stopping_distance=self.s['braking_distance_m']+max(speed,0)*self.s['max_frame_age_s']+pose['error_bound_m']
+        stopping_distance=self.s['braking_distance_m']+self.s['max_speed_mps']*self.reaction_s+pose['error_bound_m']
         if self.phase in ('braking','parked') or remaining<=stopping_distance:
             if self.brake_since is None:self.brake_since=now
             self.phase='braking'
@@ -210,22 +262,21 @@ class ParkingMission:
         curvature=self.tracking['curvature_1pm']
         if abs(curvature)>1/self.s['minimum_turn_radius_m']:
             self.phase='fault';return self._result('brake','实时转向需求超出已验证范围')
-        # Check the commanded arc and the straight braking fallback. Padding
-        # covers half a 1 cm sample plus the corner's rotation between samples.
-        horizon=stopping_distance+self.s['max_speed_mps']*self.s['max_frame_age_s']
-        corner_radius=math.hypot(self.s['vehicle_width_m']/2,max(self.s['front_extent_m'],self.s['rear_extent_m']))
-        sample_pad=.005*(1+corner_radius*abs(curvature))
-        for curve in (curvature,0.):
-            for predicted in arc_poses(pose,curve,horizon):
-                swept=body(predicted,self.s,pad+sample_pad)
-                x0,y0,x1,y1=bs[chosen]
-                if (swept[:,0].min()<bs['left'][0] or swept[:,0].max()>bs['right'][2]
-                        or swept[:,1].max()>y1 or swept[:,1].max()>=y0 and
-                        (swept[:,0].min()<x0 or swept[:,0].max()>x1)):
-                    self.phase='fault';return self._result('brake','实际转向的制动扫掠区越界，停止并重新定位')
         fraction=min(1.,max(0.,(remaining-stopping_distance)/self.s['slowdown_distance_m']))
         target_speed=self.s['final_speed_mps']+fraction*(self.s['max_speed_mps']-self.s['final_speed_mps'])
-        # Curvature slows approach, but never below the calibrated creep speed.
+        # Use a reachable speed request, not a smaller fictitious speed. The
+        # PWM adapter picks a measured row at or below this request. Existing
+        # speed still bounds the corridor while that slower command takes effect.
         target_speed=max(self.s['final_speed_mps'],target_speed/(1+abs(curvature)*self.s['minimum_turn_radius_m']))
+        # The adapter rechecks the final calibrated PWM after steering slew.
+        horizon=self.s['braking_distance_m']+max(speed,target_speed,0.)*self.reaction_s+pose['error_bound_m']
+        if not command_arc_clear(pose,bs,chosen,self.s,curvature,horizon):
+            self.phase='fault';return self._result('brake','实际转向的制动扫掠区越界，停止并重新定位')
+        self.forward_context={'pose':dict(pose),'boxes':dict(bs),'speed':speed,'captured_s':t}
         return self._result('follow_path','低速沿已校核路线进入选中半区',speed_limit_mps=self.s['max_speed_mps'],
                             target_speed_mps=target_speed,target_curvature_1pm=curvature,remaining_m=remaining,path=self.path)
+
+
+def numeric_command(curvature,speed,settings):
+    return (number(curvature) and abs(curvature)<=1/settings['minimum_turn_radius_m']+1e-9
+            and number(speed) and settings['final_speed_mps']<=speed<=settings['max_speed_mps'])

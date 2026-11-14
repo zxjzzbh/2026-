@@ -1,8 +1,8 @@
 """Bounded cone-command cadence over the existing leased actuator.
 
-The sender never creates visual evidence. Cone tracking and metric parking
-keep their camera-based expiry. Offline competition can keep the executor at
-neutral during a pause without renewing an old forward command.
+Fresh evidence is required when accepting a decision. The bounded decision
+window leaves time for the next calculation, independently of hardware leases.
+Background retransmission never renews that window or fabricates new evidence.
 """
 import copy
 import threading
@@ -22,7 +22,8 @@ class ConeCommandSender:
         self.lock = threading.RLock()
         self.stop = threading.Event()
         self.closed = False
-        self.slot = self.deadline = self.last_sent = None
+        self._clear_slot()
+        self.last_sent = None
         self.fault = None
         self.count = 0
         self.max_gap_s = 0.
@@ -30,6 +31,7 @@ class ConeCommandSender:
         self.page_deadline = None
         self.neutral_slot = self.neutral_until = None
         self.race_intent = self.race_deadline = self.race_until = self.race_brake_until = None
+        self.race_evidence_until = None
         self.race_release_until = 0.
         self.race_brake_requested = False
         self.race_paused = False
@@ -49,7 +51,8 @@ class ConeCommandSender:
     def timing(self):
         return {'control_period_s': COMMAND_PERIOD_S, 'commands_sent': self.count,
                 'maximum_send_gap_s': self.max_gap_s,
-                'source_valid_until_s': self.race_deadline if self.race_intent is not None else self.deadline,
+                'source_valid_until_s': self.race_evidence_until if self.race_intent is not None else self.slot_evidence_until,
+                'decision_valid_until_s': self.race_deadline if self.race_intent is not None else self.slot_decision_until,
                 'actuator_lease_s': CONE_COMMAND_LEASE_S if self.slot or self.race_intent is not None else None,
                 'race_control_paused': self.race_paused,
                 'fault': self.fault}
@@ -87,7 +90,7 @@ class ConeCommandSender:
             return self.race_paused
 
     def send_race(self, intent, *, run_until, evidence_until=None, recovering=False, recovered=False,
-                  brake_pulse_s=.35, expire_at_evidence=False):
+                  brake_pulse_s=.35):
         """Expire forward authority locally; keep the current race at neutral."""
         with self.lock:
             self._check()
@@ -100,6 +103,8 @@ class ConeCommandSender:
                 return None
             self.race_until = run_until
             forward = intent['esc_us'] > 1500
+            if forward and intent.get('fresh_control') is False:
+                return None  # A cached decision cannot renew forward authority.
             if forward and (not numeric(evidence_until) or now >= min(evidence_until, run_until)):
                 self.race_paused = True
                 if self.race_deadline is not None:
@@ -119,8 +124,9 @@ class ConeCommandSender:
                 self.race_paused = True
                 return None
             self.race_brake_requested = intent['action'] == 'brake'
-            self.race_deadline = (min(evidence_until if expire_at_evidence else now+RACE_CONTROL_WINDOW_S, run_until)
+            self.race_deadline = (min(now+RACE_CONTROL_WINDOW_S, run_until)
                                   if forward else None)
+            self.race_evidence_until = evidence_until if forward else None
             self.race_intent = copy.deepcopy(intent)
             sent = self._emit(self.race_intent, now)
             if intent['action'] == 'brake':
@@ -142,11 +148,13 @@ class ConeCommandSender:
         if self.fault:
             raise RuntimeError(self.fault)
 
+    def _clear_slot(self):
+        self.slot = self.deadline = self.slot_evidence_until = self.slot_decision_until = None
+
     def send(self, intent, *, local_neutral_until=None):
         with self.lock:
             self._check()
             now = self.clock()
-            self.neutral_slot = self.neutral_until = None
             if (intent.get('action') == 'neutral' and intent.get('esc_us') == 1500
                     and (intent.get('control_profile') == 'cone' or 'page_deadline_s' in intent
                          or local_neutral_until is not None)):
@@ -157,31 +165,36 @@ class ConeCommandSender:
                 if not numeric(deadline) or deadline <= now:
                     self._expire(now, reason='避障控制页心跳到期，保持中位')
                     raise RuntimeError(self.fault)
-                self.slot = self.deadline = None
+                self._clear_slot()
                 self.page_deadline = deadline if local_neutral_until is None else None
                 self.neutral_until = deadline
                 self.neutral_slot = copy.deepcopy(intent)
                 return self._emit(self.neutral_slot, now)
-            if intent.get('control_profile') != 'cone' or (intent.get('action') == 'neutral' and intent.get('esc_us') == 1500):
-                self.slot = self.deadline = None
+            if intent.get('control_profile') != 'cone' or intent.get('esc_us',1500) <= 1500:
+                self._clear_slot()
+                self.neutral_slot = self.neutral_until = None
                 self.page_deadline = None
                 self.last_sent = None
                 return self._emit(intent, now)
-            observed = intent.get('observation_s')
-            if not numeric(observed) or not 0 <= now-observed < CONE_RESULT_MAX_AGE_S:
-                self._expire(now)
-                raise RuntimeError(self.fault)
             if self.deadline is not None and now >= self.deadline:
                 self._expire(now)
                 raise RuntimeError(self.fault)
-            # A later frame may replace an unexpired result; an old frame
-            # cannot move the existing visual deadline backwards or forwards.
+            if intent.get('fresh_control') is False:
+                return {'control_timing':self.timing(),'cached_observation_ignored':True}
+            observed = intent.get('observation_s')
+            if not numeric(observed) or not 0 <= now-observed < CONE_RESULT_MAX_AGE_S:
+                self._expire(now, reason='避障图像采集时间失效或帧龄超过 500 ms，已请求有限制动')
+                raise RuntimeError(self.fault)
+            # A decision window starts only on a distinct advancing observation.
+            # Neither a duplicate frame nor a page heartbeat can renew it.
             camera = intent.get('observation_camera')
             frame = intent.get('observation_frame_id', observed)
             previous = self.source_frames.get(camera)
             if previous and (observed < previous[1] or frame < previous[0]
                              or frame == previous[0] and observed != previous[1]):
                 raise ValueError('cone observation frame/timestamp reversed or reused')
+            if previous and (frame == previous[0] or observed == previous[1]):
+                return {'control_timing':self.timing(),'cached_observation_ignored':True}
             self.source_frames[camera] = (frame, observed)
             page_deadline = intent.get('page_deadline_s')
             if page_deadline is not None:
@@ -190,7 +203,10 @@ class ConeCommandSender:
                     raise RuntimeError(self.fault)
                 self.page_deadline = page_deadline
             self.slot = copy.deepcopy(intent)
-            self.deadline = observed+CONE_RESULT_MAX_AGE_S
+            self.neutral_slot = self.neutral_until = None
+            self.slot_evidence_until = observed+CONE_RESULT_MAX_AGE_S
+            self.slot_decision_until = now+RACE_CONTROL_WINDOW_S
+            self.deadline = self.slot_decision_until
             if self.page_deadline is not None:
                 self.deadline = min(self.deadline, self.page_deadline)
             return self._emit(self.slot, now)
@@ -208,12 +224,12 @@ class ConeCommandSender:
             if self.neutral_slot:
                 self.neutral_until = deadline
             if self.slot:
-                self.deadline = min(self.slot['observation_s']+CONE_RESULT_MAX_AGE_S, deadline)
+                self.deadline = min(self.slot_decision_until, deadline)
 
     def _expire(self, now, *, reason=None):
-        self.fault = reason or '避障视觉结果超过 500 ms 未更新，已请求有限制动'
+        self.fault = reason or '避障控制决策超过 750 ms 未更新，已请求有限制动'
         previous = self.slot
-        self.slot = self.deadline = None
+        self._clear_slot()
         self.neutral_slot = self.neutral_until = None
         # Keep the established finite brake duration in the real guard.
         # This brake is sent once; it is never replayed to extend a pulse.
@@ -244,7 +260,7 @@ class ConeCommandSender:
                     self._emit(self.slot, now)
             except Exception as error:
                 self.fault = ('比赛执行器发送失败：' if self.race_intent is not None else '避障执行器发送失败：')+str(error)
-                self.slot = self.deadline = None
+                self._clear_slot()
 
     def _work(self):
         while not self.stop.wait(COMMAND_PERIOD_S/2):
@@ -256,9 +272,10 @@ class ConeCommandSender:
             if self.closed:
                 return
             self.closed = True
-            self.slot = self.deadline = None
+            self._clear_slot()
             self.neutral_slot = self.neutral_until = None
             self.race_intent = self.race_deadline = self.race_until = self.race_brake_until = None
+            self.race_evidence_until = None
         if self.thread and self.thread is not threading.current_thread():
             self.thread.join(timeout=.2)
         self.actuator.close()

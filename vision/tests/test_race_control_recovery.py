@@ -108,7 +108,7 @@ def test_background_gap_withdraws_forward_and_only_resumes_after_acknowledgment(
     assert outputs[-1][1] == 'search'
 
 
-def test_metric_and_cone_forward_deadline_stays_anchored_to_capture():
+def test_metric_and_cone_forward_requires_fresh_acceptance_then_bounded_decision_window():
     class Actuator:
         run = False
 
@@ -118,10 +118,13 @@ def test_metric_and_cone_forward_deadline_stays_anchored_to_capture():
     clock, outputs = [2.], []
     sender = ConeCommandSender(Actuator(), clock=lambda: clock[0], threaded=False)
     forward = {'action':'search', 'esc_us':1600, 'steering_us':1610}
-    sender.send_race(forward, run_until=10., evidence_until=2.09, expire_at_evidence=True)
+    sender.send_race(forward, run_until=10., evidence_until=2.09)
     clock[0] = 2.1
     sender.tick()
-    assert sender.race_interrupted() and outputs == ['search', 'brake']
+    assert not sender.race_interrupted() and outputs == ['search', 'search']
+    clock[0] = 2.75
+    sender.tick()
+    assert sender.race_interrupted() and outputs[-1] == 'brake'
 
 
 def test_line_timeout_pauses_and_checks_both_edges_before_new_forward(bundle):

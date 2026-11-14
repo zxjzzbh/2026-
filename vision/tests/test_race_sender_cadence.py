@@ -113,11 +113,13 @@ def test_invalid_or_expired_evidence_cannot_refresh_forward(rig, evidence):
     assert sum(row['action'] == 'brake' for row in actuator.commands) == 1
 
 
-def test_cone_and_metric_parking_deadline_still_uses_captured_evidence(rig):
+def test_short_remaining_capture_validity_does_not_consume_next_calculation_window(rig):
     _, actuator, sender = rig
-    sender.send_race(FORWARD, run_until=10., evidence_until=.12, expire_at_evidence=True)
-    assert sender.race_deadline == .12
+    sender.send_race(FORWARD, run_until=10., evidence_until=.12)
+    assert sender.race_deadline == RACE_CONTROL_WINDOW_S
     advance(rig, .12)
+    assert not sender.race_interrupted() and actuator.guard.esc == 1600
+    advance(rig, RACE_CONTROL_WINDOW_S)
     assert sender.race_interrupted() and actuator.guard.esc == 1400
 
 

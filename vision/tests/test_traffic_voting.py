@@ -17,7 +17,7 @@ def test_either_camera_independently_confirms_either_color(camera,color):
         result=v.update({camera:frame(camera,color,i,i/10),other:frame(other,'unknown',i,i/10)},i/10)
     assert result[color+'_confirmed']
     assert result[color+'_sources']==[camera]
-    assert result['cameras'][other]['total_frames']==20
+    assert result['cameras'][other]['total_frames']==20  # Fresh unknown frames remain negative votes.
 
 
 def test_no_cross_camera_pooling_and_shared_parameter_applies_to_both_colors():

@@ -52,7 +52,7 @@ def test_unfrozen_or_mismatched_lower_commands_fail_closed(settings,action,pulse
 def test_limited_setpoints_cannot_exceed_selected_forward(settings):
     profile=actuator_settings(continuous(settings))
     profile['pwm']['search_us']=profile['pwm']['creep_us']=1550
-    with pytest.raises(ValueError,match='frozen forward'):
+    with pytest.raises(ValueError,match='1570'):
         ConePulseGuard(profile,lambda *args:None,mode='F/B')
 
 

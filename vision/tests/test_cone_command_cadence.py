@@ -82,13 +82,14 @@ def test_sender_keeps_cadence_during_visual_gap_but_does_not_extend_source_life(
     sender.send(intent())
     for t in (.05,.1,.15,.2,.25,.3,.35,.4,.45):now[0]=t;sender.tick()
     assert len(actuator.rows)==10 and not actuator.guard.fault
-    # Re-submitting this old frame does not grant another 500 ms.
-    now[0]=.49;sender.send(intent());assert sender.deadline==.5
-    now[0]=.5;sender.tick()
+    # Re-submitting this old frame cannot extend the accepted decision window.
+    now[0]=.49;sender.send(intent());assert sender.deadline==.75
+    for t in (.5,.55,.6,.65,.7):now[0]=t;sender.tick()
+    now[0]=.75;sender.tick()
     assert sender.fault and actuator.rows[-1]['action']=='brake'
-    count=len(actuator.rows);now[0]=.6;sender.tick();assert len(actuator.rows)==count
-    actuator.guard.tick(.621);assert actuator.guard.esc==1500
-    with pytest.raises(RuntimeError,match='500 ms'):sender.send(intent(.6,fid=2))
+    count=len(actuator.rows);now[0]=.8;sender.tick();assert len(actuator.rows)==count
+    actuator.guard.tick(.871);assert actuator.guard.esc==1500
+    with pytest.raises(RuntimeError,match='750 ms'):sender.send(intent(.8,fid=2))
     sender.close();assert actuator.closed
 
 
@@ -115,17 +116,19 @@ def test_fresh_page_heartbeats_cannot_extend_old_visual_result_lifetime():
     now=[0.];actuator=FakeActuator(lambda:now[0]);sender=ConeCommandSender(actuator,clock=lambda:now[0],threaded=False)
     sender.send({**intent(),'page_deadline_s':.3})
     now[0]=.2;sender.refresh_page_deadline(.7)
-    assert sender.deadline==.5
+    assert sender.deadline==.7
     now[0]=.4;sender.refresh_page_deadline(.9);sender.tick()
-    now[0]=.5;sender.tick()
-    assert '视觉' in sender.fault and actuator.rows[-1]['action']=='brake'
+    assert sender.deadline==.75
+    for t in (.45,.5,.55,.6,.65,.7):now[0]=t;sender.tick()
+    now[0]=.75;sender.tick()
+    assert '决策' in sender.fault and actuator.rows[-1]['action']=='brake'
     sender.close()
 
 
 def test_camera_switch_accepts_fresh_view_but_reused_frame_cannot_renew():
     now=[.2];actuator=FakeActuator(lambda:now[0]);sender=ConeCommandSender(actuator,clock=lambda:now[0],threaded=False)
     sender.send(intent(.2))
-    now[0]=.25;sender.send(intent(.19,'primary',7));assert sender.deadline==pytest.approx(.69)
+    now[0]=.25;sender.send(intent(.19,'primary',7));assert sender.deadline==pytest.approx(1.)
     with pytest.raises(ValueError,match='reused'):sender.send(intent(.24,'primary',7))
     sender.close()
 

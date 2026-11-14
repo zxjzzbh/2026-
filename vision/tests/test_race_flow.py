@@ -1,6 +1,7 @@
 """Whole-flow regressions with sensor fixtures and fake output only."""
 import copy
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -8,6 +9,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import numpy as np
 
 from carvision.race_flow import load_bundle,prepare_bundle,RaceFlowController,parking_blockers
 from carvision.race_flow_console import RaceFlowDrive
@@ -130,6 +132,29 @@ def parking_sample(t,i,pose=None,speed=0.):
                  {'id':'right','polygon_m':[[0,2],[.585,2],[.585,3.4],[0,3.4]],'availability':'clear','occupancy_verified':True}]}
 
 
+def finish_parking_from_pwm(frames):
+    """Synthetic bicycle follows actual PWM, including slowdown and braking."""
+    from carvision.parking_control import calibration_tables
+    _, steering = calibration_tables(frames.c.b['parking'])
+    pose = {'x_m':0., 'y_m':0., 'yaw_rad':0.}
+    speed = 0.
+    for _ in range(600):
+        out = frames.step(parking=lambda t,i:parking_sample(t,i,dict(pose),speed), moving=speed>.01)
+        assert frames.c.stage != 'fault', out
+        if frames.c.stage == 'payment':
+            assert frames.c.parking.mission.phase == 'parked'
+            return pose
+        target = out.get('command_speed_mps',0.)
+        speed += max(-.04,min(.03,target-speed))
+        curvature = out.get('command_curvature_1pm',0.)
+        assert curvature == pytest.approx(float(np.interp(out['steering_us'],steering[1][::-1],steering[0][::-1])))
+        mid = pose['yaw_rad']+.05*speed*curvature
+        pose['x_m'] += speed*math.sin(mid)*.1
+        pose['y_m'] += speed*math.cos(mid)*.1
+        pose['yaw_rad'] += speed*curvature*.1
+    pytest.fail('synthetic PWM feedback did not complete parking')
+
+
 def test_complete_task_chain_and_every_pwm_through_real_guard(bundle):
     b=measured_bundle(bundle);c=RaceFlowController(b,0.);r=Frames(c)
     r.until('wait_board')
@@ -148,12 +173,11 @@ def test_complete_task_chain_and_every_pwm_through_real_guard(bundle):
     r.step(layout=True);assert c.stage=='parking_entry'
     for _ in range(10):r.step(parking=parking_sample)
     assert c.parking.selected=='right' and c.parking.path
-    for pose in c.parking.path[1:]:r.step(dt=.15,parking=lambda t,i:parking_sample(t,i,pose,.10),moving=True)
-    r.until('payment',parking=lambda t,i:parking_sample(t,i,c.parking.path[-1],0.))
+    finish_parking_from_pwm(r)
     assert c.payment_started==r.t and r.outputs[-1][1]['esc_us']==1500
     c.report_paid(r.t+2);assert c.stage=='complete' and c.paid_in_time and not c.status(r.t+2)['provider_verified']
     assert [t['to'] for t in c.transitions]==['wait_board','crosswalk','traffic','cones','parking_search','parking_entry','payment','complete']
-    assert any(o.get('steering_policy')=='verified_path_pd' for _,o in r.outputs)
+    assert any(o.get('steering_policy')=='calibrated_path_slew' for _,o in r.outputs)
     writes=[];act={'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':1600,'creep_us':1575,'brake_us':1400},
                    'brake_pulse_s':.12,'brake_release_s':.1,'actuator_lease_s':.2}
     act['parking_forward_us']=[r['pwm_us'] for r in b['parking']['motion_calibration']['speed_pwm']]

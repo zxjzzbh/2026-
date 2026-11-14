@@ -16,6 +16,7 @@ import numpy as np
 from .autonomy_profile import GroundProjection,fit_ground_calibration
 from .brake_parking import numeric
 from .cone_planning import ConeMission,readiness,distance_to_path
+from .runtime_timing import RACE_CONTROL_WINDOW_S
 
 
 DEFAULT_DRIVING={
@@ -128,7 +129,10 @@ def reuse_legacy_ground(settings,data):
 
 
 class ConeOdometry:
-    def __init__(self,settings):
+    def __init__(self,settings,*,max_sample_gap_s=.25):
+        if not numeric(max_sample_gap_s) or not 0<max_sample_gap_s<=RACE_CONTROL_WINDOW_S:
+            raise ValueError('地面位移采样周期必须为正且不超过已支持的控制周期')
+        self.max_sample_gap_s=max_sample_gap_s
         self.s=settings;self.d=driving_settings(settings);self.projection=GroundProjection(settings['ground'])
         self.previous=None;self.pose={'x_m':0.,'y_m':0.,'yaw_rad':0.}
         self.failed=False;self.travel=0.
@@ -150,7 +154,7 @@ class ConeOdometry:
         old=self.previous;self.previous=(grey,points,t,frame_id)
         if old is None:return {**bad,'reason':'collecting_ground_motion'}
         old_grey,old_points,old_t,old_id=old;dt=t-old_t
-        if old_points is None or points is None or not 0<dt<=.25 or frame_id<=old_id:
+        if old_points is None or points is None or not 0<dt<=self.max_sample_gap_s+1e-9 or frame_id<=old_id:
             self.failed=True;return bad
         moved,status,errors=cv2.calcOpticalFlowPyrLK(old_grey,grey,old_points,None,winSize=(21,21),maxLevel=2)
         if moved is None or status is None or errors is None:self.failed=True;return bad

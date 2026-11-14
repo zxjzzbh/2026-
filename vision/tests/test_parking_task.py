@@ -65,7 +65,8 @@ def test_shared_task_parks_from_integrated_command_feedback(blocked):
         if decision['phase'] == 'parked':break
         target = output.get('command_speed_mps',0.)
         speed += max(-.04,min(.03,target-speed))
-        curvature = float(np.interp(output['steering_us'],steering[1][::-1],steering[0][::-1]))
+        curvature = output['command_curvature_1pm']
+        assert curvature == pytest.approx(float(np.interp(output['steering_us'],steering[1][::-1],steering[0][::-1])))
         mid = pose['yaw_rad']+.05*speed*curvature
         pose['x_m'] += speed*math.sin(mid)*.1
         pose['y_m'] += speed*math.cos(mid)*.1

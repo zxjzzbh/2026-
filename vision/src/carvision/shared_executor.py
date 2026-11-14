@@ -22,6 +22,7 @@ class WorkerAutonomyOwner:
         self.handoff_fault=None
         self.last_motion_at=None
         self.retired_owner=self.retired_token=None
+        self.guardian_mode='manual'
 
     @property
     def active(self):return self.token is not None
@@ -36,6 +37,8 @@ class WorkerAutonomyOwner:
                     'autonomy_draining':guard is not None and not self.active,
                     'autonomy_reason':self.reason,'autonomy_fault':guard.fault if guard else self.handoff_fault,
                     'autonomy_handoff_fault':self.handoff_fault,
+                    'guardian_control_mode':self.guardian_mode,
+                    'guardian_environment':dict(getattr(self.backend,'environment_diagnostics',{}) or {}),
                     'autonomy_sequence':guard.sequence if guard else None,
                     'autonomy_esc_us':guard.esc if guard else 1500,
                     'autonomy_steering_us':guard.actual_steering if guard else 1610,
@@ -72,6 +75,22 @@ class WorkerAutonomyOwner:
         if thread and thread is not threading.current_thread():
             thread.join(timeout=1)
             if thread.is_alive():raise RuntimeError('遥控检查线程尚未释放，不能接管执行器')
+
+    def _set_guardian_mode(self,mode):
+        change=getattr(self.backend,'set_control_mode',None)
+        if callable(change):change(mode)
+        self.guardian_mode=mode
+
+    def _restore_guardian_mode(self):
+        try:
+            self._set_guardian_mode('manual')
+        except Exception as exc:
+            # Do not stop a still-running manual watcher on an unacknowledged
+            # mode switch. It continues supervising neutral; no owner may arm.
+            self.handoff_fault='执行器监控模式恢复未确认：'+str(exc)
+            self.reason=self.handoff_fault
+            self.controller.emergency(self.reason)
+            raise
 
     def _resume_manual(self):
         # Mode remains emergency: resuming safety checks cannot replay keys.
@@ -124,12 +143,21 @@ class WorkerAutonomyOwner:
         guard=ConePulseGuard(settings,self._write,mode='F/B',
                              right_us=settings.get('right_us',1350),left_us=settings.get('left_us',1870))
         try:
+            # Confirm the guardian's mode before retiring manual supervision.
+            # This RPC is available only after all ownership/static checks.
+            self._set_guardian_mode('autonomous')
+        except Exception:
+            self._restore_guardian_mode()
+            raise
+        try:
             self._pause_manual()
             self.guard=guard;guard.neutral()
             self.owner=client;self.token=secrets.token_hex(24)
             self.retired_owner=self.retired_token=None
             self.reason='共享执行器已接管；物理停稳仍需相机确认'
         except Exception as exc:
+            try:self._restore_guardian_mode()
+            except Exception as restore_error:exc=RuntimeError(str(exc)+'; '+str(restore_error))
             self._latch_handoff_failure(exc)
             raise
         return {**self.status(),'worker_token':self.token,'warm_handoff':True}
@@ -157,6 +185,10 @@ class WorkerAutonomyOwner:
                 self._motion_segment(guard.esc,deadline)
             if not self.active and guard.emergency_until is None:
                 guard.neutral();self.guard=None
+                try:self._restore_guardian_mode()
+                except Exception as exc:
+                    self._latch_handoff_failure(exc)
+                    raise
                 self._resume_manual()
 
     def dispatch(self,action,payload):
@@ -211,6 +243,7 @@ class WorkerAutonomyOwner:
             with self.lock:
                 if self.guard is not None:self.guard.neutral();self.guard=None
                 self.owner=self.token=None
+                if self.guardian_mode!='manual':self._restore_guardian_mode()
 
 
 class BorrowedActuator:

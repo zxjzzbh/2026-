@@ -55,7 +55,7 @@ def trial_settings(settings,payload=None):
     left=payload.get('test_left_us',LEFT_US);right=payload.get('test_right_us',RIGHT_US)
     gain=steering_gain(payload.get('test_steering_gain',DEFAULT_STEERING_GAIN))
     validate_limits(right,left)
-    if type(forward) is not int or not 1501<=forward<=1625:raise ValueError('测试油门仅允许 1501–1625 μs')
+    if type(forward) is not int or not 1570<=forward<=1625:raise ValueError('前进油门须在 1570–1625 μs，低于1570无法可靠起步')
     if not numeric(duration) or not 5<=duration<=120:raise ValueError('本轮运行时限仅允许 5–120 秒')
     s['driving']=radius_settings(s.get('driving',{}));s['driving']['forward_us']=forward
     s['low_speed_test']={'drive_mode':'continuous','settle_s':.55,'max_run_s':duration,'reaction_horizon_s':.25,

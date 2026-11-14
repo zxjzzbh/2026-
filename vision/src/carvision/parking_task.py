@@ -6,20 +6,20 @@ module owns the mission and its measured PWM/steering adapter; it opens no I/O.
 import copy
 
 from .parking_bay import number, validate
-from .parking_control import parking_intent, parking_readiness, PARKING_STEERING_RATE_US_S
+from .parking_control import parking_intent, parking_readiness, curvature_for_pwm, PARKING_STEERING_RATE_US_S
 from .parking_mission import ParkingMission
-from .steering import CENTER_US, ImagePD, from_offset
+from .steering import CENTER_US
+from .runtime_timing import RACE_CONTROL_WINDOW_S
 
 
 class ParkingTask:
-    def __init__(self, parking, cones, *, require_ready=True):
+    def __init__(self, parking, cones, *, require_ready=True, max_control_gap_s=RACE_CONTROL_WINDOW_S):
         self.s = validate(parking)
         self.cones = copy.deepcopy(cones)
         self.readiness = parking_readiness({'parking': self.s, 'cones': self.cones})
         if require_ready and not self.readiness['ready']:
             raise ValueError('路径入库缺少：'+'、'.join(self.readiness['missing']))
-        self.mission = ParkingMission(self.s)
-        self.pd = ImagePD(kp=1., kd=.08)
+        self.mission = ParkingMission(self.s,max_control_gap_s=max_control_gap_s)
         self.steering = float(CENTER_US)
         self.control_at = None
 
@@ -33,7 +33,6 @@ class ParkingTask:
 
     def recover_control(self):
         self.mission.recover_control()
-        self.pd.reset()
         self.steering = float(CENTER_US)
         self.control_at = None
 
@@ -52,18 +51,24 @@ class ParkingTask:
             stamp = now if captured_s is None else captured_s
             if not number(now) or not number(stamp):
                 raise ValueError('停车控制需要有效单调时间')
-            signed_ratio = (CENTER_US-output['steering_us'])/260.
-            command = self.pd.update(signed_ratio, stamp, context=self.selected)
-            requested = from_offset(command)
-            rows = self.s['motion_calibration']['curvature_pwm']
-            requested = max(min(r['pwm_us'] for r in rows), min(max(r['pwm_us'] for r in rows), requested))
+            requested = output['steering_us']
             dt = min(.25, max(0., now-(self.control_at if self.control_at is not None else now-.1)))
             change = PARKING_STEERING_RATE_US_S*dt
-            self.steering += max(-change, min(change, requested-self.steering))
-            output.update(steering_us=round(self.steering), steering_policy='verified_path_pd',
-                          requested_steering_us=requested)
+            steering = round(self.steering+max(-change,min(change,requested-self.steering)))
+            curvature = curvature_for_pwm(steering,self.s)
+            rejected = self.mission.check_final_command(curvature,output['command_speed_mps'],now,stamp)
+            if rejected is not None:
+                target_curvature = output['target_curvature_1pm']
+                decision = rejected
+                output = parking_intent(decision,self.s)
+                output.update(rejected_steering_us=steering,rejected_command_curvature_1pm=curvature,
+                              rejected_target_curvature_1pm=target_curvature)
+                self.steering = float(CENTER_US)
+            else:
+                self.steering = float(steering)
+                output.update(steering_us=steering, steering_policy='calibrated_path_slew',
+                              requested_steering_us=requested,command_curvature_1pm=curvature)
         else:
-            self.pd.reset()
             self.steering = float(CENTER_US)
         self.control_at = now
         output.update(phase=decision['phase'], selected_side=decision.get('selected_slot'),

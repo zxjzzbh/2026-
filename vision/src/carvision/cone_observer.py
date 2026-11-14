@@ -40,6 +40,7 @@ class ConeCamera:
         self.detectors={c:BlueConeDetector(settings) for c in ('primary','secondary')}
         self.trackers={c:ImageConeTracker(c,settings) for c in self.detectors}
         self.ids={};self.views={};self.rows={};self.images={};self.frames={};self.turn_aware=None
+        self.processing_modes={};self.track_samples={}
         self.set_turn_aware(turn_aware)
         self.preview=None;self.sequence=0;self.encoder=PreviewEncoder()
         self.navigator=ConeNavigator(settings);self.navigation=None
@@ -60,11 +61,17 @@ class ConeCamera:
                 _,mask=self.detectors[camera].detect(image)
                 row['road_context']=self.roads[camera].inspect(image,mask)
 
-    def read(self,*,road_mask_filter=None,render=True,track_cones=True):
+    def read(self,*,road_mask_filter=None,render=True,track_cones=True,
+             cameras=('primary','secondary'),road_mask_mode=None):
         """Consume new cache frames; optional filtering precedes the only road fit."""
+        if not cameras or len(set(cameras))!=len(cameras) or any(c not in ('primary','secondary') for c in cameras):
+            raise ValueError('invalid selected cameras')
         read_started=time.perf_counter();camera_processing={}
         changed=False
         for camera in ('primary','secondary'):
+            if camera not in cameras:
+                for cache in (self.rows,self.views,self.images,self.frames):cache.pop(camera,None)
+        for camera in cameras:
             camera_started=time.perf_counter()
             try:
                 state=self.states[camera]
@@ -75,11 +82,14 @@ class ConeCamera:
                 now=self.clock()
                 if failed or not jpg or type(fid) is not int or not numeric(ms) or not 0<=now-ms/1000<=VISION_MAX_AGE_S:
                     raise ValueError('camera unavailable')
-                if self.ids.get(camera)==fid:continue
+                capture=(fid,ms,identity)
+                mode=(capture,bool(track_cones),road_mask_mode)
+                if camera in self.rows and self.processing_modes.get(camera)==mode:continue
                 image=cv2.imdecode(np.frombuffer(jpg,np.uint8),cv2.IMREAD_COLOR)
                 if image is None or [image.shape[1],image.shape[0]]!=self.s['image_size']:raise ValueError('image size changed')
                 if camera in self.ids and fid<self.ids[camera]:
                     self.trackers[camera]=ImageConeTracker(camera,self.s,near_field_recovery=self.turn_aware)
+                    self.track_samples.pop(camera,None)
                 if track_cones:detections,mask=self.detectors[camera].detect(image)
                 else:detections,mask=[],self.detectors[camera].mask(image)
                 if road_mask_filter is not None:
@@ -89,7 +99,13 @@ class ConeCamera:
                 context=self.roads[camera].inspect(image,mask,frame_id=fid,captured_s=ms/1000)
                 if track_cones:
                     self.roads[camera].enrich(detections,image,context)
-                    tracks=self.trackers[camera].update(detections,fid,ms/1000)
+                    prior=self.track_samples.get(camera)
+                    # Changing a processing stage is not a new camera sample.
+                    # In particular, it cannot add a tracker hit or pass vote.
+                    if prior is not None and prior[0]==capture:tracks=copy.deepcopy(prior[1])
+                    else:
+                        tracks=self.trackers[camera].update(detections,fid,ms/1000)
+                        self.track_samples[camera]=(copy.deepcopy(capture),copy.deepcopy(tracks))
                 else:tracks=[]
                 row={'camera_id':camera,'frame_id':fid,'captured_s':ms/1000,'tracks':tracks,
                      'lane_valid':context['valid'],'lane_reason':context['reason'],'road_context':context,
@@ -116,6 +132,7 @@ class ConeCamera:
                     self.views[camera]=display
                 else:self.views.pop(camera,None)
                 self.rows[camera]=row;self.images[camera]=image;self.ids[camera]=fid;changed=True
+                self.processing_modes[camera]=copy.deepcopy(mode)
                 self.frames[camera]={'camera_id':camera,'frame_id':fid,'captured_s':ms/1000,
                     'raw_received_ms':ms,'jpeg':jpg,'identity':identity,'image':image}
                 camera_processing[camera]=time.perf_counter()-camera_started

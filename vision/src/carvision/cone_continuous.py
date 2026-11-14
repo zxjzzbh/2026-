@@ -15,7 +15,7 @@ from .steering import CENTER_US
 from .lane_following import SteeringController,advance_steering
 from .cone_guidance import CurrentTargetEvidence,GuidanceBudgets,strict_visual,TARGET_ONLY_MAX_S,NO_GUIDANCE_MAX_S
 import copy
-from .runtime_timing import VISION_MAX_AGE_S
+from .runtime_timing import VISION_MAX_AGE_S,RACE_CONTROL_WINDOW_S
 
 
 OBSTACLE_LINE_RECOVERY_S=NO_GUIDANCE_MAX_S
@@ -25,8 +25,11 @@ TARGET_REACQUIRE_HOLD_S=.3
 
 class ContinuousConeController(LowSpeedController):
     def __init__(self,settings,now,*,initialized=False,handoff_after_two=False,
-                 stop_for_cones=DEFAULT_STOP_FOR_CONES):
+                 stop_for_cones=DEFAULT_STOP_FOR_CONES,max_control_gap_s=RACE_CONTROL_WINDOW_S):
         if type(stop_for_cones) is not bool:raise ValueError('锥桶接触停车开关必须为布尔值')
+        if not numeric(max_control_gap_s) or not 0<max_control_gap_s<=RACE_CONTROL_WINDOW_S:
+            raise ValueError('invalid obstacle observation cadence')
+        self.max_control_gap_s=max_control_gap_s
         super().__init__(settings,now,stop_on_complete=False,initialized=initialized)
         self.stop_for_cones=stop_for_cones
         self.steering_gain=steering_gain(self.options.get('steering_gain',DEFAULT_STEERING_GAIN))
@@ -38,8 +41,8 @@ class ContinuousConeController(LowSpeedController):
         self.control=SteeringController(self.options['right_us'],self.options['left_us'])
         self.pd=self.control.pd
         self.last_pass_side=None;self.last_output=None
-        self.lane_evidence=StablePairedLane(duration=.15,frames=3)
-        self.return_evidence=StablePairedLane(duration=.3,frames=3)
+        self.lane_evidence=StablePairedLane(duration=.15,frames=3,max_gap_s=max_control_gap_s)
+        self.return_evidence=StablePairedLane(duration=.3,frames=3,max_gap_s=max_control_gap_s)
         self.paired_stable=False;self.return_confirmed=False
         self.has_forward_command=False;self.last_observed_pair=None
         self.source_frames={};self.current_line_state='missing'
@@ -50,7 +53,8 @@ class ContinuousConeController(LowSpeedController):
         self.maneuver_phase='search';self.effective_steering_gain=1.
         self.target_identity_revision=0;self.unverified_recovery=False
         self.route_assessment=None;self.paired_recovery_continuation=False
-        self.mission=ConeMissionLedger();self.passage=PassageEvidence(settings)
+        self.mission=ConeMissionLedger(max_frame_age_s=VISION_MAX_AGE_S,max_gap_s=max_control_gap_s)
+        self.passage=PassageEvidence(settings,max_frame_age_s=VISION_MAX_AGE_S,max_gap_s=max_control_gap_s)
         self.pass_evidence={};self.last_pass_rejection=None
         self.boundary_output_withdrawal=False
         self.target_evidence=CurrentTargetEvidence(settings['image_size'])

@@ -55,14 +55,17 @@ def test_processing_cannot_hide_a_stale_first_camera(settings,states,monkeypatch
         publish(states['secondary'],paper_row(235),5,10.59)
         return original(*args)
     monkeypatch.setattr(reader.detectors['primary'],'detect',detect)
-    with pytest.raises(ValueError,match='primary 摄像头处理后帧龄'):
-        reader.read(10.)
+    result=reader.read(10.)
+    assert result['source_camera']=='secondary' and result['captured_s']==10.59
+    assert 'primary 摄像头处理后帧龄' in result['camera_errors']['primary']
+    assert 'primary' not in result['camera_observations']
 
 
 def test_camera_error_remains_immediate_even_if_frame_is_recent(settings,states):
     settings['crosswalk_max_frame_age_s']=.5;states['secondary'].state='error'
-    with pytest.raises(ValueError,match='缓存不可用'):
-        CalibratedTrialCamera(states,settings).read(10.)
+    result=CalibratedTrialCamera(states,settings).read(10.)
+    assert result['source_camera']=='primary' and result['degraded']
+    assert '缓存不可用' in result['camera_errors']['secondary']
 
 
 def test_real_clock_rollback_is_rejected(settings,states):

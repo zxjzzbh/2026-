@@ -110,7 +110,9 @@ def test_actual_recovered_identity_freezes_earned_candidate_and_resets_exit_befo
     now[0]=1.;output=controller.step(nav,1.);handle.send(output)
     # Current ground can revalidate the anchor, but neither identity recovery
     # nor the old pre-gap gates supply a new current passage sequence.
-    assert controller.pass_gate_hits==0 and controller.near_seen
+    assert controller.pass_gate_hits==1 and controller.near_seen
+    assert controller.passage.gate_first_s==1.
+    assert not controller.pass_evidence['legacy_gate_candidate']
     assert controller.pass_evidence['anchor_valid']
     assert controller.pass_evidence['observation_deadline_s']==earned['observation_deadline_s']
     assert controller.pass_evidence['exit_frames']==0 and not controller.pass_evidence['visual_estimate_ready']

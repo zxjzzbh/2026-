@@ -175,32 +175,40 @@ def test_race_has_one_final_fit_per_view_and_no_intermediate_jpeg(bundle,monkeyp
     reader.close()
 
 
-def test_mask_phase_change_waits_for_each_real_view_instead_of_refitting_cache(bundle,monkeypatch):
+def test_mask_phase_change_reprocesses_native_frame_without_duplicate_tracking(bundle,monkeypatch):
     states=caches();now=[1.];reader=isolated_race(states,bundle,lambda:now[0],monkeypatch)
     fits,_=fit_spies(reader.cones,monkeypatch)
     first=reader.read('cones',1.);assert first['sequence']==1
     assert set(reader.navigator.calls[-1])=={'primary','secondary'}
     roads=dict(reader.cones.roads)
+    assert reader.read('traffic',1.)['captured_s']==1.
+    assert all(len(items)==2 for items in fits.values())
     assert reader.read('traffic',1.) is None
-    assert all(len(items)==1 for items in fits.values())
     now[0]=1.1;states['primary'].raw_frame_id=2;states['primary'].raw_received_ms=1100.
     reader.read('traffic',1.1)
-    assert reader.navigator.calls[-1]=={'primary':(2,1.1)}
-    assert len(fits['primary'])==2 and len(fits['secondary'])==1
+    assert reader.navigator.calls[-1]=={'primary':(2,1.1),'secondary':(1,1.)}
+    assert len(fits['primary'])==3 and len(fits['secondary'])==2
     assert reader.cones.rows['secondary']['frame_id']==1
     assert reader.cones.rows['secondary']['captured_s']==1.
     now[0]=1.2;states['secondary'].raw_frame_id=2;states['secondary'].raw_received_ms=1200.
     reader.read('traffic',1.2)
     assert reader.navigator.calls[-1]=={'primary':(2,1.1),'secondary':(2,1.2)}
-    assert all(len(items)==2 for items in fits.values())
-    assert all(len(zebra.calls)==1 for zebra in reader.zebra.values())
+    assert all(len(items)==3 for items in fits.values())
+    assert all(len(zebra.calls)==2 for zebra in reader.zebra.values())
     now[0]=1.3;states['secondary'].raw_frame_id=3;states['secondary'].raw_received_ms=1300.
     reader.read('cones',1.3)
-    assert reader.navigator.calls[-1]=={'secondary':(3,1.3)}
-    assert len(fits['primary'])==2 and len(fits['secondary'])==3
+    assert reader.navigator.calls[-1]=={'primary':(2,1.1),'secondary':(3,1.3)}
+    assert len(fits['primary'])==4 and len(fits['secondary'])==4
     assert not np.any(fits['secondary'][-1]['mask'][200:208,250:320])
     assert all(reader.cones.roads[camera] is road for camera,road in roads.items())
     assert all(reader.cones.trackers[camera].near_field_recovery for camera in roads)
+    # A further stage round trip over these exact images cannot add a hit.
+    previous={camera:(tracker.last_id,tracker.last_t,dict(tracker.tracks))
+              for camera,tracker in reader.cones.trackers.items()}
+    reader.read('traffic',1.3);reader.read('cones',1.3)
+    assert previous=={camera:(tracker.last_id,tracker.last_t,dict(tracker.tracks))
+                      for camera,tracker in reader.cones.trackers.items()}
+    reader.close()
 
 
 def test_mask_cache_binds_camera_frame_and_exact_image_reference(bundle,monkeypatch):
@@ -214,3 +222,78 @@ def test_mask_cache_binds_camera_frame_and_exact_image_reference(bundle,monkeypa
     mask=reader._road_mask('secondary',second,7,1.1,base)
     assert len(reader.zebra['secondary'].calls)==1
     assert np.all(mask[200:208,250:320]) and not np.any(mask[200:208,15:85])
+
+
+@pytest.mark.parametrize('stage',['parking_search','parking_entry'])
+def test_parking_preserves_actual_tracks_and_entry_skips_unused_primary_and_navigation(bundle,monkeypatch,stage):
+    states=caches()
+    image=cv2.imdecode(np.frombuffer(states['secondary'].raw_jpeg,np.uint8),1)
+    cv2.rectangle(image,(215,290),(270,359),(255,0,0),-1)
+    states['secondary'].raw_jpeg=cv2.imencode('.jpg',image)[1].tobytes()
+    reader=isolated_race(states,bundle,lambda:1.,monkeypatch)
+    fits,enriched=fit_spies(reader.cones,monkeypatch);received=[]
+    monkeypatch.setattr('carvision.race_flow_camera.detect_parking',lambda image,settings:({},image.copy()))
+    monkeypatch.setattr(reader.parking,'update',lambda image,row,view,now:received.append(row))
+    result=reader.read(stage,1.)
+    assert result['captured_s']==1. and len(received)==1
+    row=received[0]
+    assert row['frame_id']==1 and row['captured_s']==1.
+    assert any(t['kind']=='unresolved_blue' and t['clipped'] for t in row['tracks'])
+    assert len(fits['secondary'])==len(enriched['secondary'])==1
+    if stage=='parking_entry':
+        assert not fits['primary'] and not enriched['primary'] and not reader.navigator.calls
+        assert set(reader.cones.rows)==set(reader.cones.frames)=={'secondary'}
+        assert result['navigation'] is None
+    else:assert len(fits['primary'])==len(enriched['primary'])==1 and reader.navigator.calls
+    with reader.encoder.condition:
+        assert reader.encoder.condition.wait_for(lambda:reader.encoder.latest is not None,timeout=1)
+    reader.close()
+
+
+def test_same_frame_lane_only_to_parking_restores_tracking_without_renewing_capture(bundle,monkeypatch):
+    states=caches();reader=isolated_race(states,bundle,lambda:1.,monkeypatch)
+    monkeypatch.setattr('carvision.race_flow_camera.detect_parking',lambda image,settings:({},image.copy()))
+    received=[];monkeypatch.setattr(reader.parking,'update',lambda image,row,view,now:received.append(row))
+    counts={camera:0 for camera in reader.cones.trackers}
+    for camera,tracker in reader.cones.trackers.items():
+        original=tracker.update
+        def update(*args,camera=camera,original=original):
+            counts[camera]+=1;return original(*args)
+        monkeypatch.setattr(tracker,'update',update)
+    reader.read('traffic',1.);assert counts=={'primary':0,'secondary':0}
+    result=reader.read('parking_entry',1.)
+    assert result['captured_s']==1. and received[-1]['frame_id']==1
+    assert counts=={'primary':0,'secondary':1}
+    reader.read('parking_search',1.)
+    assert counts=={'primary':1,'secondary':1}
+    assert all(row['captured_s']==1. for row in reader.cones.rows.values())
+    reader.close()
+
+
+def test_selected_secondary_failure_never_reuses_old_primary(bundle,monkeypatch):
+    states=caches();reader=isolated_race(states,bundle,lambda:1.,monkeypatch)
+    reader.read('cones',1.)
+    states['secondary'].state='error'
+    assert reader.read('parking_entry',1.) is None
+    assert not reader.cones.rows and not reader.cones.images and not reader.cones.frames
+    reader.close()
+
+
+def test_parking_entry_near_clipped_obstacle_blocks_cached_bay_reuse(bundle,monkeypatch):
+    states=caches()
+    image=cv2.imdecode(np.frombuffer(states['secondary'].raw_jpeg,np.uint8),1)
+    cv2.rectangle(image,(215,290),(270,359),(255,0,0),-1)
+    states['secondary'].raw_jpeg=cv2.imencode('.jpg',image)[1].tobytes()
+    reader=isolated_race(states,bundle,lambda:1.,monkeypatch)
+    monkeypatch.setattr('carvision.race_flow_camera.detect_parking',lambda image,settings:({},image.copy()))
+    # Isolate the world-feed visibility veto from odometry estimation. With an
+    # empty tracks list this valid fixture would wrongly return the old map.
+    reader.parking.odo=SimpleNamespace(update=lambda *args:{'valid':True,
+        'pose':{'x_m':0.,'y_m':0.,'yaw_rad':0.},'speed_mps':0.})
+    reader.parking.map=[{'name':'left'},{'name':'right'}];reader.parking.map_at=.9
+    reader.read('traffic',1.)
+    sample=reader.read('parking_entry',1.)
+    assert sample['parking'] is None
+    assert reader.parking.map is not None and reader.parking.last_id==1
+    assert any(track['clipped'] for track in reader.cones.rows['secondary']['tracks'])
+    reader.close()

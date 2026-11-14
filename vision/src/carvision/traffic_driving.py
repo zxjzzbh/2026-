@@ -6,7 +6,7 @@ only a stationary estimate. Competition-zone compliance remains unverified.
 No hardware, network, sleeping or wall-clock countdown exists in this core.
 """
 import copy
-from .runtime_timing import VISION_MAX_AGE_S, MOTION_MAX_AGE_S, MOTION_RECOVERY_S
+from .runtime_timing import VISION_MAX_AGE_S, MOTION_MAX_AGE_S, MOTION_RECOVERY_S, RACE_CONTROL_WINDOW_S
 import json
 from pathlib import Path
 
@@ -83,6 +83,7 @@ class TrafficDrivingController:
         self.approach_evidence = None
         self.votes = DualSignalVotes(self.s['red_window_s'], self.s['red_confirm_percent'],
                                     self.s['max_frame_age_s'], green_window_s=self.s['green_window_s'],
+                                    maximum_gap_s=RACE_CONTROL_WINDOW_S if control_interval_s is None else control_interval_s,
                                     **{k:self.s.get(k,v) for k,v in FAST_RED_DEFAULTS.items()})
         self.signal_votes = None
         self.red_statistics = None
@@ -190,6 +191,7 @@ class TrafficDrivingController:
         self.brake_count += 1
         self.phase='motion_recovery';self.motion_unknown_since=now
         self.motion_recovery_evidence_after=now
+        self.motion_recovery_conflict_after=None
         self.motion_recovery_brake_until=now+self.s['brake_pulse_s']
         self.stop_since=None;self.recovery_motion_capture=None
         self.reason='运动反馈短暂失效，有限制动后等待恢复'
@@ -335,18 +337,24 @@ class TrafficDrivingController:
                 self.recovery_motion_capture=mt
                 if self.stop_since is None:self.stop_since=mt
                 since=motion.get('continuous_still_since_s')
-                continuous=(self.control_interval_s is None and numeric(since)
-                            and self.motion_recovery_evidence_after <= since <= mt
-                            and mt-max(since,self.motion_recovery_brake_until)>=.3-1e-9)
+                conflict=getattr(self,'motion_recovery_conflict_after',None)
+                continuous=(numeric(since) and since <= mt
+                            and (conflict is None or since>conflict)
+                            and mt-max(since,self.motion_recovery_evidence_after,
+                                       self.motion_recovery_brake_until)>=.3-1e-9)
                 if mt-self.stop_since>=.3-1e-9 or continuous:
                     self.phase='approach';self.motion_unknown_since=None;self.no_progress_since=None
                     self.reason='连续静止反馈已恢复，下一帧重新核对红灯后低速接近'
                     return self.output()
             else:
                 self.stop_since=None;self.recovery_motion_capture=None
-                # An older stillness interval cannot erase movement or an
-                # intervening unknown result observed during this recovery.
                 self.motion_recovery_evidence_after=now
+                # A stale snapshot is not a new sampler observation. A later
+                # independent continuous interval may cover it. Actual motion
+                # or a sampler's unknown result must break that interval.
+                stale_snapshot=numeric(mt) and now-mt>MOTION_MAX_AGE_S
+                if moving is True or not stale_snapshot:
+                    self.motion_recovery_conflict_after=mt if moving is True else now
             self.reason='短暂反馈丢失，保持中位等待连续有效地面反馈'
             return self.output()
 

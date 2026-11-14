@@ -44,8 +44,12 @@ def test_prepared_neutral_does_not_change_moving_frame_deadline():
     sender=ConeCommandSender(actuator,clock=lambda:now[0],threaded=False)
     sender.send({**intent(),'action':'neutral','esc_us':1500,'steering_us':1610,'page_deadline_s':3.})
     now[0]=.1;sender.send(intent(.1))
+    assert sender.timing()['source_valid_until_s']==pytest.approx(.6)
+    assert sender.deadline==pytest.approx(.85)
     for i in range(1,10):now[0]=.1+i*.05;sender.tick()
     now[0]=.6;sender.tick()
+    assert not sender.fault and actuator.rows[-1]['esc_us']>1500
+    now[0]=.851;sender.tick()
     assert sender.fault and actuator.rows[-1]['esc_us']==1400
     sender.close()
 

@@ -8,6 +8,7 @@ fixed five-second observation window can reject an estimate, never create one.
 from .brake_parking import numeric
 from .cone_evidence import paired_lane
 from .cone_response import current_visual
+from .runtime_timing import RACE_CONTROL_WINDOW_S
 
 
 OBSERVATION_S=5.
@@ -21,7 +22,10 @@ EXIT_PROGRESS=.03
 
 
 class PassageEvidence:
-    def __init__(self,settings):
+    def __init__(self,settings,*,max_frame_age_s=.25,max_gap_s=.25):
+        if not all(numeric(v) and 0<v<=RACE_CONTROL_WINDOW_S for v in (max_frame_age_s,max_gap_s)):
+            raise ValueError('invalid passage observation timing')
+        self.max_frame_age_s,self.max_gap_s=max_frame_age_s,max_gap_s
         geometry=settings.get('geometry',{});options=settings.get('low_speed_test') or {}
         width,lane,margin=(geometry.get('vehicle_width_m'),geometry.get('lane_width_m'),options.get('clearance_m'))
         self.vehicle_half=(width/2+margin)/lane if all(numeric(v) for v in (width,lane,margin)) and width>0 and lane>0 and margin>=0 else None
@@ -104,7 +108,7 @@ class PassageEvidence:
         self.reason=self.anchor_rejection
 
     def _observe_gate(self,target,proof,t):
-        if self.last_ground_s is not None and t-self.last_ground_s>.25:
+        if self.last_ground_s is not None and t-self.last_ground_s>self.max_gap_s:
             self._clear_partial()
             self.legacy_gate_candidate=False
             if not self.candidate:self.anchor_hits=0;self.anchor_first_s=None
@@ -118,7 +122,7 @@ class PassageEvidence:
             return
         self.anchor_rejection=None
         if not self.candidate:
-            if self.anchor_last_s is None or t-self.anchor_last_s>.25:
+            if self.anchor_last_s is None or t-self.anchor_last_s>self.max_gap_s:
                 self.anchor_hits=0;self.anchor_first_s=t
             self.anchor_hits+=1;self.anchor_last_s=t
             if (self.anchor_hits>=ANCHOR_FRAMES and t-self.anchor_first_s>=ANCHOR_SPAN_S-1e-9):
@@ -159,7 +163,7 @@ class PassageEvidence:
         self.near_seen=True
         previous=self.exit_samples[-1] if self.exit_samples else None
         direction=1 if self.side=='left' else -1
-        if previous and (t-previous[0]>.25 or y<previous[2]-.02 or direction*(x-previous[1])<-.02):
+        if previous and (t-previous[0]>self.max_gap_s or y<previous[2]-.02 or direction*(x-previous[1])<-.02):
             self.exit_samples=[]
         self.exit_samples.append((t,x,y));self.exit_samples=self.exit_samples[-MIN_FRAMES:]
         first=self.exit_samples[0]
@@ -177,7 +181,7 @@ class PassageEvidence:
             self.reset('target_camera_or_side_changed')
             self.identifier,self.camera,self.side=identifier,camera,side
         t,fid=nav.get('captured_s'),nav.get('frame_id')
-        if not identifier or side not in ('left','right') or not numeric(t) or type(fid) is not int or not numeric(now) or not 0<=now-t<=.25:
+        if not identifier or side not in ('left','right') or not numeric(t) or type(fid) is not int or not numeric(now) or not 0<=now-t<=self.max_frame_age_s:
             self.reason='no_fresh_bound_target';return self.diagnostics(now if numeric(now) else 0.)
         if self.expired or self.candidate_s is not None and now>=self.candidate_s+OBSERVATION_S-1e-9:
             self.candidate=False;self.ready=False;self._clear_partial();self.exit_samples=[]

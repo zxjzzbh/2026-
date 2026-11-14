@@ -1,10 +1,10 @@
 # 最新代码与固定源码包
 
-2026-11-14同步的主线版本为 **`race-control-cadence-20261114`**。
+2026-11-14 同步的主线版本为 **`race-control-consistency-20261114`**。
 
-从`main`或main ZIP获取当前完整源码，包括比赛控制周期、恢复、斑马线计时和视觉复用修复。10月固定标签及附件仍记录当时版本。
+从 `main` 或 main ZIP 获取当前完整源码，包括执行器、控制恢复、识别间隔和停车路径输出修复。历史固定标签与附件保持原版本。
 
-本次上传没有部署车辆，完整赛道仍待实车验收。[同步范围、文件校验与验证](imports/2026-11-14-control-cadence/README.md)
+本次上传没有部署车辆；正式全流程仍需真实停车动态标定与实车验收。[修改说明](imports/2026-11-14-control-consistency/release-notes.txt) · [验证记录](imports/2026-11-14-control-consistency/verification.json)
 
 ## 哪一份是最新代码
 

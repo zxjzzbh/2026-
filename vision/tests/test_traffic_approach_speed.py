@@ -128,14 +128,14 @@ def test_shared_executor_accepts_capped_traffic_then_original_cone_speed(rig):
 def test_dedicated_traffic_whitelist_does_not_change_search_creep_or_parking_actions():
     settings = {'pwm':{'neutral_us':1500,'steering_center_us':1610,'search_us':1600,'creep_us':1575,'brake_us':1400},
                 'brake_pulse_s':.35,'brake_release_s':.1,'actuator_lease_s':.2,
-                'traffic_forward_us':1570,'parking_forward_us':[1560]}
+                'traffic_forward_us':1570,'parking_forward_us':[1580]}
     original = copy.deepcopy(settings)
     writes = []
     guard = ConePulseGuard(settings,lambda *row:writes.append(row),mode='F/B')
-    for seq,(action,pulse) in enumerate((('traffic_approach',1570),('search',1600),('creep',1575),('parking_1560',1560))):
+    for seq,(action,pulse) in enumerate((('traffic_approach',1570),('search',1600),('creep',1575),('parking_1580',1580))):
         guard.accept({'action':action,'esc_us':pulse,'steering_us':1610,'sequence':seq,'sent_s':seq*.05},seq*.05)
         assert guard.esc == pulse and not guard.fault
-    assert settings == original and guard.parking_pulses == (1560,)
+    assert settings == original and guard.parking_pulses == (1580,)
 
 
 @pytest.mark.parametrize('wrong', [1565, 1575, 1600, 1625, True])

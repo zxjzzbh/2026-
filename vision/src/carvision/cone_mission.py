@@ -4,14 +4,19 @@ Only the main camera registers/counts task cones. An observation timeout is
 never a passed/rejected resolution. Overflow blocks completion, not movement.
 """
 from .brake_output import numeric
+from .runtime_timing import RACE_CONTROL_WINDOW_S
 
 
 class ConeMissionLedger:
-    def __init__(self,capacity=16,*,camera='secondary',confirm_frames=2,confirm_span_s=.05):
+    def __init__(self,capacity=16,*,camera='secondary',confirm_frames=2,confirm_span_s=.05,
+                 max_frame_age_s=.25,max_gap_s=.25):
         if type(capacity) is not int or capacity<2:raise ValueError('invalid mission ledger capacity')
         if type(confirm_frames) is not int or confirm_frames<2:raise ValueError('invalid mission confirmation frames')
         if not numeric(confirm_span_s) or confirm_span_s<=0:raise ValueError('invalid mission confirmation span')
         if camera!='secondary':raise ValueError('task counting requires the secondary camera')
+        if not all(numeric(v) and 0<v<=RACE_CONTROL_WINDOW_S for v in (max_frame_age_s,max_gap_s)):
+            raise ValueError('invalid mission observation timing')
+        self.max_frame_age_s,self.max_gap_s=max_frame_age_s,max_gap_s
         self.capacity,self.camera=capacity,camera
         self.confirm_frames,self.confirm_span_s=confirm_frames,confirm_span_s
         self.records={};self.candidate=None
@@ -25,7 +30,7 @@ class ConeMissionLedger:
     def observe(self,camera,identifier,frame_id,captured_s,now,*,credible):
         key=self._key(camera,identifier)
         if (not credible or key is None or type(frame_id) is not int or frame_id<0
-                or not numeric(captured_s) or not numeric(now) or not 0<=now-captured_s<=.25):
+                or not numeric(captured_s) or not numeric(now) or not 0<=now-captured_s<=self.max_frame_age_s):
             self.candidate=None
             return False
         if key in self.records:
@@ -33,7 +38,7 @@ class ConeMissionLedger:
             self.records[key]['last_observed_s']=captured_s
             return True
         previous=self.candidate
-        if (previous is None or previous['key']!=key or captured_s-previous['last_s']>.25
+        if (previous is None or previous['key']!=key or captured_s-previous['last_s']>self.max_gap_s
                 or captured_s<previous['last_s'] or frame_id<previous['frame_id']):
             previous={'key':key,'first_s':captured_s,'last_s':captured_s,'frame_id':frame_id,'frames':1,'qualified':False}
             self.candidate=previous
@@ -63,7 +68,7 @@ class ConeMissionLedger:
                 or evidence.get('target_id')!=identifier or evidence.get('source_camera')!=camera
                 or type(evidence.get('frame_id')) is not int or evidence['frame_id']<0
                 or not numeric(evidence.get('captured_s')) or not numeric(now)
-                or not 0<=now-evidence['captured_s']<=.25):return False
+                or not 0<=now-evidence['captured_s']<=self.max_frame_age_s):return False
         entry.update(state='passed_estimate',estimate_kind='image_sequence_estimate',
             physical_tail_verified=False,estimated_pass_s=evidence.get('captured_s'),
             evidence_summary={key:evidence.get(key) for key in ('frame_id','captured_s',

@@ -227,8 +227,14 @@ class ScopedPWM:
 
 class GuardState:
     """The hardware owner expires motion even if the HTTP/control parent stalls."""
-    def __init__(self, pwm, *, clock=time.monotonic, neutral_only=False, manual_forward_speed=False):
+    def __init__(self, pwm, *, clock=time.monotonic, neutral_only=False, manual_forward_speed=False,
+                 lease_s=.25):
         self.pwm, self.clock, self.neutral_only = pwm, clock, neutral_only
+        if type(lease_s) not in (int, float) or not math.isfinite(lease_s) or not 0 < lease_s <= .5:
+            raise ValueError('invalid guardian lease')
+        self.lease_s = lease_s
+        self.control_mode = 'manual'
+        self.manual_ready = True
         if manual_forward_speed and (neutral_only or getattr(pwm, 'manual_forward_speed_enabled', False) is not True):
             raise ValueError('adjustable forward throttle requires the continuous S3/S4 UART scope')
         self.manual_forward_speed = manual_forward_speed
@@ -253,6 +259,8 @@ class GuardState:
         if self.fault and action not in ('neutral', 'shutdown'):
             raise RuntimeError(self.fault)
         if action == 'motion':
+            if self.control_mode == 'manual' and not self.manual_ready:
+                raise ValueError('fresh manual network check pending; keep neutral')
             duration = data.get('seconds')
             pulse = data.get('pulse')
             from .manual_speed import valid_manual_pulse
@@ -273,10 +281,153 @@ class GuardState:
             self.pwm.turn(data.get('pulse'))
         elif action == 'steering_idle':
             self.pwm.steering_idle()
+        elif action == 'control_mode':
+            mode = data.get('mode')
+            if not self.manual_forward_speed or mode not in ('manual', 'autonomous'):
+                raise ValueError('control mode requires the continuous shared executor')
+            if self.motion_until is not None:
+                raise ValueError('control mode changes require neutral output')
+            self.control_mode = mode
         elif action not in ('check', 'shutdown'):
             raise ValueError('invalid PWM guardian request')
-        self.expires = self.clock() + .25
-        return {'ok': True, 'fault': self.fault}
+        self.expires = self.clock() + self.lease_s
+        return {'ok': True, 'fault': self.fault, 'control_mode': self.control_mode,
+                'manual_ready': self.manual_ready}
+
+
+class EnvironmentFault(RuntimeError):
+    """A completed probe positively observed an invalid physical environment."""
+
+
+class EnvironmentMonitor:
+    """Bounded external probes never run on the guardian's command thread."""
+    FAILURE_GRACE_S = 1.
+    SAMPLE_MAX_AGE_S = 3.
+
+    def __init__(self, boot, continuous, *, clock=time.monotonic):
+        self.boot, self.continuous, self.clock = boot, continuous, clock
+        self.lock = threading.Lock()
+        self.stop = threading.Event()
+        self.thread = None
+        self.errors = {}
+        self.unavailable = {}
+        self.last_good = {}
+        self.network_generation = 0
+        self.network_pending = False
+        self.network_requested = None
+        self.next_power = self.next_environment = 0.
+
+    def _probe(self, name, operation):
+        with self.lock:
+            generation = self.network_generation
+        kind, error = None, None
+        try:
+            operation()
+        except EnvironmentFault as exc:
+            kind, error = 'invalid', str(exc)
+        except Exception as exc:
+            kind, error = 'unavailable', str(exc) or type(exc).__name__
+        with self.lock:
+            if name == 'network' and generation != self.network_generation:
+                return  # An earlier mode's in-flight probe cannot validate this mode.
+            now = self.clock()
+            if kind == 'unavailable':
+                previous = self.unavailable.get(name)
+                self.unavailable[name] = {'reason': error, 'since_s': previous['since_s'] if previous else now}
+            else:
+                self.errors[name] = error
+                self.unavailable.pop(name, None)
+                if kind is None:
+                    self.last_good[name] = now
+                    if name == 'network':
+                        self.network_pending = False
+
+    def switch_mode(self, mode):
+        with self.lock:
+            self.network_generation += 1
+            self.network_pending = mode == 'manual' and self.continuous
+            self.network_requested = self.clock() if self.network_pending else None
+            self.errors.pop('network', None)
+            self.unavailable.pop('network', None)
+            self.last_good.pop('network', None)
+
+    def manual_ready(self):
+        with self.lock:
+            return (not self.continuous or not self.network_pending
+                    and 'network' in self.last_good and not self.errors.get('network'))
+
+    def diagnostics(self):
+        with self.lock:
+            now = self.clock()
+            return {'network_generation': self.network_generation,
+                    'manual_network_pending': self.network_pending,
+                    'unavailable': {name: {**row, 'failed_for_s': max(0., now-row['since_s'])}
+                                    for name, row in self.unavailable.items()}}
+
+    def _power(self):
+        flags = int(subprocess.check_output(['vcgencmd', 'get_throttled'], text=True, timeout=.2).split('=')[1], 16)
+        if flags or Path('/proc/sys/kernel/random/boot_id').read_text().strip() != self.boot:
+            raise EnvironmentFault('Pi 5 power/boot changed')
+
+    def _temperature(self):
+        text = subprocess.check_output(['vcgencmd', 'measure_temp'], text=True, timeout=.2)
+        temperature = float(text.split('=')[1].split("'")[0])
+        if not math.isfinite(temperature) or temperature >= 70:
+            raise EnvironmentFault('Pi 5 temperature exceeded limit')
+
+    def _network(self):
+        route = json.loads(subprocess.check_output(['ip', '-j', 'route', 'get', '1.1.1.1'], text=True, timeout=.2))[0]
+        if (route.get('dev') != 'usb0'
+                or Path('/sys/class/net/usb0/carrier').read_text().strip() != '1'
+                or any(not interface_is_inactive(name) for name in ('eth0', 'wlan0'))):
+            raise EnvironmentFault('5G route changed; manual output stopped')
+
+    def poll(self):
+        if self.clock() >= self.next_power:
+            self._probe('power', self._power)
+            self.next_power = self.clock() + .25
+        with self.lock:
+            pending = self.network_pending
+        if self.continuous and (pending or self.clock() >= self.next_environment):
+            # A route probe failure must not suppress temperature monitoring.
+            self._probe('temperature', self._temperature)
+            self._probe('network', self._network)
+            with self.lock:
+                retry = any(name in self.unavailable for name in ('temperature', 'network'))
+            self.next_environment = self.clock() + (.25 if retry else 2.)
+
+    def failure(self, mode):
+        with self.lock:
+            now = self.clock()
+            names = ('power', 'temperature', 'network') if mode == 'manual' else ('power', 'temperature')
+            for name in names:
+                if self.errors.get(name):
+                    return self.errors[name]
+                pending = name == 'network' and self.network_pending
+                if pending:
+                    if now-self.network_requested <= self.FAILURE_GRACE_S:
+                        continue  # Motion remains prohibited until a fresh successful probe.
+                    return 'Pi 5 fresh manual network check timed out'
+                failed = self.unavailable.get(name)
+                if failed and (name not in self.last_good or now-failed['since_s'] >= self.FAILURE_GRACE_S):
+                    return 'Pi 5 '+name+' probe unavailable: '+failed['reason']
+                if name in self.last_good and now-self.last_good[name] >= self.SAMPLE_MAX_AGE_S:
+                    return 'Pi 5 '+name+' probe sample expired'
+        if self.thread is not None and not self.thread.is_alive() and not self.stop.is_set():
+            return 'Pi 5 environment monitor stopped'
+        return None
+
+    def start(self):
+        def work():
+            while not self.stop.wait(.025):
+                self.poll()
+        self.thread = threading.Thread(target=work, name='guardian-environment', daemon=True)
+        self.thread.start()
+
+    def close(self):
+        self.stop.set()
+        if self.thread is not None:
+            self.thread.join(timeout=.8)
 
 
 class RasAdapterPWM(ScopedPWM):
@@ -403,33 +554,29 @@ def guard_main(args):
     boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
     def reply(data):
         print(json.dumps(data), flush=True)
+    monitor = EnvironmentMonitor(boot, continuous, clock=time.monotonic)
     try:
         if boot != args.expected_boot_id:
             raise RuntimeError('Pi 5 boot changed before PWM startup')
         if int(subprocess.check_output(['vcgencmd', 'get_throttled'], text=True).split('=')[1], 16):
             raise RuntimeError('Pi 5 PWM requires clean current/historical power flags')
+        # Complete initial checks before output opens. Later probes only update
+        # a cache, leaving the guardian free to service commands and expiries.
+        monitor.poll()
+        if monitor.failure('manual'):
+            raise RuntimeError(monitor.failure('manual'))
         pwm.open()
-        state = GuardState(pwm, neutral_only=args.neutral_only, manual_forward_speed=continuous)
+        state = GuardState(pwm, neutral_only=args.neutral_only, manual_forward_speed=continuous,
+                           lease_s=.5 if continuous else .25)
+        monitor.start()
         reply({'ok': True, 'ready': True})
-        power_at = network_at = 0
         while not stopping and (deadline is None or time.monotonic() < deadline):
             state.tick()
             if state.fault:
                 break
-            if time.monotonic() >= power_at:
-                flags = int(subprocess.check_output(['vcgencmd', 'get_throttled'], text=True, timeout=.2).split('=')[1], 16)
-                if flags or Path('/proc/sys/kernel/random/boot_id').read_text().strip() != boot:
-                    raise RuntimeError('Pi 5 power/boot changed')
-                power_at = time.monotonic() + .25
-            if continuous and time.monotonic() >= network_at:
-                route = json.loads(subprocess.check_output(['ip', '-j', 'route', 'get', '1.1.1.1'], text=True, timeout=.2))[0]
-                temperature = subprocess.check_output(['vcgencmd', 'measure_temp'], text=True, timeout=.2)
-                if (route.get('dev') != 'usb0'
-                        or Path('/sys/class/net/usb0/carrier').read_text().strip() != '1'
-                        or any(not interface_is_inactive(n) for n in ('eth0', 'wlan0'))
-                        or float(temperature.split('=')[1].split("'")[0]) >= 70):
-                    raise RuntimeError('5G route or temperature changed; manual output stopped')
-                network_at = time.monotonic()+2
+            environmental_fault = monitor.failure(state.control_mode)
+            if environmental_fault:
+                raise RuntimeError(environmental_fault)
             readable, _, _ = select.select([sys.stdin.fileno()], [], [], .01)
             if not readable:
                 continue
@@ -443,7 +590,14 @@ def guard_main(args):
                 line, buffer = buffer.split(b'\n', 1)
                 request = json.loads(line)
                 try:
-                    reply(state.request(request))
+                    state.manual_ready = monitor.manual_ready()
+                    result = state.request(request)
+                    if request.get('action') == 'control_mode':
+                        monitor.switch_mode(state.control_mode)
+                    state.manual_ready = monitor.manual_ready()
+                    result.update(manual_ready=state.manual_ready,
+                                  environment=monitor.diagnostics())
+                    reply(result)
                 except Exception as exc:
                     pwm.neutral()
                     reply({'error': str(exc)})
@@ -453,7 +607,10 @@ def guard_main(args):
     except Exception as exc:
         reply({'error': str(exc)})
     finally:
-        errors = pwm.close()
+        try:
+            errors = pwm.close()
+        finally:
+            monitor.close()
         if args.result:
             args.result.write_text(json.dumps({'cleanup_errors': errors,
                                   'boot_id': boot, 'signal_backend': 'rasadapter5a_uart' if args.esc_channel else 'rp1_hardware_pwm',
@@ -529,6 +686,7 @@ class Pi5BenchBackend:
         self.closed = False
         self.buffer = b''
         self.lock = threading.RLock()
+        self.environment_diagnostics = {}
 
     def read_reply(self, timeout=.7):
         deadline = time.monotonic() + timeout
@@ -552,7 +710,10 @@ class Pi5BenchBackend:
                 raise RuntimeError('Pi 5 PWM guardian unavailable')
             self.process.stdin.write((json.dumps({'action': action, **values}) + '\n').encode())
             self.process.stdin.flush()
-            return self.read_reply()
+            reply = self.read_reply()
+            if isinstance(reply.get('environment'), dict):
+                self.environment_diagnostics = reply['environment']
+            return reply
 
     def open(self):
         audit = inspect_pi5()
@@ -654,6 +815,22 @@ class Pi5BenchBackend:
 
     def check(self):
         self.rpc('check')
+
+    def set_control_mode(self, mode):
+        reply = self.rpc('control_mode', mode=mode)
+        if reply.get('control_mode') != mode:
+            raise RuntimeError('Pi 5 guardian control mode was not acknowledged')
+        if mode == 'manual':
+            generation = (reply.get('environment') or {}).get('network_generation')
+            deadline = time.monotonic() + 1.5
+            while reply.get('manual_ready') is not True:
+                if time.monotonic() >= deadline:
+                    raise RuntimeError('Pi 5 guardian fresh manual network check timed out')
+                time.sleep(.02)
+                reply = self.rpc('check')
+                if (reply.get('control_mode') != mode
+                        or (reply.get('environment') or {}).get('network_generation') != generation):
+                    raise RuntimeError('Pi 5 guardian control mode changed during acknowledgment')
 
     def close(self):
         if self.closed:

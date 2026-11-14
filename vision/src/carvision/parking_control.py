@@ -12,6 +12,7 @@ from .parking_bay import number, readiness, validate
 from .steering import CENTER_US, LEFT_US, RIGHT_US, radius_settings
 
 PARKING_STEERING_RATE_US_S = 600.
+PARKING_MIN_FORWARD_US = 1570
 
 
 def calibration_tables(settings):
@@ -32,10 +33,10 @@ def calibration_tables(settings):
         if any(b <= a for a, b in zip(values, values[1:])):
             raise ValueError('停车运动标定横坐标必须严格递增：'+name)
         if name == 'speed_pwm':
-            if (any(not 1501 <= v <= 1625 for v in pulses) or values[0] <= 0
+            if (any(not PARKING_MIN_FORWARD_US <= v <= 1625 for v in pulses) or values[0] <= 0
                     or values[0] != settings['final_speed_mps'] or values[-1] != settings['max_speed_mps']
                     or any(b <= a for a, b in zip(pulses, pulses[1:]))):
-                raise ValueError('停车速度表应覆盖末段/接近速度，PWM递增且在1501–1625内')
+                raise ValueError('停车速度表应覆盖真实可达的末段/接近速度，PWM递增且在1570–1625内；禁止用低于电机起动值的记录或直接抬高PWM代替实测')
         else:
             if (not values[0] < 0 < values[-1] or any(not RIGHT_US <= v <= LEFT_US for v in pulses)
                     or any(b >= a for a, b in zip(pulses, pulses[1:]))
@@ -115,7 +116,7 @@ def parking_intent(decision, settings):
     """Never substitute an old fixed throttle for the requested metric speed."""
     output = {'action': 'neutral', 'esc_us': 1500, 'steering_us': CENTER_US,
               'reason': decision['reason'], 'parking_decision': copy.deepcopy(decision),
-              'hardware_output': False}
+              'hardware_output': False, 'command_curvature_1pm': 0.}
     if decision['action'] == 'follow_path':
         speed, curvature = decision['target_speed_mps'], decision['target_curvature_1pm']
         if not number(speed) or not settings['final_speed_mps']<=speed<=settings['max_speed_mps']:
@@ -132,10 +133,19 @@ def parking_intent(decision, settings):
         steering=round(float(np.interp(curvature,*tables[1])))
         output.update(action='parking_'+str(throttle), esc_us=throttle, steering_us=steering,
                       target_speed_mps=speed, command_speed_mps=tables[0][0][index],
-                      target_curvature_1pm=curvature)
+                      target_curvature_1pm=curvature,
+                      command_curvature_1pm=curvature_for_pwm(steering, settings))
     elif decision['action'] == 'brake':
         output.update(action='brake', esc_us=1400)
     return output
+
+
+def curvature_for_pwm(pwm_us, settings):
+    """Command curvature from the measured table, including PWM quantization."""
+    values, pulses = calibration_tables(settings)[1]
+    if type(pwm_us) is not int or not pulses[-1] <= pwm_us <= pulses[0]:
+        raise ValueError('最终停车转向PWM超出实测曲率表，禁止外推')
+    return float(np.interp(pwm_us, pulses[::-1], values[::-1]))
 
 
 class MetricParkingController:

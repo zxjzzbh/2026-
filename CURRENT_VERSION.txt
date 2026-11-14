@@ -1,3 +1,3 @@
-race-control-cadence-20261114
-Published source synchronized on 2026-11-14; not deployed to Raspberry Pi.
-See docs/imports/2026-11-14-control-cadence/README.md
+race-control-consistency-20261114
+Published source synchronized on 2026-11-15; not deployed to Raspberry Pi.
+See docs/imports/2026-11-14-control-consistency/release-notes.txt

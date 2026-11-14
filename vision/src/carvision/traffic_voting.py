@@ -18,18 +18,21 @@ def valid_lamp_state(observation):
 
 
 class SignalFrameVote:
-    def __init__(self, window_s, threshold_percent):
+    def __init__(self, window_s, threshold_percent, maximum_gap_s=.25):
         if (not numeric(window_s) or window_s not in (1, 2)
                 or not numeric(threshold_percent) or not 1 <= threshold_percent <= 100):
             raise ValueError('invalid signal vote window/percentage')
+        if not numeric(maximum_gap_s) or not 0 < maximum_gap_s <= .75:
+            raise ValueError('invalid signal vote sampling gap')
         self.window_s, self.threshold = window_s, threshold_percent
+        self.maximum_gap_s = maximum_gap_s
         self.frames = deque()
         self.started = self.last_capture = self.last_id = None
 
     def update(self, state, frame_id, captured_s):
         if (type(frame_id) is not int or not numeric(captured_s)
                 or self.last_id is not None and frame_id <= self.last_id
-                or self.last_capture is not None and not 0 < captured_s-self.last_capture <= .25):
+                or self.last_capture is not None and not 0 < captured_s-self.last_capture <= self.maximum_gap_s+1e-9):
             raise ValueError('signal voting needs distinct continuous frames')
         if self.started is None: self.started = captured_s
         self.last_id, self.last_capture = frame_id, captured_s
@@ -119,9 +122,11 @@ class _FastRedCandidate:
 
 class DualSignalVotes:
     def __init__(self, window_s, threshold_percent, max_age_s=.25, *, green_window_s=None,
-                 fast_red_frames=3, fast_red_max_span_s=.20, fast_red_max_gap_s=.15, fast_red_max_age_s=.15):
+                 fast_red_frames=3, fast_red_max_span_s=.20, fast_red_max_gap_s=.15, fast_red_max_age_s=.15,
+                 maximum_gap_s=.25):
         self.window_s, self.threshold, self.max_age_s = window_s, threshold_percent, max_age_s
         self.green_window_s = window_s if green_window_s is None else green_window_s
+        self.maximum_gap_s = maximum_gap_s
         if (type(fast_red_frames) is not int or fast_red_frames not in (2,3)
                 or any(not numeric(v) or not 0 < v <= .25
                        for v in (fast_red_max_span_s,fast_red_max_gap_s,fast_red_max_age_s))):
@@ -130,15 +135,16 @@ class DualSignalVotes:
         self.reset()
 
     def reset(self):
-        self.votes = {camera:SignalFrameVote(self.window_s,self.threshold) for camera in CAMERAS}
-        self.green_votes = {camera:SignalFrameVote(self.green_window_s,self.threshold) for camera in CAMERAS}
+        self.votes = {camera:SignalFrameVote(self.window_s,self.threshold,self.maximum_gap_s) for camera in CAMERAS}
+        self.green_votes = {camera:SignalFrameVote(self.green_window_s,self.threshold,self.maximum_gap_s) for camera in CAMERAS}
         self.boxes = {camera:None for camera in CAMERAS}
+        self.fixture_lost = {camera:False for camera in CAMERAS}
         self.fast = {camera:_FastRedCandidate(*self.fast_settings) for camera in CAMERAS}
         self.green_wait = False
 
     def reset_green(self):
         """A new stop starts a fresh green window, retaining this round's red."""
-        self.green_votes = {camera:SignalFrameVote(self.green_window_s,self.threshold) for camera in CAMERAS}
+        self.green_votes = {camera:SignalFrameVote(self.green_window_s,self.threshold,self.maximum_gap_s) for camera in CAMERAS}
 
     def begin_green_wait(self):
         """The estimated stop fulfils old fast-stop requests, not formal red."""
@@ -149,9 +155,10 @@ class DualSignalVotes:
             candidate.clear_streak()
 
     def _reset_camera(self, camera):
-        self.votes[camera] = SignalFrameVote(self.window_s,self.threshold)
-        self.green_votes[camera] = SignalFrameVote(self.green_window_s,self.threshold)
+        self.votes[camera] = SignalFrameVote(self.window_s,self.threshold,self.maximum_gap_s)
+        self.green_votes[camera] = SignalFrameVote(self.green_window_s,self.threshold,self.maximum_gap_s)
         self.boxes[camera] = None
+        self.fixture_lost[camera] = False
         self.fast[camera].clear_streak()
 
     def _summary(self, camera):
@@ -179,13 +186,18 @@ class DualSignalVotes:
             vote = self.votes[camera]
             duplicate = fid == vote.last_id and captured == vote.last_capture
             if not duplicate:
-                if (vote.last_id is not None and (fid <= vote.last_id or not 0 < captured-vote.last_capture <= .25)
+                if (vote.last_id is not None and (fid <= vote.last_id or not 0 < captured-vote.last_capture <= self.maximum_gap_s+1e-9)
+                        or box is not None and self.fixture_lost[camera]
                         or box is not None and self.boxes[camera] is not None and _iou(box,self.boxes[camera]) < .25):
                     self._reset_camera(camera)
                     vote = self.votes[camera]
                 vote.update(state, fid, captured)
                 self.green_votes[camera].update(state, fid, captured)
-                if box is not None: self.boxes[camera] = box
+                # Fresh unknown colors are negative votes, not missing frames.
+                # Lost fixture geometry still breaks identity: reacquisition
+                # starts a new window, even when its box resembles the old one.
+                if box is not None:self.boxes[camera]=box
+                else:self.fixture_lost[camera]=True
             # Cached copies are visible but never add votes or refresh time.
             fast = self.fast[camera].update(state,box,fid,captured,now,fresh=True,
                                             allow_late_clear=self.green_wait)

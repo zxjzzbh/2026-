@@ -106,12 +106,16 @@ class RaceFlowCamera:
         started=time.perf_counter();timing={}
         self.motion_cache.snapshot()
         if stage=='arming':return self._arming_sample()
-        # Keep one curve model throughout the reader lifetime. Only new frames
-        # receive the stage's paper-stripe mask, before their single road fit.
+        # Keep one curve model. A stage change can reprocess the same real
+        # frame with its proper mask, without inventing another capture.
         self.mask_zebra=stage in ('crosswalk','traffic')
         self.calibrated_zebra=stage=='crosswalk' and self.crosswalk.calibrated is not None
         self.navigator.set_single_recovery_limit(1. if stage=='cones' else .25)
-        try:changed=self.cones.read(road_mask_filter=self._road_mask,render=False,track_cones=stage=='cones')
+        parking_entry=stage=='parking_entry'
+        try:changed=self.cones.read(road_mask_filter=self._road_mask,render=False,
+            track_cones=stage in ('cones','parking_search','parking_entry'),
+            cameras=('secondary',) if parking_entry else ('primary','secondary'),
+            road_mask_mode=(self.mask_zebra,self.calibrated_zebra))
         except ValueError as exc:
             if str(exc)=='两路摄像头均无新鲜画面':return None
             raise
@@ -122,7 +126,7 @@ class RaceFlowCamera:
         lane_rows={camera:row for camera,row in rows.items()
             if self._road_ready(camera,row,images[camera])}
         lane_images={camera:images[camera] for camera in lane_rows}
-        navigation=self.navigator.update_views(lane_images,lane_rows,self.clock())
+        navigation=None if parking_entry else self.navigator.update_views(lane_images,lane_rows,self.clock())
         timing['navigation_s']=time.perf_counter()-section
         secondary=lane_rows.get('secondary')
         self.motion_result=self.motion_cache.snapshot()

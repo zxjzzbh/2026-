@@ -169,8 +169,8 @@ def test_reuse_respects_camera_failure_and_observed_lane_range(settings,states):
     result=reader.read(10.,processed_views=views)
     assert not result['lane_valid'] and result['lane_offset'] is None
     states['primary'].state='error'
-    with pytest.raises(ValueError,match='缓存不可用'):
-        reader.read(10.1,processed_views=views)
+    assert reader.read(10.1,processed_views=views) is None
+    assert 'primary' in reader.errors and 'primary' not in reader.rows
 
 
 def test_near_edge_is_median_bottom_not_detector_maximum_bottom(settings, states):
@@ -257,7 +257,7 @@ def test_old_handoff_timestamp_is_not_relabelled_as_current(settings, states):
 
 
 @pytest.mark.parametrize('camera', ['primary', 'secondary'])
-def test_any_frozen_view_expires_without_reusing_cached_frames(settings, states, camera):
+def test_frozen_view_expires_and_other_fresh_view_keeps_its_own_time(settings, states, camera):
     reader = lock_primary(settings, states)
     other = 'secondary' if camera == 'primary' else 'primary'
     publish(states[other], paper_row(235 if other == 'secondary' else 245),
@@ -265,11 +265,13 @@ def test_any_frozen_view_expires_without_reusing_cached_frames(settings, states,
     reader.read(10.2)
     publish(states[other], paper_row(235 if other == 'secondary' else 245),
             states[other].raw_frame_id + 1, 10.36)
-    with pytest.raises(ValueError, match='失效'):
-        reader.read(10.36)
+    result=reader.read(10.36)
+    assert result['source_camera']==other and result['captured_s']==10.36
+    assert result['degraded'] and camera in result['camera_errors']
+    assert camera not in result['camera_observations']
 
 
-@pytest.mark.parametrize('fault', ['identity', 'error', 'bad_jpeg', 'size', 'old_id', 'fake_time'])
+@pytest.mark.parametrize('fault', ['identity', 'size', 'old_id', 'fake_time'])
 def test_one_camera_fault_cannot_fall_back_to_the_other(settings, states, fault):
     reader = CalibratedTrialCamera(states, settings)
     reader.read(10.)
@@ -303,7 +305,8 @@ def test_distance_disagreement_above_five_cm_is_not_averaged(settings, states):
 
 @pytest.mark.parametrize('value', [0, 100, 255])
 def test_flat_black_or_overexposed_image_cannot_authorize_search(settings, states, value):
-    publish(states['primary'], np.full((360, 480, 3), value, np.uint8), 10001, 10.)
+    for camera,state in states.items():
+        publish(state, np.full((360, 480, 3), value, np.uint8), state.raw_frame_id+1, 10.)
     with pytest.raises(ValueError, match='不能作为搜索依据'):
         CalibratedTrialCamera(states, settings).read(10.)
 

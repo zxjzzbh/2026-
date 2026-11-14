@@ -23,6 +23,10 @@ DEFAULT_MASKS = {'primary': {'s_max': 80, 'v_min': 200},
                  'secondary': {'s_max': 100, 'v_min': 170}}
 
 
+class CrosswalkFrameUnavailable(ValueError):
+    """Temporary per-camera loss; calibration/identity/order errors stay fatal."""
+
+
 def _number(value):
     if type(value) not in (int, float):
         return False
@@ -65,6 +69,7 @@ class CalibratedTrialCamera:
             self.lanes[camera] = LaneDetector(lane_config)
             self.motions[camera] = GroundMotionEstimate()
         self.rows, self.ids, self.times, self.jpegs = {}, {}, {}, {}
+        self.errors = {}
         self.selection_revision = 'crosswalk_single_source_v1'
         self.distance_disagreement = None
         self.active_source = 'secondary'
@@ -117,10 +122,11 @@ class CalibratedTrialCamera:
             raise ValueError(camera+' 摄像头校验时钟无效或倒退')
         if (failed or not isinstance(jpeg, (bytes, bytearray)) or not jpeg
                 or type(frame_id) is not int or frame_id < 0 or not _number(captured_ms)):
-            raise ValueError(camera+' 摄像头缓存不可用：状态、图像或采样信息无效')
+            raise CrosswalkFrameUnavailable(camera+' 摄像头缓存不可用：状态、图像或采样信息无效')
         age=checked-captured_ms/1000
         if not 0<=age<=self.max_age:
-            raise ValueError(camera+f' 摄像头画面失效（采样时间异常）：帧龄{age*1000:.1f}毫秒，允许0–{self.max_age*1000:g}毫秒')
+            if age < 0:raise ValueError(camera+' 摄像头采样时间异常：来自未来')
+            raise CrosswalkFrameUnavailable(camera+f' 摄像头画面失效：帧龄{age*1000:.1f}毫秒，允许0–{self.max_age*1000:g}毫秒')
         stamp = captured_ms / 1000
         if camera in self.ids:
             if frame_id < self.ids[camera] or stamp < self.times[camera]:
@@ -135,13 +141,14 @@ class CalibratedTrialCamera:
             try:
                 image = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
             except (cv2.error, ValueError, TypeError) as exc:
-                raise ValueError(camera + ' 原始JPEG不能解码') from exc
+                raise CrosswalkFrameUnavailable(camera + ' 原始JPEG不能解码') from exc
         else:image=frame.get('image')
+        if image is None:raise CrosswalkFrameUnavailable(camera+' 原始JPEG不能解码')
         if not isinstance(image,np.ndarray) or image.shape != (360,480,3) or image.dtype!=np.uint8:
             raise ValueError(camera + ' 画面必须保持本次480×360独立标定尺寸')
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         if float(gray.mean()) < 15 or float(gray.std()) < 1 or float((gray >= 250).mean()) > .98:
-            raise ValueError(camera + ' 画面全黑、被遮挡或过曝，不能作为搜索依据')
+            raise CrosswalkFrameUnavailable(camera + ' 画面全黑、被遮挡或过曝，不能作为搜索依据')
         if processed is None:zebra, _ = self.detectors[camera].detect(image, captured_ms)
         else:zebra=features['zebra']
         candidate = zebra['candidate'] is True
@@ -208,8 +215,16 @@ class CalibratedTrialCamera:
             or row['metric_valid'] and row['distance_estimate_m'] <= self.trigger)
 
     def _select(self, primary_changed):
-        primary, secondary = self.rows['primary'], self.rows['secondary']
         self.distance_disagreement = None
+        if len(self.rows)==1:
+            # One calibrated current view can observe/brake. Do not invent
+            # agreement or distance averaging with an unavailable camera.
+            self.active_source=next(iter(self.rows))
+            self.confirmed_primary_frames,self.confirmation_id=0,None
+            if self.active_source=='primary' and self.rows['primary']['near_limit_reached']:
+                self.primary_locked=True
+            return
+        primary, secondary = self.rows['primary'], self.rows['secondary']
         if primary['metric_valid'] and secondary['metric_valid']:
             delta = abs(primary['distance_estimate_m'] - secondary['distance_estimate_m'])
             if delta > .05 + 1e-9:
@@ -274,16 +289,30 @@ class CalibratedTrialCamera:
         if not _number(now) or self.last_read is not None and now < self.last_read:
             raise ValueError('双摄读取控制时钟无效或倒退')
         self.last_read = now
-        if processed_views is not None and set(processed_views)!=set(CAMERAS):
-            raise ValueError('双摄复用画面失效：必须包含两路匹配的真实画面')
-        changed = {camera: self._update(camera, now,
-            processed_views[camera] if processed_views is not None else None,motion) for camera in CAMERAS}
+        if processed_views is not None and (not isinstance(processed_views,dict) or set(processed_views)-set(CAMERAS)):
+            raise ValueError('双摄复用画面包含未知相机')
+        changed={camera:False for camera in CAMERAS}
+        for camera in CAMERAS:
+            try:
+                if processed_views is not None and camera not in processed_views:
+                    raise CrosswalkFrameUnavailable(camera+' 当前批次无匹配画面')
+                changed[camera]=self._update(camera,now,
+                    processed_views[camera] if processed_views is not None else None,motion)
+                self.errors.pop(camera,None)
+            except CrosswalkFrameUnavailable as error:
+                self.errors[camera]=str(error)
+                self.rows.pop(camera,None);self.jpegs.pop(camera,None)
         checked=self.clock() if self.clock is not None else now
         if not _number(checked) or checked<now:raise ValueError('双摄处理完成时钟无效或倒退')
-        ages={camera:checked-self.rows[camera]['captured_s'] for camera in CAMERAS}
-        for camera,age in ages.items():
+        ages={camera:checked-row['captured_s'] for camera,row in self.rows.items()}
+        for camera,age in list(ages.items()):
             if not 0<=age<=self.max_age:
-                raise ValueError(camera+f' 摄像头处理后帧龄{age*1000:.1f}毫秒，超出{self.max_age*1000:g}毫秒期限')
+                if age<0:raise ValueError(camera+' 摄像头处理后采样时间来自未来')
+                self.errors[camera]=camera+f' 摄像头处理后帧龄{age*1000:.1f}毫秒，超出{self.max_age*1000:g}毫秒期限'
+                self.rows.pop(camera,None);self.jpegs.pop(camera,None);ages.pop(camera,None)
+                changed[camera]=False
+        if not self.rows:
+            raise CrosswalkFrameUnavailable('双摄画面失效：'+'; '.join(self.errors.values()))
         self._select(changed['primary'])
         row = self.rows[self.active_source]
         stamp = row['captured_s']
@@ -300,6 +329,7 @@ class CalibratedTrialCamera:
                       distance_disagreement=copy.deepcopy(self.distance_disagreement),
                       frame_age_limit_ms=self.max_age*1000,
                       camera_ages_ms={camera:round(age*1000,2) for camera,age in ages.items()},
+                      camera_errors=copy.deepcopy(self.errors),degraded=len(self.rows)<2,
                       camera_observations=copy.deepcopy(self.rows))
         self.last_returned_capture, self.last_returned_source = stamp, self.active_source
         self.jpeg = self.jpegs[self.active_source]
