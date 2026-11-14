@@ -36,6 +36,7 @@ class Backend:
     def neutral(self):self.writes.append(('neutral',self.clock()))
     def steering(self,pulse):self.writes.append(('steering',self.clock(),pulse))
     def check(self):self.checks+=1
+    def set_autonomous(self,enabled):self.autonomous=enabled
     def close(self):self.closed=True
 
 

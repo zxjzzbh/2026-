@@ -117,7 +117,8 @@ class WorkerAutonomyOwner:
             raise ValueError('接管前保持 F/B 并先发送遥控停车')
         if (not isinstance(settings,dict) or getattr(self.backend,'steering_center_us',1610)!=1610
                 or not getattr(self.backend,'motor_available',True)
-                or not getattr(self.backend,'steering_available',True)):
+                or not getattr(self.backend,'steering_available',True)
+                or not callable(getattr(self.backend,'set_autonomous',None))):
             raise ValueError('当前执行器不能用于比赛接管')
         # Construct and validate before retiring manual ownership. Construction
         # performs no writes and cannot broaden the existing 1625-us envelope.
@@ -126,6 +127,7 @@ class WorkerAutonomyOwner:
         try:
             self._pause_manual()
             self.guard=guard;guard.neutral()
+            self.backend.set_autonomous(True)
             self.owner=client;self.token=secrets.token_hex(24)
             self.retired_owner=self.retired_token=None
             self.reason='共享执行器已接管；物理停稳仍需相机确认'
@@ -156,7 +158,9 @@ class WorkerAutonomyOwner:
                 deadline=guard.emergency_until or guard.brake_until or guard.deadline
                 self._motion_segment(guard.esc,deadline)
             if not self.active and guard.emergency_until is None:
-                guard.neutral();self.guard=None
+                guard.neutral()
+                self.backend.set_autonomous(False)
+                self.guard=None
                 self._resume_manual()
 
     def dispatch(self,action,payload):

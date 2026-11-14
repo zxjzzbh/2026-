@@ -27,6 +27,7 @@ jobs:
         with:
           node-version: '22'
       - run: python -m pip install -e "vision[test]"
+      - run: python -u .github/parking-diagnostics.py
       - run: python -m pytest vision/tests -q -ra
       - run: python -m carvision autonomy-check --profile vision/configs/autonomy-pi5.json
       - run: python -m carvision autonomy-demo --profile vision/configs/autonomy-pi5.json --race-config vision/configs/race-2026.json --output run/ci-offline-demo
