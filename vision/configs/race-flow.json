@@ -11,5 +11,5 @@
   "max_frame_age_s": 0.25,
   "page_lease_s": 0.5,
   "arming_s": 3,
-  "school_team_speech": "我是山东大学启航队的智能车，请为我加油"
+  "school_team_speech": "我是山东大学启航队的无人车，请为我加油！"
 }

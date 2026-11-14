@@ -1,0 +1,1026 @@
+{
+  "release": "parking-selection-confirm-20261114",
+  "format": "Source SHA256 and LF-normalized SHA256. Git text attributes may normalize line endings.",
+  "runtime_files": [
+    {
+      "path": "vision/src/carvision/__init__.py",
+      "source_sha256": "d5fbce997ed9bcd239447a63a0ad121e5810b5a8dfcfffca5c56fb73e6e27177",
+      "normalized_sha256": "d5fbce997ed9bcd239447a63a0ad121e5810b5a8dfcfffca5c56fb73e6e27177"
+    },
+    {
+      "path": "vision/src/carvision/__main__.py",
+      "source_sha256": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+      "normalized_sha256": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d"
+    },
+    {
+      "path": "vision/src/carvision/announcement_backend.py",
+      "source_sha256": "01edeb05c92b227487054505d26315d2de1b2af8e44706012688f90f4f353b22",
+      "normalized_sha256": "01edeb05c92b227487054505d26315d2de1b2af8e44706012688f90f4f353b22"
+    },
+    {
+      "path": "vision/src/carvision/application.py",
+      "source_sha256": "f9dad36164040c1e29468c043b729914c3c494a2bd564006e5e205ae473c6a47",
+      "normalized_sha256": "514c8a30ec24d565d0bc197ea0d69c23b268078c1cd314d7ed2ce41b069d628d"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_audio.py",
+      "source_sha256": "a88cefadd6a08d21808b32dd07ff3f25373918cfdd5ad541ec17dbb50dd396ca",
+      "normalized_sha256": "a88cefadd6a08d21808b32dd07ff3f25373918cfdd5ad541ec17dbb50dd396ca"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_feed.py",
+      "source_sha256": "7394dd1087a5df9a9009e4fb7cc82035fa5ae8fe2f4287be7b410b54414bcc98",
+      "normalized_sha256": "7394dd1087a5df9a9009e4fb7cc82035fa5ae8fe2f4287be7b410b54414bcc98"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_geometry.py",
+      "source_sha256": "7fffff2197480be2b1a27c58fb9a6cfca8be012591e2bb51911aa60c1c7ccd2e",
+      "normalized_sha256": "7fffff2197480be2b1a27c58fb9a6cfca8be012591e2bb51911aa60c1c7ccd2e"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_motion.py",
+      "source_sha256": "3b77d574305813cbc4af081547b143cf1a8f788ad77ad906e1ec037a10c4cba7",
+      "normalized_sha256": "3b77d574305813cbc4af081547b143cf1a8f788ad77ad906e1ec037a10c4cba7"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_observation.py",
+      "source_sha256": "c26e63931f964b0253f353c87a7924f5682a2157b11eb3f9eb1fbddfd3063cc6",
+      "normalized_sha256": "c26e63931f964b0253f353c87a7924f5682a2157b11eb3f9eb1fbddfd3063cc6"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_profile.py",
+      "source_sha256": "315371299d31ab9b7bd3b9b67409788373fa3ba309499b1d8990511de5bc5089",
+      "normalized_sha256": "315371299d31ab9b7bd3b9b67409788373fa3ba309499b1d8990511de5bc5089"
+    },
+    {
+      "path": "vision/src/carvision/autonomy_runtime.py",
+      "source_sha256": "b62653380bec8263a6af0a618086bc7c97284188461f721857d3cd664f9d49ed",
+      "normalized_sha256": "b62653380bec8263a6af0a618086bc7c97284188461f721857d3cd664f9d49ed"
+    },
+    {
+      "path": "vision/src/carvision/boot_test.py",
+      "source_sha256": "c46fa454418fb020baaaf08f1ec2a7b0714c314f3109963d217221ec6ff0b244",
+      "normalized_sha256": "c46fa454418fb020baaaf08f1ec2a7b0714c314f3109963d217221ec6ff0b244"
+    },
+    {
+      "path": "vision/src/carvision/brake_controls.py",
+      "source_sha256": "21cf732a1c4e4b03a5f140ef50cb9436fd9b63ea45cf13b9dc577603a5867df1",
+      "normalized_sha256": "21cf732a1c4e4b03a5f140ef50cb9436fd9b63ea45cf13b9dc577603a5867df1"
+    },
+    {
+      "path": "vision/src/carvision/brake_output.py",
+      "source_sha256": "25fc8dd1ba93d501fa9c4fa2f1bd43c4e73fa41742e6bc15eae1ae9b0684df51",
+      "normalized_sha256": "b507178f340473912bca04605b7c15fe9da59d4264bc1b1f78b6ff167343c9cf"
+    },
+    {
+      "path": "vision/src/carvision/brake_parking.py",
+      "source_sha256": "5adf2107b3bc04543d0a3d0831489712886f5b1d85140d2fc492e97bcc293412",
+      "normalized_sha256": "bd048006b1b57c68ac5622df996fbc83bf2c3140c0bc22033384d530af69f17e"
+    },
+    {
+      "path": "vision/src/carvision/brake_runtime.py",
+      "source_sha256": "eb8dd2406d3ed5014ae51aec2bc90b95964aefea0370240fd1664bbf4278f9d0",
+      "normalized_sha256": "eb8dd2406d3ed5014ae51aec2bc90b95964aefea0370240fd1664bbf4278f9d0"
+    },
+    {
+      "path": "vision/src/carvision/brake_timing.py",
+      "source_sha256": "18c8485d9712a40fb39c312520bdcd433dec3e65abbf8b3f56dc1cb1b3f1b56c",
+      "normalized_sha256": "e6952d65a6f3c0fcf896cb59455a0c8a9de820d3c6ffbaaacc125b69792a94c1"
+    },
+    {
+      "path": "vision/src/carvision/brake_trial.py",
+      "source_sha256": "7507204e8e575ed02777db26f67234a1e86391531624f133c10297451ed329c8",
+      "normalized_sha256": "9649af98c1dd4eb740184557be3e2e9c7af3bf90115256010df34ba2ad4fc971"
+    },
+    {
+      "path": "vision/src/carvision/camera_assistance.py",
+      "source_sha256": "4ce18dabe1a8e06f8623cce9f95e34d013bf240ad8cb0777acf4a00bc17dae47",
+      "normalized_sha256": "4ce18dabe1a8e06f8623cce9f95e34d013bf240ad8cb0777acf4a00bc17dae47"
+    },
+    {
+      "path": "vision/src/carvision/cameras.py",
+      "source_sha256": "c9f3a90727c81bfec8b2a17ac8d79beeb4f559f8ec13080862c3ae8b6b997997",
+      "normalized_sha256": "c9f3a90727c81bfec8b2a17ac8d79beeb4f559f8ec13080862c3ae8b6b997997"
+    },
+    {
+      "path": "vision/src/carvision/classic_detection.py",
+      "source_sha256": "73d75b20f513cb386b1ad805ce33c632871aa16988025e4e69da3446d079470d",
+      "normalized_sha256": "73d75b20f513cb386b1ad805ce33c632871aa16988025e4e69da3446d079470d"
+    },
+    {
+      "path": "vision/src/carvision/cli.py",
+      "source_sha256": "294a64041ee31c7e0536f4cee1116ffed04d445198f52bb275664a8bb26c1925",
+      "normalized_sha256": "294a64041ee31c7e0536f4cee1116ffed04d445198f52bb275664a8bb26c1925"
+    },
+    {
+      "path": "vision/src/carvision/competition_page.py",
+      "source_sha256": "354609956894222556436cfe6ee311a00af9f7cd96dce7555cbdbe7ade9d056d",
+      "normalized_sha256": "e6ef8d1a4e75a5b9eec8e908ac004481a06877ea1295f3a2f6a66a2c2bcfdee6"
+    },
+    {
+      "path": "vision/src/carvision/cone_boundaries.py",
+      "source_sha256": "cec02551371c24a044928ee0a0348df341510adc7f5934f9f311eb856b3c0051",
+      "normalized_sha256": "cec02551371c24a044928ee0a0348df341510adc7f5934f9f311eb856b3c0051"
+    },
+    {
+      "path": "vision/src/carvision/cone_command.py",
+      "source_sha256": "3665b3f22ebb55c04d834d6246d74533854978fab79a65cbf44337384f8cb200",
+      "normalized_sha256": "02f96e25c10e767a5b05a6b6312aa019e1616b4de02355b9fa711400262fdb6a"
+    },
+    {
+      "path": "vision/src/carvision/cone_continuous.py",
+      "source_sha256": "cd787f1c1e219de84cb90fb82e3042313455defcfdfb1091b6e203d1429c8eb6",
+      "normalized_sha256": "fbe3e89b6f05f99e9ce6f9f688d03944d4dd93a177aacb537a9a570f5dcb161e"
+    },
+    {
+      "path": "vision/src/carvision/cone_controls.py",
+      "source_sha256": "670d70d64410345e224b5ce0554fba8360f6a6cecfc73108fdb19980d37b6c92",
+      "normalized_sha256": "670d70d64410345e224b5ce0554fba8360f6a6cecfc73108fdb19980d37b6c92"
+    },
+    {
+      "path": "vision/src/carvision/cone_corridor.py",
+      "source_sha256": "22fd37031d98d611385497c29e09ebfed34134cddc80aabe8f42fcdef867c852",
+      "normalized_sha256": "7b294c340efcd95072e59433b3fc0dd063c0268b42ffc4192b41b51a56ee7a7c"
+    },
+    {
+      "path": "vision/src/carvision/cone_evidence.py",
+      "source_sha256": "0e2abe69139e5b1598b3a71395b768a06067353ae542dbd1df9f344ffa0eef29",
+      "normalized_sha256": "586412e5240d3ed30a7e38d630814ee1792969a0220e61fb00f69535e8362084"
+    },
+    {
+      "path": "vision/src/carvision/cone_execution.py",
+      "source_sha256": "43edc1387b11495a8200b1bec943ed2493fdbba9fefa96eaa6c5e9178d976323",
+      "normalized_sha256": "0d76fa25f825740861a2eb4ac940ac4d74e3f5633e7ca1f609690c16460f8ad5"
+    },
+    {
+      "path": "vision/src/carvision/cone_guidance.py",
+      "source_sha256": "52f85a3f5fea76cfacdb8a7e6155fc66fd74c704e883533e6a9c27d7d989f237",
+      "normalized_sha256": "8a43bba8ac2711081c44ef8b95447e63d12b0130070a738895f2907760879791"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/__init__.py",
+      "source_sha256": "e2e98b48af1f025f83748008b9e114be76e21ed7dfaf41197daa06dfa586207c",
+      "normalized_sha256": "afade6652b04929061ed12b6424bbaa61a8a695fd7cd86c03bb06c79b9f60b9e"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/announcement_backend.py",
+      "source_sha256": "01edeb05c92b227487054505d26315d2de1b2af8e44706012688f90f4f353b22",
+      "normalized_sha256": "01edeb05c92b227487054505d26315d2de1b2af8e44706012688f90f4f353b22"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/autonomy_audio.py",
+      "source_sha256": "a88cefadd6a08d21808b32dd07ff3f25373918cfdd5ad541ec17dbb50dd396ca",
+      "normalized_sha256": "a88cefadd6a08d21808b32dd07ff3f25373918cfdd5ad541ec17dbb50dd396ca"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/autonomy_profile.py",
+      "source_sha256": "5722cfd9d1c572d89346a42bd91ae5330d9c5951a6328d29aad659515abc6120",
+      "normalized_sha256": "5722cfd9d1c572d89346a42bd91ae5330d9c5951a6328d29aad659515abc6120"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/brake_output.py",
+      "source_sha256": "9fafe798cc7d7c1de3433f0da69d1bd24e1bf0348b6634acf3b35db0cb193b14",
+      "normalized_sha256": "9fafe798cc7d7c1de3433f0da69d1bd24e1bf0348b6634acf3b35db0cb193b14"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/brake_parking.py",
+      "source_sha256": "80f107212273719c9c2484077b75440be46de3bf3810d14fdda68857b65dff62",
+      "normalized_sha256": "80f107212273719c9c2484077b75440be46de3bf3810d14fdda68857b65dff62"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_boundaries.py",
+      "source_sha256": "6218f771aac72d26c764972d464b10fef0098e98a5ccdfbed927b4ad35819e50",
+      "normalized_sha256": "6218f771aac72d26c764972d464b10fef0098e98a5ccdfbed927b4ad35819e50"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_continuous.py",
+      "source_sha256": "31398f95226532395cf88e0b9807e79cde26637b57ee6196ece43683264b5bb9",
+      "normalized_sha256": "851c6eaacc361e214831643bfbd15d19b9ad528929986c108f7c49df6a3de0d3"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_edge_recovery.py",
+      "source_sha256": "49cb99e8fa9102cb2d586cdd276f4ebb589fe737a687c151bffd0acd32fcd3ab",
+      "normalized_sha256": "49cb99e8fa9102cb2d586cdd276f4ebb589fe737a687c151bffd0acd32fcd3ab"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_execution.py",
+      "source_sha256": "333fe0d4e1e19de52850cd5c2da11c50317fa5b45c62b5c560cb06efcb31ca42",
+      "normalized_sha256": "fdfd86a4eac0689a49831ab0a69cecc1c3ea68119d0a8fc4abce46e8cd4fafc3"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_ground_flow.py",
+      "source_sha256": "c96c9dd85cebdbd4f7c7ecdfd6b0b889f491729da8bb8d384b212a68689bfe30",
+      "normalized_sha256": "08bca3e38554c0d3e9a136bb5e833645fe0b9b07412824062bfd4fb33b2ad8d8"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_image_geometry.py",
+      "source_sha256": "08ccc0afaa96bc6292d4fc5517b59b45562eb3820b802fc6f4f200f08363bb23",
+      "normalized_sha256": "11e1f8b36ca8f0608870104c563358cbaae84a41df74ea911672dccd38d3ee2d"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_image_guidance.py",
+      "source_sha256": "d0abb26238cbbb4ef5b9fa662f32e113d54e0286a1b182aafb80a292dd0c2beb",
+      "normalized_sha256": "58d4a5ad9a6fbaf5e07c0192ee4eaf9c8a779eefe2c0b972651d22a818d477ab"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_lane_margin.py",
+      "source_sha256": "2705cd10c170d02251d81294b293311ab3de41bb337fd489236f8be577dfe0ed",
+      "normalized_sha256": "2705cd10c170d02251d81294b293311ab3de41bb337fd489236f8be577dfe0ed"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_local_flow.py",
+      "source_sha256": "d2fdb9910ce4c2241b0e4095282567bbb57d5dc5284483bf3c0b5161f7aeef32",
+      "normalized_sha256": "d38bbf31852af2240f3bc072529465c5e52b6c1360de3847ab91257a7a63c0b3"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_low_speed.py",
+      "source_sha256": "626289bd1636a749096434ae502d59a63d270e93c98c9805540b606a575d4365",
+      "normalized_sha256": "4e2df4da81dae296c471043683ecd9da57d02d8aa6b84a6693704c9d1760ccbf"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_maneuver_state.py",
+      "source_sha256": "69aa11588df15e33a7ffdbe5886a543ef1ab72841ebd75fc076b3aa32a5ccddc",
+      "normalized_sha256": "69aa11588df15e33a7ffdbe5886a543ef1ab72841ebd75fc076b3aa32a5ccddc"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_navigation.py",
+      "source_sha256": "a20b7e3df026eaec4f2a077679fb0c3041e093d9752661d852aaed6dcbc4052b",
+      "normalized_sha256": "a20b7e3df026eaec4f2a077679fb0c3041e093d9752661d852aaed6dcbc4052b"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_observer.py",
+      "source_sha256": "59d4e94242f61db1b37e7e9a38a3b8081155489bfc76738ec386b475a0d35b40",
+      "normalized_sha256": "03fef6bc654bd414c4dcc893e1d9a755a32644f08e714032303577c1fc7f8792"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_planning.py",
+      "source_sha256": "46cb84ddd68d3339d90460a861eed997102f109e897bdaa0561f9659f8e64664",
+      "normalized_sha256": "46cb84ddd68d3339d90460a861eed997102f109e897bdaa0561f9659f8e64664"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_power.py",
+      "source_sha256": "b32111399f8734679d163dc45cb277ee9db8f9382e173cf3caf7efe60b94a852",
+      "normalized_sha256": "b32111399f8734679d163dc45cb277ee9db8f9382e173cf3caf7efe60b94a852"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_right_boundary.py",
+      "source_sha256": "9fd52be3a30925a7327932911b52571112c2deb97bb639447d7a0c1468e8c04d",
+      "normalized_sha256": "9fd52be3a30925a7327932911b52571112c2deb97bb639447d7a0c1468e8c04d"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_road.py",
+      "source_sha256": "da3867af5fce1642048edba3018a023ed5f5ac8d8ce5124df3ebb433dfa805d8",
+      "normalized_sha256": "4728eb4a06c7bc66290960dd54e80b4e1d7a88703afa95eac0960762353642d3"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_short_output.py",
+      "source_sha256": "d10af83a6af7c3b3c7729a713870707cb675117089409cee50cfb6943c4828f1",
+      "normalized_sha256": "d10af83a6af7c3b3c7729a713870707cb675117089409cee50cfb6943c4828f1"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_short_trial.py",
+      "source_sha256": "0b632f5e6f6923eb29ac191ecb50fe4c23c7c40a241dd0eac07283d5876ebc06",
+      "normalized_sha256": "0b632f5e6f6923eb29ac191ecb50fe4c23c7c40a241dd0eac07283d5876ebc06"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_side_choice.py",
+      "source_sha256": "cd9a4ba243573b84a8dec8b0c251045c92619d56d4d92f059baad76316f2e19b",
+      "normalized_sha256": "cd9a4ba243573b84a8dec8b0c251045c92619d56d4d92f059baad76316f2e19b"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_slalom.py",
+      "source_sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14",
+      "normalized_sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_steering_policy.py",
+      "source_sha256": "5be5e1bf135ad314dab196e9708c00b9f46c7ff9e334d6d2e1e711521295259f",
+      "normalized_sha256": "5be5e1bf135ad314dab196e9708c00b9f46c7ff9e334d6d2e1e711521295259f"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_timing.py",
+      "source_sha256": "5858470204907f5d2b4465d0f5a888135c5f387f98017f94d174d205458b0e10",
+      "normalized_sha256": "5858470204907f5d2b4465d0f5a888135c5f387f98017f94d174d205458b0e10"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_trial_output.py",
+      "source_sha256": "65baf11b05ff13370294fd545ed07720cb7b89758936bede0ec86398d28ceeff",
+      "normalized_sha256": "65baf11b05ff13370294fd545ed07720cb7b89758936bede0ec86398d28ceeff"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/cone_vision.py",
+      "source_sha256": "cff51e4de69a0dca83b034cc91b1cac194de86dcb030eb2c88192e6061362133",
+      "normalized_sha256": "cff51e4de69a0dca83b034cc91b1cac194de86dcb030eb2c88192e6061362133"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/config.py",
+      "source_sha256": "d632cfd8603bb788180970d5577acb972c35b937c62d293939102067a9521b35",
+      "normalized_sha256": "d632cfd8603bb788180970d5577acb972c35b937c62d293939102067a9521b35"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/lane.py",
+      "source_sha256": "d4c84e55a290a061ef2a3854d2d8174a7684b830815cebd00e00f09bd5036a25",
+      "normalized_sha256": "d4c84e55a290a061ef2a3854d2d8174a7684b830815cebd00e00f09bd5036a25"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/manifest.json",
+      "source_sha256": "b97187246a26f5a6f5884a4d0c2fa2a151e4da628f1801a823901af632e3b08e",
+      "normalized_sha256": "21a8f5aecc58f5643bb74897d60b4b91d08a70d008312c8d91476993584f2f40"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/rasadapter5.py",
+      "source_sha256": "dac614183fcb1892cfce57ddfdd827cfb00b6987ea25b4258548c74bee58a693",
+      "normalized_sha256": "dac614183fcb1892cfce57ddfdd827cfb00b6987ea25b4258548c74bee58a693"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/results.py",
+      "source_sha256": "e4974ec91555443e9279baf0741a1b3d831b761a89fe7a4a546e0ab5c509215f",
+      "normalized_sha256": "e4974ec91555443e9279baf0741a1b3d831b761a89fe7a4a546e0ab5c509215f"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_engine/steering.py",
+      "source_sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7",
+      "normalized_sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_page.py",
+      "source_sha256": "6d0db904fd1f68a6a6194c5d361e23fc8dc750ed146582d6f14fec022d92669f",
+      "normalized_sha256": "7cfc81805b2eea6facdf46e8ee179936984c571fc85fc5cf357d5e6c240aa1c8"
+    },
+    {
+      "path": "vision/src/carvision/cone_latest_task.py",
+      "source_sha256": "59d8dccf55871293481a84767b96b7577437aaf8a6b95ddf446576f31d7dfa8e",
+      "normalized_sha256": "0c981b2f07a91d7418bc62aae9d6ab02856b2190905cbb6ffe27f881b23d8a7c"
+    },
+    {
+      "path": "vision/src/carvision/cone_low_speed.py",
+      "source_sha256": "ee4a98fae69972658981fe759d9e1819e38cd46df97fee81509f1db5b8d8b428",
+      "normalized_sha256": "1eeab3886fc2c6d3a51c4f1dc56dd0d406ca9cd13a1fd99720cd24d92d1f248a"
+    },
+    {
+      "path": "vision/src/carvision/cone_maneuver.py",
+      "source_sha256": "c2ab1cd47e93cd2df3e3d67a2c509bd2ac41c9b1384ef74c427dee19b807af18",
+      "normalized_sha256": "c2ab1cd47e93cd2df3e3d67a2c509bd2ac41c9b1384ef74c427dee19b807af18"
+    },
+    {
+      "path": "vision/src/carvision/cone_mission.py",
+      "source_sha256": "31277f0f723f41df8cd72f1025efd48763f25dd1e045da1563906332976c2b16",
+      "normalized_sha256": "31277f0f723f41df8cd72f1025efd48763f25dd1e045da1563906332976c2b16"
+    },
+    {
+      "path": "vision/src/carvision/cone_navigation.py",
+      "source_sha256": "0d22338f5221696c528cda354f67cc1b9a342c21f5d3864ed56dbd944428b4f1",
+      "normalized_sha256": "f5d28d0201bbb78a212c126aa6e4757ef0007ea965c117c893fad9dabb9a530d"
+    },
+    {
+      "path": "vision/src/carvision/cone_observer.py",
+      "source_sha256": "37f1e643d0523f03f55e7370b5b9632b350342362095ae476f7dc2a999b9dada",
+      "normalized_sha256": "b66356641c10e664309a0757715e5d5bf5f57fa6ef680c8766cfafc8f401e539"
+    },
+    {
+      "path": "vision/src/carvision/cone_passage.py",
+      "source_sha256": "e85a0415624be3912bd447d4f0ae6cb4180952ccd2beecace0cdb46927008c64",
+      "normalized_sha256": "e85a0415624be3912bd447d4f0ae6cb4180952ccd2beecace0cdb46927008c64"
+    },
+    {
+      "path": "vision/src/carvision/cone_planning.py",
+      "source_sha256": "cc5e7c516290fdbc59424665bf4eda7e4a94cb51f42918f7deee2c15dae8cf55",
+      "normalized_sha256": "54e26fd49b77d091454f8769e00044cb8a44227878df7ee2728806f1dbe3243e"
+    },
+    {
+      "path": "vision/src/carvision/cone_recording.py",
+      "source_sha256": "9806aaf2f95c9e0397677cc58a8e41cfe13549e4ad9fadd77311f13d50ca2879",
+      "normalized_sha256": "9806aaf2f95c9e0397677cc58a8e41cfe13549e4ad9fadd77311f13d50ca2879"
+    },
+    {
+      "path": "vision/src/carvision/cone_replay.py",
+      "source_sha256": "7162144c09ad4eddd4124aa4b4f91045a1800fe0746659480ca91e2cd2557429",
+      "normalized_sha256": "7162144c09ad4eddd4124aa4b4f91045a1800fe0746659480ca91e2cd2557429"
+    },
+    {
+      "path": "vision/src/carvision/cone_response.py",
+      "source_sha256": "d17dae248cfa4a5c36bf7384d6be5c95b9fd7641967cc8c283aceb02975298d2",
+      "normalized_sha256": "d17dae248cfa4a5c36bf7384d6be5c95b9fd7641967cc8c283aceb02975298d2"
+    },
+    {
+      "path": "vision/src/carvision/cone_road.py",
+      "source_sha256": "efca1929bbacce3bf64f6a1903ee14b241c52e8f758171dcad36a8c56158efd2",
+      "normalized_sha256": "37ba7514031d29297a8aabfc2f4a5070c2849fe3033c6f7efbf97b71c8b4e7c2"
+    },
+    {
+      "path": "vision/src/carvision/cone_route.py",
+      "source_sha256": "cc121a73caeaa446f02510cb1f2a3e2cc198ff8cb2b168e151c8a92c6d26cd34",
+      "normalized_sha256": "cc121a73caeaa446f02510cb1f2a3e2cc198ff8cb2b168e151c8a92c6d26cd34"
+    },
+    {
+      "path": "vision/src/carvision/cone_shapes.py",
+      "source_sha256": "d1e69ebeca028171fc9de4ce268ca5a97336623f1e1f183af8c315f78e76fdfe",
+      "normalized_sha256": "d1e69ebeca028171fc9de4ce268ca5a97336623f1e1f183af8c315f78e76fdfe"
+    },
+    {
+      "path": "vision/src/carvision/cone_short_output.py",
+      "source_sha256": "6cfc9952413b3ee9231f04e9c9ba1a537a0dc4df233ea4f5364028ce1fbee4ba",
+      "normalized_sha256": "6cfc9952413b3ee9231f04e9c9ba1a537a0dc4df233ea4f5364028ce1fbee4ba"
+    },
+    {
+      "path": "vision/src/carvision/cone_short_trial.py",
+      "source_sha256": "0b632f5e6f6923eb29ac191ecb50fe4c23c7c40a241dd0eac07283d5876ebc06",
+      "normalized_sha256": "0b632f5e6f6923eb29ac191ecb50fe4c23c7c40a241dd0eac07283d5876ebc06"
+    },
+    {
+      "path": "vision/src/carvision/cone_slalom.py",
+      "source_sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14",
+      "normalized_sha256": "1d8d0f011c1dbfb73a98f07bd2ca2b853426197980a87c0f60e7fd799e819b14"
+    },
+    {
+      "path": "vision/src/carvision/cone_trial_output.py",
+      "source_sha256": "dbe34c892f83e096603d247cf0fd508268b98d05e92125074cefedba50abf8ba",
+      "normalized_sha256": "0cc8d098b275e99a2d232a17c940a427a0c3379a247b9dd4e600f3dd18796829"
+    },
+    {
+      "path": "vision/src/carvision/cone_vision.py",
+      "source_sha256": "4d074fed5723126b9bb5ee1243c5faa3dda2f7858456bb541e54184bc4d0ebbf",
+      "normalized_sha256": "4d074fed5723126b9bb5ee1243c5faa3dda2f7858456bb541e54184bc4d0ebbf"
+    },
+    {
+      "path": "vision/src/carvision/config.py",
+      "source_sha256": "d632cfd8603bb788180970d5577acb972c35b937c62d293939102067a9521b35",
+      "normalized_sha256": "d632cfd8603bb788180970d5577acb972c35b937c62d293939102067a9521b35"
+    },
+    {
+      "path": "vision/src/carvision/console_layout.py",
+      "source_sha256": "d3f799d8194ccad4b8c2a3ac311fde28e9279e9bc38a5d1c11c29cc8cff3239f",
+      "normalized_sha256": "4c0d298da81aed44c4d317e0846faea2b3ba5c09b0516fd71f9f740b562b0a8f"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk.py",
+      "source_sha256": "6788a6780fa3b7f28962757838a502ecfa1afcb9e4323238faba2444db6d846c",
+      "normalized_sha256": "6788a6780fa3b7f28962757838a502ecfa1afcb9e4323238faba2444db6d846c"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk_calibration.py",
+      "source_sha256": "39cccd3d45c48e5269d0b0e62b8da9dbba10f5d62c31d8fee9cafcd3b93a8930",
+      "normalized_sha256": "39cccd3d45c48e5269d0b0e62b8da9dbba10f5d62c31d8fee9cafcd3b93a8930"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk_lab.py",
+      "source_sha256": "2de20a44dacbaebd6a73d0dc0e00b551b9231ea9e7ffd8bbd8caf5d0523003cb",
+      "normalized_sha256": "2de20a44dacbaebd6a73d0dc0e00b551b9231ea9e7ffd8bbd8caf5d0523003cb"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk_observation.py",
+      "source_sha256": "5209e023069301429d8139c42076e6544b7f55a2075ac178cd9a62e77e9ebc66",
+      "normalized_sha256": "5209e023069301429d8139c42076e6544b7f55a2075ac178cd9a62e77e9ebc66"
+    },
+    {
+      "path": "vision/src/carvision/crosswalk_trial.py",
+      "source_sha256": "3404781db64195f767d5a5051a1d8f010e8ceedd41e286390d953b8e844a6e78",
+      "normalized_sha256": "3404781db64195f767d5a5051a1d8f010e8ceedd41e286390d953b8e844a6e78"
+    },
+    {
+      "path": "vision/src/carvision/dataset.py",
+      "source_sha256": "c8e683206cd9deef9a5f7384faef471e7a6bbde38ef9668646d2130ca0308fdc",
+      "normalized_sha256": "c8e683206cd9deef9a5f7384faef471e7a6bbde38ef9668646d2130ca0308fdc"
+    },
+    {
+      "path": "vision/src/carvision/debug_page.py",
+      "source_sha256": "c5cc90102c28e4546a8a40e39bd5cdb63a3804245f78bc42c01286989135c019",
+      "normalized_sha256": "c5cc90102c28e4546a8a40e39bd5cdb63a3804245f78bc42c01286989135c019"
+    },
+    {
+      "path": "vision/src/carvision/demo.py",
+      "source_sha256": "df942365f15deedee65c38dfd36ea093c6c52f7842457b89650b26b6687a842c",
+      "normalized_sha256": "df942365f15deedee65c38dfd36ea093c6c52f7842457b89650b26b6687a842c"
+    },
+    {
+      "path": "vision/src/carvision/departure.py",
+      "source_sha256": "2b8facb3e9d2635aec2b5c8b217c54747c5fe91df1e0ffffc2f52e4eed4e8b33",
+      "normalized_sha256": "2b8facb3e9d2635aec2b5c8b217c54747c5fe91df1e0ffffc2f52e4eed4e8b33"
+    },
+    {
+      "path": "vision/src/carvision/departure_controls.py",
+      "source_sha256": "cb403c691023c3af61f48b5b6dba33a379c9dbb2a3c3c68bc7aa50d1c1ea97a2",
+      "normalized_sha256": "fd0cb597180d0613de339279499052a1211de47589f78c2f985b1537386339ff"
+    },
+    {
+      "path": "vision/src/carvision/departure_trial.py",
+      "source_sha256": "8b68e7aa133053f1cacaba2dd628ef6e60a29dc8ab04465e2b89ea92287d31f3",
+      "normalized_sha256": "8b68e7aa133053f1cacaba2dd628ef6e60a29dc8ab04465e2b89ea92287d31f3"
+    },
+    {
+      "path": "vision/src/carvision/detection.py",
+      "source_sha256": "c4d1d8ebb793854bf914e6bdab3302cfcd27b32e074cd6b8edfb2858263ee3da",
+      "normalized_sha256": "c4d1d8ebb793854bf914e6bdab3302cfcd27b32e074cd6b8edfb2858263ee3da"
+    },
+    {
+      "path": "vision/src/carvision/display.py",
+      "source_sha256": "a64ca80b42b4f0180864bb09b73c45661348aa181f0dd18583a050cbcac5a4cc",
+      "normalized_sha256": "a64ca80b42b4f0180864bb09b73c45661348aa181f0dd18583a050cbcac5a4cc"
+    },
+    {
+      "path": "vision/src/carvision/esc_load_probe.py",
+      "source_sha256": "da328515e74cdf504f3135e89ae7ccf0760d62284f879f24cf182e7e999e5b69",
+      "normalized_sha256": "da328515e74cdf504f3135e89ae7ccf0760d62284f879f24cf182e7e999e5b69"
+    },
+    {
+      "path": "vision/src/carvision/esc_wave.py",
+      "source_sha256": "76fc13c37f2dca1126cd5283e5c0172b73e82e3b9a56a4490a0e0f689dd4fdf9",
+      "normalized_sha256": "76fc13c37f2dca1126cd5283e5c0172b73e82e3b9a56a4490a0e0f689dd4fdf9"
+    },
+    {
+      "path": "vision/src/carvision/feedback_parking.py",
+      "source_sha256": "50c19eb47f835e183745c747e135b9513ab5fd4b571cf62aefda3b9f3fd807c0",
+      "normalized_sha256": "50c19eb47f835e183745c747e135b9513ab5fd4b571cf62aefda3b9f3fd807c0"
+    },
+    {
+      "path": "vision/src/carvision/gamepad_controls.py",
+      "source_sha256": "c036b700656939fd1a202eb8737df078414780785518fc2e47447825a9e04b63",
+      "normalized_sha256": "4ecf2dd48a13b42ddbeb265da9cfe0630ca317e526f343536e51cdef2e2077cf"
+    },
+    {
+      "path": "vision/src/carvision/gimbal.py",
+      "source_sha256": "b0192dbc8446e2e42b22c732ab39f82d2d4942d9665fa5616ea9ab07922b6fc5",
+      "normalized_sha256": "b0192dbc8446e2e42b22c732ab39f82d2d4942d9665fa5616ea9ab07922b6fc5"
+    },
+    {
+      "path": "vision/src/carvision/gimbal_bench.py",
+      "source_sha256": "31f2dff8029c4bffeca1ae0873df88101b970139468e38fa3192097a46da8dbb",
+      "normalized_sha256": "31f2dff8029c4bffeca1ae0873df88101b970139468e38fa3192097a46da8dbb"
+    },
+    {
+      "path": "vision/src/carvision/ground_odometry.py",
+      "source_sha256": "7f53f7deaebd191e90899c71a56ac310edfdc566d9737513c048d720cb6ba384",
+      "normalized_sha256": "7f53f7deaebd191e90899c71a56ac310edfdc566d9737513c048d720cb6ba384"
+    },
+    {
+      "path": "vision/src/carvision/handoff.py",
+      "source_sha256": "c26ed71f83d7792a6e4c365b0a7d33597412e7f4882dac3afbf7c3a0cbd74537",
+      "normalized_sha256": "c26ed71f83d7792a6e4c365b0a7d33597412e7f4882dac3afbf7c3a0cbd74537"
+    },
+    {
+      "path": "vision/src/carvision/lane.py",
+      "source_sha256": "46b3972fd21e03cce8559ff3f6134534215d141a60995d485fa7519a33cc96a7",
+      "normalized_sha256": "46b3972fd21e03cce8559ff3f6134534215d141a60995d485fa7519a33cc96a7"
+    },
+    {
+      "path": "vision/src/carvision/lane_following.py",
+      "source_sha256": "9441b4ad780468ccaa9e4311e44b4176f9542f586dd9bb2bf1cd6c27eb3763be",
+      "normalized_sha256": "20a7dcf606c962015f7e454bc996dcdfbcd30c5f95a53ccb6eb29830d9f683b0"
+    },
+    {
+      "path": "vision/src/carvision/manual_controls.py",
+      "source_sha256": "00e57876e0660a23fbbc5ee0f0739659659803101215108a4a2d681a05f00219",
+      "normalized_sha256": "00e57876e0660a23fbbc5ee0f0739659659803101215108a4a2d681a05f00219"
+    },
+    {
+      "path": "vision/src/carvision/manual_drive.py",
+      "source_sha256": "af0fdac6b183e4ce4369cd8558c060e1d6daceccfcf5617e407db6c9c5524e5f",
+      "normalized_sha256": "98c5e746ea2bf1afd90429184e78624c609447548579e238ad9322dd4809febb"
+    },
+    {
+      "path": "vision/src/carvision/manual_hardware.py",
+      "source_sha256": "1c5f08622cda6ce21b7d79049c65e16c2012300d53a480ccb21854c274b09974",
+      "normalized_sha256": "1c5f08622cda6ce21b7d79049c65e16c2012300d53a480ccb21854c274b09974"
+    },
+    {
+      "path": "vision/src/carvision/manual_service.py",
+      "source_sha256": "21404092b550b96830c9943ca2ec4c4e3ff8042c4a450ba509060758b53371c3",
+      "normalized_sha256": "3d7bda9e77ffdeabe13b318f0a6243bfd2128cac6f41e2ebac2adedd8c68fd26"
+    },
+    {
+      "path": "vision/src/carvision/manual_speed.py",
+      "source_sha256": "9be8f1ff48440614644874bb3a4af8b29eaf1e843e873d86557792f40aab4a0c",
+      "normalized_sha256": "9be8f1ff48440614644874bb3a4af8b29eaf1e843e873d86557792f40aab4a0c"
+    },
+    {
+      "path": "vision/src/carvision/manual_steering.py",
+      "source_sha256": "336466f33e7352709ea75d1df3fc95e4777201a6b5a25ba84e3f22a1a5f2b6ce",
+      "normalized_sha256": "336466f33e7352709ea75d1df3fc95e4777201a6b5a25ba84e3f22a1a5f2b6ce"
+    },
+    {
+      "path": "vision/src/carvision/motion_cache.py",
+      "source_sha256": "0ec791a9812bfcf1e745e9ff9475f22746d281462f8ed6b9c25ca89d880c4667",
+      "normalized_sha256": "0ec791a9812bfcf1e745e9ff9475f22746d281462f8ed6b9c25ca89d880c4667"
+    },
+    {
+      "path": "vision/src/carvision/network_guard.py",
+      "source_sha256": "5dcfa6e6086bf96563f5d05138040e34917c0b2e466a742b4f9b1c0e6dbaebfc",
+      "normalized_sha256": "5dcfa6e6086bf96563f5d05138040e34917c0b2e466a742b4f9b1c0e6dbaebfc"
+    },
+    {
+      "path": "vision/src/carvision/page_heartbeat.py",
+      "source_sha256": "fd61dbe6684d243f84744c1c188ec7f38d996db042f1fd07e9a5396dab3b2081",
+      "normalized_sha256": "fd61dbe6684d243f84744c1c188ec7f38d996db042f1fd07e9a5396dab3b2081"
+    },
+    {
+      "path": "vision/src/carvision/parking_approach.py",
+      "source_sha256": "c2ffcdd7370315e14fe832820f1db5fe9144109cc7c4bb925e8a04f3a3a8729e",
+      "normalized_sha256": "c2ffcdd7370315e14fe832820f1db5fe9144109cc7c4bb925e8a04f3a3a8729e"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay.py",
+      "source_sha256": "805563d4788a7fe31d2d1b9911bb001ffa4a73f7c18b6131fe2331fdf6820a62",
+      "normalized_sha256": "74a712498707bdf4fd6e1c82319225c9c04daf80c94147c257fe1a7c9ff25b2a"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_console.py",
+      "source_sha256": "5fab57350858e6280c63a49bdcaa45bc5ab118941e1d24a62ecd516b99d30425",
+      "normalized_sha256": "e872cfdb276f90f13223c211365544975b33ad9cc876e3428fc7a63207eb530d"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_controls.py",
+      "source_sha256": "5c458b8fefbea5e29373671f5ba97ae74879e020cbe12ee9249b8692e6dc9f11",
+      "normalized_sha256": "5c458b8fefbea5e29373671f5ba97ae74879e020cbe12ee9249b8692e6dc9f11"
+    },
+    {
+      "path": "vision/src/carvision/parking_bay_pose.py",
+      "source_sha256": "16617615b8ea846b21e1f88efdf29d3f632b9a6da8141dd618df31aa127d5373",
+      "normalized_sha256": "16617615b8ea846b21e1f88efdf29d3f632b9a6da8141dd618df31aa127d5373"
+    },
+    {
+      "path": "vision/src/carvision/parking_control.py",
+      "source_sha256": "5d01264a6c841d5fe606d682a6cb9738cc2bc44c63f1a06f815aaf424db7c7e2",
+      "normalized_sha256": "5d01264a6c841d5fe606d682a6cb9738cc2bc44c63f1a06f815aaf424db7c7e2"
+    },
+    {
+      "path": "vision/src/carvision/parking_edges.py",
+      "source_sha256": "c115833ec439ddb95b5b072dfe6fb80257b220f583d50f391f0ffbac9928e18b",
+      "normalized_sha256": "dccb62beba7e7729c3c62ed8fde239a375c7956bc5e19c577ae28f8e0a993239"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry.py",
+      "source_sha256": "5c20ea6f578fa874c6b2e1742751197420991668e0a2cfdee57632d9d6199490",
+      "normalized_sha256": "dae22a8d816d43a47fcb26ab8babe1cc2e2e384c3183aa1fc3a9ddd8d13ed32e"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry_detection.py",
+      "source_sha256": "a2d46e10dab04c74f8c0e5e5f91844dcd7bb4bdd95123e796d96d5f8809ba394",
+      "normalized_sha256": "a2d46e10dab04c74f8c0e5e5f91844dcd7bb4bdd95123e796d96d5f8809ba394"
+    },
+    {
+      "path": "vision/src/carvision/parking_entry_run.py",
+      "source_sha256": "e74ba3d1d27690a8d03898da0e61fccb8cd1cf747b4a6ca1432e4ce710ab4ab3",
+      "normalized_sha256": "d45961f6143b820a0c1eac9f843606877e716a7b673dd328509bbdf50f7a0317"
+    },
+    {
+      "path": "vision/src/carvision/parking_far_tracker.py",
+      "source_sha256": "9740f3e330baec79be1ca90e832a019e5cc1c8bf68d1a516a2d2aebea5a82674",
+      "normalized_sha256": "a475f09fe380229212064d8482f904b042b0a097350608c2ad7aaca69a68a9aa"
+    },
+    {
+      "path": "vision/src/carvision/parking_feedback.py",
+      "source_sha256": "cc18eb53780f6a3d49a55c70fe17163bce41be7a4412bf6f64d2834fd045fca1",
+      "normalized_sha256": "cc18eb53780f6a3d49a55c70fe17163bce41be7a4412bf6f64d2834fd045fca1"
+    },
+    {
+      "path": "vision/src/carvision/parking_ground_view.py",
+      "source_sha256": "0ce3b401043dd43dea50971863bf5aa1478f0b61c1a62af55afaa43a3a690ea9",
+      "normalized_sha256": "0ce3b401043dd43dea50971863bf5aa1478f0b61c1a62af55afaa43a3a690ea9"
+    },
+    {
+      "path": "vision/src/carvision/parking_guidance.py",
+      "source_sha256": "f4baf92118035da6959a84266712a1efd98c7a7f56b2f1275a2bd0e8be6de296",
+      "normalized_sha256": "f4baf92118035da6959a84266712a1efd98c7a7f56b2f1275a2bd0e8be6de296"
+    },
+    {
+      "path": "vision/src/carvision/parking_inner_edges.py",
+      "source_sha256": "1772b371da39636f574ffba971f9767febb9f61b1fec86e10118551e58f11143",
+      "normalized_sha256": "1772b371da39636f574ffba971f9767febb9f61b1fec86e10118551e58f11143"
+    },
+    {
+      "path": "vision/src/carvision/parking_landmarks.py",
+      "source_sha256": "0ed1fa41e05009230dc8952efdc735069f629a578a82c97f5e7595f92c10e761",
+      "normalized_sha256": "0ed1fa41e05009230dc8952efdc735069f629a578a82c97f5e7595f92c10e761"
+    },
+    {
+      "path": "vision/src/carvision/parking_limits.py",
+      "source_sha256": "a9ab5b0f4c87dadabf5a7454627051e03a98165ed89a169975beda61f505427a",
+      "normalized_sha256": "11b0cda1082cfff87b454614e5e8fbc49ade36bf0f1cdb0dd44a5737aa702f2c"
+    },
+    {
+      "path": "vision/src/carvision/parking_log.py",
+      "source_sha256": "0944fd2330b456f7b4838cd8fd2d38b0910a8477a489a33e497353888b4b41d4",
+      "normalized_sha256": "0944fd2330b456f7b4838cd8fd2d38b0910a8477a489a33e497353888b4b41d4"
+    },
+    {
+      "path": "vision/src/carvision/parking_mission.py",
+      "source_sha256": "2ecdb4ff519fda218f2a52605d3195174c5c87a9f15d43bbb94f4368a3ee3328",
+      "normalized_sha256": "2ecdb4ff519fda218f2a52605d3195174c5c87a9f15d43bbb94f4368a3ee3328"
+    },
+    {
+      "path": "vision/src/carvision/parking_path.py",
+      "source_sha256": "209adfc0ea19cab76f9c9bff85594bdbc09a152751cb8e569a3f3b74bd5e08c5",
+      "normalized_sha256": "209adfc0ea19cab76f9c9bff85594bdbc09a152751cb8e569a3f3b74bd5e08c5"
+    },
+    {
+      "path": "vision/src/carvision/parking_payment.py",
+      "source_sha256": "749ea6d64f3ed966f0574851662e8a97ce748502f8649c77d3e77c26a326f34d",
+      "normalized_sha256": "749ea6d64f3ed966f0574851662e8a97ce748502f8649c77d3e77c26a326f34d"
+    },
+    {
+      "path": "vision/src/carvision/parking_progress.py",
+      "source_sha256": "3848d27a311fbf8164cf1fd721ad5a1235e6e03dffa0cd901f764bab5fdc4557",
+      "normalized_sha256": "3848d27a311fbf8164cf1fd721ad5a1235e6e03dffa0cd901f764bab5fdc4557"
+    },
+    {
+      "path": "vision/src/carvision/parking_recovery.py",
+      "source_sha256": "d9e14016dba0e5386ce05be92cd98213236d3bfd730e9950efac3cb665356ea5",
+      "normalized_sha256": "d9e14016dba0e5386ce05be92cd98213236d3bfd730e9950efac3cb665356ea5"
+    },
+    {
+      "path": "vision/src/carvision/parking_route.py",
+      "source_sha256": "6dd3d0969958b77f87343e6333b84391ff8cfbe13bf05826d9dd53a15bf05307",
+      "normalized_sha256": "6dd3d0969958b77f87343e6333b84391ff8cfbe13bf05826d9dd53a15bf05307"
+    },
+    {
+      "path": "vision/src/carvision/parking_speech.py",
+      "source_sha256": "e1d9b64cd4397816988c582ab681071fdf733010338cbe3322b9cf27be95fc28",
+      "normalized_sha256": "e1d9b64cd4397816988c582ab681071fdf733010338cbe3322b9cf27be95fc28"
+    },
+    {
+      "path": "vision/src/carvision/parking_stop_evidence.py",
+      "source_sha256": "16f00d28cf8dcd331f1d7a497c82ce19b0def7e90716535f9cf01c43f30eb4ef",
+      "normalized_sha256": "16f00d28cf8dcd331f1d7a497c82ce19b0def7e90716535f9cf01c43f30eb4ef"
+    },
+    {
+      "path": "vision/src/carvision/parking_task.py",
+      "source_sha256": "ca1c796808a608b2acefaa186df7d4ba486ff88eee33c07ace630816387c9cae",
+      "normalized_sha256": "de0eb7bd792e8062f741f41637bf29257d92a3b4dfa52c9260fdb73715ed143a"
+    },
+    {
+      "path": "vision/src/carvision/parking_visual.py",
+      "source_sha256": "1d29ae5877218169365fb970a841343deb62be3330a369a980f7950349ff8548",
+      "normalized_sha256": "1d29ae5877218169365fb970a841343deb62be3330a369a980f7950349ff8548"
+    },
+    {
+      "path": "vision/src/carvision/payment_console.py",
+      "source_sha256": "6b1740c1209b62dca8da69887d4469987e59ef38bd45e8fc681bfb2087dfb325",
+      "normalized_sha256": "6b1740c1209b62dca8da69887d4469987e59ef38bd45e8fc681bfb2087dfb325"
+    },
+    {
+      "path": "vision/src/carvision/payment_controls.py",
+      "source_sha256": "0b52de34df3b291ed021e4e33322c534e5db6688b08de7f9aee25d69b2343987",
+      "normalized_sha256": "0b52de34df3b291ed021e4e33322c534e5db6688b08de7f9aee25d69b2343987"
+    },
+    {
+      "path": "vision/src/carvision/pi5_pwm.py",
+      "source_sha256": "f50e165b06d212503622d1b18a6c95bf5bf2267abe7c2dc8461b27b9f97f8286",
+      "normalized_sha256": "3bca4118beda2a649876731c6626e169769785884a91e64cb457bfc6526bb232"
+    },
+    {
+      "path": "vision/src/carvision/pi_control.py",
+      "source_sha256": "6953374f8d394496c601c376a75337da661693fdbeb5992fb755370ba3e7c34a",
+      "normalized_sha256": "6953374f8d394496c601c376a75337da661693fdbeb5992fb755370ba3e7c34a"
+    },
+    {
+      "path": "vision/src/carvision/pi_runtime.py",
+      "source_sha256": "b62f9cb66d47e9c6b5e7fc6c74dc835961a55ad24f269e25b109f3069a7151c9",
+      "normalized_sha256": "b62f9cb66d47e9c6b5e7fc6c74dc835961a55ad24f269e25b109f3069a7151c9"
+    },
+    {
+      "path": "vision/src/carvision/pi_runtime_bridge.py",
+      "source_sha256": "95dd6cdcecba5dee29599697a4988e938cc08ee3879ccf4d72e96e395caab0d3",
+      "normalized_sha256": "8f4865b019168df4fd7302548c1ecd6c1511649cb3aa8902d3e33a2487a1d15a"
+    },
+    {
+      "path": "vision/src/carvision/pipeline.py",
+      "source_sha256": "c1dd1a2e73cfa049453921ecbc54579d321554e8bf1b21ed743e0b31a032e4e8",
+      "normalized_sha256": "c1dd1a2e73cfa049453921ecbc54579d321554e8bf1b21ed743e0b31a032e4e8"
+    },
+    {
+      "path": "vision/src/carvision/plan_b_console.py",
+      "source_sha256": "399267c61f9572ed058af70f53262fd4ad36dbc6b451cfc58b64e11bab53e8ca",
+      "normalized_sha256": "399267c61f9572ed058af70f53262fd4ad36dbc6b451cfc58b64e11bab53e8ca"
+    },
+    {
+      "path": "vision/src/carvision/plan_b_controls.py",
+      "source_sha256": "00df6e6ed56a4479429b9075562645e2cdbeeeee12573268c6a43863898c0406",
+      "normalized_sha256": "00df6e6ed56a4479429b9075562645e2cdbeeeee12573268c6a43863898c0406"
+    },
+    {
+      "path": "vision/src/carvision/preview_encoding.py",
+      "source_sha256": "a91c2bd60f2d87928591cb5d2b6659c3daf12a70dc78dd31a421d95c3c092777",
+      "normalized_sha256": "a91c2bd60f2d87928591cb5d2b6659c3daf12a70dc78dd31a421d95c3c092777"
+    },
+    {
+      "path": "vision/src/carvision/race.py",
+      "source_sha256": "58b94dff9d60101568333dc31202dadd77933000aee81a714e91555e899431dd",
+      "normalized_sha256": "58b94dff9d60101568333dc31202dadd77933000aee81a714e91555e899431dd"
+    },
+    {
+      "path": "vision/src/carvision/race_executor_bridge.py",
+      "source_sha256": "db1782846d41c3d73825c83586d7dce37712fffe2aa66f8b20351cf047c4f050",
+      "normalized_sha256": "db1782846d41c3d73825c83586d7dce37712fffe2aa66f8b20351cf047c4f050"
+    },
+    {
+      "path": "vision/src/carvision/race_flow.py",
+      "source_sha256": "7fddc650832728b6e8ac2d490f0e15e94112a33a42d7f167b98d5364207fdd48",
+      "normalized_sha256": "d3dbc731e938b87ec8826b74c256f18278427c746fc02ee52b61b8b4055e0aed"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_camera.py",
+      "source_sha256": "60d8e2082ebb7895f361a30eda3fc0dc55a9c548adeede8dbd985ba151b291ef",
+      "normalized_sha256": "6545b2fa5033bbc7ac8923322433119d3213d5b6a20840cc7e585ffdd64cd3a9"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_console.py",
+      "source_sha256": "1d1051a9a6397b6a807de8d0425598c3d2f0a68d838eb5e371d60ca658cc5ffb",
+      "normalized_sha256": "9e0306899b6dfb5b8df383315c2447ddc6e530bd4a01927277e64b9eac68959a"
+    },
+    {
+      "path": "vision/src/carvision/race_flow_controls.py",
+      "source_sha256": "1cca3d34fe68b6464400103fbd3677f42b0555f5645dcf2a2eeadb07cf85117b",
+      "normalized_sha256": "04a42972432f4ae6c58d8bcafea1a89dcbea5e7a01804a231a2139ba180e8322"
+    },
+    {
+      "path": "vision/src/carvision/race_monitor.py",
+      "source_sha256": "0d6749a65aaf027608b3835268fae4f11c89844e98e7fc257e8a770333bd6630",
+      "normalized_sha256": "0d6749a65aaf027608b3835268fae4f11c89844e98e7fc257e8a770333bd6630"
+    },
+    {
+      "path": "vision/src/carvision/race_workflows.py",
+      "source_sha256": "dccc6e225247255977eeb4be8560b37cecefbabb6a50d242c12976999612944c",
+      "normalized_sha256": "dccc6e225247255977eeb4be8560b37cecefbabb6a50d242c12976999612944c"
+    },
+    {
+      "path": "vision/src/carvision/rasadapter5.py",
+      "source_sha256": "471ef41607e660c5930112cc484cfb19fa08c434455114ef4c7ff77bd0820c38",
+      "normalized_sha256": "f4e93c457fd55af8dedba0ac25732cb078dcef1c9f94f85f3f1b9be9ae05063f"
+    },
+    {
+      "path": "vision/src/carvision/rasadapter5_executor.py",
+      "source_sha256": "faab04fb77d71bb58cdfabcb2db1f5bf6aacf6ff50796b8557674edddbe7d055",
+      "normalized_sha256": "faab04fb77d71bb58cdfabcb2db1f5bf6aacf6ff50796b8557674edddbe7d055"
+    },
+    {
+      "path": "vision/src/carvision/results.py",
+      "source_sha256": "e4974ec91555443e9279baf0741a1b3d831b761a89fe7a4a546e0ab5c509215f",
+      "normalized_sha256": "e4974ec91555443e9279baf0741a1b3d831b761a89fe7a4a546e0ab5c509215f"
+    },
+    {
+      "path": "vision/src/carvision/runtime_timing.py",
+      "source_sha256": "0703e64781a3fe1a4e58e984be65fa756604ae31ce23f8915244a62772b0cd05",
+      "normalized_sha256": "0703e64781a3fe1a4e58e984be65fa756604ae31ce23f8915244a62772b0cd05"
+    },
+    {
+      "path": "vision/src/carvision/shared_executor.py",
+      "source_sha256": "7198a8be0b047b8c757caebec5a708343b06db0d8d86518666962d02f57eddb2",
+      "normalized_sha256": "564be33983873d2db6900a79645cfbbb5954c0953a197e3bf174becc6933d562"
+    },
+    {
+      "path": "vision/src/carvision/sources.py",
+      "source_sha256": "8eae1f91dac83d8744de2546a31d962bb0826a07b39ba586b53231cf6a30ba33",
+      "normalized_sha256": "8eae1f91dac83d8744de2546a31d962bb0826a07b39ba586b53231cf6a30ba33"
+    },
+    {
+      "path": "vision/src/carvision/steering.py",
+      "source_sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7",
+      "normalized_sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7"
+    },
+    {
+      "path": "vision/src/carvision/steering_bench.py",
+      "source_sha256": "180bdbf3e1f190a1cb5a7bea6b388135d3634a186657d2f59b0a4f07e59b0e58",
+      "normalized_sha256": "180bdbf3e1f190a1cb5a7bea6b388135d3634a186657d2f59b0a4f07e59b0e58"
+    },
+    {
+      "path": "vision/src/carvision/steering_calibrate.py",
+      "source_sha256": "98c3d61f7456fc6980dadf218fc163db6f94ccd832acdc96855f0c2b86d7e637",
+      "normalized_sha256": "98c3d61f7456fc6980dadf218fc163db6f94ccd832acdc96855f0c2b86d7e637"
+    },
+    {
+      "path": "vision/src/carvision/steering_limits.py",
+      "source_sha256": "1766655dfa6e9a447be0e2b31e69b53fc583e55f60c5c070726eb8833a863d22",
+      "normalized_sha256": "ecf0b102661e7fe6c851eb1c26c14e9ba9c9673cc1907a90436787b1b0712c12"
+    },
+    {
+      "path": "vision/src/carvision/steering_pwm_controls.py",
+      "source_sha256": "ecf2bb186ded5cfbf079a8358833e18318c5461823a4c47b7738c9d10af583e0",
+      "normalized_sha256": "ecf2bb186ded5cfbf079a8358833e18318c5461823a4c47b7738c9d10af583e0"
+    },
+    {
+      "path": "vision/src/carvision/tape_pixels.py",
+      "source_sha256": "dd6a4fd1cdaebb635acc3086ad8c3eb220489bb5347f71389d08318f5445b728",
+      "normalized_sha256": "dd6a4fd1cdaebb635acc3086ad8c3eb220489bb5347f71389d08318f5445b728"
+    },
+    {
+      "path": "vision/src/carvision/temporal.py",
+      "source_sha256": "19d9335b9726c980dd5fb17e661725d2d55ad4dd9e3b76a9cabbe8877894c879",
+      "normalized_sha256": "19d9335b9726c980dd5fb17e661725d2d55ad4dd9e3b76a9cabbe8877894c879"
+    },
+    {
+      "path": "vision/src/carvision/traffic_capture.py",
+      "source_sha256": "c0d89635c97815ccac8d9ceccdd210cc66f32350f75e3ac1f95fbfb52bc8f1d6",
+      "normalized_sha256": "c0d89635c97815ccac8d9ceccdd210cc66f32350f75e3ac1f95fbfb52bc8f1d6"
+    },
+    {
+      "path": "vision/src/carvision/traffic_capture_server.py",
+      "source_sha256": "416b18dda0ae289b94ac3a0e401b73b07deee83dc8559b773f8d29c30c90249a",
+      "normalized_sha256": "416b18dda0ae289b94ac3a0e401b73b07deee83dc8559b773f8d29c30c90249a"
+    },
+    {
+      "path": "vision/src/carvision/traffic_controls.py",
+      "source_sha256": "f8a8320261b68b8a155efaacb0ab4de997ba70b7dde9fa2579c62ddc5faf9ae0",
+      "normalized_sha256": "f8a8320261b68b8a155efaacb0ab4de997ba70b7dde9fa2579c62ddc5faf9ae0"
+    },
+    {
+      "path": "vision/src/carvision/traffic_driving.py",
+      "source_sha256": "62c022f6c098592d65b9041f2441bda0db434aebabeb4aa8c38a05868dc50923",
+      "normalized_sha256": "e8ff47dedcc5ac6a64f69b253f8a7cf2e977472eeadea2dd0c7aa1e12992b874"
+    },
+    {
+      "path": "vision/src/carvision/traffic_fixture_geometry.py",
+      "source_sha256": "2c5356905ebe8787ecf94e83d5956ce96130e1c967b7c6f508a555baac7b665d",
+      "normalized_sha256": "2c5356905ebe8787ecf94e83d5956ce96130e1c967b7c6f508a555baac7b665d"
+    },
+    {
+      "path": "vision/src/carvision/traffic_lamps.py",
+      "source_sha256": "9f1d315e9ba6401944d0abadc17b16a7f1436cf5695e6ebf7d311d7ee31f2f1e",
+      "normalized_sha256": "9f1d315e9ba6401944d0abadc17b16a7f1436cf5695e6ebf7d311d7ee31f2f1e"
+    },
+    {
+      "path": "vision/src/carvision/traffic_preview.py",
+      "source_sha256": "0d2077006bffa117e71f49504bcbed2eb1322197b84a1f7e3715ee30340f1ba8",
+      "normalized_sha256": "66939625f72740329b606e4f1ae019046c65c5cd7618c9e46596f5d7852de8d5"
+    },
+    {
+      "path": "vision/src/carvision/traffic_signal.py",
+      "source_sha256": "481423376d9b446755c83fd9c27f8236ef81b261d315f5bcab04bc23f9b2ed4f",
+      "normalized_sha256": "481423376d9b446755c83fd9c27f8236ef81b261d315f5bcab04bc23f9b2ed4f"
+    },
+    {
+      "path": "vision/src/carvision/traffic_signal_evaluation.py",
+      "source_sha256": "93a54bdde1700f085f44fabf99f7af7b5afd1426b7d77dc46ce0379e8d0938d7",
+      "normalized_sha256": "93a54bdde1700f085f44fabf99f7af7b5afd1426b7d77dc46ce0379e8d0938d7"
+    },
+    {
+      "path": "vision/src/carvision/traffic_stop_motion.py",
+      "source_sha256": "1d831c4a136758870961c18143e3b314588ea8940169632d25bbe579b7ae5e11",
+      "normalized_sha256": "1d831c4a136758870961c18143e3b314588ea8940169632d25bbe579b7ae5e11"
+    },
+    {
+      "path": "vision/src/carvision/traffic_tracking.py",
+      "source_sha256": "f472d679cf900e090b4f2911b922e5cdf0809262c708fad6d14301902df705e1",
+      "normalized_sha256": "f472d679cf900e090b4f2911b922e5cdf0809262c708fad6d14301902df705e1"
+    },
+    {
+      "path": "vision/src/carvision/traffic_trial.py",
+      "source_sha256": "1c635d05250ce0bb40a25d9bbc1f85dc58617146cf8406de6e5b367083790e35",
+      "normalized_sha256": "d1cfead3e523b46dacc7074b460e907c0f5dfa7d6b5bf2fec289cf57da22e673"
+    },
+    {
+      "path": "vision/src/carvision/traffic_voting.py",
+      "source_sha256": "85c8e25c3b7d1d645b7baecee4bad68522d4bfd16a1b2ebe7a8e24105e262ab5",
+      "normalized_sha256": "85c8e25c3b7d1d645b7baecee4bad68522d4bfd16a1b2ebe7a8e24105e262ab5"
+    },
+    {
+      "path": "vision/src/carvision/web_preview.py",
+      "source_sha256": "b34447c4ed30794898d62370acbf2e56ee5a469faeb49da6a0b214e9770e8867",
+      "normalized_sha256": "d4d3f2ab16c0568574649825d2c3ab4c3e788f597fbe052f1da47b780c3ce05e"
+    },
+    {
+      "path": "vision/src/carvision/worker_client.py",
+      "source_sha256": "0cd4dca3e7ab8ebd03f7505c3348305c9813d33c6b5b22e7845ba5c91db93610",
+      "normalized_sha256": "a9a2fc77e4e832bd5d74f3fbe4c03bd36d2079d8c44603d857c3e5469eb9d506"
+    },
+    {
+      "path": "vision/src/carvision/workflows.py",
+      "source_sha256": "ff4f899f9c982c19c4842884d6427824631d0f4ca4b0892e58c616a379766f9f",
+      "normalized_sha256": "ff4f899f9c982c19c4842884d6427824631d0f4ca4b0892e58c616a379766f9f"
+    },
+    {
+      "path": "vision/web/competition/app.js",
+      "source_sha256": "a8b4c22af117ec47ae7998aeb561065240523e96d22fb739a880602c83083211",
+      "normalized_sha256": "578bb5704418356b50f650972656d9cf5b2ccd7dd86a19d564306fd1130686d3"
+    },
+    {
+      "path": "vision/web/competition/index.html",
+      "source_sha256": "13957b2eee552dfd0e3d4fe524c48edb9ecf61d4afac4fc70805b7e0679df36f",
+      "normalized_sha256": "13957b2eee552dfd0e3d4fe524c48edb9ecf61d4afac4fc70805b7e0679df36f"
+    },
+    {
+      "path": "vision/web/competition/style.css",
+      "source_sha256": "fc7f85254485973912da4e8de3f4e36b0fe78c1784dba3ee7411c07d7e23969d",
+      "normalized_sha256": "8335fbc79222efd91ab36523e749436ec2080ef65fd26701858e078ba16491a4"
+    },
+    {
+      "path": "vision/web/debug/app.js",
+      "source_sha256": "acf42c4f33ef662194cc9c3e8614cf1d7216abc98c71cb824109e1fda3978080",
+      "normalized_sha256": "75c09ea545865a26a8c8a0379fb15eba54b4b6f89e1fa34fac517156bfed046e"
+    },
+    {
+      "path": "vision/web/debug/index.html",
+      "source_sha256": "32e7a05778f95a25d9bf34269bcbf07a14f05297d9004f0d4c4d619a29e1d0cb",
+      "normalized_sha256": "32e7a05778f95a25d9bf34269bcbf07a14f05297d9004f0d4c4d619a29e1d0cb"
+    },
+    {
+      "path": "vision/web/debug/style.css",
+      "source_sha256": "76be4c2cfa41052e92dea0b11a28630a193cdebb2bc544f8b5e1bca3e1b9593c",
+      "normalized_sha256": "76be4c2cfa41052e92dea0b11a28630a193cdebb2bc544f8b5e1bca3e1b9593c"
+    },
+    {
+      "path": "vision/web/traffic_capture.html",
+      "source_sha256": "a7ea29bc9e09b63f542856d3d1c4360e5015673b4ebfc5f37bd171c7877abdc9",
+      "normalized_sha256": "8f6fa2f89d5da81c874d00ca9624a7a886041a41bdb8c7f1214aff6551ea8fc9"
+    }
+  ]
+}

@@ -12,12 +12,14 @@
     let raceToken=null, raceSequence=-1, epoch=0, lastSnapshot=-Infinity, manualSequence=0;
     let raceQueue=Promise.resolve(), motionBusy=false, motionGeneration=0, handoffPending=false;
     let heartbeatSequence=-1,pollPromise=null;const heartbeatRequests=new Set();
+    let savedPaymentCode=null;
     let releaseRequired=true, stopped=false, started=false, gamepadNeutral=false;
     let speedSequence=-1,lastSpeedAck=-1,speedToken=null,speedWanted=null,speedInFlight=null,speedBusy=false;
     const labels={handoff:'正在切换控制',arming:'自动模式初始化',wait_board:'等待发车挡板移开',crosswalk:'斑马线停车与播报',traffic:'红绿灯',cones:'两桶避障',parking_search:'寻找停车区',parking_entry:'停车入位',payment:'30 秒扫码缴费',complete:'流程结束',fault:'已停止，需检查',cancelled:'已结束自主驾驶'};
     const message=text=>{el('message').textContent=text||'';};
     const race=()=>status?.race_flow||{};
     const raceOwned=()=>!!race().active&&race().owner_client===client;
+    const offlineRace=()=>race().offline_autonomy===true;
     const foreignTask=()=>['crosswalk_trial','traffic_trial','departure_trial','parking_trial','plan_b'].some(k=>status?.[k]?.active)||!!status?.cone_trial?.avoidance?.active||!!status?.cone_trial?.short_test?.active;
     const manualReady=()=>online&&!stale&&!busy&&!race().active&&!foreignTask()&&!status?.parking_payment?.motion_locked&&manualOwned&&status?.mode==='enabled';
     const speedReady=()=>manualReady()&&status?.manual_speed_adjustable===true;
@@ -104,9 +106,14 @@
       const startReady=typeof startReadiness?.ready==='boolean'?startReadiness.ready:readiness?.ready;
       const parkingPending=startReady===true&&(startReadiness?.parking_ready===false||startReadiness?.scope==='through_cones');
       el('enter-auto').disabled=debugManual||!online||stale||busy||active||foreignTask()||!r.can_enter||startReady===false||r.manual_handoff_ready===false||r.manual_handoff_ready===true&&!manualOwned;
-      el('enter-auto').textContent=busy&&!active?'正在切入自主驾驶…':'已在切换区停稳 · 切入自主驾驶（F/B）';
+      el('enter-auto').textContent=busy&&!active?'正在切入自主驾驶…':
+        parkingPending&&offlineRace()?'已在切换区停稳 · 联调到两桶（F/B）':'已在切换区停稳 · 切入自主驾驶（F/B）';
       el('exit-auto').disabled=stale||!own;
-      el('handoff-state').textContent=r.stage==='handoff'?(r.reason||'正在停止遥控并释放原控制，随后接管。'):active?(own?'本页持有自主驾驶控制权。':'另一页面持有控制权，本页只显示状态。'):busy?'正在请求控制切换，请保持车辆静止。':!manualOwned||status?.mode!=='enabled'?'请先在本页启用遥控，停稳后再切入自主驾驶。':'';
+      el('handoff-state').textContent=r.stage==='handoff'?(r.reason||'正在停止遥控并释放原控制，随后接管。'):
+        active&&offlineRace()?(r.stage==='wait_board'?'车端已接管。请关闭遥控链路，再移开挡板。':
+          payment?'车辆已停稳。':'车端自主流程运行中。'):
+        active?(own?'本页持有自主驾驶控制权。':'另一页面持有控制权，本页只显示状态。'):
+        busy?'正在请求控制切换，请保持车辆静止。':!manualOwned||status?.mode!=='enabled'?'请先在本页启用遥控，停稳后再切入自主驾驶。':'';
       el('race-stage').textContent=r.stage_label||labels[r.stage]||'尚未启动';
       el('race-reason').textContent=r.reason||'';
       el('race-output').textContent=r.intent?`油门 ${r.intent.esc_us} μs · 转向 ${r.intent.steering_us} μs`:'';
@@ -116,20 +123,27 @@
       el('readiness-missing').replaceChildren();
       for(const text of missing){const item=doc.createElement('li');item.textContent=text;el('readiness-missing').append(item);}
       el('readiness-details').open=missing.length>0;
-      el('payment-state').textContent=payment?(r.reason||'停车付款'): '等待正确入位和停稳确认';
+      el('payment-state').textContent=payment?(r.reason||'停车付款'):
+        offlineRace()&&!active?'在切换区停稳后识别并保存付款码。':'等待正确入位和停稳确认';
       el('payment-time').textContent=r.payment_remaining_s==null?'尚未开始':r.stage==='complete'?'已结束':Number(r.payment_remaining_s).toFixed(1)+' 秒';
       el('report-paid').disabled=!online||stale||busy||!own||!r.can_report_paid;
       el('payment-receipt').textContent=r.operator_reported_paid?'已记录队员付款声明，请展示微信成功页；未自动核验到账。':'';
       const p=status?.parking_payment||{};
+      const canPrepareCode=offlineRace()&&!active&&manualOwned&&status?.mode==='enabled';
       el('scan-payment').textContent=p.scanning?'停止识别付款码':'识别付款码';
-      el('scan-payment').disabled=!online||stale||busy||!own||!payment||(!p.can_scan&&!p.scanning);
+      el('scan-payment').disabled=!online||stale||busy||
+        !(offlineRace()?canPrepareCode:own&&payment)||(!p.can_scan&&!p.scanning);
       el('payment-scan-state').textContent=p.scan_reason||'';
-      el('payment-code').hidden=!p.selected;
-      if(p.selected)el('payment-code').src='/api/payment/image.jpg?id='+encodeURIComponent(p.selected.id);
+      const codeUrl=savedPaymentCode?.id===p.selected?.id?savedPaymentCode?.url:
+        p.selected?'/api/payment/image.jpg?id='+encodeURIComponent(p.selected.id):null;
+      el('payment-code').hidden=!codeUrl;
+      if(codeUrl&&el('payment-code').src!==codeUrl)el('payment-code').src=codeUrl;
+      const download=el('save-payment-code');
+      if(download){download.hidden=!codeUrl; if(codeUrl)download.href=codeUrl;}
       el('payment-candidates').replaceChildren();
       for(const c of p.candidates||[]){const button=doc.createElement('button'),image=doc.createElement('img');
         image.src='/api/payment/image.jpg?id='+encodeURIComponent(c.id);image.alt='相机识别的付款码候选';button.append(image);
-        button.disabled=!own||!payment||p.scanning||!c.decoded;
+        button.disabled=!(offlineRace()?canPrepareCode:own&&payment)||p.scanning||!c.decoded;
         button.addEventListener('click',()=>runAction(()=>request('payment_select',{candidate_id:c.id}).then(applyStatus)));
         el('payment-candidates').append(button);}
       paintDirections();
@@ -160,12 +174,28 @@
       if(el('enter-auto').disabled||status?.application_mode==='debug')return;
       clearInput();const generation=++epoch;stopped=false;handoffPending=true;
       try{return await runAction(async()=>{
-        const result=await request('race_enter',{stationary_confirmed:true,in_switch_zone:true,fb_mode_confirmed:true});
+        const codeId=offlineRace()?status?.parking_payment?.selected?.id:null;
+        if(offlineRace()&&status?.parking_payment?.scanning)throw new Error('请等待付款码识别结束，或先停止识别。');
+        if(codeId&&savedPaymentCode?.id!==codeId){
+          const signal=AbortSignal.timeout(4000);
+          const reply=await http('/api/payment/image.jpg?id='+encodeURIComponent(codeId),{cache:'no-store',signal});
+          if(!reply.ok)throw new Error('付款码图片未保存，请重新识别。');
+          const image=await reply.blob();
+          if(savedPaymentCode)URL.revokeObjectURL(savedPaymentCode.url);
+          savedPaymentCode={id:codeId,url:URL.createObjectURL(image)};
+        }
+        if(generation!==epoch)throw superseded();
+        const result=await request('race_enter',{stationary_confirmed:true,in_switch_zone:true,fb_mode_confirmed:true,
+          ...(codeId?{payment_code_id:codeId}:{})});
         applyStatus(result,generation);
       });}finally{handoffPending=false;}
     }
     async function stopOwned(explicit=false, source='stop_button', keepalive=false, exit=false) {
       const ownAuto=raceOwned(), ownManual=manualOwned, token=raceToken;
+      if(offlineRace()&&(race().active||handoffPending)&&!explicit&&!exit){
+        clearInput();
+        return;
+      }
       // A deliberate stop during an unacknowledged handoff cannot yet name
       // the new run token. Use the existing global stop path in that window.
       const globalStop=explicit||(handoffPending&&['stop_button','window_blur','page_hidden','page_exit','gamepad_switch'].includes(source));
@@ -179,7 +209,7 @@
       finally{if(generation===epoch||!race().active)stopped=false;render();}
     }
     async function pulse() {
-      if(status?.application_mode==='debug'||stale||doc.hidden||stopped||!raceOwned()||['payment','complete'].includes(race().stage)||heartbeatRequests.size>=2)return;
+      if(offlineRace()||status?.application_mode==='debug'||stale||doc.hidden||stopped||!raceOwned()||['payment','complete'].includes(race().stage)||heartbeatRequests.size>=2)return;
       const generation=epoch,token=raceToken,seq=++heartbeatSequence,id={};heartbeatRequests.add(id);
       try{
         const reply=await request('race_page_heartbeat',{run_token:token,heartbeat_sequence:seq},false,1000);

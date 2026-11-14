@@ -23,6 +23,7 @@ from .cone_navigation import reuse_legacy_ground
 from .departure import DEFAULT_MIN_BLUE_PERCENT,DEFAULT_CLEAR_CONFIRM_S,DepartureSequence
 from .parking_bay import load_settings as load_parking
 from .parking_task import ParkingTask
+from .parking_speech import TEAM_PARKING_PHRASE
 from .parking_control import parking_blockers
 
 STAGES=('arming','wait_board','crosswalk','traffic','cones','parking_search','parking_entry','payment','complete')
@@ -42,7 +43,9 @@ def validate_flow(s):
         if not numeric(s.get(k)) or not lo<=s[k]<=hi:raise ValueError('总流程参数越界：'+k)
     for k,value in [('crosswalk_hold_s',10),('payment_window_s',30),('max_frame_age_s',VISION_MAX_AGE_S),('page_lease_s',.5),('arming_s',3)]:
         if not numeric(s.get(k)) or s[k]!=value:raise ValueError('本版比赛流程固定参数：'+k)
-    if s.get('school_team_speech')!='我是山东大学启航队的智能车，请为我加油':raise ValueError('学校队伍播报未匹配')
+    if s.get('school_team_speech')=='我是山东大学启航队的智能车，请为我加油':
+        s['school_team_speech']=TEAM_PARKING_PHRASE
+    if s.get('school_team_speech')!=TEAM_PARKING_PHRASE:raise ValueError('学校队伍播报未匹配')
     return s
 
 

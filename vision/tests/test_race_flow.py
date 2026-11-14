@@ -126,8 +126,8 @@ def parking_sample(t,i,pose=None,speed=0.):
     position=pose or {'x_m':0.,'y_m':0.,'yaw_rad':0.}
     return {'frame_id':i,'captured_s':t,'coordinate_frame':'parking_road_world','obstacle_region_verified':True,
         'pose':{**position,'captured_s':t,'error_bound_m':.01,'verified':True},'speed_mps':speed,
-        'slots':[{'id':'left','polygon_m':[[-.615,2],[0,2],[0,3],[-.615,3]],'availability':'blocked','occupancy_verified':True},
-                 {'id':'right','polygon_m':[[0,2],[.615,2],[.615,3],[0,3]],'availability':'clear','occupancy_verified':True}]}
+        'slots':[{'id':'left','polygon_m':[[-.585,2],[0,2],[0,3.4],[-.585,3.4]],'availability':'blocked','occupancy_verified':True},
+                 {'id':'right','polygon_m':[[0,2],[.585,2],[.585,3.4],[0,3.4]],'availability':'clear','occupancy_verified':True}]}
 
 
 def test_complete_task_chain_and_every_pwm_through_real_guard(bundle):

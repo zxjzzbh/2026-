@@ -5,7 +5,8 @@
     480,
     360
   ],
-  "zone_length_m": 1.0,
+  "zone_length_m": 1.5,
+  "boundary_tape_width_m": 0.1,
   "lane_width_m": 1.23,
   "vehicle_width_m": 0.3,
   "front_extent_m": 0.335,

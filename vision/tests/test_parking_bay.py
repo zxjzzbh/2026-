@@ -20,6 +20,7 @@ def settings():return load_settings(ROOT/'vision/configs/parking-bay.json')
 
 def calibrated():
     s=settings();s.update(perception_verified=True,minimum_turn_radius_m=.4,braking_distance_m=.05,maximum_pose_error_m=.01)
+    s.update(zone_length_m=1.,boundary_tape_width_m=0.)  # Geometry of the original 1 m fixture.
     s['ground']={'verified':True,'image_size':[480,360],'homography':[[1/200,0,-1.2],[0,-1/140,2.5],[0,0,1]],
                  'valid_polygon_px':[[3,3],[476,3],[476,356],[3,356]]}
     return s
@@ -51,6 +52,27 @@ def test_metric_template_can_recover_entry_line_occluded_by_board():
     assert obs['metric_geometry'] and obs['layout_found']
     assert [r['availability'] for r in obs['slots']]==['blocked','clear']
     assert all(r['occupancy_verified'] for r in obs['slots'])
+
+
+def test_regulation_parking_geometry_uses_tape_centers_and_clear_interior():
+    from carvision.parking_mission import layout
+    s=calibrated()
+    s.update(zone_length_m=1.5,boundary_tape_width_m=.1)
+    image=np.full((360,480,3),(45,45,170),np.uint8)
+    for x in (117,363):
+        cv2.line(image,(x,5),(x,354),(220,220,220),5)
+    for y in (50,246):
+        cv2.line(image,(117,y),(363,y),(0,240,240),13)
+    cv2.line(image,(240,50),(240,246),(0,240,240),19)
+    cv2.rectangle(image,(130,211),(228,246),(230,40,20),-1)
+    obs,_=detect_parking(image,validate(s))
+    assert obs['metric_geometry']
+    assert [slot['availability'] for slot in obs['slots']]==['blocked','clear']
+    _,boxes=layout(obs['slots'],s)
+    left, near, right, far=boxes['right']
+    assert left==pytest.approx(.05,abs=.01)
+    assert far-near==pytest.approx(1.3,abs=.02)
+    assert right==pytest.approx(.615,abs=.04)
 
 
 def test_plain_qr_like_white_patch_or_blue_object_is_not_a_parking_layout():

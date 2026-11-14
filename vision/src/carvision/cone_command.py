@@ -62,21 +62,24 @@ class ConeCommandSender:
         if self.fault:
             raise RuntimeError(self.fault)
 
-    def send(self, intent):
+    def send(self, intent, *, local_neutral_until=None):
         with self.lock:
             self._check()
             now = self.clock()
             self.neutral_slot = self.neutral_until = None
             if (intent.get('action') == 'neutral' and intent.get('esc_us') == 1500
-                    and (intent.get('control_profile') == 'cone' or 'page_deadline_s' in intent)):
+                    and (intent.get('control_profile') == 'cone' or 'page_deadline_s' in intent
+                         or local_neutral_until is not None)):
                 # Prepared/paused neutral has no visual authority. Maintain the
                 # executor's cadence only until the authenticated page lease.
-                deadline = intent.get('page_deadline_s', now+CONE_COMMAND_LEASE_S)
+                deadline = (local_neutral_until if local_neutral_until is not None
+                            else intent.get('page_deadline_s', now+CONE_COMMAND_LEASE_S))
                 if not numeric(deadline) or deadline <= now:
                     self._expire(now, reason='避障控制页心跳到期，保持中位')
                     raise RuntimeError(self.fault)
                 self.slot = self.deadline = None
-                self.page_deadline = self.neutral_until = deadline
+                self.page_deadline = deadline if local_neutral_until is None else None
+                self.neutral_until = deadline
                 self.neutral_slot = copy.deepcopy(intent)
                 return self._emit(self.neutral_slot, now)
             if intent.get('control_profile') != 'cone' or (intent.get('action') == 'neutral' and intent.get('esc_us') == 1500):
@@ -147,7 +150,9 @@ class ConeCommandSender:
             try:
                 if self.neutral_slot:
                     if now >= self.neutral_until:
-                        self._expire(now, reason='避障控制页心跳到期，保持中位')
+                        reason = ('避障控制页心跳到期，保持中位' if self.page_deadline is not None
+                                  else '车端中位指令未更新，保持停止')
+                        self._expire(now, reason=reason)
                     elif self.last_sent is None or now-self.last_sent >= COMMAND_PERIOD_S-1e-9:
                         self._emit(self.neutral_slot, now)
                 elif now >= self.deadline:

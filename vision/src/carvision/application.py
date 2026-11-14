@@ -284,7 +284,8 @@ def main(mode, argv=None):
         manual = PausedDrive('只读预览；实车服务需要 --live 和现场准备')
     if mode == 'race':
         services = CompetitionServices(manual, states, root)
-        application = RaceFlowDrive(services, states, root, live=args.live, require_ready=True)
+        application = RaceFlowDrive(services, states, root, live=args.live,
+                                    require_ready=True, offline_competition=True)
     elif mode == 'debug':
         application = DebugApplication(manual, states, root)
     else:

@@ -18,7 +18,7 @@ HTML = '''<section class="drive-panel" id="crosswalk-test">
 <p>3 秒后前进；首次识别短停 0.5 秒后继续接近，原停车点停稳后等待 10 秒并播报。每轮只短停一次；若已到停车参考则直接完成原停车。空格 / Esc 停止。</p>
 <details><summary>参数与播报说明</summary><p id="crosswalk-reference-state"></p>
 <p>距离保存后长期保留；行驶中修改用于下一轮。手动遥控会在准备时自动结束。</p>
-<p>播报：我是山东大学启航队的智能车，请为我加油</p>
+<p>播报：我是山东大学启航队的无人车，请为我加油！</p>
 <p>F/B 模式倒车禁用；停稳判断使用视觉估计。</p></details>
 </section>'''
 

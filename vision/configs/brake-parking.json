@@ -25,7 +25,7 @@
   "brake_timeout_s": 3.0,
   "stop_confirm_s": 0.5,
   "hold_s": 10.0,
-  "speech_text": "我是山东大学启航队的智能车，请为我加油",
+  "speech_text": "我是山东大学启航队的无人车，请为我加油！",
   "max_frame_age_s": 0.25,
   "max_approach_s": 10.0,
   "actuator_lease_s": 0.25,

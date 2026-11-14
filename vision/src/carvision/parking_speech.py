@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 PARKING_PHRASE = "我停车了啊"
-TEAM_PARKING_PHRASE = "我是山东大学启航队的智能车，请为我加油"
+TEAM_PARKING_PHRASE = "我是山东大学启航队的无人车，请为我加油！"
 
 
 class ParkingSpeech:

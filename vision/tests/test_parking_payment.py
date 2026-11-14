@@ -115,6 +115,23 @@ def test_idle_scan_and_status_never_open_motor_and_manual_passthrough_still_work
     assert base.calls[-1][0]=='command'
 
 
+def test_competition_freezes_only_the_selected_code_for_this_operator(console):
+    scanner,driver,now=console
+    scanner.selected=next(c for c in detect_payment_codes(qr_jpeg(),'secondary',1,now[0]) if c['decoded'])
+    scanner.scan_client='page'
+    identifier=scanner.selected['id']
+    with pytest.raises(ValueError,match='付款码'):
+        scanner.freeze_race_code('other',identifier)
+    scanner.freeze_race_code('page',identifier)
+    now[0]=99.
+    assert scanner.image(identifier)==scanner.selected['image_jpeg']
+    assert not driver.calls and not scanner.window.locked
+    with pytest.raises(ValueError,match='付款码'):
+        scanner.freeze_race_code('page',identifier)
+    scanner.freeze_race_code('page',None)
+    assert scanner.image(identifier) is None
+
+
 def test_begin_ends_manual_and_blocks_all_new_motion_while_recording(console):
     w,base,now=console;base.state.update(mode='enabled',hardware_output=True,worker_started=True)
     begin(w);assert base.calls[-1][0]=='finish_test' and w.window.locked

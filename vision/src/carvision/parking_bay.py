@@ -19,6 +19,12 @@ from .parking_limits import FRAME_MAX_AGE_S
 from .tape_pixels import broad_glare,tape_contrast,white_tape_mask,PROCESSING_REVISION
 
 
+def bay_tape_center_length(settings):
+    # The nominal dimension runs between the outside edges of the two
+    # transverse tapes. The detector fits the centers of those bands.
+    return settings['zone_length_m'] - settings.get('boundary_tape_width_m', 0.)
+
+
 def number(x):return type(x) in (int,float) and math.isfinite(x)
 
 
@@ -56,7 +62,9 @@ def validate(s):
         if not number(s[key]) or not lo<=s[key]<=hi:raise ValueError('停车控制参数越界：'+key)
     if s['final_speed_mps']>s['max_speed_mps']:raise ValueError('末段速度不能超过停车速度上限')
     if s['surface'] not in ('auto','red_running_track','blue_running_track','indoor_green'):raise ValueError('停车地面类型无效')
-    for name,lo,hi in [('zone_length_m',1,1),('lane_width_m',.6,2),('vehicle_width_m',.1,.6),
+    s.setdefault('boundary_tape_width_m',0.)
+    for name,lo,hi in [('zone_length_m',1,1.5),('boundary_tape_width_m',0,.1),
+                       ('lane_width_m',.6,2),('vehicle_width_m',.1,.6),
                        ('front_extent_m',.1,.8),('rear_extent_m',.01,.4),('clearance_m',.01,.1),
                        ('blocked_blue_fraction',.005,.3),('clear_ground_fraction',.5,.95),
                        ('selection_confirm_s',.2,2),('stop_hold_s',.4,2),('max_frame_age_s',.1,FRAME_MAX_AGE_S),('max_speed_mps',.02,.25),('max_run_s',1,60)]:
@@ -85,8 +93,9 @@ def readiness(s):
     if not s.get('perception_verified'):missing.append('停车区/入口遮挡识别的现场验证')
     for key,label in [('minimum_turn_radius_m','实测转弯半径'),('braking_distance_m','当前低速的实测制动距离'),('maximum_pose_error_m','持续位姿反馈的误差上限')]:
         if s.get(key) is None:missing.append(label)
-    if s['lane_width_m']/2<=s['vehicle_width_m']+2*s['clearance_m']:missing.append('半区宽度不足以容纳整车及余量')
-    if s['front_extent_m']+s['rear_extent_m']+2*s['clearance_m']>=s['zone_length_m']:missing.append('车位长度不足以容纳整车及余量')
+    tape=s.get('boundary_tape_width_m',0.)
+    if s['lane_width_m']/2-tape/2<=s['vehicle_width_m']+2*s['clearance_m']:missing.append('半区宽度不足以容纳整车及余量')
+    if s['front_extent_m']+s['rear_extent_m']+2*s['clearance_m']>=s['zone_length_m']-2*tape:missing.append('车位长度不足以容纳整车及余量')
     return {'ready':not missing,'missing':missing,'hardware_output_enabled':False}
 
 
@@ -316,7 +325,7 @@ def metric_layout(yellow,white,s):
     found=[];half=s['lane_width_m']*scale/2
     for far in rows:
         for near in rows:
-            if not .88*scale<=near-far<=1.12*scale:continue
+            if abs((near-far)/scale-bay_tape_center_length(s))>.12:continue
             centers=_clusters(np.flatnonzero(y[far:near+1].sum(axis=0)>(near-far)*.6))
             for mid in centers:
                 bounds=[]

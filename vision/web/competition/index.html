@@ -39,9 +39,10 @@
     </section>
     <section class="card" id="payment-section">
       <div class="section-heading"><span class="number">03</span><div><h2>停车付款 · ¥0.01</h2><p>入位停稳后开始 30 秒计时，在微信完成支付。</p></div></div>
-      <p id="payment-state">等待正确入位和停稳确认</p><strong id="payment-time">尚未开始</strong>
+      <p id="payment-state">请在切换区停稳后识别并保存付款码，入位停稳后使用。</p><strong id="payment-time">尚未开始</strong>
       <button id="scan-payment" class="secondary" disabled>识别付款码</button><p id="payment-scan-state"></p><div id="payment-candidates"></div>
       <img id="payment-code" alt="相机识别的真实付款码" hidden>
+      <a id="save-payment-code" class="secondary" download="本轮付款码.jpg" hidden>保存付款码到本机</a>
       <button id="report-paid" disabled>我已实际支付 0.01 元 · 记录结果</button><p id="payment-receipt" role="status"></p>
       <p class="muted">核对收款方和金额，并向裁判展示微信成功页。按钮只记录付款声明，不自动核验到账。</p>
     </section>

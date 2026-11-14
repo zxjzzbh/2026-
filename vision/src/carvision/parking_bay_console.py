@@ -21,12 +21,45 @@ from .cone_road import ConeRoadContext
 from .parking_limits import FRAME_MAX_AGE_S
 from .parking_ground_view import ParkingGroundMotion
 from .parking_bay import contrast_markings,blue_board_mask,yellow_marking_mask
+from .cone_vision import iou
+
+
+def _contrast_selection(observation):
+    """Use the detector's uniquely associated, currently visible enclosure."""
+    candidates = observation.get('entry_candidates', [])
+    if len(candidates) != 1 or observation.get('layout_found'):
+        return None
+    candidate = candidates[0]
+    if candidate.get('geometry_source') != 'board_adjacent_contrast' or candidate.get('availability') != 'clear':
+        return None
+    hint = observation.get('direction_hint') or {}
+    side, blocked = candidate['id'], hint.get('blocked_side')
+    boards = hint.get('boards', [])
+    if ({side, blocked} != {'left', 'right'} or hint.get('suggested_slot') != side
+            or not boards or any(board.get('side') != blocked for board in boards)):
+        return None
+    # The same board box was used by board_adjacent_entry to check the
+    # entrance and divider. Its four-edge and visible-floor checks still apply.
+    board = max(boards, key=lambda box: box['area_fraction'])
+    return side, board['bbox_px'], np.asarray(candidate['corners_px'], dtype=float)
+
+
+def _same_contrast_enclosure(anchor, current):
+    _, old_board, old_corners = anchor
+    _, board, corners = current
+    corner_tolerance = max(6., .12 * np.linalg.norm(old_corners[1] - old_corners[0]))
+    return iou(old_board, board) >= .65 and np.max(np.linalg.norm(corners - old_corners, axis=1)) <= corner_tolerance
 
 
 class BaySelection:
     def __init__(self,confirm_s=.5):
-        self.confirm_s=confirm_s;self.pending=None;self.since=None;self.count=0;self.selected=None;self.last=None
+        self.confirm_s=confirm_s;self.selected=None;self.last=None
         self.suggestion=None;self.basis=None;self.source=None
+        self.reset_confirmation()
+
+    def reset_confirmation(self):
+        self.pending = self.since = self.contrast_anchor = None
+        self.count = 0
 
     def snapshot(self,reason=None,stale=False):
         side=self.suggestion or self.selected or 'right'
@@ -53,25 +86,39 @@ class BaySelection:
 
     def update(self,observation,fid,captured,now):
         if not isinstance(captured,(int,float)) or not 0<=now-captured<=FRAME_MAX_AGE_S:
-            self.pending=None;self.count=0;self.since=None
+            self.reset_confirmation()
             return self.snapshot('图像过期，仅保留建议，不能据此进入车位',stale=True)
         if self.last is not None and (fid<=self.last[0] or captured<=self.last[1]):
             return self.snapshot('等待新帧；不使用重复画面累积确认')
-        if self.last is not None and captured-self.last[1]>FRAME_MAX_AGE_S:self.pending=None;self.count=0;self.since=None
+        if self.last is not None and captured-self.last[1]>FRAME_MAX_AGE_S:self.reset_confirmation()
         self.last=(fid,captured)
         slots=observation.get('slots',[])
         clear=[s['id'] for s in slots if s['availability']=='clear'];blocked=[s['id'] for s in slots if s['availability']=='blocked']
         self.suggestion,self.basis,self.source=self._suggest(observation,clear,blocked)
         base=self.snapshot()
-        if len(slots)!=2 or len(clear)!=1 or len(blocked)!=1 or clear[0]==blocked[0] or set(clear+blocked)!={'left','right'}:
-            self.pending=None;self.count=0;self.since=None
+        contrast = None if slots else _contrast_selection(observation)
+        if len(slots)==2 and len(clear)==1 and len(blocked)==1 and set(clear+blocked)=={'left','right'}:
+            chosen = clear[0]
+        elif contrast is not None:
+            chosen = contrast[0]
+        else:
+            self.reset_confirmation()
             return {**base,'reason':observation.get('reason') or '结构或空闲证据不足，仍给出暂定侧'}
-        chosen=clear[0]
-        if self.pending!=chosen:self.pending=chosen;self.since=captured;self.count=0
+        anchor = self.contrast_anchor
+        enclosure_changed = contrast is not None and anchor is not None and not _same_contrast_enclosure(anchor, contrast)
+        if self.pending != chosen or enclosure_changed:
+            self.reset_confirmation()
+            self.pending, self.since = chosen, captured
+        if self.contrast_anchor is None:
+            self.contrast_anchor = contrast
         self.count+=1
         if self.count<3 or captured-self.since<self.confirm_s:
             return {**base,'reason':'先选出一侧，继续积累视觉确认'}
         self.selected=chosen
+        if contrast is not None:
+            return {**base,'selected_slot':chosen,'confirmed':True,'tentative':False,'layout_complete':False,
+                    'suggestion_basis':'对比度检测的车位边线、可见空闲地面和相邻入口挡板连续吻合',
+                    'reason':'已确认视觉目标车位；等待米制定位和入位路径检查'}
         partial=observation.get('layout_complete') is False
         reason=('部分结构下的视觉选区已确认；隐藏边界不代表安全入位' if partial else
                 '视觉选区已确认；尚未实际入位')
@@ -332,7 +379,8 @@ class ParkingBayDrive:
                     timings={'processing_ms':max(0.,(now-processing_started)*1000.),'frame_age_ms':max(0.,(now-t)*1000.)}
                     entry_sample.update(fresh=0<=now-t<=FRAME_MAX_AGE_S,**timings)
                     recommendation=self.selector.update(observation,fid,t,now)
-                    label='SUGGEST '+recommendation['selected_slot'].upper()+(' / VISUAL' if recommendation['confirmed'] else ' / TENTATIVE')
+                    side=recommendation['selected_slot'].upper()
+                    label=('TARGET '+side+' / CONFIRMED' if recommendation['confirmed'] else 'SUGGEST '+side+' / TENTATIVE')
                     cv2.putText(overlay,label,(8,24),cv2.FONT_HERSHEY_SIMPLEX,.5,(0,210,0) if recommendation['confirmed'] else (0,170,255),2)
                     ok,encoded=cv2.imencode('.jpg',overlay)
                     with self.lock:
@@ -342,7 +390,7 @@ class ParkingBayDrive:
                         if self.entry.active and recorder is not None:recorder.add(jpg,fid,t)
                         self.last=(fid,t);self.latest={**observation,'frame_id':fid,'captured_s':t,'camera_id':'secondary',**timings}
                         self.recommendation=recommendation;self.updated=t;self.preview=encoded.tobytes() if ok else None
-                        self.reason=(observation.get('reason') or recommendation['reason']) if not observation.get('layout_found') else recommendation['reason']
+                        self.reason=recommendation['reason']
                         handle=getattr(self.entry,'actuator',None)
                         record={'observation':self.latest,'selection':recommendation,
                             'hardware_output':bool(handle and getattr(handle,'run',False)),
@@ -356,7 +404,7 @@ class ParkingBayDrive:
                     with self.lock:
                         self.entry_sample={**(self.entry_sample or {}),'fresh':False,'reason':str(exc)}
                         self.reason=str(exc);self.latest={};self.recommendation=self.selector.snapshot(str(exc),stale=True);self.preview=None;self.updated=None
-                        self.selector.pending=None;self.selector.since=None;self.selector.count=0
+                        self.selector.reset_confirmation()
                 if self.stop.wait(.005 if self.entry.active else .02):break
         except Exception as exc:
             with self.lock:self.reason='停车观察异常：'+str(exc);self.preview=None;self.updated=None

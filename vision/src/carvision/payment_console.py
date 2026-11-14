@@ -269,6 +269,25 @@ class PaymentConsoleDrive:
                 self.scan_reason='第二路识别发生异常，请重新识别；未开始缴费锁止'
             raise
 
+    def freeze_race_code(self, client, candidate_id):
+        """Keep the code confirmed before handoff, and consume that selection."""
+        with self.lock:
+            if candidate_id is not None and (
+                self.scanning or self.scan_client!=client or not usable_code(self.selected)
+                or self.selected['id']!=candidate_id
+            ):
+                raise ValueError('付款码已更新，请重新核对并保存当前图片')
+            self.scan_stop.set()
+            self.scan_client=None
+            if candidate_id is None:
+                self.selected=None
+                self.candidates={}
+                self.scan_reason='本轮未在切换前保存付款码'
+            else:
+                self.candidates={candidate_id:self.selected}
+                self.scan_reason='本轮已保留切换区拍摄的付款码'
+            self.scan_revision+=1
+
     def image(self, candidate_id):
         with self.lock:
             c=self.selected if self.selected and self.selected['id']==candidate_id else self.candidates.get(candidate_id)

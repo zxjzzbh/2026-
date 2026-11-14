@@ -20,6 +20,7 @@ let server=manual();
 const response=(data,ok=true)=>({ok,json:async()=>structuredClone(data)});
 const http=async(url,options={})=>{
  if(options.method!=='POST'){
+  if(url.startsWith('/api/payment/image.jpg?'))return {ok:true,blob:async()=>new Blob(['test image'],{type:'image/jpeg'})};
   if(failPoll)throw new TypeError('one status timeout');
   if(deferPoll){const old=structuredClone(server);return new Promise(resolve=>polls.push(()=>resolve(response(old))));}
   return response(server);
@@ -28,7 +29,8 @@ const http=async(url,options={})=>{
  assert.equal(options.headers['X-Drive-Key'],'key');
  if(action==='stop'&&deferStops){const old=structuredClone(server);return new Promise(resolve=>stopReplies.push(()=>resolve(response(old))));}
  if(action==='race_enter'){
-  server=stamp({...server,race_flow:{active:true,owner_client:'page',run_token:'auto-'+(++round),stage:'handoff',can_enter:false}});
+  server=stamp({...server,race_flow:{offline_autonomy:server.race_flow.offline_autonomy,
+    active:true,owner_client:'page',run_token:'auto-'+(++round),stage:'handoff',can_enter:false}});
   const accepted=structuredClone(server);
   if(loseEnter){loseEnter=false;throw new TypeError('accepted enter reply lost');}
   if(deferEnter)return new Promise(resolve=>enterReplies.push(()=>resolve(response(accepted))));
@@ -112,5 +114,18 @@ const flush=async()=>{for(let i=0;i<6;i++)await new Promise(setImmediate);};
  assert(nodes.get('enter-auto').disabled,'missing prepared manual executor blocks handoff');
  server=stamp({...server,race_flow:{...server.race_flow,manual_handoff_ready:true}});await api.poll();
  assert(!nodes.get('enter-auto').disabled);
- console.log(JSON.stringify({hardware_output:false,checks:17}));
+ server=manual();server.race_flow.offline_autonomy=true;
+ server.parking_payment.selected={id:'round-qr'};
+ await api.poll();
+ await api.enterAuto();
+ assert.equal(requests.at(-1).body.payment_code_id,'round-qr');
+ assert(nodes.get('payment-code').src.startsWith('blob:'));
+ const disconnectedCount=requests.length;
+ failPoll=true;await api.poll();await api.pulse();
+ for(const fn of windowEvents.pagehide)fn();
+ for(const fn of windowEvents.blur)fn();
+ await flush();
+ assert.equal(requests.length,disconnectedCount,'offline run gets no heartbeat or lifecycle stop');
+ assert(nodes.get('payment-code').src.startsWith('blob:'),'code survives loss of link');
+ console.log(JSON.stringify({hardware_output:false,checks:21}));
 })().catch(error=>{console.error(error);process.exitCode=1});

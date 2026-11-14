@@ -8,7 +8,7 @@ import math
 import cv2
 import numpy as np
 
-from .parking_bay import number,readiness,validate
+from .parking_bay import bay_tape_center_length, number,readiness,validate
 from .parking_path import entry_curve, pursuit, arc_poses
 
 
@@ -30,10 +30,13 @@ def layout(slots,s):
         raise ValueError('必须有车辆前进方向的左、右两个半区')
     by_id={r['id']:r for r in slots};a,b=bounds(by_id['left']),bounds(by_id['right'])
     if (abs(a[2]-b[0])>.04 or abs(a[1]-b[1])>.06 or abs(a[3]-b[3])>.06
-            or any(abs((r[3]-r[1])-s['zone_length_m'])>.12 for r in (a,b))
+            or any(abs((r[3]-r[1])-bay_tape_center_length(s))>.12 for r in (a,b))
             or any(abs((r[2]-r[0])-s['lane_width_m']/2)>.06 for r in (a,b))):
         raise ValueError('两个半区的边界、长度或赛道宽度不一致')
-    return by_id,{k:bounds(v) for k,v in by_id.items()}
+    # Keep the full vehicle off the divider and both transverse tapes.
+    inset=s.get('boundary_tape_width_m',0.)/2
+    return by_id,{'left':(a[0],a[1]+inset,a[2]-inset,a[3]-inset),
+                  'right':(b[0]+inset,b[1]+inset,b[2],b[3]-inset)}
 
 
 def body(pose,s,pad=0.):

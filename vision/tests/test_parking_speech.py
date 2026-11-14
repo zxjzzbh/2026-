@@ -72,7 +72,7 @@ def test_team_announcement_is_sent_whole_once(tmp_path):
     speech=ParkingSpeech(helper(tmp_path),text=TEAM_PARKING_PHRASE,popen=spawn)
     speech.start();speech.thread.join(1);speech.start()
     assert len(calls)==1
-    assert calls[0][calls[0].index('--text')+1]=='我是山东大学启航队的智能车，请为我加油'
+    assert calls[0][calls[0].index('--text')+1]=='我是山东大学启航队的无人车，请为我加油！'
     assert speech.status()['text']==TEAM_PARKING_PHRASE
 
 

@@ -4,13 +4,13 @@
 
 **从 [项目内容概览](docs/overview.md) 开始。** 概览介绍各项功能、代码位置和完成程度；[当前进度](docs/current-status.md) 区分主线代码、历史部署与待验收项。完整自主赛道和停车入位尚未通过实车验收。
 
-## 2026-11-13 主线同步：当前已部署车端版本
+## 2026-11-14 主线同步
 
-当前代码版本为 **`traffic-rebrake-6-20261112`**，对应 11 月 12 日已部署并核验的最新版。完整同步 204 个运行源码和网页文件，以及配套配置模板、测试与工具；包括此前修复和最新红绿灯六次制动上限、连续新帧补刹确认。
+当前代码版本为 **`parking-selection-confirm-20261114`**。停车观察可用对比度识别确认目标车位，同时纳入 11 月 13 日版本的比赛流程离线续行、停车区几何、斑马线播报和付款识别修复。完整核对了 204 个运行源码和网页文件。
 
-本次只同步 GitHub，不操作车辆。软件/部署验证与实车任务验收分别记录，完整自主比赛尚未验收通过。真实连接凭据与车辆私有配置不提交。
+本次同步到 GitHub。树莓派最近一次已核验的部署版本为 `race-rules-offline-20261113`，正式停车和全赛道仍待实车验收。
 
-[同步范围与验证](docs/imports/2026-11-13-current-release/README.md) · [最新代码说明](docs/latest-code.md) · [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip)
+[同步范围与验证](docs/imports/2026-11-14-current-release/README.md) · [最新代码说明](docs/latest-code.md) · [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip)
 
 ## 2026-10-20 停车固定版本（历史）
 

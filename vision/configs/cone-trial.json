@@ -36,7 +36,7 @@
     "rear_axle_to_front_m": 0.335,
     "rear_overhang_m": 0.085,
     "cone_height_m": 0.08,
-    "cone_base_width_m": 0.075,
+    "cone_base_width_m": 0.078,
     "clearance_m": null,
     "measured_geometry": {
       "source_record": "vision/configs/vehicle-geometry-measurements-20261025.json",

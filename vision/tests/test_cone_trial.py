@@ -389,7 +389,7 @@ def test_public_dimensions_keep_calibration_unverified_and_enforce_boundary_widt
     # The provided body dimensions make the new schema loadable. They do not
     # certify ground mapping, clearance or the effective vehicle envelope.
     g=settings['geometry']
-    assert (g['lane_width_m'],g['vehicle_width_m'],g['vehicle_length_m'],g['cone_height_m'],g['cone_base_width_m'])==(1.23,.30,.42,.08,.075)
+    assert (g['lane_width_m'],g['vehicle_width_m'],g['vehicle_length_m'],g['cone_height_m'],g['cone_base_width_m'])==(1.23,.30,.42,.08,.078)
     assert g['rear_axle_to_front_m']==.335 and g['rear_overhang_m']==.085
     assert not g['measured'] and g['clearance_m'] is None
     assert not settings['ground']['verified'] and settings['ground']['homography'] is None

@@ -105,6 +105,50 @@ def test_worker_stops_when_three_second_page_lease_really_expires(active_flow):
     assert closed==[True] and not sent and not calls
 
 
+def test_competition_keeps_running_after_link_loss_with_fresh_local_frames(active_flow):
+    flow,now,calls=active_flow
+    flow.offline_competition=True
+    sent=[]
+    closed=[]
+    flow.factory=lambda _:SimpleNamespace(run=True,send=lambda intent:sent.append(intent),close=lambda:closed.append(True))
+
+    def read(stage, _):
+        now[0]=round(now[0]+.1,8)
+        i=round(now[0]*10)
+        # The board stays in place beyond the old heartbeat deadline.
+        if stage=='crosswalk':
+            flow.request('race_cancel',{'client':'page','run_token':'current-auto','stop_source':'page_exit'})
+            assert flow.active
+            with pytest.raises(ValueError,match='占用'):
+                flow.request('command',{'client':'page','motor':'forward'})
+            assert not calls
+            flow.cancel_event.set()
+            return None
+        state='present' if now[0]<5.5 else 'absent'
+        return {'sequence':i,'captured_s':now[0],
+                'board':{camera:{'state':state,'scene_valid':True,'frame_id':i,'captured_s':now[0]}
+                         for camera in ('primary','secondary')},
+                'navigation':{'experimental':True,'ready':True,'captured_s':now[0],'frame_id':i,
+                              'ego_fraction':.5,'half_envelope':.2,'lane_bounds_px':[[100,380],[50,430]],
+                              'cones':[],'uncertain':[],'source_camera':'secondary'}}
+
+    flow.reader_factory=lambda *args:SimpleNamespace(read=read,preview=None)
+    flow._work()
+    assert flow.stage=='crosswalk',flow.reason
+    assert now[0]>5.5 and any(intent['esc_us']>1500 for intent in sent)
+    assert all('page_deadline_s' not in intent for intent in sent)
+    assert closed==[True]
+
+
+def test_competition_reports_partial_scope_before_any_handoff(active_flow):
+    flow,_,calls=active_flow
+    flow.offline_competition=True
+    flow.active=False
+    report=flow.status()['race_flow']
+    assert report['parking_missing'] and report['start_readiness']['scope']=='through_cones'
+    assert not calls and not flow.active
+
+
 def test_heartbeat_does_not_wait_for_status_or_operator_transition_locks(active_flow):
     flow,now,_=active_flow;now[0]=.2;result=[]
     with flow.lock,flow.transition_lock:

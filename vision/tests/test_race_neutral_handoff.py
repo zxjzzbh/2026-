@@ -11,6 +11,7 @@ def test_camera_gap_at_wait_board_keeps_neutral_owner_without_moving(rig):
     actuator, _ = borrow(rig)
     sender = ConeCommandSender(actuator, clock=clock, threaded=False)
     flow = RaceFlowDrive.__new__(RaceFlowDrive)
+    flow.offline_competition = False
     flow.lease_until = 3.
     flow._send_intent(sender, {'action':'neutral','esc_us':1500,'steering_us':1610})
     # Original field failure: the first camera read returned after 657 ms.
