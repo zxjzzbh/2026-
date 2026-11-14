@@ -14,8 +14,11 @@ def paired_lane(nav):
 
 
 class StablePairedLane:
-    def __init__(self, duration=.15, frames=3):
+    def __init__(self, duration=.15, frames=3, *, max_gap_s=VISION_MAX_AGE_S):
         self.duration, self.frames = duration, frames
+        # The processing cadence may differ from an observation's maximum age.
+        # Each frame still passes the unchanged capture-age check in update().
+        self.max_gap_s = max_gap_s
         self.reset()
 
     def reset(self):
@@ -29,7 +32,7 @@ class StablePairedLane:
             return False
         camera = nav.get('source_camera')
         identity = (camera, nav.get('frame_id', t))
-        if self.last is not None and (camera != self.camera or t < self.last or t-self.last > VISION_MAX_AGE_S):
+        if self.last is not None and (camera != self.camera or t < self.last or t-self.last > self.max_gap_s):
             self.reset()
         if identity != self.identity and (self.last is None or t > self.last):
             if self.first is None:

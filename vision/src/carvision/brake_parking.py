@@ -160,7 +160,7 @@ class BrakeParkingController:
                  image_brake_y=None,image_creep_y=None,crosswalk=False,control_interval_s=.25):
         if path_mode not in ('straight','lane'):raise ValueError('invalid path mode')
         self.s,self.path_mode=settings,path_mode
-        if not numeric(control_interval_s) or not 0<control_interval_s<=.5:
+        if control_interval_s is not None and (not numeric(control_interval_s) or not 0<control_interval_s<=.5):
             raise ValueError('invalid control interval')
         self.control_interval_s=control_interval_s
         self.brake_reference=brake_trigger_reference(settings)
@@ -227,6 +227,43 @@ class BrakeParkingController:
         self.phase,self.reason='fault',reason
         return self.output()
 
+    def brake_during_hold(self, now):
+        """Keep a formal hold latched while responding to newly measured motion."""
+        self.last_t = now
+        if now < (self.pulse_until or 0) + self.s['brake_release_s']:
+            self.reason = '等待斑马线制动释放间隔'
+            return self.output()
+        if self.brake_count >= self.s['max_brake_pulses']:
+            self.reason = '斑马线再次检测到移动，制动次数已用完，保持中位'
+            return self.output()
+        self.brake_count += 1
+        self.pulse_until = now + self.s['brake_pulse_s']
+        self.reason = '斑马线再次检测到移动，发出有限制动请求'
+        return self.output('brake')
+
+    def confirms_stop_reference(self, sample, now):
+        """Require a visible stop line before restarting a broken formal hold."""
+        sample = sample or {}
+        stamp = sample.get('captured_s')
+        if (sample.get('fresh') is not True or sample.get('candidate') is not True
+                or sample.get('image_size') != self.s['image_size'] or not numeric(stamp)
+                or not 0 <= now-stamp <= self.frame_age_limit_s):
+            return False
+        if self.crosswalk_profile is not None:
+            camera = sample.get('source_camera')
+            refs = self.brake_reference['camera_references']
+            if (camera not in refs or sample.get('calibration_id') != self.crosswalk_profile['profile_id']
+                    or sample.get('image_feature', IMAGE_FEATURE_NEAR) != IMAGE_FEATURE_NEAR
+                    or sample.get('near_limit_reached') is True):
+                return False
+            y, limit = sample.get('near_edge_y_normalized'), refs[camera]['near_edge_y_normalized']
+            nearest = max(row['near_edge_y_normalized']
+                          for row in self.crosswalk_profile['cameras'][camera]['references'])
+            return numeric(y) and limit <= y <= nearest
+        else:
+            y, limit = sample.get('far_edge_y_normalized'), self.brake_reference['far_edge_y_normalized']
+        return numeric(y) and limit <= y < 1
+
     def _estimate_distance(self,y,t):
         refs=self.s['references'];ys=[r['far_edge_y_normalized'] for r in refs]
         self.distance=self.speed=None
@@ -268,7 +305,12 @@ class BrakeParkingController:
 
     def step(self,sample,now):
         if self.phase in ('done','fault'):return self.output()
-        if not numeric(now) or self.last_t is not None and not 0<now-self.last_t<=self.control_interval_s:
+        # Competition owns the cadence through its independent command sender.
+        # Trials retain their interval guard; all modes retain monotonic time
+        # and the actual capture-age/frame-order checks below.
+        if (not numeric(now) or self.last_t is not None and
+                (now <= self.last_t or self.control_interval_s is not None
+                 and now-self.last_t > self.control_interval_s)):
             return self.fault('控制间隔失效')
         if self.started is None:self.started=now
         self.last_t=now

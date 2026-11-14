@@ -111,11 +111,14 @@ class DepartureSequence:
         self.quality_since=None;self.last_update=None;self.input_issues={};self.input_details={}
 
     def invalidate(self,reason=None):
-        self.present={};self.clear_since=None;self.clear_frames=0;self.clear_elapsed=0.;self.last_pair=None
-        self.quality_since=None
+        self.restart_confirmation()
         # Reconnection must see the board again; a missing camera is not removal.
         self.phase='wait_board';self.seen_cameras=[]
         self.reason=reason or '图像中断或无效；需重新看到挡板，不能据此播报发车'
+
+    def restart_confirmation(self):
+        self.present={};self.clear_since=None;self.clear_frames=0;self.clear_elapsed=0.;self.last_pair=None
+        self.quality_since=None
 
     def diagnostics(self):
         return {'logic_revision':LOGIC_REVISION,'quality_grace_s':QUALITY_RECOVERY_S,

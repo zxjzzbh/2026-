@@ -79,7 +79,9 @@ def isolated_race(states,bundle,clock,monkeypatch):
     reader=RaceFlowCamera(states,bundle,ROOT,clock)
     reader.navigator=NavigationSpy()
     reader.zebra={'primary':ZebraSpy(15),'secondary':ZebraSpy(250)}
+    reader.crosswalk.calibrated.detectors=reader.zebra
     monkeypatch.setattr(reader.crosswalk,'read',lambda now:None)
+    monkeypatch.setattr(reader.crosswalk,'read_processed',lambda now,views,motion:None)
     monkeypatch.setattr(reader.traffic,'read',lambda now:None)
     reader.traffic.preview=b'traffic-final-preview'
     return reader
@@ -119,6 +121,38 @@ def test_default_debug_read_still_renders_one_combined_preview(bundle,monkeypatc
     reader.close()
 
 
+def test_lane_only_stages_keep_obstacle_mask_but_skip_cone_shape_and_tracking(bundle,monkeypatch):
+    reader=ConeCamera(caches(),bundle['cones'],lambda:1.,turn_aware=True)
+    reader.navigator=FrameNavigator();fits,_=fit_spies(reader,monkeypatch)
+    def forbidden(*args,**kwargs):raise AssertionError('cone-only processing outside cone stage')
+    for camera in reader.detectors:
+        monkeypatch.setattr(reader.detectors[camera],'detect',forbidden)
+        monkeypatch.setattr(reader.trackers[camera],'update',forbidden)
+        monkeypatch.setattr(reader.roads[camera],'enrich',forbidden)
+    result=reader.read(render=False,track_cones=False)
+    assert result and all(not row['tracks'] for row in reader.rows.values())
+    assert all(len(items)==1 for items in fits.values())
+    assert all(reader.frames[camera]['image'] is reader.images[camera] for camera in reader.frames)
+    reader.close()
+
+
+def test_race_timing_includes_task_work_after_road_processing(bundle,monkeypatch):
+    reader=isolated_race(caches(),bundle,lambda:1.,monkeypatch)
+    ticks=[0.]
+    monkeypatch.setattr('carvision.race_flow_camera.time.perf_counter',lambda:ticks[0])
+    original=reader.cones.read
+    def road(**kwargs):
+        result=original(**kwargs);ticks[0]+=.1;return result
+    def task(now,views,motion):ticks[0]+=.2;return None
+    monkeypatch.setattr(reader.cones,'read',road)
+    monkeypatch.setattr(reader.crosswalk,'read_processed',task)
+    result=reader.read('crosswalk',1.)
+    assert result['vision_processing_s']==pytest.approx(.3)
+    assert result['vision_stages_s']['camera_and_road_s']==pytest.approx(.1)
+    assert result['vision_stages_s']['task_s']==pytest.approx(.2)
+    reader.close()
+
+
 @pytest.mark.parametrize('stage,encodes',[('crosswalk',1),('traffic',0),('cones',1)])
 def test_race_has_one_final_fit_per_view_and_no_intermediate_jpeg(bundle,monkeypatch,stage,encodes):
     states=caches();reader=isolated_race(states,bundle,lambda:1.,monkeypatch)
@@ -130,7 +164,7 @@ def test_race_has_one_final_fit_per_view_and_no_intermediate_jpeg(bundle,monkeyp
     assert result is not None and reader.cones.turn_aware
     assert all(road.turn_aware for road in reader.cones.roads.values())
     assert all(len(items)==1 for items in fits.values())
-    assert all(len(items)==1 for items in enriched.values())
+    assert all(len(items)==int(stage=='cones') for items in enriched.values())
     assert len(calls)==encodes and reader.cones.preview is None
     if stage in ('crosswalk','traffic'):
         for camera,zebra in reader.zebra.items():

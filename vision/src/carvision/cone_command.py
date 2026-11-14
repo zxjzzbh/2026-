@@ -1,14 +1,15 @@
 """Bounded cone-command cadence over the existing leased actuator.
 
-The sender never creates visual evidence. Its deadline is anchored to the
-camera timestamp, including when the same decision/frame is submitted again.
-Other race stages pass through synchronously with their original lease.
+The sender never creates visual evidence. Cone tracking and metric parking
+keep their camera-based expiry. Offline competition can keep the executor at
+neutral during a pause without renewing an old forward command.
 """
 import copy
 import threading
 import time
 
 from .brake_output import numeric
+from .runtime_timing import RACE_CONTROL_WINDOW_S
 
 CONE_COMMAND_LEASE_S = .5
 CONE_RESULT_MAX_AGE_S = .5
@@ -28,6 +29,10 @@ class ConeCommandSender:
         self.source_frames = {}
         self.page_deadline = None
         self.neutral_slot = self.neutral_until = None
+        self.race_intent = self.race_deadline = self.race_until = self.race_brake_until = None
+        self.race_release_until = 0.
+        self.race_brake_requested = False
+        self.race_paused = False
         self.thread = None
         if threaded:
             self.thread = threading.Thread(target=self._work, name='cone-command-sender', daemon=True)
@@ -43,9 +48,84 @@ class ConeCommandSender:
 
     def timing(self):
         return {'control_period_s': COMMAND_PERIOD_S, 'commands_sent': self.count,
-                'maximum_send_gap_s': self.max_gap_s, 'source_valid_until_s': self.deadline,
-                'actuator_lease_s': CONE_COMMAND_LEASE_S if self.slot else None,
+                'maximum_send_gap_s': self.max_gap_s,
+                'source_valid_until_s': self.race_deadline if self.race_intent is not None else self.deadline,
+                'actuator_lease_s': CONE_COMMAND_LEASE_S if self.slot or self.race_intent is not None else None,
+                'race_control_paused': self.race_paused,
                 'fault': self.fault}
+
+    @staticmethod
+    def _race_stop():
+        return {'action': 'neutral', 'esc_us': 1500, 'steering_us': 1610}
+
+    def _race_tick(self, now):
+        if self.race_deadline is not None and now >= self.race_deadline:
+            self.race_paused = True
+            self.race_deadline = None
+            self.race_intent = {'action': 'brake', 'esc_us': 1400, 'steering_us': 1610}
+            self._emit(self.race_intent, now)
+            self.race_brake_until = self.last_sent + .35
+        if self.race_brake_until is not None:
+            if now < self.race_brake_until:
+                return
+            self.race_brake_until = None
+            self.race_release_until = now + .1
+            self.race_intent = self._race_stop()
+            self._emit(self.race_intent, now)
+        # Keep the hardware lease alive independently of vision computation.
+        # Replaying an accepted forward intent never moves its deadline; brake
+        # pulses return above and are therefore never extended by this cadence.
+        if (self.race_intent['esc_us'] >= 1500 and now < self.race_until
+                and (self.last_sent is None or now-self.last_sent >= COMMAND_PERIOD_S-1e-9)):
+            self._emit(self.race_intent, now)
+
+    def race_interrupted(self):
+        with self.lock:
+            self._check()
+            if self.race_intent is not None:
+                self._race_tick(self.clock())
+            return self.race_paused
+
+    def send_race(self, intent, *, run_until, evidence_until=None, recovering=False, recovered=False,
+                  brake_pulse_s=.35, expire_at_evidence=False):
+        """Expire forward authority locally; keep the current race at neutral."""
+        with self.lock:
+            self._check()
+            now = self.clock()
+            if self.race_intent is not None:
+                self._race_tick(now)
+            if recovered and intent.get('esc_us') == 1500 and self.race_brake_until is None:
+                self.race_paused = False
+            if self.race_paused and not recovering:
+                return None
+            self.race_until = run_until
+            forward = intent['esc_us'] > 1500
+            if forward and (not numeric(evidence_until) or now >= min(evidence_until, run_until)):
+                self.race_paused = True
+                if self.race_deadline is not None:
+                    self.race_deadline = now
+                    self._race_tick(now)
+                return None
+            if self.race_brake_until is not None and (intent['esc_us'] <= 1500 or recovering):
+                if intent['action'] != 'brake':
+                    self.race_brake_requested = False
+                return None  # Keep the original finite brake pulse intact.
+            if self.race_brake_until is not None:
+                self.race_paused = True
+                return None
+            if intent['action'] == 'brake' and self.race_brake_requested:
+                return None
+            if intent['action'] == 'brake' and now < self.race_release_until:
+                self.race_paused = True
+                return None
+            self.race_brake_requested = intent['action'] == 'brake'
+            self.race_deadline = (min(evidence_until if expire_at_evidence else now+RACE_CONTROL_WINDOW_S, run_until)
+                                  if forward else None)
+            self.race_intent = copy.deepcopy(intent)
+            sent = self._emit(self.race_intent, now)
+            if intent['action'] == 'brake':
+                self.race_brake_until = now + brake_pulse_s
+            return sent
 
     def _emit(self, intent, now):
         result = self.actuator.send(intent) or {}
@@ -144,11 +224,13 @@ class ConeCommandSender:
 
     def tick(self):
         with self.lock:
-            if self.closed or self.fault or not (self.slot or self.neutral_slot):
+            if self.closed or self.fault or not (self.slot or self.neutral_slot or self.race_intent):
                 return
             now = self.clock()
             try:
-                if self.neutral_slot:
+                if self.race_intent is not None:
+                    self._race_tick(now)
+                elif self.neutral_slot:
                     if now >= self.neutral_until:
                         reason = ('避障控制页心跳到期，保持中位' if self.page_deadline is not None
                                   else '车端中位指令未更新，保持停止')
@@ -161,7 +243,7 @@ class ConeCommandSender:
                 elif self.last_sent is None or now-self.last_sent >= COMMAND_PERIOD_S-1e-9:
                     self._emit(self.slot, now)
             except Exception as error:
-                self.fault = '避障执行器发送失败：'+str(error)
+                self.fault = ('比赛执行器发送失败：' if self.race_intent is not None else '避障执行器发送失败：')+str(error)
                 self.slot = self.deadline = None
 
     def _work(self):
@@ -176,6 +258,7 @@ class ConeCommandSender:
             self.closed = True
             self.slot = self.deadline = None
             self.neutral_slot = self.neutral_until = None
+            self.race_intent = self.race_deadline = self.race_until = self.race_brake_until = None
         if self.thread and self.thread is not threading.current_thread():
             self.thread.join(timeout=.2)
         self.actuator.close()

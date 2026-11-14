@@ -28,7 +28,8 @@ class ConeDetector:
         self.lower=np.asarray(settings['blue_hsv_lower'],np.uint8)
         self.upper=np.asarray(settings['blue_hsv_upper'],np.uint8)
 
-    def detect(self,image):
+    def mask(self,image):
+        """Colour exclusion for lane fitting, without cone shape/tracking work."""
         hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
         if self.color=='red':
             mask=cv2.bitwise_or(cv2.inRange(hsv,(0,110,50),(10,255,255)),
@@ -36,6 +37,10 @@ class ConeDetector:
         else:
             mask=cv2.inRange(hsv,self.lower,self.upper)
         mask=cv2.morphologyEx(mask,cv2.MORPH_OPEN,np.ones((3,3),np.uint8))
+        return mask
+
+    def detect(self,image):
+        mask=self.mask(image)
         h,w=mask.shape
         contours,_=cv2.findContours(mask,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
         rows=[]

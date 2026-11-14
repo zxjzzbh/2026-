@@ -50,7 +50,10 @@ def run_boundary(monkeypatch, rig, bundle, target):
             self.calls = 0
             self.produced = []
 
-        def step(self,sample,t,audio=None):
+        def step(self,sample,t,audio=None,*,interrupted=False,motion=None):
+            # This fixture exercises the non-offline console path; accept the
+            # shared controller interface without simulating recovery evidence.
+            assert interrupted is False and motion is None
             self.calls += 1
             self.stage = 'cones' if self.calls==1 else target
             self.reason = 'previous stage forward' if self.calls==1 else 'would enter parking'

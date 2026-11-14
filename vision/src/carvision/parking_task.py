@@ -31,6 +31,12 @@ class ParkingTask:
     def path(self):
         return self.mission.path
 
+    def recover_control(self):
+        self.mission.recover_control()
+        self.pd.reset()
+        self.steering = float(CENTER_US)
+        self.control_at = None
+
     def decide(self, world, now):
         if not self.readiness['ready']:
             return {'action': 'stop', 'phase': 'not_ready', 'reason': '停车实测标定未就绪',

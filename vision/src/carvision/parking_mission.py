@@ -87,6 +87,14 @@ class ParkingMission:
         self.progress_m=0.
         self.tracking={}
         self.last_now=None
+        self.replan_required=False
+
+    def recover_control(self):
+        self.last_now=self.last_t=None
+        self.pending=self.pending_since=self.still_since=self.stall_since=None
+        self.pending_count=0
+        if self.selected:
+            self.replan_required=True
 
     def _result(self,action,reason,**kw):
         return {'action':action,'phase':self.phase,'reason':reason,'selected_slot':self.selected,
@@ -163,6 +171,18 @@ class ParkingMission:
             self.phase='fault';return self._result('brake','整车已接近外边界，立即停车')
         if points[:,1].max()>=bs[chosen][1] and (points[:,0].min()<bs[chosen][0] or points[:,0].max()>bs[chosen][2]):
             self.phase='fault';return self._result('brake','实际车身扫过范围越过选中半区，立即停车')
+        if self.replan_required:
+            if abs(speed)>self.s['stopped_speed_mps']:
+                return self._result('brake','重新规划前等待车辆停稳')
+            if inside and abs(pose['yaw_rad'])<=.10:
+                self.phase='braking'
+                self.brake_since=now
+            else:
+                try:self.path=plan_entry(list(slots.values()),chosen,pose,self.s)
+                except ValueError as exc:return self._result('stop',str(exc))
+                self.phase='entering'
+                self.progress_m=0.
+            self.replan_required=False
         self.tracking=pursuit(self.path,pose,self.progress_m,self.s['lookahead_m'])
         self.progress_m=self.tracking['progress_m']
         if self.tracking['tracking_error_m']>self.s['maximum_pose_error_m']+self.s['maximum_tracking_error_m']:

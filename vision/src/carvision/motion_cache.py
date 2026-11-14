@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 
 from .brake_parking import GroundMotionEstimate, numeric
+from .handoff import StillnessWindow
 from .runtime_timing import MOTION_MAX_AGE_S
 
 
@@ -22,6 +23,7 @@ class GroundMotionCache:
         self.thread = None
         self.identity = None
         self.latest = {'valid': False, 'moving': None, 'reason': 'warming_up'}
+        self.stillness = StillnessWindow()
 
     def sample_once(self):
         state = self.states.get(self.camera)
@@ -33,6 +35,7 @@ class GroundMotionCache:
         now = self.clock()
         if failed or not jpeg or type(fid) is not int or not numeric(ms) or not 0 <= now-ms/1000 <= MOTION_MAX_AGE_S:
             with self.lock:
+                self.stillness.reset()
                 self.latest = {'valid': False, 'moving': None, 'reason': 'camera_unavailable'}
             return
         identity = (fid, ms)
@@ -45,6 +48,8 @@ class GroundMotionCache:
         row = {**self.estimator.update(image, fid, ms/1000),
                'captured_s': ms/1000, 'frame_id': fid, 'camera_id': self.camera}
         with self.lock:
+            self.stillness.update(row, self.clock())
+            row['continuous_still_since_s'] = self.stillness.first
             self.latest = row
 
     def _work(self):
@@ -53,6 +58,7 @@ class GroundMotionCache:
                 self.sample_once()
             except Exception as exc:
                 with self.lock:
+                    self.stillness.reset()
                     self.latest = {'valid': False, 'moving': None, 'reason': str(exc)}
             self.stop.wait(.02)
 

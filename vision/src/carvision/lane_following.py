@@ -14,6 +14,10 @@ from .steering import CENTER_US,ImagePD
 STEERING_RATE_US_S=600.
 
 
+class LaneRecoveryRequired(ValueError):
+    """Moving recovery ran out; wait for new lane evidence at neutral."""
+
+
 def measurements(nav):
     near=nav.get('ego_near_fraction',nav.get('ego_fraction'))
     far=nav.get('ego_far_fraction',near)
@@ -98,7 +102,7 @@ class LaneFollower:
         if source not in ('primary','secondary') or 'frame_id' in nav and (type(frame) is not int or frame<0):
             raise ValueError('巡线相机来源或帧号无效')
         if self.missing_since is not None and now-self.missing_since>=self.recovery_s-1e-9:
-            raise ValueError(f'巡线丢失超过 {self.recovery_s:g} 秒恢复预算')
+            raise LaneRecoveryRequired(f'巡线丢失超过 {self.recovery_s:g} 秒恢复预算')
         old=self.frames.get(source)
         if old and (captured<old[1] or frame<old[0]):raise ValueError('巡线相机帧倒退')
         if old and (frame==old[0] or captured==old[1]):
@@ -114,7 +118,7 @@ class LaneFollower:
         elif self.missing_since is None:
             self.missing_since=self.last_pair if self.last_pair is not None else captured
         if self.missing_since is not None and now-self.missing_since>=self.recovery_s-1e-9:
-            raise ValueError(f'巡线丢失超过 {self.recovery_s:g} 秒恢复预算')
+            raise LaneRecoveryRequired(f'巡线丢失超过 {self.recovery_s:g} 秒恢复预算')
         quality='paired' if paired else 'single' if single else 'missing'
         boundary=None;withdraw=False;heading=0.;lateral=None;lookahead=None
         if paired or single:

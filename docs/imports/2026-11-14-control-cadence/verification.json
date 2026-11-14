@@ -1,0 +1,38 @@
+{
+  "release": "race-control-cadence-20261114",
+  "runtime_files": 204,
+  "runtime_matches_latest_local_source": true,
+  "git_text_normalization": "LF only; raw and normalized SHA256 in source-manifest.json",
+  "source_release_regression": {
+    "passed": 872,
+    "skipped": 2
+  },
+  "public_checkout_regression": {
+    "tests": 3911,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 6,
+    "passed": 3905,
+    "seconds": 250.51
+  },
+  "test_sources_unchanged_during_run": true,
+  "public_test_adaptation": "Prefix-stop test double accepts the current interrupted/motion keyword arguments; runtime code is unchanged by this publication.",
+  "offline_commands": [
+    {
+      "command": "python -m carvision autonomy-check --profile vision/configs/autonomy-pi5.json",
+      "exit_code": 0
+    },
+    {
+      "command": "python -m carvision autonomy-demo --profile vision/configs/autonomy-pi5.json --race-config vision/configs/race-2026.json --output run/publication-offline-demo",
+      "exit_code": 0
+    },
+    {
+      "command": "python tools/audit_snapshot_20261008.py",
+      "exit_code": 0
+    }
+  ],
+  "vehicle_deployed": false,
+  "vehicle_operations_during_publication": [],
+  "configuration_policy": "Keep vehicle local overrides, private connection settings, recordings and environments out of the public upload.",
+  "field_validation": "Pending; software tests and fixed-frame replays do not certify physical course completion."
+}

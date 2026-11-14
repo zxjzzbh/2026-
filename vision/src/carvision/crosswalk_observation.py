@@ -77,15 +77,33 @@ class CalibratedTrialCamera:
         self.last_read = None
         self.jpeg = None
 
-    def _update(self, camera, now):
+    def _update(self, camera, now, processed=None, shared_motion=None):
         state = self.states[camera]
-        try:
+        if processed is None:
+            try:
+                with state.condition:
+                    jpeg, frame_id, captured_ms = state.raw_jpeg, state.raw_frame_id, state.raw_received_ms
+                    failed = state.state in ('error', 'stopped')
+                    identity = copy.deepcopy(getattr(state, 'identity', None))
+            except (AttributeError, TypeError) as exc:
+                raise ValueError(camera + ' 摄像头缓存结构无效') from exc
+        else:
+            frame,features,road=processed['frame'],processed['features'],processed['road']
+            frame_id,stamp=frame.get('frame_id'),frame.get('captured_s')
+            captured_ms=frame.get('raw_received_ms')
+            if (frame.get('camera_id')!=camera or not _number(stamp)
+                    or not _number(captured_ms) or captured_ms/1000!=stamp
+                    or any(item.get('frame_id')!=frame_id or item.get('captured_s')!=stamp
+                           for item in (features,road))
+                    or features.get('image') is not frame.get('image')
+                    or road.get('image') is not frame.get('image')
+                    or features.get('detector') is not self.detectors[camera]):
+                raise ValueError(camera+' 复用画面与识别结果不匹配')
+            jpeg,identity=frame.get('jpeg'),frame.get('identity')
             with state.condition:
-                jpeg, frame_id, captured_ms = state.raw_jpeg, state.raw_frame_id, state.raw_received_ms
-                failed = state.state in ('error', 'stopped')
-                identity = copy.deepcopy(getattr(state, 'identity', None))
-        except (AttributeError, TypeError) as exc:
-            raise ValueError(camera + ' 摄像头缓存结构无效') from exc
+                failed=state.state in ('error','stopped')
+                if getattr(state,'identity',None)!=identity:
+                    raise ValueError(camera+' 摄像头身份在复用处理期间发生变化')
         if (not isinstance(identity, dict) or not isinstance(identity.get('name'), str)
                 or not isinstance(identity.get('bus'), str)):
             raise ValueError(camera + ' 缺少可核验的物理摄像头身份')
@@ -113,16 +131,19 @@ class CalibratedTrialCamera:
                 return False
             if stamp <= self.times[camera]:
                 raise ValueError(camera + ' 新图像没有递增的真实采样时间')
-        try:
-            image = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
-        except (cv2.error, ValueError, TypeError) as exc:
-            raise ValueError(camera + ' 原始JPEG不能解码') from exc
-        if image is None or [image.shape[1], image.shape[0]] != [480, 360]:
+        if processed is None:
+            try:
+                image = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
+            except (cv2.error, ValueError, TypeError) as exc:
+                raise ValueError(camera + ' 原始JPEG不能解码') from exc
+        else:image=frame.get('image')
+        if not isinstance(image,np.ndarray) or image.shape != (360,480,3) or image.dtype!=np.uint8:
             raise ValueError(camera + ' 画面必须保持本次480×360独立标定尺寸')
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         if float(gray.mean()) < 15 or float(gray.std()) < 1 or float((gray >= 250).mean()) > .98:
             raise ValueError(camera + ' 画面全黑、被遮挡或过曝，不能作为搜索依据')
-        zebra, _ = self.detectors[camera].detect(image, captured_ms)
+        if processed is None:zebra, _ = self.detectors[camera].detect(image, captured_ms)
+        else:zebra=features['zebra']
         candidate = zebra['candidate'] is True
         clipped = candidate and zebra['bottom_clipped'] is True
         # The detector still demands >=3 horizontally arranged strips. Never
@@ -144,11 +165,27 @@ class CalibratedTrialCamera:
             else:
                 estimate = estimate_distance(self.profile, camera, near_y)
                 distance, metric_valid, status = estimate['distance_m'], True, 'inside'
-        clean = image.copy()
-        for x, y, w, h in strips:
-            clean[y:y + h, x:x + w] = 0
-        lane, _ = self.lanes[camera].detect(clean)
-        motion = self.motions[camera].update(image, frame_id, stamp)
+        if processed is None:
+            clean = image.copy()
+            for x, y, w, h in strips:
+                clean[y:y + h, x:x + w] = 0
+            lane, _ = self.lanes[camera].detect(clean)
+            lane_valid,lane_offset=bool(lane.valid),lane.offset_normalized
+            motion = self.motions[camera].update(image, frame_id, stamp)
+        else:
+            # The race already fitted the white corridor with these exact
+            # stripes excluded. Reuse its observed pair, never extrapolate a
+            # lane target outside the observed vertical range.
+            context=road['road_context'];y=self.lanes[camera].config.lookahead_y*(image.shape[0]-1)
+            edges=[sorted(context.get(k) or [],key=lambda p:p[1]) for k in ('left_inner','right_inner')]
+            lane_valid=bool(context.get('valid') and all(len(edge)>=2 and edge[0][1]<=y<=edge[-1][1] for edge in edges))
+            lane_offset=None
+            if lane_valid:
+                x=[float(np.interp(y,[p[1] for p in edge],[p[0] for p in edge])) for edge in edges]
+                lane_valid=0<=x[0]<x[1]<image.shape[1]
+                if lane_valid:lane_offset=(sum(x)/2-image.shape[1]/2)/(image.shape[1]/2)
+            # Independent motion cache keeps its own sampling timestamp.
+            motion=copy.deepcopy(shared_motion or {'valid':False,'moving':None})
         self.rows[camera] = {
             'camera_id': camera, 'camera_identity': name, 'frame_id': frame_id,
             'raw_frame_id': frame_id, 'raw_received_ms': captured_ms, 'captured_s': stamp,
@@ -158,7 +195,7 @@ class CalibratedTrialCamera:
             'far_edge_y_normalized': zebra['far_edge_y_normalized'],
             'near_limit_reached': near_limit, 'metric_valid': metric_valid,
             'distance_estimate_m': distance, 'distance_status': status,
-            'lane_valid': bool(lane.valid), 'lane_offset': lane.offset_normalized,
+            'lane_valid': lane_valid, 'lane_offset': lane_offset,
             'motion': motion, 'calibration_id': self.profile['profile_id'],
             'physical_stop_verified': False,
         }
@@ -233,11 +270,14 @@ class CalibratedTrialCamera:
             if self.confirmed_primary_frames >= 2:
                 self.active_source, self.primary_locked = 'primary', True
 
-    def read(self, now):
+    def read(self, now, *, processed_views=None, motion=None):
         if not _number(now) or self.last_read is not None and now < self.last_read:
             raise ValueError('双摄读取控制时钟无效或倒退')
         self.last_read = now
-        changed = {camera: self._update(camera, now) for camera in CAMERAS}
+        if processed_views is not None and set(processed_views)!=set(CAMERAS):
+            raise ValueError('双摄复用画面失效：必须包含两路匹配的真实画面')
+        changed = {camera: self._update(camera, now,
+            processed_views[camera] if processed_views is not None else None,motion) for camera in CAMERAS}
         checked=self.clock() if self.clock is not None else now
         if not _number(checked) or checked<now:raise ValueError('双摄处理完成时钟无效或倒退')
         ages={camera:checked-self.rows[camera]['captured_s'] for camera in CAMERAS}

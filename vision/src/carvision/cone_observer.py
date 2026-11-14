@@ -39,7 +39,7 @@ class ConeCamera:
         self.states,self.s,self.clock=states,settings,clock
         self.detectors={c:BlueConeDetector(settings) for c in ('primary','secondary')}
         self.trackers={c:ImageConeTracker(c,settings) for c in self.detectors}
-        self.ids={};self.views={};self.rows={};self.images={};self.turn_aware=None
+        self.ids={};self.views={};self.rows={};self.images={};self.frames={};self.turn_aware=None
         self.set_turn_aware(turn_aware)
         self.preview=None;self.sequence=0;self.encoder=PreviewEncoder()
         self.navigator=ConeNavigator(settings);self.navigation=None
@@ -60,7 +60,7 @@ class ConeCamera:
                 _,mask=self.detectors[camera].detect(image)
                 row['road_context']=self.roads[camera].inspect(image,mask)
 
-    def read(self,*,road_mask_filter=None,render=True):
+    def read(self,*,road_mask_filter=None,render=True,track_cones=True):
         """Consume new cache frames; optional filtering precedes the only road fit."""
         read_started=time.perf_counter();camera_processing={}
         changed=False
@@ -71,6 +71,7 @@ class ConeCamera:
                 with state.condition:
                     jpg,fid,ms=state.raw_jpeg,state.raw_frame_id,state.raw_received_ms
                     failed=state.state in ('stopped','error')
+                    identity=copy.deepcopy(getattr(state,'identity',None))
                 now=self.clock()
                 if failed or not jpg or type(fid) is not int or not numeric(ms) or not 0<=now-ms/1000<=VISION_MAX_AGE_S:
                     raise ValueError('camera unavailable')
@@ -79,20 +80,23 @@ class ConeCamera:
                 if image is None or [image.shape[1],image.shape[0]]!=self.s['image_size']:raise ValueError('image size changed')
                 if camera in self.ids and fid<self.ids[camera]:
                     self.trackers[camera]=ImageConeTracker(camera,self.s,near_field_recovery=self.turn_aware)
-                detections,mask=self.detectors[camera].detect(image)
+                if track_cones:detections,mask=self.detectors[camera].detect(image)
+                else:detections,mask=[],self.detectors[camera].mask(image)
                 if road_mask_filter is not None:
                     mask=road_mask_filter(camera,image,fid,ms/1000,mask)
                     if not isinstance(mask,np.ndarray) or mask.shape!=image.shape[:2] or mask.dtype!=np.uint8:
                         raise ValueError('road mask filter returned an invalid mask')
                 context=self.roads[camera].inspect(image,mask,frame_id=fid,captured_s=ms/1000)
-                self.roads[camera].enrich(detections,image,context)
-                tracks=self.trackers[camera].update(detections,fid,ms/1000)
+                if track_cones:
+                    self.roads[camera].enrich(detections,image,context)
+                    tracks=self.trackers[camera].update(detections,fid,ms/1000)
+                else:tracks=[]
                 row={'camera_id':camera,'frame_id':fid,'captured_s':ms/1000,'tracks':tracks,
                      'lane_valid':context['valid'],'lane_reason':context['reason'],'road_context':context,
                      'metric_cones':[],'metric_unresolved':[]}
-                if self.turn_aware:
+                if self.turn_aware and track_cones:
                     row['tracking_diagnostics']=copy.deepcopy(self.trackers[camera].latest_diagnostics)
-                if camera==self.s['camera'] and readiness(self.s)['metric_planning_ready']:
+                if track_cones and camera==self.s['camera'] and readiness(self.s)['metric_planning_ready']:
                     row['metric_cones'],row['metric_unresolved']=project_tracks(tracks,self.s)
                 if camera==self.s['camera'] and not isinstance(self.navigator,DualLowSpeedNavigator):
                     try:self.navigation=self.navigator.update(image,row,self.clock())
@@ -112,9 +116,12 @@ class ConeCamera:
                     self.views[camera]=display
                 else:self.views.pop(camera,None)
                 self.rows[camera]=row;self.images[camera]=image;self.ids[camera]=fid;changed=True
+                self.frames[camera]={'camera_id':camera,'frame_id':fid,'captured_s':ms/1000,
+                    'raw_received_ms':ms,'jpeg':jpg,'identity':identity,'image':image}
                 camera_processing[camera]=time.perf_counter()-camera_started
             except (KeyError,ValueError,cv2.error):
                 self.rows.pop(camera,None);self.views.pop(camera,None);self.images.pop(camera,None)
+                self.frames.pop(camera,None)
         if not self.rows:raise ValueError('两路摄像头均无新鲜画面')
         if not changed:return None
         if isinstance(self.navigator,DualLowSpeedNavigator):

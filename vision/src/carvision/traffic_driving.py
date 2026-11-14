@@ -74,7 +74,10 @@ def load_settings(path):
 
 
 class TrafficDrivingController:
-    def __init__(self, settings, profile=None):
+    def __init__(self, settings, profile=None, *, control_interval_s=VISION_MAX_AGE_S):
+        if control_interval_s is not None and (not numeric(control_interval_s) or not 0<control_interval_s<=VISION_MAX_AGE_S):
+            raise ValueError('invalid control interval')
+        self.control_interval_s = control_interval_s
         self.s = approach_settings(validate_settings(settings))
         self.approach_guard = TrafficApproachGuard(self.s)
         self.approach_evidence = None
@@ -186,6 +189,7 @@ class TrafficDrivingController:
             return self.fault('已达到本轮制动次数上限，保持中位并结束本轮')
         self.brake_count += 1
         self.phase='motion_recovery';self.motion_unknown_since=now
+        self.motion_recovery_evidence_after=now
         self.motion_recovery_brake_until=now+self.s['brake_pulse_s']
         self.stop_since=None;self.recovery_motion_capture=None
         self.reason='运动反馈短暂失效，有限制动后等待恢复'
@@ -206,7 +210,9 @@ class TrafficDrivingController:
     def step(self, sample, now):
         if self.phase in ('done', 'fault'):
             return self.output()
-        if not numeric(now) or self.last_t is not None and not 0 < now - self.last_t <= VISION_MAX_AGE_S:
+        if (not numeric(now) or self.last_t is not None and
+                (now <= self.last_t or self.control_interval_s is not None
+                 and now-self.last_t > self.control_interval_s)):
             return self.fault('控制处理间隔失效，停止本轮')
         t, fid = sample.get('captured_s'), sample.get('frame_id')
         if (sample.get('fresh') is not True or not numeric(t) or not 0 <= now-t <= self.s['max_frame_age_s']
@@ -328,11 +334,19 @@ class TrafficDrivingController:
                 if previous is None or mt-previous>MOTION_MAX_AGE_S:self.stop_since=None
                 self.recovery_motion_capture=mt
                 if self.stop_since is None:self.stop_since=mt
-                if mt-self.stop_since>=.3-1e-9:
+                since=motion.get('continuous_still_since_s')
+                continuous=(self.control_interval_s is None and numeric(since)
+                            and self.motion_recovery_evidence_after <= since <= mt
+                            and mt-max(since,self.motion_recovery_brake_until)>=.3-1e-9)
+                if mt-self.stop_since>=.3-1e-9 or continuous:
                     self.phase='approach';self.motion_unknown_since=None;self.no_progress_since=None
                     self.reason='连续静止反馈已恢复，下一帧重新核对红灯后低速接近'
                     return self.output()
-            else:self.stop_since=None;self.recovery_motion_capture=None
+            else:
+                self.stop_since=None;self.recovery_motion_capture=None
+                # An older stillness interval cannot erase movement or an
+                # intervening unknown result observed during this recovery.
+                self.motion_recovery_evidence_after=now
             self.reason='短暂反馈丢失，保持中位等待连续有效地面反馈'
             return self.output()
 

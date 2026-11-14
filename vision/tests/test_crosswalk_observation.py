@@ -104,6 +104,75 @@ def test_first_batch_retains_each_camera_identity_native_id_and_time(settings, s
     json.dumps(result, allow_nan=False)
 
 
+def processed_views(reader,states):
+    views={}
+    for camera,state in states.items():
+        image=cv2.imdecode(np.frombuffer(state.raw_jpeg,np.uint8),cv2.IMREAD_COLOR)
+        zebra,_=reader.detectors[camera].detect(image,state.raw_received_ms)
+        identity={'frame_id':state.raw_frame_id,'captured_s':state.raw_received_ms/1000,'image':image}
+        views[camera]={'frame':{**identity,'camera_id':camera,'identity':state.identity,
+            'jpeg':state.raw_jpeg,'raw_received_ms':state.raw_received_ms},
+            'features':{**identity,'detector':reader.detectors[camera],'zebra':zebra},
+            'road':{**identity,'road_context':{'valid':True,
+                'left_inner':[[100.,180.],[80.,350.]],'right_inner':[[380.,180.],[400.,350.]]}}}
+    return views
+
+
+def test_race_reuse_keeps_metric_result_and_motion_timestamp_without_reprocessing(settings,states,monkeypatch):
+    baseline=CalibratedTrialCamera(states,settings).read(10.)
+    reader=CalibratedTrialCamera(states,settings);views=processed_views(reader,states)
+    def repeated(*args,**kwargs):raise AssertionError('same frame processed twice')
+    monkeypatch.setattr(cv2,'imdecode',repeated)
+    for camera in states:
+        monkeypatch.setattr(reader.detectors[camera],'detect',repeated)
+        monkeypatch.setattr(reader.lanes[camera],'detect',repeated)
+        monkeypatch.setattr(reader.motions[camera],'update',repeated)
+    motion={'valid':True,'moving':False,'captured_s':9.95,'continuous_still_since_s':9.2}
+    result=reader.read(10.,processed_views=views,motion=motion)
+    for key in ('source_camera','raw_frame_id','captured_s','candidate','near_edge_y_normalized',
+                'near_limit_reached','metric_valid','distance_estimate_m','distance_status'):
+        assert result[key]==baseline[key]
+    assert result['lane_valid'] and result['lane_offset']==pytest.approx(0.)
+    assert result['motion']==motion and result['motion']['captured_s']!=result['captured_s']
+    assert reader.read(10.1,processed_views=views,motion=motion) is None
+
+
+@pytest.mark.parametrize('wrong',['camera','feature_frame','feature_time','road_frame','road_image','feature_image','detector','raw_stamp'])
+def test_reuse_rejects_cross_camera_or_cross_frame_features(settings,states,wrong):
+    reader=CalibratedTrialCamera(states,settings);views=processed_views(reader,states)
+    view=views['primary']
+    if wrong=='camera':view['frame']['camera_id']='secondary'
+    elif wrong=='feature_frame':view['features']['frame_id']+=1
+    elif wrong=='feature_time':view['features']['captured_s']+=.01
+    elif wrong=='road_frame':view['road']['frame_id']+=1
+    elif wrong=='road_image':view['road']['image']=view['road']['image'].copy()
+    elif wrong=='feature_image':view['features']['image']=view['features']['image'].copy()
+    elif wrong=='detector':view['features']['detector']=reader.detectors['secondary']
+    elif wrong=='raw_stamp':view['frame']['raw_received_ms']+=1
+    with pytest.raises(ValueError,match='复用画面与识别结果不匹配'):
+        reader.read(10.,processed_views=views)
+
+
+def test_reuse_does_not_renew_old_frame_after_live_cache_advances(settings,states):
+    reader=CalibratedTrialCamera(states,settings);views=processed_views(reader,states)
+    advance(states,10.2)
+    result=reader.read(10.2,processed_views=views)
+    assert result['captured_s']==10. and result['raw_frame_id']==4
+    with pytest.raises(ValueError,match='画面失效'):
+        reader.read(10.3,processed_views=views)
+
+
+def test_reuse_respects_camera_failure_and_observed_lane_range(settings,states):
+    reader=CalibratedTrialCamera(states,settings);views=processed_views(reader,states)
+    for view in views.values():
+        view['road']['road_context']['left_inner']=[[100.,320.],[80.,350.]]
+    result=reader.read(10.,processed_views=views)
+    assert not result['lane_valid'] and result['lane_offset'] is None
+    states['primary'].state='error'
+    with pytest.raises(ValueError,match='缓存不可用'):
+        reader.read(10.1,processed_views=views)
+
+
 def test_near_edge_is_median_bottom_not_detector_maximum_bottom(settings, states):
     publish(states['secondary'], paper_row(height=40, bottoms=(240, 250, 260)), 5, 10.)
     result = CalibratedTrialCamera(states, settings).read(10.)

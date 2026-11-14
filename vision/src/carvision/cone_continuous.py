@@ -174,6 +174,24 @@ class ContinuousConeController(LowSpeedController):
         self.pd.reset()
         self.target_observation={}
 
+    def recover_control(self, now):
+        self.last_step = now
+        self.has_forward_command = False
+        self.lane_evidence.reset()
+        self.last_observed_pair = None
+        self.guidance_budgets = GuidanceBudgets()
+        self.target_evidence = CurrentTargetEvidence(self.s['image_size'])
+        self.passage.reset('control_gap')
+        self.mission.candidate = None
+        self.pass_evidence = {}
+        self.tail_powered = 0.
+        if self.target is not None:
+            self._adopt_target({'id': self.target, 'identity_revision': self.target_identity_revision},
+                               '等待重新确认当前锥桶和绕行方向')
+        else:
+            self._begin_recenter('控制更新恢复，重新确认赛道')
+        self._neutral('waiting_for_lane', '控制更新恢复，等待连续新鲜双线')
+
     def _forget_target(self):
         self._retire_unverified()
         self.target=None;self.side=None;self.target_aliases=set();self.last_target_fraction=None

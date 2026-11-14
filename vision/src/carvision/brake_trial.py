@@ -42,6 +42,13 @@ class TrialCamera:
         self.motion = GroundMotionEstimate()
         self.jpeg = None
 
+    def read_processed(self, now, views, motion):
+        """Competition-only reuse of validated, already decoded camera views."""
+        if self.calibrated is None:return self.read(now)
+        result=self.calibrated.read(now,processed_views=views,motion=motion)
+        self.jpeg=self.calibrated.jpeg
+        return result
+
     def read(self, now):
         if self.calibrated is not None:
             result = self.calibrated.read(now)
