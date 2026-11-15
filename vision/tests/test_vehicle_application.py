@@ -84,13 +84,34 @@ def test_cancelled_slow_initialization_cannot_overlap_a_new_round(tmp_path,monke
     assert not drive.thread.is_alive() and closed==[True] and drive.actuator is None
 
 
-def test_logging_failure_cannot_publish_a_running_session(tmp_path,monkeypatch):
+def test_logging_failure_is_reported_without_preventing_authorized_session(tmp_path,monkeypatch):
     bundle=load_bundle(ROOT)
     monkeypatch.setattr('carvision.race_flow_console.load_bundle',lambda *a:copy.deepcopy(bundle))
-    drive=RaceFlowDrive(Base(),{},tmp_path,live=True,require_ready=False)
+    outputs=[];closed=[];entered=threading.Event()
+    class Handle:
+        run=False
+        def send(self,intent):outputs.append(dict(intent))
+        def close(self):closed.append(True)
+    class Reader:
+        preview=None
+        def __init__(self,*a):pass
+        def read(self,*a):
+            entered.set();drive.cancel_event.wait(.01);return None
+        def close(self):pass
+    drive=RaceFlowDrive(Base(),{},tmp_path,live=True,require_ready=False,clock=lambda:1.,
+        actuator_factory=lambda _:Handle(),reader_factory=Reader)
     monkeypatch.setattr(Path,'mkdir',lambda *a,**k:(_ for _ in ()).throw(PermissionError('full disk')))
-    with pytest.raises(PermissionError):drive.request('race_enter',payload())
-    assert not drive.active and drive.thread is None and drive.token is None
+    try:
+        result=drive.request('race_enter',payload())['race_flow']
+        assert result['active'] and entered.wait(2)
+        until=time.monotonic()+2
+        while not drive.status()['race_flow']['record_error'] and time.monotonic()<until:time.sleep(.005)
+        report=drive.status()['race_flow']
+        assert 'full disk' in report['record_error']
+        assert report['active'] and report['stage']=='arming' and not closed
+        assert outputs and all(row['esc_us']==1500 for row in outputs)
+    finally:drive.close()
+    assert closed and not drive.active
 
 
 def test_failed_actuator_close_latches_unconfirmed_output(tmp_path,monkeypatch):

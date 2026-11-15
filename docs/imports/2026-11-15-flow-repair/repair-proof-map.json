@@ -1,0 +1,70 @@
+{
+  "version": "race-flow-repair-20261115",
+  "hardware_tested": false,
+  "deployed": false,
+  "scope": "standard debug tasks and formal race flow; existing independent LatestConeTask recovery state machine retained",
+  "regressions": [
+    {
+      "issue": "traffic stop queued behind secondary and road processing",
+      "tests": [
+        "vision/tests/test_traffic_stop_priority.py",
+        "vision/tests/test_race_traffic_priority.py"
+      ]
+    },
+    {
+      "issue": "brief crosswalk target loss permanently ends the formal task",
+      "tests": [
+        "vision/tests/test_crosswalk_target_recovery.py",
+        "vision/tests/test_race_control_recovery.py"
+      ]
+    },
+    {
+      "issue": "production cone path ignores free-space preference and keeps an invalid old side",
+      "tests": [
+        "vision/tests/test_cone_production_policy.py"
+      ]
+    },
+    {
+      "issue": "parking geometry assumes no heading and failed odometry never recovers",
+      "tests": [
+        "vision/tests/test_parking_relocalization.py",
+        "vision/tests/test_parking_path.py"
+      ]
+    },
+    {
+      "issue": "debug control gaps fault permanently and race recovery confuses stationary evidence with computation cadence",
+      "tests": [
+        "vision/tests/test_cone_debug_recovery.py",
+        "vision/tests/test_debug_sender_page_recovery.py",
+        "vision/tests/test_race_recovery_readiness.py",
+        "vision/tests/test_race_sender_cadence.py"
+      ]
+    },
+    {
+      "issue": "optional preview failure closes the capture used by control",
+      "tests": [
+        "vision/tests/test_capture_journal_isolation.py",
+        "vision/tests/test_web_preview.py",
+        "vision/tests/test_crosswalk_observation.py"
+      ]
+    },
+    {
+      "issue": "race disk writes fail or block on the control thread",
+      "tests": [
+        "vision/tests/test_capture_journal_isolation.py"
+      ]
+    }
+  ],
+  "unchanged": [
+    "vision/web",
+    "vision/configs",
+    "vision/calibration"
+  ],
+  "intentional_limits": [
+    "normal forward PWM >= 1570; neutral 1500; finite brake 1400",
+    "formal crosswalk hold 10 seconds; traffic formal confirmation and maximum 6 brake pulses preserved",
+    "fresh input, independently observed stillness and a feasible route are required before recovery",
+    "continuous overload and genuine capture or actuator failures do not authorize indefinite old forward output",
+    "no missing calibration has been marked verified"
+  ]
+}

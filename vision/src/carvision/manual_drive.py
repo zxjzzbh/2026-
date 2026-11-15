@@ -690,7 +690,9 @@ class WorkerDrive:
     def request(self, action, payload):
         try:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
-                connection.settimeout(.7)
+                # Explicit re-enable may await a fresh guardian network check
+                # (bounded at 1.5 s); movement commands retain the short timeout.
+                connection.settimeout(2. if action=='enable' else .7)
                 connection.connect(self.path)
                 connection.sendall((json.dumps({'action': action, 'payload': payload})+'\n').encode())
                 with connection.makefile('rb') as stream:

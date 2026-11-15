@@ -1,0 +1,79 @@
+{
+  "release": "race-flow-repair-20261115",
+  "local_validation": {
+    "tests": 4199,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 6,
+    "passed": 4193,
+    "elapsed_s": 283.003,
+    "skips": [
+      {
+        "test": "vision.tests.test_cone_slalom::test_deployment_respects_other_live_tasks_and_calibration",
+        "reason": "PC deployment helper is not installed on the car"
+      },
+      {
+        "test": "vision.tests.test_crosswalk_observation::test_actual_fixed_scene_with_three_depth_markers_does_not_start_a_crosswalk",
+        "reason": "Original stationary 40/50/65 cm capture files are not installed in this environment"
+      },
+      {
+        "test": "vision.tests.test_manual_drive::test_ended_worker_has_readable_error_and_cannot_be_reenabled",
+        "reason": "Pi worker uses Unix sockets"
+      },
+      {
+        "test": "vision.tests.test_race_flow::test_deployment_check_never_opens_ssh_and_preserves_launcher_arguments",
+        "reason": "PC deployment helper is not installed on the car"
+      },
+      {
+        "test": "vision.tests.test_rasadapter5::test_close_drains_last_neutral_frame_before_restoring_baud",
+        "reason": "could not import 'termios': No module named 'termios'"
+      },
+      {
+        "test": "vision.tests.test_worker_endpoint::test_worker_status_connects_with_long_round_record_path",
+        "reason": "actual Linux Unix-socket transport check"
+      }
+    ]
+  },
+  "source_input_hashes_verified": true,
+  "runtime_file_count": 209,
+  "public_checkout_validation": {
+    "tests": 4199,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 6,
+    "passed": 4193,
+    "seconds": 261.439,
+    "skips": [
+      {
+        "test": "tests.test_cone_slalom::test_deployment_respects_other_live_tasks_and_calibration",
+        "reason": "PC deployment helper is not installed on the car"
+      },
+      {
+        "test": "tests.test_crosswalk_observation::test_actual_fixed_scene_with_three_depth_markers_does_not_start_a_crosswalk",
+        "reason": "Original stationary 40/50/65 cm capture files are not installed in this environment"
+      },
+      {
+        "test": "tests.test_manual_drive::test_ended_worker_has_readable_error_and_cannot_be_reenabled",
+        "reason": "Pi worker uses Unix sockets"
+      },
+      {
+        "test": "tests.test_race_flow::test_deployment_check_never_opens_ssh_and_preserves_launcher_arguments",
+        "reason": "PC deployment helper is not installed on the car"
+      },
+      {
+        "test": "tests.test_rasadapter5::test_close_drains_last_neutral_frame_before_restoring_baud",
+        "reason": "could not import 'termios': No module named 'termios'"
+      },
+      {
+        "test": "tests.test_worker_endpoint::test_worker_status_connects_with_long_round_record_path",
+        "reason": "actual Linux Unix-socket transport check"
+      }
+    ]
+  },
+  "pi_deployed": false,
+  "physical_vehicle_tested": false,
+  "limitations": "Offline validation only. Some platform, deployment-helper and original-capture checks are skipped. Complete dynamic parking calibration is not marked verified.",
+  "public_sources_unchanged_during_tests": true,
+  "runtime_matches_latest_local_source": true,
+  "git_normalization": "LF text line endings only"
+}

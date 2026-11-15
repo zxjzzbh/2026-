@@ -89,10 +89,11 @@ class FileSource:
 
 
 class CameraSource:
-    def __init__(self, index=0, width=None, height=None, fps=None, timeout_s=3.0, fourcc=None, decode_fps=None):
+    def __init__(self, index=0, width=None, height=None, fps=None, timeout_s=3.0, fourcc=None, decode_fps=None, frame_callback=None):
         if decode_fps is not None and not 0 < decode_fps <= 240:
             raise ValueError('camera decode FPS must be positive and at most 240')
         self.decode_interval = 1 / decode_fps if decode_fps is not None else 0
+        self.frame_callback = frame_callback
         from .cameras import camera_selector, validate_linux_camera
         import sys
         self.selector = camera_selector(index)
@@ -156,6 +157,8 @@ class CameraSource:
                 if not ok or image is None:
                     raise RuntimeError("camera read failed; previous frame is not reused")
                 frame = Frame(image, seq, None, received * 1000)
+                if self.frame_callback is not None:
+                    self.frame_callback(frame)
                 with self._condition:
                     self._latest = frame
                     self._condition.notify_all()

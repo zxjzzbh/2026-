@@ -11,6 +11,8 @@ from .cone_maneuver import TargetGap,ObservedLaneRecovery
 from .cone_mission import ConeMissionLedger
 from .cone_passage import PassageEvidence
 from .cone_route import assess_route
+from .cone_route_choice import ProductionRouteChoice
+from .cone_recovery import FeedbackPause
 from .steering import CENTER_US
 from .lane_following import SteeringController,advance_steering
 from .cone_guidance import CurrentTargetEvidence,GuidanceBudgets,strict_visual,TARGET_ONLY_MAX_S,NO_GUIDANCE_MAX_S
@@ -53,6 +55,7 @@ class ContinuousConeController(LowSpeedController):
         self.maneuver_phase='search';self.effective_steering_gain=1.
         self.target_identity_revision=0;self.unverified_recovery=False
         self.route_assessment=None;self.paired_recovery_continuation=False
+        self.route_choice=ProductionRouteChoice(settings);self.route_waiting=False;self.route_changed=False;self.route_unwind_side=None
         self.mission=ConeMissionLedger(max_frame_age_s=VISION_MAX_AGE_S,max_gap_s=max_control_gap_s)
         self.passage=PassageEvidence(settings,max_frame_age_s=VISION_MAX_AGE_S,max_gap_s=max_control_gap_s)
         self.pass_evidence={};self.last_pass_rejection=None
@@ -77,6 +80,7 @@ class ContinuousConeController(LowSpeedController):
                 'target_identity_revision':self.target_identity_revision,
                 'paired_recovery_continuation':self.paired_recovery_continuation,
                 'route_assessment':self.route_assessment,
+                'route_choice':dict(self.route_choice.report),'right_boundary':dict(self.route_choice.boundary.report),
                 'passage_evidence':copy.deepcopy(self.pass_evidence),
                 'last_pass_rejection':self.last_pass_rejection,
                 'boundary_output_withdrawal':self.boundary_output_withdrawal,
@@ -130,8 +134,8 @@ class ContinuousConeController(LowSpeedController):
             self.guidance_mode=self.guidance_budget['mode']
             if self.guidance_budget.get('expired'):
                 if self.guidance_budget.get('reason')=='target_only_episode_deadline':
-                    raise ValueError(f'仅目标引导超过 {TARGET_ONLY_MAX_S:g} 秒试验上限，停止并重新准备')
-                raise ValueError(f'道路和锥桶均无可靠引导超过 {OBSTACLE_LINE_RECOVERY_S:g} 秒，停止并重新准备')
+                    raise FeedbackPause(f'仅目标引导超过 {TARGET_ONLY_MAX_S:g} 秒试验上限，暂停并重新确认')
+                raise FeedbackPause(f'道路和锥桶均无可靠引导超过 {OBSTACLE_LINE_RECOVERY_S:g} 秒，暂停并重新确认')
         return self.current_line_state!='paired'
 
     @staticmethod
@@ -254,6 +258,8 @@ class ContinuousConeController(LowSpeedController):
 
     def _lane_target(self,cones,nav):
         half=nav['half_envelope'];ego=self._measurements(nav)[0]
+        if half+.03>1-half-.03:
+            raise ValueError('白线内没有可容纳当前车体包络的空间')
         target=next((c for c in cones if c['id']==self.target),None)
         # A disappeared/clipped target may retain independent pass evidence,
         # but its historical lane fraction is no longer a motion target.
@@ -261,34 +267,20 @@ class ContinuousConeController(LowSpeedController):
         choices=self._positions(target,half)
         if half+.03<=ego<=1-half-.03 and abs(ego-target['fraction'])>=half+target['half_width']+.03:
             choices.append(('left' if ego<target['fraction'] else 'right',ego))
-        # Keep the current cone's side; select a new cone from the current
-        # position instead of forcing an S-turn across the next obstacle.
-        if self.side is not None:
-            choices=[p for p in choices if p[0]==self.side]
-        others=[c for c in cones if c['id']!=self.target and not c.get('near_field_continuation')]
-        upcoming=others[0] if others else None
-        def score(choice):
-            side,x=choice
-            change=.09 if self.side and side!=self.side else 0.
-            next_choices=self._positions(upcoming,half) if upcoming else []
-            if upcoming and abs(x-upcoming['fraction'])>=half+upcoming['half_width']+.03:
-                next_choices.append(('stay',x))
-            future=min((abs(y-x)+.2*abs(y-.5) for _,y in next_choices),default=abs(x-.5))
-            previous=self.target_fraction if self.side is not None and numeric(self.target_fraction) else ego
-            return abs(x-ego)+.2*abs(x-previous)+change+.3*future
-        if choices:
-            self.side,self.target_fraction=min(choices,key=score)
-            self.route_assessment=assess_route(self.s,nav,target,self.side,self.target_fraction)
-            return self.target_fraction
-        if self.stop_for_cones:
-            raise ValueError('锥桶与白线之间没有确认可行的绕行间隙，停止并重新准备')
-        # Contact continuation is an explicit policy, not evidence of clearance.
-        # Retain this cone/side and keep the target inside the observed lane;
-        # neither a blocked gap nor this fallback constitutes a passed cone.
-        lo,hi=half+.03,1-half-.03
-        if lo>hi:raise ValueError('白线内没有可容纳当前车体包络的目标，停止并重新准备')
-        previous=self.target_fraction if numeric(self.target_fraction) else ego
-        self.target_fraction=max(lo,min(hi,previous));self.best_effort=True
+        chosen=self.route_choice.choose(choices,target,nav,self.last_step,self.side,ego)
+        if chosen is None:
+            if self.stop_for_cones and not choices:
+                raise ValueError('锥桶与白线之间没有可用绕行间隙')
+            self.route_waiting=True
+            self.target_fraction=ego
+            self.route_assessment=assess_route(self.s,nav,target,None,None)
+            return ego
+        old=self.side
+        self.side,self.target_fraction=chosen[1],chosen[4]
+        if old is not None and self.side!=old:
+            self.route_changed=True;self.route_unwind_side=self.side
+            self.passage.reset('route_side_changed');self.pass_evidence={}
+            self.pd.reset()
         self.route_assessment=assess_route(self.s,nav,target,self.side,self.target_fraction)
         return self.target_fraction
 
@@ -340,7 +332,7 @@ class ContinuousConeController(LowSpeedController):
             desired=self._lane_target(cones,nav);ego=near
             self.target_space='lane' if current_lane else 'lane_follow'
             if current_lane:reason='锁定绕行侧，跟随锥桶边缘目标'
-            if self.best_effort:reason='未确认绕行间隙，按用户要求保持白线内目标继续；不视为通过'
+            if self.route_waiting:reason='当前绕行侧不可用，撤去旧舵并等待可行路线确认'
         else:
             desired=ego=.5;heading=0.;self.target_space='none'
             reason='道路和目标引导暂失，在1秒恢复预算内降低油门并撤去旧舵'
@@ -392,7 +384,8 @@ class ContinuousConeController(LowSpeedController):
             return self._neutral('arming','3 秒中位初始化')
         if not self.has_forward_command and not reliable:
             return self._neutral('waiting_for_lane','等待同一视角连续3个新鲜双线帧且持续0.15秒，尚未前进')
-        self.phase='driving';self.best_effort=False
+        self.phase='driving';self.best_effort=False;self.route_waiting=False;self.route_changed=False
+        self.route_choice.boundary.observe(nav,now)
         if self.guidance_source!=mode:
             self.guidance_source=mode
             self.pd.reset();self.return_evidence.reset()
@@ -473,6 +466,12 @@ class ContinuousConeController(LowSpeedController):
             elif near>1-soft or correction=='left':
                 error=min(error,-.08-(near-(1-soft)));self.boundary_turn='left'
             if self.boundary_turn:reason='白线预警，降低油门向'+('右' if self.boundary_turn=='right' else '左')+'纠偏'
+        if self.route_choice.boundary.prefer_left and not self.route_waiting and self.boundary_turn!='right':
+            # Boundary preference cannot cross a locked near cone; route choice
+            # above has already checked the available side.
+            if not self.target or self.side=='left':
+                error=min(error,-.08);self.boundary_turn='left'
+                reason='当前平面映射右边距小于50cm，沿可行路线向左纠偏'
         self.effective_steering_gain=self.steering_gain if avoiding and not self.boundary_turn else 1.
         requested=self.control.request(error,captured,context=(mode,self.target,self.target_space),
             gain=self.effective_steering_gain,boundary_turn=self.boundary_turn)
@@ -520,6 +519,7 @@ class ContinuousConeController(LowSpeedController):
                 self.actual_steering=max(CENTER_US-80,min(CENTER_US+80,self.actual_steering))
             self.return_evidence.reset();self.return_confirmed=False
             steering_phase=('single_line_avoid' if self.current_line_state=='single' else 'target_only_avoid') if target_feedback else 'limited_recovery'
+        if self.route_waiting:requested=CENTER_US
         self.requested_steering=round(requested)
         self.actual_steering,self.boundary_output_withdrawal=advance_steering(
             self.actual_steering,requested,dt,boundary_turn=self.boundary_turn,
@@ -542,6 +542,12 @@ class ContinuousConeController(LowSpeedController):
         cap=1570 if degraded or self.target_space=='pending' or turn>=156 or abs(heading)>=.15 else 1580 if turn>=65 or abs(heading)>=.07 else forward
         pulse=min(forward,cap)
         action='search' if pulse==forward else 'cone_'+str(pulse)
+        route_unwinding=(self.route_unwind_side==self.side and ((self.side=='left' and self.actual_steering<CENTER_US)
+            or (self.side=='right' and self.actual_steering>CENTER_US)))
+        if not route_unwinding:self.route_unwind_side=None
+        if self.route_waiting or route_unwinding:
+            cap=pulse=1500;action='neutral';steering_phase='route_recheck'
+            reason='绕行空间变化，撤去旧舵并重新确认可行侧'
         if self.boundary_output_withdrawal:
             cap=pulse=1500;action='neutral';steering_phase='boundary_withdrawal'
             reason='边界迫近，撤去外向旧舵并暂缓前进'

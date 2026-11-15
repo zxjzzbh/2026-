@@ -192,6 +192,13 @@ def test_metric_session_uses_world_feedback_not_browser_selected_side():
     # No world feedback: never fall back to pixel seeking or a stale direction.
     run.command('parking_trial_keepalive',command(run,41),4.3)
     run.tick(camera_sample(4.3),4.3)
+    assert run.active and run.phase=='recovering' and actor.commands[-1]['action']=='brake'
+    for i in range(42,243):
+        t=round(4.3+(i-41)*.1,8)
+        run.command('parking_trial_keepalive',command(run,i),t)
+        run.tick(camera_sample(t),t)
+        if t>=4.7:assert actor.commands[-1]['esc_us']==1500
+        if not run.active:break
     assert not run.active and actor.closed and run.phase=='fault'
 
 

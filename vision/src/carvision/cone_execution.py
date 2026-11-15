@@ -14,6 +14,7 @@ from .cone_continuous import ContinuousConeController,OBSTACLE_LINE_RECOVERY_S,D
 from .cone_trial_output import ConeTrialActuator
 from .cone_command import ConeCommandSender
 from .cone_evidence import StablePairedLane
+from .cone_recovery import ConeRecovery,FeedbackPause
 
 
 from .page_heartbeat import PAGE_LEASE_S as CONE_PAGE_LEASE_S
@@ -43,6 +44,8 @@ class ConeRun:
         self.first_stop=None;self.stop_history=[];self.cleanup_error=None
         self.failure_navigation=None;self.last_requested_intent=None
         self.output_lock=threading.RLock();self.control_timing=None
+        self.recovery=ConeRecovery();self.resume_capture=None
+        self.record_error=None
         self.heartbeat_sequence=-1;self.heartbeat_count=0;self.last_heartbeat_s=None;self.maximum_heartbeat_gap_s=0.
 
     def status(self,settings,base,now):
@@ -66,7 +69,7 @@ class ConeRun:
             'control_timing':self.actuator.timing() if callable(getattr(self.actuator,'timing',None)) else self.control_timing,
             'page_heartbeat':self.heartbeat_status(),
             'first_stop':copy.deepcopy(self.first_stop),'stop_history':copy.deepcopy(self.stop_history),
-            'cleanup_error':self.cleanup_error,'stable_lane_frames':self.lane_start.count,
+            'cleanup_error':self.cleanup_error,'record_error':self.record_error,'stable_lane_frames':self.lane_start.count,
             'last_requested_intent':copy.deepcopy(self.last_requested_intent),
             'slalom_required':True,'slalom':nav.get('slalom'),
             'start_blocked_reason':'' if can_start else ('等待至少 3 帧且持续 0.15 秒的新鲜双白线，保持 F/B 并确认静止' if self.profile==PROFILE
@@ -96,6 +99,8 @@ class ConeRun:
         self.owner,self.token=client,secrets.token_hex(16);self.sequence=-1;self.lease_until=now+CONE_PAGE_LEASE_S;self.prepared_s=now
         self.controller=self.navigation=self.intent=self.execution=None
         self.control_timing=None
+        self.recovery=ConeRecovery();self.resume_capture=None
+        self.record_error=None
         self.heartbeat_sequence=-1;self.heartbeat_count=0;self.last_heartbeat_s=now;self.maximum_heartbeat_gap_s=0.
         self.first_stop=None;self.stop_history=[];self.cleanup_error=None;self.lane_start.reset();self.last_record=None
         self.failure_navigation=None;self.last_requested_intent=None
@@ -164,7 +169,32 @@ class ConeRun:
         if callable(getattr(self.actuator,'refresh_page_deadline',None)):
             self.actuator.refresh_page_deadline(self.lease_until)
 
-    def tick(self,navigation,now):
+    def _send(self,handle,intent,navigation=None):
+        if self.profile==PROFILE and callable(getattr(handle,'send_race',None)):
+            intent={**intent,'control_profile':'cone'}
+            stamp=(navigation or {}).get('captured_s')
+            return handle.send_race(intent,run_until=self.lease_until,page_deadline_s=self.lease_until,
+                evidence_until=stamp+VISION_MAX_AGE_S if isinstance(stamp,(int,float)) else None,
+                recovering=intent.get('control_recovering',False),
+                recovered=intent.get('control_recovered',False))
+        return handle.send(intent)
+
+    def _record(self,navigation,now,*,motion=None):
+        nav=navigation or {};intent=self.intent or {}
+        key=(nav.get('captured_s'),intent.get('phase'),intent.get('action'),
+             bool(intent.get('control_recovered')))
+        if not self.log or self.log.closed or key==self.last_record:return
+        try:
+            self.log.write(json.dumps({'now_s':now,'intent':intent,
+                'navigation':{k:v for k,v in nav.items() if k not in ('path','sample')},
+                'motion':motion,'sample':nav.get('sample'),'path':nav.get('path',[])[::5],
+                'execution':self.execution},ensure_ascii=False,allow_nan=False)+'\n')
+            self.log.flush();self.last_record=key
+        except (OSError,ValueError,TypeError) as exc:
+            # A recording problem is visible, but is not a control failure.
+            self.record_error=str(exc)
+
+    def tick(self,navigation,now,*,motion=None):
         if not self.active:return
         neutral={'action':'neutral','esc_us':1500,'steering_us':1610}
         if self.profile==PROFILE:neutral.update(control_profile='cone',page_deadline_s=self.lease_until)
@@ -174,11 +204,11 @@ class ConeRun:
             if (self.controller is None and self.actuator is not None
                     and (navigation or {}).get('captured_s',-1e9)<=getattr(self,'initialized_capture',-1e9)):
                 self.navigation=None
-                self.actuator.send(neutral)
+                self._send(self.actuator,neutral)
                 return
             self.navigation=navigation
             if self.profile==PROFILE:self.lane_start.update(navigation,now)
-            motion=(navigation or {}).get('motion') or {}
+            motion=motion if motion is not None else (navigation or {}).get('motion') or {}
             fresh=navigation and 0<=now-navigation.get('captured_s',-1e9)<=VISION_MAX_AGE_S
             feedback_ok=bool(motion.get('valid')) if self.profile!=PROFILE else bool(
                 navigation and navigation.get('experimental') and navigation.get('ready'))
@@ -194,13 +224,33 @@ class ConeRun:
                 self.navigation=None
                 self.phase='preparing';self.reason='执行器已就绪，等待初始化后的新画面'
                 self.intent={**neutral,'phase':self.phase,'reason':self.reason}
-                self.execution=handle.send(self.intent)
+                self.execution=self._send(handle,self.intent,navigation)
                 return
             if self.controller is None and self.actuator is not None and not fresh:
                 self.phase='preparing';self.reason='中位保持，等待新的相机画面'
                 self.intent={**neutral,'phase':self.phase,'reason':self.reason}
-                self.execution=self.actuator.send(self.intent)
+                self.execution=self._send(self.actuator,self.intent,navigation)
                 return
+            resumable=(self.profile==PROFILE and self.controller is not None
+                       and callable(getattr(self.actuator,'race_interrupted',None)))
+            if resumable:
+                interrupted=self.actuator.race_interrupted()
+                pause=self.recovery.update(navigation,motion,now,interrupted=interrupted,stale=not fresh,
+                    was_forward=(self.intent or {}).get('esc_us',1500)>1500)
+                identity=tuple((navigation or {}).get(k) for k in ('source_camera','frame_id','captured_s'))
+                if pause is not None:
+                    if pause.get('control_recovered'):
+                        self.controller.recover_control(now);self.resume_capture=identity
+                    self.intent=pause;self.phase,self.reason=pause['phase'],pause['reason']
+                    with self.output_lock:
+                        if self.active and self.actuator is not None:
+                            self.execution=self._send(self.actuator,pause,navigation)
+                    self._record(navigation,now,motion=motion)
+                    return
+                if self.resume_capture is not None:
+                    if identity==self.resume_capture:
+                        self.execution=self._send(self.actuator,neutral,navigation);return
+                    self.resume_capture=None
             if not fresh:
                 age=now-(navigation or {}).get('captured_s',-1e9)
                 raise ValueError(f'避障视觉图像过期：{age*1000:.0f} ms，已结束试验')
@@ -211,7 +261,13 @@ class ConeRun:
                     else '中位准备完成，等待连续可靠双白线后才能开始')
                 intent={'action':'neutral','esc_us':1500,'steering_us':1610,'phase':'ready','reason':self.reason}
             else:
-                intent=self.controller.step(navigation,now);self.phase,self.reason=intent['phase'],intent['reason']
+                try:
+                    intent=self.controller.step(navigation,now)
+                except FeedbackPause:
+                    if not resumable:raise
+                    intent=self.recovery.update(navigation,motion,now,stale=True,
+                        was_forward=(self.intent or {}).get('esc_us',1500)>1500)
+                self.phase,self.reason=intent['phase'],intent['reason']
             handle=self.actuator
             if not self.active or handle is None:return
             if self.profile==PROFILE:
@@ -223,13 +279,8 @@ class ConeRun:
             if intent.get('fresh_control') is False:return
             with self.output_lock:
                 if not self.active or self.actuator is not handle:return
-                self.execution=handle.send(intent)
-            key=(navigation.get('captured_s'),intent['phase'],intent['action'])
-            if self.log and not self.log.closed and key!=self.last_record:
-                self.log.write(json.dumps({'now_s':now,'intent':intent,
-                    'navigation':{k:v for k,v in navigation.items() if k not in ('path','sample')},
-                    'sample':navigation.get('sample'),'path':navigation.get('path',[])[::5],
-                    'execution':self.execution},ensure_ascii=False,allow_nan=False)+'\n');self.log.flush();self.last_record=key
+                self.execution=self._send(handle,intent,navigation)
+            self._record(navigation,now,motion=motion)
             if self.phase=='complete':self.cancel(self.reason,phase='complete',source='controller',now=now)
         except Exception as exc:
             if self.active:self.cancel(str(exc),phase='fault',source='controller',now=now)
@@ -265,6 +316,7 @@ class ConeRun:
             if self.folder:
                 try:(self.folder/'summary.json').write_text(json.dumps({'phase':self.phase,'reason':self.reason,'field_verified':False,
                     'first_stop':self.first_stop,'stop_history':self.stop_history,'cleanup_error':self.cleanup_error,
+                    'record_error':self.record_error,
                     'control_timing':self.control_timing,'page_heartbeat':self.heartbeat_status(),
                     'failure_navigation':self.failure_navigation,
                     'last_requested_intent':self.last_requested_intent},ensure_ascii=False,indent=2),encoding='utf-8')

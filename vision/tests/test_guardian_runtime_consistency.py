@@ -217,8 +217,11 @@ def test_handoff_checks_owner_before_mode_rpc_and_switches_before_pausing(rig):
     actuator, _ = borrow(rig)
     assert changes[0] == ('autonomous',False,'enabled')
     actuator.close()
-    assert changes[-1][0] == 'manual'
+    assert len(changes)==1 and owner.guardian_mode=='autonomous'
     assert controller.mode == 'emergency' and not owner.active
+    owner.dispatch('reset',{})
+    owner.dispatch('enable',{'client':CLIENT,'bench_ready':True})
+    assert changes[-1][0] == 'manual'
     assert all(row[0]!='motion' for row in backend.writes)
 
 
@@ -242,7 +245,7 @@ def test_failed_mode_switch_never_retires_the_manual_watcher_first(rig, restore_
     backend.set_control_mode = lambda mode: None
 
 
-def test_release_finishes_brake_before_restoring_manual_mode(rig):
+def test_release_finishes_brake_without_restoring_manual_mode(rig):
     now, _, backend, controller, owner, _ = rig
     modes = []
     backend.set_control_mode = lambda mode: modes.append((mode,now[0],owner.guard.esc if owner.guard else 1500))
@@ -251,8 +254,11 @@ def test_release_finishes_brake_before_restoring_manual_mode(rig):
     now[0]=.05; actuator.close()
     assert [mode for mode,_,_ in modes]==['autonomous']
     now[0]=.41; owner.tick()
-    assert modes[-1]==('manual',.41,1500)
+    assert [mode for mode,_,_ in modes]==['autonomous']
     assert owner.guard is None and controller.mode=='emergency'
+    owner.dispatch('reset',{})
+    owner.dispatch('enable',{'client':CLIENT,'bench_ready':True})
+    assert modes[-1]==('manual',.41,1500)
 
 
 def test_mode_restore_failure_cannot_reenable_manual_motion(rig):
@@ -261,8 +267,11 @@ def test_mode_restore_failure_cannot_reenable_manual_motion(rig):
     actuator, _ = borrow(rig)
     def fail(mode): raise RuntimeError('manual mode ACK lost')
     backend.set_control_mode = fail
+    owner.dispatch('autonomy_release', {'client':CLIENT,'worker_token':actuator.token})
+    assert not owner.active and not owner.handoff_fault and controller.mode=='emergency'
+    owner.dispatch('reset',{})
     with pytest.raises(RuntimeError, match='manual mode ACK lost'):
-        owner.dispatch('autonomy_release', {'client':CLIENT,'worker_token':actuator.token})
+        owner.dispatch('enable',{'client':CLIENT,'bench_ready':True})
     assert not owner.active and owner.handoff_fault and controller.mode=='fault'
     with pytest.raises(ValueError): owner.dispatch('enable',{'client':CLIENT,'bench_ready':True})
     backend.set_control_mode = lambda mode: None

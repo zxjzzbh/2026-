@@ -23,6 +23,7 @@ class WorkerAutonomyOwner:
         self.last_motion_at=None
         self.retired_owner=self.retired_token=None
         self.guardian_mode='manual'
+        self.release_confirmed=False
 
     @property
     def active(self):return self.token is not None
@@ -35,6 +36,8 @@ class WorkerAutonomyOwner:
                     'autonomy_handoff_enabled':bool(self.enabled),
                     'autonomy_active':self.active,'autonomy_owner_client':self.owner,
                     'autonomy_draining':guard is not None and not self.active,
+                    'autonomy_release_confirmed':self.release_confirmed and guard is None and not self.active,
+                    'manual_rearm_required':self.guardian_mode!='manual',
                     'autonomy_reason':self.reason,'autonomy_fault':guard.fault if guard else self.handoff_fault,
                     'autonomy_handoff_fault':self.handoff_fault,
                     'guardian_control_mode':self.guardian_mode,
@@ -150,6 +153,7 @@ class WorkerAutonomyOwner:
             self._restore_guardian_mode()
             raise
         try:
+            self.release_confirmed=False
             self._pause_manual()
             self.guard=guard;guard.neutral()
             self.owner=client;self.token=secrets.token_hex(24)
@@ -173,7 +177,13 @@ class WorkerAutonomyOwner:
     def tick(self):
         with self.lock:
             guard=self.guard
-            if guard is None:return
+            if guard is None:
+                # Completed autonomy remains parked without re-enabling the
+                # manual watcher or requiring a cellular route. This worker
+                # still supervises the independent hardware guardian.
+                if self.release_confirmed and self.guardian_mode!='manual' and not self.closed:
+                    self.backend.check()
+                return
             self.backend.check()  # Preserve the original independent Pi guardian.
             now=self.clock();guard.tick(now)
             if guard.fault and self.active:self._begin_release(guard.fault)
@@ -185,11 +195,7 @@ class WorkerAutonomyOwner:
                 self._motion_segment(guard.esc,deadline)
             if not self.active and guard.emergency_until is None:
                 guard.neutral();self.guard=None
-                try:self._restore_guardian_mode()
-                except Exception as exc:
-                    self._latch_handoff_failure(exc)
-                    raise
-                self._resume_manual()
+                self.release_confirmed=True
 
     def dispatch(self,action,payload):
         if not isinstance(payload,dict):raise ValueError('JSON object required')
@@ -226,6 +232,21 @@ class WorkerAutonomyOwner:
                 return self.status()
             if action=='status':return self.status()
             if self.guard is not None:raise ValueError('自主流程持有执行器，遥控指令已拒绝')
+            if action=='enable' and self.guardian_mode!='manual':
+                # Validate the explicit request before changing monitoring.
+                # Reset alone, status polls, key events and stale tokens never
+                # grant manual traction or trigger a network mode transition.
+                client=self.controller._client(payload.get('client'))
+                state=self.controller.status()
+                if (state['mode']!='disabled' or payload.get('bench_ready') is not True
+                        or self.controller.owner not in (None,client)):
+                    raise ValueError('重新启用遥控前需明确重置并确认就绪')
+                try:
+                    self._restore_guardian_mode()
+                    self._resume_manual()
+                except Exception as exc:
+                    self._latch_handoff_failure(exc)
+                    raise
             if action=='shutdown':self.controller.emergency('控制服务退出')
             else:self.controller.request(action,payload)
             return self.status()
@@ -243,7 +264,6 @@ class WorkerAutonomyOwner:
             with self.lock:
                 if self.guard is not None:self.guard.neutral();self.guard=None
                 self.owner=self.token=None
-                if self.guardian_mode!='manual':self._restore_guardian_mode()
 
 
 class BorrowedActuator:
@@ -253,6 +273,7 @@ class BorrowedActuator:
     def __init__(self,worker,settings,client,*,clock=time.monotonic):
         self.worker,self.client,self.clock=worker,client,clock
         self.sequence=0;self.closed=False;self.close_error=None
+        self.release_status=None
         reply=worker.request('autonomy_acquire',{'client':client,'settings':settings,'fb_mode_confirmed':True})
         token=reply.get('worker_token')
         if not reply.get('autonomy_active') or not isinstance(token,str):
@@ -274,5 +295,24 @@ class BorrowedActuator:
     def close(self):
         if self.closed:return
         self.closed=True
-        try:self.worker.request('autonomy_release',{'client':self.client,'worker_token':self.token})
+        try:self.release_status=self.worker.request('autonomy_release',{'client':self.client,'worker_token':self.token})
         except (OSError,ValueError,RuntimeError) as exc:self.close_error=str(exc)
+
+    def confirm_release(self,timeout_s=1.):
+        """Wait for the finite brake and acknowledged neutral, not manual readiness."""
+        if not self.closed:raise RuntimeError('close must precede release confirmation')
+        deadline=time.monotonic()+timeout_s
+        try:
+            if self.close_error:raise RuntimeError(self.close_error)
+            while True:
+                status=self.release_status or {}
+                if status.get('autonomy_release_confirmed') is True and not status.get('autonomy_active'):
+                    return True
+                if time.monotonic()>=deadline:
+                    raise RuntimeError('自主执行器有限制动或中位释放未确认')
+                time.sleep(.01)
+                self.release_status=self.worker.request('autonomy_release',
+                    {'client':self.client,'worker_token':self.token})
+        except (OSError,ValueError,RuntimeError) as exc:
+            self.close_error=str(exc)
+            raise

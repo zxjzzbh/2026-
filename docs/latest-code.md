@@ -1,10 +1,10 @@
 # 最新代码与固定源码包
 
-2026-11-14 同步的主线版本为 **`race-control-consistency-20261114`**。
+2026-11-15 同步的主线版本为 **`race-flow-repair-20261115`**。
 
-从 `main` 或 main ZIP 获取当前完整源码，包括执行器、控制恢复、识别间隔和停车路径输出修复。历史固定标签与附件保持原版本。
+使用 `main` 或 main ZIP 获取本次完整修复代码；历史固定标签与附件保持原版本。运行源码与网页共209个文件，已逐文件校验。
 
-本次上传没有部署车辆；正式全流程仍需真实停车动态标定与实车验收。[修改说明](imports/2026-11-14-control-consistency/release-notes.txt) · [验证记录](imports/2026-11-14-control-consistency/verification.json)
+本次上传未部署车辆；正式全流程仍需真实停车标定与实车验收。[修改说明](imports/2026-11-15-flow-repair/release-notes.txt) · [验证记录](imports/2026-11-15-flow-repair/verification.json)
 
 ## 哪一份是最新代码
 

@@ -24,7 +24,7 @@ def test_scene_save_cannot_publish_or_tick_the_old_inflight_camera_batch(tmp_pat
             else:drive.stop.set()
             return {'captured_s':drive.clock(),'scene':self.scene}
     monkeypatch.setattr('carvision.cone_observer.ConeCamera',Reader)
-    monkeypatch.setattr(drive.run,'tick',lambda nav,now:ticks.append(dict(nav)))
+    monkeypatch.setattr(drive.run,'tick',lambda nav,now,**kwargs:ticks.append(dict(nav)))
     monkeypatch.setattr(drive.short,'tick',lambda *args:None)
     drive._work()
     assert len(readers)==2 and [reader.scene for reader in readers]==[old_scene,new_scene]

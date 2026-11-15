@@ -22,6 +22,7 @@ class ParkingTask:
         self.mission = ParkingMission(self.s,max_control_gap_s=max_control_gap_s)
         self.steering = float(CENTER_US)
         self.control_at = None
+        self.localization_epoch = None
 
     @property
     def selected(self):
@@ -41,6 +42,13 @@ class ParkingTask:
             return {'action': 'stop', 'phase': 'not_ready', 'reason': '停车实测标定未就绪',
                     'missing': list(self.readiness['missing']), 'selected_slot': None,
                     'payment_ready': False, 'hardware_output': False}
+        epoch=world.get('localization_epoch') if isinstance(world,dict) else None
+        if type(epoch) is int and epoch>=0:
+            if self.localization_epoch is not None and epoch<self.localization_epoch:
+                raise ValueError('停车定位版本倒退')
+            if epoch>0 and epoch!=self.localization_epoch:
+                self.recover_control()
+            self.localization_epoch=epoch
         return self.mission.step(world, now)
 
     def intent(self, decision, now, captured_s=None):

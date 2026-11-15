@@ -243,11 +243,11 @@ def test_stronger_maneuver_does_not_authorize_initial_degraded_lane(state):
         assert result['esc_us']==1500 and not controller.has_forward_command
 
 
-def test_no_forced_alternation_overrides_the_shorter_valid_second_cone_route():
+def test_second_cone_uses_current_space_tie_rule_instead_of_forced_alternation():
     controller=started(gain=1.5)
     controller.last_pass_side='left'
-    # Both sides fit; left is nearer the current car reference. The previous
-    # pass being left is not a reason to force the farther right candidate.
+    # Both sides fit with equal space. The user rule prefers right, independent
+    # of the previous pass side or which lateral endpoint is nearer now.
     result=controller.step(observed(.3,target=cone(fraction=.5),near=.35),.3)
-    assert controller.side=='left' and result['requested_steering_us']>1610
+    assert controller.side=='right' and result['requested_steering_us']<1610
     assert controller.count==0

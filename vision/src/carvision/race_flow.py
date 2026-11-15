@@ -251,6 +251,9 @@ class RaceFlowController:
 
     def _crosswalk_control_pause(self, now):
         task = self.controller
+        if task.phase == 'target_recovery':
+            task.recover_target_control(now)
+            return
         task.last_t = None
         task.metric_history.clear()
         task.no_progress_since = task.stop_since = task.hold_since = None
@@ -281,7 +284,7 @@ class RaceFlowController:
             cause = ('lane_missing' if lane_lost else 'sender_deadline' if interrupted else
                      'lane_frame_stale' if gap and fresh else 'task_frame_stale')
             self.control_pause = {'at': now, 'until': now + (.35 if self.last_drive and not interrupted else 0.),
-                                  'hits': 0, 'frame': None, 'needs_lane': needs_lane, 'lane_lost': lane_lost,
+                                  'hits': 0, 'cadence_hits':0, 'frame': None, 'needs_lane': needs_lane, 'lane_lost': lane_lost,
                                   'cause': cause}
             self.control_stillness.reset()
             self.lane_recovery.reset()
@@ -340,12 +343,20 @@ class RaceFlowController:
             motion = {'captured_s': pose_stamp, 'valid': fresh, 'moving': not fresh}
         previous = pause['frame']
         if fresh and stamp >= pause['at'] and (previous is None or stamp > previous[2] and identity != previous):
-            if previous is not None and stamp-previous[2]>max(limit,RACE_CONTROL_WINDOW_S):
-                pause['hits'] = 0
+            timely = previous is not None and identity[0]==previous[0] and stamp-previous[2]<=RACE_CONTROL_WINDOW_S
+            rest = parking_still if self.stage=='parking_entry' else continuous_stillness(motion,now)
+            bridges = (previous is not None and rest is not None and identity[0]==previous[0]
+                       and rest[0]<=previous[2] and rest[1]>=stamp)
+            if previous is not None and not timely and not bridges:pause['hits'] = 0
+            # Continuous independent rest may connect sparse observations, but
+            # cannot prove the planner can sustain forward control. Require two
+            # timely decisions too; otherwise resuming would stop every cycle.
+            pause['cadence_hits'] = pause['cadence_hits']+1 if timely else 1
             pause['frame'] = identity
             pause['hits'] += 1
         elif not fresh:
             pause['hits'] = 0
+            pause['cadence_hits'] = 0
             pause['frame'] = None
         motion_stamp = motion.get('captured_s')
         pause['task_age_s'] = now-stamp if numeric(stamp) else None
@@ -355,7 +366,7 @@ class RaceFlowController:
         still = parking_still if self.stage == 'parking_entry' else continuous_stillness(motion, now)
         if still is not None and still[1]-max(still[0], pause['until']) >= .3-1e-9:
             stopped = True
-        if stopped and fresh and lane_ready and pause['hits']>=2 and now>=pause['until']+.1:
+        if stopped and fresh and lane_ready and pause['hits']>=2 and pause['cadence_hits']>=2 and now>=pause['until']+.1:
             if self.stage == 'wait_board':
                 self.departure.restart_confirmation()
             elif self.stage == 'crosswalk':
@@ -376,9 +387,19 @@ class RaceFlowController:
         braking = now < pause['until']
         reason = ('巡线暂失，停车等待连续白线确认' if pause['lane_lost'] else
                   '控制更新中断，保持当前任务并等待新鲜反馈')
+        if stopped and fresh and lane_ready and pause['hits']>=2 and pause['cadence_hits']<2:
+            reason='停稳和当前目标已重新确认，等待识别处理间隔恢复后再继续'
         return self._out(reason,
                          {'action':'brake' if braking else 'neutral','esc_us':1400 if braking else 1500,
                           'steering_us':1610,'control_recovering':True})
+
+    def accept_early_stop(self,event,now):
+        if self.stage != 'traffic':return None
+        intent=self.controller.accept_early_stop(event,now)
+        if intent is None:return None
+        if intent.get('phase')=='fault':return self.fail(intent['reason'])
+        self.last_intent=intent
+        return self._out(intent['reason'],intent)
 
     def _out(self,reason=None,intent=None,events=None):
         raw=intent or {'action':'neutral','esc_us':1500,'steering_us':1610}
@@ -388,7 +409,7 @@ class RaceFlowController:
         pause = getattr(self, 'control_pause', None)
         if pause is not None:
             result['recovery_diagnostics'] = {key:pause.get(key) for key in
-                ('cause','at','hits','task_age_s','lane_age_s','needs_lane','lane_lost')}
+                ('cause','at','hits','cadence_hits','task_age_s','lane_age_s','needs_lane','lane_lost')}
         if self.stage in ('arming','wait_board'):
             result['departure_diagnostics']=self.departure.diagnostics()
         cone_limited=result['action'].startswith('cone_')

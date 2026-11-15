@@ -157,6 +157,23 @@ class MetricParkingController:
         self.mission = self.task.mission
         self.started = None
         self.phase = 'arming'
+        self.recovery_started = None
+        self.recovery_brake_until = None
+        self.last_forward = False
+
+    def _wait_for_world(self, now):
+        if self.recovery_started is None:
+            self.recovery_started = now
+            self.recovery_brake_until = now+.35 if self.last_forward else now
+            self.task.recover_control()
+        expired = now-self.recovery_started >= 20.
+        self.phase = 'fault' if expired else 'recovering'
+        brake = not expired and now < self.recovery_brake_until
+        return {'action': 'brake' if brake else 'neutral',
+                'esc_us': 1400 if brake else 1500, 'steering_us': CENTER_US,
+                'phase': self.phase, 'reason': ('原车位重定位未恢复，保持中位并结束本轮' if expired else
+                    '地面定位暂不可用：制动后等待停稳、重新定位原车位'),
+                'hardware_output': False, 'payment_ready': False}
 
     def step(self, sample, now):
         if self.started is None:
@@ -168,13 +185,12 @@ class MetricParkingController:
             return {'action': 'neutral', 'esc_us': 1500, 'steering_us': CENTER_US,
                     'phase': 'arming', 'reason': '保持中位初始化3秒', 'hardware_output': False}
         world = sample.get('parking_world')
-        if not isinstance(world, dict):
-            self.phase = 'fault'
-            return {'action': 'brake' if self.mission.selected else 'neutral',
-                    'esc_us': 1400 if self.mission.selected else 1500, 'steering_us': CENTER_US,
-                    'phase': self.phase, 'reason': '没有新鲜米制车位/位姿反馈，结束本轮重新准备',
-                    'hardware_output': False}
+        if (not isinstance(world, dict) or self.recovery_started is not None
+                and (now < self.recovery_brake_until or now-self.recovery_started >= 20.)):
+            return self._wait_for_world(now)
+        self.recovery_started = self.recovery_brake_until = None
         output = self.task.step(world, now)
+        self.last_forward = output['esc_us'] > 1500
         decision = output['parking_decision']
         self.phase = 'done' if decision['phase'] == 'parked' else decision['phase']
         output.update(phase=self.phase, selected_side=decision['selected_slot'],

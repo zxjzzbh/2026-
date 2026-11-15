@@ -139,6 +139,29 @@ class PreviewState:
         self.raw_received_ms = None
         self.raw_updated = None
         self.raw_preview_fps = 0.0
+        self.capture_frame = None
+        self.preview_error = None
+        self.raw_error = None
+
+    def publish_capture(self, frame):
+        """Publish before optional JPEG/overlay work, retaining real identity."""
+        with self.condition:
+            if self.state in ('error','stopped'):return
+            current=self.capture_frame
+            if current is not None and frame.receive_monotonic_ms<=current.receive_monotonic_ms:return
+            self.capture_frame=frame
+            self.condition.notify_all()
+
+    def preview_failed(self, error, *, raw=False):
+        with self.condition:
+            if self.state in ('error','stopped'):return
+            if raw:
+                self.raw_error=str(error)
+                self.raw_jpeg=None
+            else:
+                self.preview_error=str(error)
+                self.frames,self.result={},None
+            self.condition.notify_all()
 
     def publish_raw(self, jpeg, frame):
         """The latest raw frame is independent of recognition completion."""
@@ -150,6 +173,7 @@ class PreviewState:
                 rate = 1 / (now - self.raw_updated)
                 self.raw_preview_fps = rate if not self.raw_preview_fps else .8*self.raw_preview_fps + .2*rate
             self.raw_enabled = True
+            self.raw_error = None
             self.raw_updated = now
             self.raw_jpeg = jpeg
             self.raw_frame_id = frame.frame_id
@@ -161,9 +185,10 @@ class PreviewState:
         age = None if self.raw_received_ms is None else max(0, time.monotonic()*1000-self.raw_received_ms)
         state = self.state if self.state in ("error", "stopped") else (
             "starting" if age is None else "stale" if age > self.stale_ms else "ok")
+        if self.raw_error and state not in ('error','stopped'):state='error'
         return {"state": state, "preview_fps": self.raw_preview_fps,
                 "host_frame_age_ms": age, "frame_id": self.raw_frame_id,
-                "sequence": self.raw_sequence}
+                "sequence": self.raw_sequence, "error":self.raw_error}
 
     def publish(self, frames, result):
         with self.condition:
@@ -175,6 +200,7 @@ class PreviewState:
                 self.preview_fps = rate if not self.preview_fps else .8*self.preview_fps+.2*rate
             self.updated = now
             self.frames, self.result = frames, result
+            self.preview_error = None
             self.sequence += 1
             self.state = "ok"
             self.condition.notify_all()
@@ -185,12 +211,15 @@ class PreviewState:
             self.error = error
             self.frames, self.result = {}, None
             self.raw_jpeg = self.raw_received_ms = self.raw_frame_id = None
+            self.capture_frame = None
             self.condition.notify_all()
 
     def _status(self):
         age = None if self.result is None else max(0, time.monotonic()*1000-self.result['receive_monotonic_ms'])
-        state = "stale" if self.state == "ok" and age > self.stale_ms else self.state
-        return {"state": state, "error": self.error, "preview_fps": self.preview_fps,
+        state = self.state
+        if state=='ok':state='starting' if age is None else 'stale' if age>self.stale_ms else 'ok'
+        if self.preview_error and state not in ('error','stopped'):state='error'
+        return {"state": state, "error": self.error or self.preview_error, "preview_fps": self.preview_fps,
                 "host_frame_age_ms": age, "result": self.result if state == "ok" else None,
                 "sequence": self.sequence,
                 "raw_preview": self._raw_status() if self.raw_enabled else None}
@@ -241,10 +270,14 @@ class PreviewWorker:
             for frame in self.source:
                 if self.stop_event.is_set():
                     break
+                # Legacy/test sources without a capture callback still publish
+                # original pixels before their optional preview encoding.
+                self.state.publish_capture(frame)
                 received = frame.receive_monotonic_ms / 1000
                 if received < next_publish:
                     continue
-                self.state.publish_raw(self._encode(frame.image), frame)
+                try:self.state.publish_raw(self._encode(frame.image), frame)
+                except Exception as exc:self.state.preview_failed(exc,raw=True)
                 next_publish = received + 1 / fps
         except Exception as exc:
             if not self.stop_event.is_set():
@@ -267,7 +300,8 @@ class PreviewWorker:
                 from .race_monitor import RaceMonitor
                 monitor = RaceMonitor(load_race_config(a.race_config))
             self.source = CameraSource(a.camera, a.width, a.height, a.fps,
-                                       fourcc=getattr(a,'camera_format','MJPG'), decode_fps=a.fps)
+                                       fourcc=getattr(a,'camera_format','MJPG'), decode_fps=a.fps,
+                                       frame_callback=self.state.publish_capture)
             if self.source.identity:
                 self.state.identity = self.source.identity
             self.state.capture = self.source.reported
@@ -279,13 +313,16 @@ class PreviewWorker:
                     break
                 if time.monotonic()-last_publish < 1/a.preview_fps:
                     continue
-                result, mask = pipeline.process(frame, live=True)
-                views = {"processed": overlay(frame.image, result, self.config.lane.roi_top), "mask": mask}
-                encoded = {name: self._encode(image) for name, image in views.items()}
-                result_data = result.to_dict()
-                if monitor:
-                    result_data['race'] = monitor.inspect(frame.image, result)
-                self.state.publish(encoded, result_data)
+                try:
+                    result, mask = pipeline.process(frame, live=True)
+                    views = {"processed": overlay(frame.image, result, self.config.lane.roi_top), "mask": mask}
+                    encoded = {name: self._encode(image) for name, image in views.items()}
+                    result_data = result.to_dict()
+                    if monitor:
+                        result_data['race'] = monitor.inspect(frame.image, result)
+                    self.state.publish(encoded, result_data)
+                except Exception as exc:
+                    self.state.preview_failed(exc)
                 last_publish = time.monotonic()
         except Exception as exc:
             if not self.stop_event.is_set():

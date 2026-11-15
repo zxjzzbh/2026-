@@ -132,7 +132,8 @@ def test_default_continuous_contact_policy_keeps_moving_with_cone_only_conflicts
                         ego_near_fraction=.15,boundary_correction='right')
         if case=='provisional':nav.update(uncertain=['near'],uncertain_cones=[{**cone,'provisional':True}])
     result=controller.step(nav,t)
-    assert result['esc_us']>1500 and result['phase']=='driving'
+    assert (result['esc_us']==1500 if case=='no_gap' else result['esc_us']>=1570)
+    assert result['phase']=='driving'
     assert 1350<=result['steering_us']<=1870 and controller.count==0
     assert controller.progress()['cone_contact_stop_enabled'] is False
 
@@ -158,7 +159,7 @@ def test_contact_continue_still_uses_shared_worker_lease_and_global_emergency(st
     controller=ContinuousConeController(trial_settings(settings),0.,initialized=True)
     t=warm_continuous(controller)+.1
     handle=BorrowedActuator(Worker(owner),actuator_settings(controller.s),CLIENT,clock=clock)
-    blocked={'id':'wide','fraction':.5,'half_width':.35,'y_fraction':.55,'near':False}
+    blocked={'id':'near','fraction':.62,'half_width':.03,'y_fraction':.75,'near':True}
     now[0]=t;intent=controller.step(observation(t,cones=[blocked]),t);handle.send(intent)
     assert owner.active and owner.guard.esc==intent['esc_us']>1500
     now[0]=owner.guard.deadline+.001 if stop=='lease' else .41

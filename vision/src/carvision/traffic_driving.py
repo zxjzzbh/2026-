@@ -12,7 +12,8 @@ from pathlib import Path
 
 from .brake_parking import numeric
 from .traffic_voting import SignalFrameVote, DualSignalVotes, FAST_RED_DEFAULTS
-from .traffic_tracking import TrafficApproachGuard
+from .traffic_tracking import TrafficApproachGuard, fixture_box
+from .traffic_signal import stop_reference_geometry
 from .traffic_stop_motion import TrafficStopMotion
 
 # Compatibility for existing red-only replay scripts.
@@ -107,9 +108,53 @@ class TrafficDrivingController:
         self.early_stop_reason = None
         self.neutral_hold_since = None
         self.stop_sequence_complete = False
-        self.stop_motion = TrafficStopMotion(self.s['stop_confirm_s'])
+        self.stop_motion = TrafficStopMotion(self.s['stop_confirm_s'],max_sample_gap_s=RACE_CONTROL_WINDOW_S)
         self.motion_state = 'unknown'
         self.motion_reason = None
+        self.early_stop_event = None
+
+    def accept_early_stop(self,event,now):
+        """Accept stop-only evidence before the rest of a camera batch finishes.
+
+        The caller owns run/token/cancel authorization and output arbitration.
+        No vote, capture time, forward authority or existing brake is renewed.
+        """
+        if self.phase not in ('arming','approach','motion_recovery') or not isinstance(event,dict):return None
+        camera=event.get('camera_id');captured=event.get('captured_s');detected=event.get('detected_s');fid=event.get('frame_id')
+        color=event.get('state');box=fixture_box({'fixture_detected':True,'bbox_xyxy':event.get('bbox_xyxy')})
+        if (event.get('stop_only') is not True or camera not in self.approach_guard.tracks
+                or color not in ('red','yellow') or box is None or type(fid) is not int or fid<0
+                or not all(numeric(v) for v in (now,captured,detected))
+                or not captured<=detected<=now or now-captured>self.s.get('fast_red_max_age_s',.15)):
+            return None
+        track=self.approach_guard.tracks[camera]
+        if (track.last_id is not None and (fid<=track.last_id or captured<=track.last_capture)
+                or track.box is not None and not stop_reference_geometry(box,track.box)):
+            return None
+        if self.early_stop_event is not None:return None
+        self.early_stop_event=copy.deepcopy(event)
+        self.stop_signal_seen=True
+        self.early_stop_reason='当前单路可信红黄灯已识别，优先制动；继续完成双摄正式复核'
+        self.approach_guard._stop('first_trustworthy_'+color,camera)
+        if color=='red':
+            self.approach_guard.first_red={'camera':camera,'frame_id':fid,'captured_s':captured,'decision_s':now}
+        # Arming never drives; keep its three-second neutral initialization.
+        if self.phase=='arming':return None
+        if self.phase=='motion_recovery':
+            # The feedback recovery has already requested a finite pulse. Red
+            # changes its reason/state, never restarts or extends that pulse.
+            self.phase='brake_pulse';self.reason=self.early_stop_reason
+            self.brake_at=self.motion_unknown_since
+            self.pulse_until=self.motion_recovery_brake_until
+            self.release_until=None
+            self.stop_motion.begin_brake(preserve_slide=True)
+            self.stop_since=self.neutral_hold_since=None
+            self.stop_sequence_complete=False
+            if self.red_verification_deadline is None:
+                self.red_verification_deadline=now+self.s['max_verify_red_s']
+            self.votes.reset_green();self.stable={}
+            return self.output('brake' if now<self.pulse_until else 'neutral')
+        return self._brake(now,self.early_stop_reason)
 
     def output(self, action='neutral', events=None):
         p = self.s['pwm']
@@ -118,6 +163,7 @@ class TrafficDrivingController:
                 'steering_us': p['steering_center_us'], 'events': events or [],
                 'signal_state': self.raw_state, 'stable': self.stable,
                 'approach_guard':self.approach_evidence,
+                'early_stop_event':copy.deepcopy(self.early_stop_event),
                 'approach_forward_us':p['search_us'],
                 'red_vote': self.red_statistics, 'signal_votes': self.signal_votes,
                 'fast_red': {'required_frames':self.s.get('fast_red_frames',3),
@@ -287,7 +333,9 @@ class TrafficDrivingController:
         self.motion_state = 'unknown' if moving is None else 'moving' if moving else 'still'
         self.motion_reason = motion.get('reason') if moving is None else None
         if self.phase in ('brake_pulse','settle','verify_red','wait_green'):
-            self.stop_motion.update(moving, mt, motion.get('frame_id'), now)
+            continuity=({'continuous_still_since_s':motion['continuous_still_since_s']}
+                        if 'continuous_still_since_s' in motion else {})
+            self.stop_motion.update(moving, mt, motion.get('frame_id'), now, **continuity)
             if self.stop_motion.sliding:
                 self.stop_sequence_complete = False
                 self.neutral_hold_since = None

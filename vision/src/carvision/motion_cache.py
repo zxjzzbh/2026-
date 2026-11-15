@@ -12,6 +12,7 @@ import numpy as np
 from .brake_parking import GroundMotionEstimate, numeric
 from .handoff import StillnessWindow
 from .runtime_timing import MOTION_MAX_AGE_S
+from .camera_frames import control_frame
 
 
 class GroundMotionCache:
@@ -29,11 +30,16 @@ class GroundMotionCache:
         state = self.states.get(self.camera)
         if state is None:
             return
-        with state.condition:
-            jpeg, fid, ms = state.raw_jpeg, state.raw_frame_id, state.raw_received_ms
-            failed = state.state in ('error', 'stopped')
+        try:
+            view=control_frame(state)
+            fid,ms=view['frame_id'],view['captured_ms']
+        except ValueError:
+            with self.lock:
+                self.stillness.reset()
+                self.latest={'valid':False,'moving':None,'reason':'camera_unavailable'}
+            return
         now = self.clock()
-        if failed or not jpeg or type(fid) is not int or not numeric(ms) or not 0 <= now-ms/1000 <= MOTION_MAX_AGE_S:
+        if not 0 <= now-ms/1000 <= MOTION_MAX_AGE_S:
             with self.lock:
                 self.stillness.reset()
                 self.latest = {'valid': False, 'moving': None, 'reason': 'camera_unavailable'}
@@ -42,9 +48,7 @@ class GroundMotionCache:
         if identity == self.identity:
             return
         self.identity = identity
-        image = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
-        if image is None:
-            raise ValueError('ground frame decode failed')
+        image = view['image']
         row = {**self.estimator.update(image, fid, ms/1000),
                'captured_s': ms/1000, 'frame_id': fid, 'camera_id': self.camera}
         with self.lock:

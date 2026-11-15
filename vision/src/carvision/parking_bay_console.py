@@ -22,6 +22,9 @@ from .parking_limits import FRAME_MAX_AGE_S
 from .parking_ground_view import ParkingGroundMotion
 from .parking_bay import contrast_markings,blue_board_mask,yellow_marking_mask
 from .cone_vision import iou
+from .camera_frames import control_frame
+from .motion_cache import GroundMotionCache
+from .preview_encoding import PreviewEncoder
 
 
 def _contrast_selection(observation):
@@ -147,6 +150,8 @@ class ParkingBayDrive:
         self.metric_feedback=None
         self.metric_missing=None
         self.metric_readiness=None
+        self.motion_cache=GroundMotionCache(states,clock=clock)
+        self.encoder=PreviewEncoder()
 
     def status(self):
         with self.lock:
@@ -337,17 +342,18 @@ class ParkingBayDrive:
         self.control_thread.start()
         try:
             while not self.stop.is_set():
+                self.motion_cache.snapshot()
                 try:
                     state=self.states['secondary']
-                    with state.condition:jpg,fid,ms=state.raw_jpeg,state.raw_frame_id,state.raw_received_ms;failed=state.state in ('error','stopped')
+                    captured=control_frame(state)
+                    jpg,fid,ms=captured['jpeg'],captured['frame_id'],captured['captured_ms']
                     t=ms/1000 if isinstance(ms,(int,float)) else -1
-                    if failed or not jpg or type(fid) is not int or not 0<=self.clock()-t<=FRAME_MAX_AGE_S:raise ValueError('第二路没有新鲜画面')
+                    if not 0<=self.clock()-t<=FRAME_MAX_AGE_S:raise ValueError('第二路没有新鲜画面')
                     if self.last==(fid,t):
                         if self.stop.wait(.01):break
                         continue
                     processing_started=self.clock()
-                    image=cv2.imdecode(np.frombuffer(jpg,np.uint8),cv2.IMREAD_COLOR)
-                    if image is None:raise ValueError('相机图像无法解码')
+                    image=captured['image']
                     observation,overlay=detect_parking(image,self.settings)
                     if self.road is None:
                         cone_path=self.root/'vision/configs/cone-trial.local.json'
@@ -374,7 +380,7 @@ class ParkingBayDrive:
                         mask[blue_board_mask(hsv,self.settings)>0]=0
                         entry_sample['parking_ground_motion']=self.ground_motion.update(image,fid,t,mask)
                     if self.entry.active and self.metric_feedback is not None:
-                        entry_sample['parking_world']=self.metric_feedback.update(image,fid,t,observation,self.clock())
+                        entry_sample['parking_world']=self.metric_feedback.update(image,fid,t,observation,self.clock(),motion=self.motion_cache.snapshot())
                     now=self.clock()
                     timings={'processing_ms':max(0.,(now-processing_started)*1000.),'frame_age_ms':max(0.,(now-t)*1000.)}
                     entry_sample.update(fresh=0<=now-t<=FRAME_MAX_AGE_S,**timings)
@@ -382,14 +388,14 @@ class ParkingBayDrive:
                     side=recommendation['selected_slot'].upper()
                     label=('TARGET '+side+' / CONFIRMED' if recommendation['confirmed'] else 'SUGGEST '+side+' / TENTATIVE')
                     cv2.putText(overlay,label,(8,24),cv2.FONT_HERSHEY_SIMPLEX,.5,(0,210,0) if recommendation['confirmed'] else (0,170,255),2)
-                    ok,encoded=cv2.imencode('.jpg',overlay)
+                    encoded=self.encoder.submit(overlay)
                     with self.lock:
                         if not self.active:break
                         self.entry_sample=entry_sample
                         recorder=getattr(self.entry,'frames',None)
-                        if self.entry.active and recorder is not None:recorder.add(jpg,fid,t)
+                        if self.entry.active and recorder is not None and jpg is not None:recorder.add(jpg,fid,t)
                         self.last=(fid,t);self.latest={**observation,'frame_id':fid,'captured_s':t,'camera_id':'secondary',**timings}
-                        self.recommendation=recommendation;self.updated=t;self.preview=encoded.tobytes() if ok else None
+                        self.recommendation=recommendation;self.updated=t;self.preview=encoded
                         self.reason=recommendation['reason']
                         handle=getattr(self.entry,'actuator',None)
                         record={'observation':self.latest,'selection':recommendation,
@@ -423,3 +429,5 @@ class ParkingBayDrive:
             self.closed=True;self.stop.set()
             if self.entry.active:self.entry.cancel('停车服务关闭，输出已释放')
         if self.thread and self.thread is not threading.current_thread():self.thread.join(timeout=2)
+        self.motion_cache.close()
+        self.encoder.close()

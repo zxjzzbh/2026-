@@ -71,6 +71,18 @@ def command_arc_clear(pose,boxes,chosen,s,curvature,horizon):
     return True
 
 
+def check_entry_path(path,boxes,chosen,s,pad):
+    """Validate every candidate with the same full-body/curvature constraints."""
+    x0,y0,x1,y1=boxes[chosen]
+    for row in path:
+        if abs(row['curvature'])>1/s['minimum_turn_radius_m']:raise ValueError('所需转向超过实测能力')
+        p=body(row,s,pad)
+        if p[:,0].min()<boxes['left'][0] or p[:,0].max()>boxes['right'][2]:raise ValueError('整车扫过范围超出赛道')
+        if p[:,1].max()>=y0 and (p[:,0].min()<x0 or p[:,0].max()>x1):raise ValueError('入口处整车会压分隔线或进入遮挡半区')
+        if p[:,1].max()>y1:raise ValueError('路径越过停车区末端')
+    if not contained(path[-1],boxes[chosen],s,pad):raise ValueError('目标位置无法容纳整车')
+
+
 def plan_entry(slots,chosen,pose,s,*,max_control_gap_s=0.):
     _,bs=layout(slots,s);box=bs[chosen];x0,y0,x1,y1=box
     if not all(number(pose.get(k)) for k in ('x_m','y_m','yaw_rad')) or abs(pose['yaw_rad'])>.35:
@@ -80,19 +92,24 @@ def plan_entry(slots,chosen,pose,s,*,max_control_gap_s=0.):
     pad=s['clearance_m']+s['maximum_pose_error_m']+sample_pad
     center=(x0+x1)/2;align=y0-s['front_extent_m']-pad
     goal=(y0+y1)/2+(s['rear_extent_m']-s['front_extent_m'])/2
-    path=entry_curve(pose,align,center,goal)
-    for row in path:
-        if abs(row['curvature'])>1/s['minimum_turn_radius_m']:raise ValueError('所需转向超过实测能力')
-        p=body(row,s,pad)
-        if p[:,0].min()<bs['left'][0] or p[:,0].max()>bs['right'][2]:raise ValueError('整车扫过范围超出赛道')
-        if p[:,1].max()>=y0 and (p[:,0].min()<x0 or p[:,0].max()>x1):raise ValueError('入口处整车会压分隔线或进入遮挡半区')
-        if p[:,1].max()>y1:raise ValueError('路径越过停车区末端')
     # There must still be a full-car-inside braking corridor before the goal.
     reaction_s=s['max_frame_age_s']+max_control_gap_s
-    if goal-s['braking_distance_m']-s['max_speed_mps']*reaction_s-s['maximum_pose_error_m']<y0+s['rear_extent_m']+pad:
+    brake_start=goal-s['braking_distance_m']-s['max_speed_mps']*reaction_s-s['maximum_pose_error_m']
+    if brake_start<y0+s['rear_extent_m']+pad:
         raise ValueError('当前制动距离超过车位内余量，需降低实测接近速度')
-    if not contained(path[-1],box,s,pad):raise ValueError('目标位置无法容纳整车')
-    return path
+    # Prefer completing the lateral transition before entry. Near the entrance,
+    # a small remaining correction may instead fit entirely within the selected
+    # half. Finish it before the braking corridor, never by relaxing containment
+    # or treating a small real heading error as exactly zero.
+    error=None
+    for alignment in dict.fromkeys((align,max(align,brake_start))):
+        try:
+            path=entry_curve(pose,alignment,center,goal)
+            check_entry_path(path,bs,chosen,s,pad)
+            return path
+        except ValueError as exc:
+            if error is None:error=exc
+    raise error
 
 
 class ParkingMission:
@@ -135,6 +152,19 @@ class ParkingMission:
         self.pending=None;self.pending_since=None;self.pending_count=0;self.still_since=None
         if self.selected:self.phase='fault'
         return self._result('brake' if self.selected else 'stop',reason)
+
+    def _confirm_stop(self,pose,speed,inside,t,now):
+        """Confirm the current body and stopped feedback, independent of old path."""
+        if self.brake_since is None:self.brake_since=now
+        self.phase='braking'
+        if abs(speed)<=self.s['stopped_speed_mps'] and inside and abs(pose['yaw_rad'])<=.10:
+            if self.still_since is None:self.still_since=t
+            if t-self.still_since>=self.s['stop_hold_s']:
+                self.phase='parked';return self._result('hold','整车外廓在正确半区内且持续停稳，可进入人工扫码缴费',four_wheels_inside=True)
+        else:self.still_since=None
+        if now-self.brake_since>3:
+            self.phase='fault';return self._result('brake','制动后未取得正确车位内的停稳反馈')
+        return self._result('brake' if abs(speed)>self.s['stopped_speed_mps'] else 'hold','主动制动并核对整车入位',four_wheels_inside=inside)
 
     def check_final_command(self,curvature,speed,now,captured_s):
         """Reject a slew/quantization result that no longer fits the live bay."""
@@ -235,23 +265,19 @@ class ParkingMission:
                 self.phase='entering'
                 self.progress_m=0.
             self.replan_required=False
+        # Once braking, an obsolete route is not evidence against a legal
+        # stopped pose. All freshness, continuity, occupancy and actual body
+        # checks above still apply, including after recovery.
+        if self.phase in ('braking','parked'):
+            return self._confirm_stop(pose,speed,inside,t,now)
         self.tracking=pursuit(self.path,pose,self.progress_m,self.s['lookahead_m'])
         self.progress_m=self.tracking['progress_m']
         if self.tracking['tracking_error_m']>self.s['maximum_pose_error_m']+self.s['maximum_tracking_error_m']:
             self.phase='fault';return self._result('brake','实际位姿偏离已校核路径')
         remaining=self.tracking['remaining_m']
         stopping_distance=self.s['braking_distance_m']+self.s['max_speed_mps']*self.reaction_s+pose['error_bound_m']
-        if self.phase in ('braking','parked') or remaining<=stopping_distance:
-            if self.brake_since is None:self.brake_since=now
-            self.phase='braking'
-            if abs(speed)<=self.s['stopped_speed_mps'] and inside and abs(pose['yaw_rad'])<=.10:
-                if self.still_since is None:self.still_since=t
-                if t-self.still_since>=self.s['stop_hold_s']:
-                    self.phase='parked';return self._result('hold','整车外廓在正确半区内且持续停稳，可进入人工扫码缴费',four_wheels_inside=True)
-            else:self.still_since=None
-            if now-self.brake_since>3:
-                self.phase='fault';return self._result('brake','制动后未取得正确车位内的停稳反馈')
-            return self._result('brake' if abs(speed)>self.s['stopped_speed_mps'] else 'hold','主动制动并核对整车入位',four_wheels_inside=inside)
+        if remaining<=stopping_distance:
+            return self._confirm_stop(pose,speed,inside,t,now)
         if self.tracking['target_forward_m']<=0:
             self.phase='fault';return self._result('brake','路径目标落在车后，禁止盲目前进')
         if abs(speed)<.01:

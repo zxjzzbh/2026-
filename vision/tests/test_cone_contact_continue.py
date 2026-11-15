@@ -52,16 +52,16 @@ def test_explicit_stop_policy_preserves_confirmed_and_uncertain_near_cone_veto(u
     with pytest.raises(ValueError,match='净空冲突'):controller.step(nav,.3)
 
 
-def test_default_blocked_cone_keeps_lane_target_without_manufacturing_a_pass():
+def test_default_blocked_cone_pauses_without_manufacturing_a_route_or_pass():
     controller=started(handoff=True)
     for t,y in ((.3,.55),(.4,.63),(.5,.71),(.6,.73),(.7,.75)):
         output=controller.step(lane(t,cones=[close_cone(id='wide',fraction=.5,
                                   half_width=.4,y_fraction=y)]),t)
-        assert 1500<output['esc_us']<=1600 and output['best_effort_route']
+        assert output['esc_us']==1500 and not output['best_effort_route']
         assert .23<=controller.target_fraction<=.77
         assert controller.target=='wide' and controller.count==0 and controller.pass_gate_hits==0
         assert output['phase']!='complete' and not output['lane_return_confirmed']
-    assert '不视为通过' in output['reason']
+    assert '重新确认' in output['reason']
 
 
 def test_explicit_stop_policy_still_rejects_a_cone_with_no_confirmed_gap():
@@ -75,18 +75,19 @@ def test_default_locked_side_does_not_flip_when_its_gap_disappears():
     controller.step(lane(.3,cones=[close_cone(fraction=.7,y_fraction=.55,image_close=False)]),.3)
     assert controller.side=='left';old_target=controller.target_fraction
     output=controller.step(lane(.4,cones=[close_cone(fraction=.3,y_fraction=.55,image_close=False)]),.4)
-    assert output['best_effort_route'] and output['esc_us']>1500
-    assert controller.side=='left' and controller.target_fraction==old_target
+    assert not output['best_effort_route'] and output['esc_us']==1500
+    assert controller.side=='left' and controller.target_fraction==.5!=old_target
     assert controller.count==0 and controller.target=='close'
 
 
-def test_default_gap_fallback_clamps_previous_target_to_current_lane_envelope():
+def test_no_gap_withdraws_previous_target_instead_of_clamping_and_driving_it():
     controller=started()
     controller.step(lane(.3,cones=[close_cone(fraction=.45,y_fraction=.55,image_close=False)]),.3)
     assert controller.side=='right' and controller.target_fraction>.62
     output=controller.step(lane(.4,half_envelope=.35,
         cones=[close_cone(fraction=.5,half_width=.4,y_fraction=.55,image_close=False)]),.4)
-    assert output['best_effort_route'] and controller.target_fraction==pytest.approx(.62)
+    assert not output['best_effort_route'] and output['esc_us']==1500
+    assert controller.target_fraction==pytest.approx(.5)
     assert controller.side=='right' and controller.count==0
 
 
@@ -94,7 +95,8 @@ def test_gap_fallback_uses_current_near_position_when_old_target_is_unavailable(
     controller=started();controller.target_fraction=None
     output=controller.step(lane(.3,near=.4,far=.4,
         cones=[close_cone(fraction=.5,half_width=.4,y_fraction=.55,image_close=False)]),.3)
-    assert output['best_effort_route'] and controller.target_fraction==pytest.approx(.4)
+    assert not output['best_effort_route'] and output['esc_us']==1500
+    assert controller.target_fraction==pytest.approx(.4)
     assert controller.count==0
 
 

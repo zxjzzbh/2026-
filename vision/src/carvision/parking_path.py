@@ -12,8 +12,9 @@ import numpy as np
 def entry_curve(pose, align_y, goal_x, goal_y, step=.015):
     """Quintic lateral transition with the *actual* initial heading.
 
-    The final straight segment begins before the front enters the bay. An
-    already aligned vehicle can enter directly without first moving sideways.
+    The caller chooses where the final straight starts and checks the whole
+    swept body, including the braking corridor. An already aligned vehicle
+    can enter directly without first moving sideways.
     """
     x0, y0 = pose['x_m'], pose['y_m']
     yaw = pose['yaw_rad']

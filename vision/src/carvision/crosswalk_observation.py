@@ -6,6 +6,7 @@ Only the selected fresh view can produce a new controller batch. Switching
 normally prefers primary at close range; either view can request braking.
 """
 import copy
+from .camera_frames import control_frame
 import math
 
 import cv2
@@ -86,12 +87,11 @@ class CalibratedTrialCamera:
         state = self.states[camera]
         if processed is None:
             try:
-                with state.condition:
-                    jpeg, frame_id, captured_ms = state.raw_jpeg, state.raw_frame_id, state.raw_received_ms
-                    failed = state.state in ('error', 'stopped')
-                    identity = copy.deepcopy(getattr(state, 'identity', None))
-            except (AttributeError, TypeError) as exc:
-                raise ValueError(camera + ' 摄像头缓存结构无效') from exc
+                captured=control_frame(state)
+                jpeg,frame_id,captured_ms=captured['jpeg'],captured['frame_id'],captured['captured_ms']
+                image,identity,failed=captured['image'],captured['identity'],False
+            except (AttributeError, TypeError,ValueError) as exc:
+                raise CrosswalkFrameUnavailable(camera + ' 摄像头缓存不可用：'+str(exc)) from exc
         else:
             frame,features,road=processed['frame'],processed['features'],processed['road']
             frame_id,stamp=frame.get('frame_id'),frame.get('captured_s')
@@ -105,6 +105,7 @@ class CalibratedTrialCamera:
                     or features.get('detector') is not self.detectors[camera]):
                 raise ValueError(camera+' 复用画面与识别结果不匹配')
             jpeg,identity=frame.get('jpeg'),frame.get('identity')
+            image=frame.get('image')
             with state.condition:
                 failed=state.state in ('error','stopped')
                 if getattr(state,'identity',None)!=identity:
@@ -120,7 +121,7 @@ class CalibratedTrialCamera:
         checked=self.clock() if self.clock is not None else now
         if not _number(checked) or checked<now:
             raise ValueError(camera+' 摄像头校验时钟无效或倒退')
-        if (failed or not isinstance(jpeg, (bytes, bytearray)) or not jpeg
+        if (failed or image is None
                 or type(frame_id) is not int or frame_id < 0 or not _number(captured_ms)):
             raise CrosswalkFrameUnavailable(camera+' 摄像头缓存不可用：状态、图像或采样信息无效')
         age=checked-captured_ms/1000
@@ -137,12 +138,6 @@ class CalibratedTrialCamera:
                 return False
             if stamp <= self.times[camera]:
                 raise ValueError(camera + ' 新图像没有递增的真实采样时间')
-        if processed is None:
-            try:
-                image = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
-            except (cv2.error, ValueError, TypeError) as exc:
-                raise CrosswalkFrameUnavailable(camera + ' 原始JPEG不能解码') from exc
-        else:image=frame.get('image')
         if image is None:raise CrosswalkFrameUnavailable(camera+' 原始JPEG不能解码')
         if not isinstance(image,np.ndarray) or image.shape != (360,480,3) or image.dtype!=np.uint8:
             raise ValueError(camera + ' 画面必须保持本次480×360独立标定尺寸')

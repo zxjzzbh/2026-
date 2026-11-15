@@ -6,6 +6,7 @@ speed/braking calibration. No hardware is opened by this module.
 """
 
 from .steering import from_offset
+from .handoff import StillnessWindow
 from .brake_timing import CROSSWALK_BRAKE_PULSE_S, MAX_BRAKE_PULSE_S
 import json
 import copy
@@ -160,6 +161,7 @@ class BrakeParkingController:
                  image_brake_y=None,image_creep_y=None,crosswalk=False,control_interval_s=.25):
         if path_mode not in ('straight','lane'):raise ValueError('invalid path mode')
         self.s,self.path_mode=settings,path_mode
+        self.crosswalk=bool(crosswalk)
         if control_interval_s is not None and (not numeric(control_interval_s) or not 0<control_interval_s<=.5):
             raise ValueError('invalid control interval')
         self.control_interval_s=control_interval_s
@@ -201,6 +203,7 @@ class BrakeParkingController:
         self.preliminary_stop=False
         self.preliminary_started=None
         self.first_detection_pause_s=.5
+        self.target_recovery=None
 
     def _hold_seconds(self):
         return self.first_detection_pause_s if self.preliminary_stop else self.s['hold_s']
@@ -221,6 +224,7 @@ class BrakeParkingController:
                 'stop_stage':'first_detection' if self.preliminary_stop else 'original_operation',
                 'first_detection_handled':self.first_detection_handled,
                 'first_detection_pause_s':self.first_detection_pause_s if self.first_detection_stop else None,
+                'target_recovering':self.target_recovery is not None,
                 'physical_stop_verified':False,'parking_zone_verified':False,'tuning_verified':False}
 
     def fault(self,reason):
@@ -263,6 +267,108 @@ class BrakeParkingController:
         else:
             y, limit = sample.get('far_edge_y_normalized'), self.brake_reference['far_edge_y_normalized']
         return numeric(y) and limit <= y < 1
+
+    def recover_target_control(self, now):
+        """A control interruption invalidates target/stillness proof, not the round."""
+        recovery=self.target_recovery
+        if recovery is None:return
+        recovery['still'].reset()
+        recovery['stop_after']=now
+        recovery['target']=None
+        recovery['target_hits']=0
+
+    def _start_target_recovery(self, now):
+        self.phase='target_recovery'
+        self.target_recovery={'still':StillnessWindow(self.s['stop_confirm_s']),
+            'started':now,'stop_after':now,'conflict_after':None,'target':None,'target_hits':0}
+        self.stop_since=self.hold_since=self.no_progress_since=None
+        self.reason='斑马线暂时丢失，有限制动后停稳重确认'
+        if self.brake_count < self.s['max_brake_pulses']:
+            self.brake_count+=1
+            self.pulse_until=now+self.s['brake_pulse_s']
+            self.release_until=self.pulse_until+self.s['brake_release_s']
+            self.target_recovery['stop_after']=self.release_until
+            return self.output('brake')
+        self.pulse_until=now
+        self.release_until=now+self.s['brake_release_s']
+        self.target_recovery['stop_after']=self.release_until
+        return self.output()
+
+    def _recover_target(self, sample, now, y, brake_reached):
+        """No target extrapolation: stop, confirm actual stillness, reacquire twice."""
+        recovery=self.target_recovery
+        if now < self.pulse_until:return self.output('brake')
+        if now < self.release_until:
+            self.reason='斑马线重确认：等待制动释放，保持中位'
+            return self.output()
+        motion=sample.get('motion') or {}
+        stamp=motion.get('captured_s')
+        fresh=(numeric(stamp) and 0 <= now-stamp <= .25
+               and motion.get('valid') is True and type(motion.get('moving')) is bool)
+        stopped=False
+        if fresh and motion['moving'] is False and stamp>=recovery['stop_after']:
+            if 'continuous_still_since_s' in motion:
+                since=motion['continuous_still_since_s']
+                stopped=(numeric(since) and recovery['stop_after']<=since<=stamp
+                         and stamp-since>=self.s['stop_confirm_s']-1e-9)
+                # An interval starting before release may be real, but only
+                # its post-release part can justify resuming this recovery.
+                if numeric(since) and since<=recovery['stop_after']<=stamp:
+                    stopped=stamp-recovery['stop_after']>=self.s['stop_confirm_s']-1e-9
+                if recovery['conflict_after'] is not None and (not numeric(since) or since<=recovery['conflict_after']):
+                    stopped=False
+            else:stopped=recovery['still'].update(motion,now)
+        else:
+            recovery['still'].reset()
+            recovery['stop_after']=max(now,recovery['stop_after'])
+            recovery['target']=None;recovery['target_hits']=0
+            if fresh and motion['moving'] is True:recovery['conflict_after']=stamp
+            if fresh and motion['moving'] is True and self.brake_count<self.s['max_brake_pulses']:
+                self.brake_count+=1;self.pulse_until=now+self.s['brake_pulse_s']
+                self.release_until=self.pulse_until+self.s['brake_release_s']
+                recovery['stop_after']=self.release_until
+                self.reason='斑马线重确认时仍有移动，追加有限制动'
+                return self.output('brake')
+        if not stopped:
+            recovery['target']=None;recovery['target_hits']=0
+            self.reason='斑马线暂失，等待连续新鲜停稳反馈后重确认'
+            return self.output()
+        camera=sample.get('source_camera',self.s['camera'])
+        target_valid=sample.get('candidate') is True and numeric(y)
+        if self.crosswalk_profile is not None:
+            refs=self.crosswalk_profile['cameras'][camera]['references']
+            ys=[row['near_edge_y_normalized'] for row in refs]
+            target_valid=target_valid and min(ys)<=y<=max(ys) and sample.get('near_limit_reached') is not True
+        else:
+            ys=[row['far_edge_y_normalized'] for row in self.s['references']]
+            target_valid=target_valid and min(ys)<=y<=max(ys)
+        if not target_valid:
+            recovery['target']=None;recovery['target_hits']=0
+            self.reason='已停稳，等待标定范围内的斑马线重新出现'
+            return self.output()
+        previous=recovery['target']
+        captured=sample['captured_s']
+        consistent=(previous is not None and camera==previous['camera']
+                    and 0<captured-previous['captured_s']<=.75 and abs(y-previous['y'])<=.08)
+        recovery['target_hits']=recovery['target_hits']+1 if consistent else 1
+        recovery['target']={'camera':camera,'captured_s':captured,'y':y}
+        if recovery['target_hits']<2:
+            self.reason='已停稳，等待第二张一致的斑马线画面'
+            return self.output()
+        self.target_recovery=None
+        self.started+=now-recovery['started']
+        self.seen_at=now
+        if brake_reached:
+            # Begin the formal hold from fresh proof, never backdate its timer
+            # or spend another motor pulse while already confirmed stationary.
+            self.preliminary_stop=False;self.phase='settle'
+            self.brake_started=now;self.release_until=now;self.stop_since=now
+            self.reason='斑马线重新确认且已到停车参考，保持停止完成原停车计时'
+        else:
+            self.phase='search';self.reason='停稳后已重新确认斑马线，下一张新画面继续接近'
+            self.brake_started=self.pulse_until=self.release_until=None
+            self.stop_since=self.hold_since=None
+        return self.output(events=[{'event':'crosswalk_target_reconfirmed'}])
 
     def _estimate_distance(self,y,t):
         refs=self.s['references'];ys=[r['far_edge_y_normalized'] for r in refs]
@@ -340,9 +446,12 @@ class BrakeParkingController:
         if self.preliminary_stop and brake_reached:
             self.preliminary_stop=False;self.hold_since=None
             self.reason='首次制动已到原停车参考，直接完成原有停车操作'
+        if self.phase=='target_recovery':return self._recover_target(sample,now,y,brake_reached)
         if self.phase in ('search','approach','creep'):
             if now-self.started>self.s['max_approach_s']:return self.fault('接近时限已到')
-            if self.seen_at is not None and now-self.seen_at>.25:return self.fault('已见斑马线持续丢失')
+            if self.seen_at is not None and now-self.seen_at>.25:
+                if self.crosswalk:return self._start_target_recovery(now)
+                return self.fault('已见斑马线持续丢失')
             first_seen=(self.first_detection_stop and not self.first_detection_handled
                         and sample.get('candidate') is True)
             if first_seen:self.first_detection_handled=True

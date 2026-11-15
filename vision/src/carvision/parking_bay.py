@@ -312,13 +312,43 @@ def _clusters(values):
     return [int(round(np.mean(g))) for g in groups]
 
 
-def metric_layout(yellow,white,s):
-    """Infer the occluded half only when measured width and visible lines agree.
+def _metric_road_heading(edges):
+    """Long ground-plane edges establish road direction before bay fitting."""
+    lines=cv2.HoughLinesP(edges,1,np.pi/720,35,minLineLength=55,maxLineGap=10)
+    if lines is None:return 0.
+    candidates=[]
+    for x1,y1,x2,y2 in lines[:,0]:
+        dx,dy=float(x2-x1),float(y2-y1)
+        if dy>0:dx,dy=-dx,-dy
+        angle=math.atan2(dx,-dy)
+        if abs(angle)<=.4:candidates.append((angle,math.hypot(dx,dy)))
+    if not candidates:return 0.
+    # A dominant parallel group, not a mean across unrelated slanted objects.
+    center=max(candidates,key=lambda c:sum(w for a,w in candidates if abs(a-c[0])<.025))[0]
+    group=sorted((a,w) for a,w in candidates if abs(a-center)<.025)
+    total=sum(w for _,w in group);running=0.
+    for angle,weight in group:
+        running+=weight
+        if running>=total/2:return 0. if abs(angle)<.008 else angle
+    return 0.
 
-    Axis-aligned straight approach only. No unsupported corner extrapolation.
+
+def metric_layout(yellow,white,s):
+    """Fit the measured bay in a road-aligned plane, return vehicle coordinates.
+
+    The rotation is measured from visible ground edges. Every returned corner
+    still passes the original projection's measured valid-polygon check.
     """
     p=GroundProjection(s['ground']);scale=160.;grid=np.array([[scale,0,240],[0,-scale,480],[0,0,1.]])
-    warp=grid@p.h;size=(480,512)
+    size=(480,512)
+    edge_mask=cv2.bitwise_or(yellow,white)
+    raw=cv2.warpPerspective(edge_mask,grid@p.h,size,flags=cv2.INTER_NEAREST)
+    heading=_metric_road_heading(raw)
+    co,si=math.cos(heading),math.sin(heading)
+    # Vehicle-local road vector is (sin(heading), cos(heading)). Rotate it
+    # onto the forward road axis, then undo this transform for output.
+    to_road=np.array([[co,-si,0.],[si,co,0.],[0.,0.,1.]])
+    warp=grid@to_road@p.h
     y=cv2.warpPerspective(yellow,warp,size,flags=cv2.INTER_NEAREST)>0
     edges=cv2.warpPerspective(cv2.bitwise_or(yellow,white),warp,size,flags=cv2.INTER_NEAREST)>0
     rows=_clusters(np.flatnonzero(y.sum(axis=1)>s['lane_width_m']*scale*.2))
@@ -344,6 +374,7 @@ def metric_layout(yellow,white,s):
                     for a,b in ((left,mid),(mid,right)):
                         ground=np.array([[(a-240)/scale,(480-near)/scale],[(b-240)/scale,(480-near)/scale],
                                          [(b-240)/scale,(480-far)/scale],[(a-240)/scale,(480-far)/scale]])
+                        ground=(np.c_[ground,np.ones(4)]@np.linalg.inv(to_road).T)[:,:2]
                         inv=np.linalg.inv(p.h);q=np.c_[ground,np.ones(4)]@inv.T;q=q[:,:2]/q[:,2:]
                         for point in q:p.point(point)
                         metric.append(ground.tolist());pixels.append(q.astype(np.float32))

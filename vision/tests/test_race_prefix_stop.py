@@ -20,7 +20,14 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def run_boundary(monkeypatch, rig, bundle, target):
     now,clock,backend,manual,owner,_ = rig
-    worker = Worker(owner)
+    class DrainingWorker(Worker):
+        def request(self,action,payload):
+            if action=='autonomy_release' and not self.owner.active:
+                # The real worker advances independently during release polls;
+                # keep this scenario's synthetic clock advancing likewise.
+                now[0]=round(now[0]+.05,8)
+            return super().request(action,payload)
+    worker = DrainingWorker(owner)
     delegated = []
     view = SimpleNamespace(
         status=manual.status,
@@ -103,15 +110,11 @@ def test_missing_parking_rejects_boundary_forward_before_shared_actuator_send(mo
 
     # close() owns the stop: it aborts the preceding real 1600-us command,
     # rather than transmitting the rejected parking-search command.
-    assert owner.guard is not None and owner.guard.esc==1400
-    released_at = now[0]
-    brake_end = owner.guard.emergency_until
-    assert brake_end==pytest.approx(released_at+.35)
-    while now[0]<brake_end:
-        now[0] = min(brake_end,round(now[0]+.05,8))
-        owner.tick()
     assert owner.guard is None and manual.mode=='emergency' and not backend.closed
     segments = [row for row in backend.writes if row[0]=='motion' and row[2]==1400]
+    assert segments and owner.release_confirmed
+    brake_end=segments[0][1]+.35
+    assert now[0]>=brake_end-1e-9
     assert segments and all(t+duration<=brake_end+1e-9 for _,t,pulse,duration in segments)
     assert any(row[0]=='neutral' and row[1]>=brake_end for row in backend.writes)
 

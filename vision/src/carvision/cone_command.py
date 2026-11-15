@@ -35,6 +35,8 @@ class ConeCommandSender:
         self.race_release_until = 0.
         self.race_brake_requested = False
         self.race_paused = False
+        self.race_page_deadline = None
+        self.race_page_expired = False
         self.thread = None
         if threaded:
             self.thread = threading.Thread(target=self._work, name='cone-command-sender', daemon=True)
@@ -62,6 +64,10 @@ class ConeCommandSender:
         return {'action': 'neutral', 'esc_us': 1500, 'steering_us': 1610}
 
     def _race_tick(self, now):
+        if self.race_page_deadline is not None and now >= self.race_page_deadline:
+            self.race_page_expired = self.race_paused = True
+            if self.race_intent['esc_us'] > 1500:
+                self.race_deadline = now
         if self.race_deadline is not None and now >= self.race_deadline:
             self.race_paused = True
             self.race_deadline = None
@@ -75,6 +81,11 @@ class ConeCommandSender:
             self.race_release_until = now + .1
             self.race_intent = self._race_stop()
             self._emit(self.race_intent, now)
+        if self.race_page_expired:
+            self.race_intent = self._race_stop()
+            self._emit(self.race_intent, now)
+            self.fault = '避障控制页心跳到期，已结束本轮并保持中位'
+            return
         # Keep the hardware lease alive independently of vision computation.
         # Replaying an accepted forward intent never moves its deadline; brake
         # pulses return above and are therefore never extended by this cadence.
@@ -90,13 +101,20 @@ class ConeCommandSender:
             return self.race_paused
 
     def send_race(self, intent, *, run_until, evidence_until=None, recovering=False, recovered=False,
-                  brake_pulse_s=.35):
+                  brake_pulse_s=.35, page_deadline_s=None):
         """Expire forward authority locally; keep the current race at neutral."""
         with self.lock:
             self._check()
             now = self.clock()
             if self.race_intent is not None:
                 self._race_tick(now)
+                self._check()
+            if page_deadline_s is not None:
+                if not numeric(page_deadline_s) or page_deadline_s <= now:
+                    raise ValueError('避障控制页心跳到期，未接受新指令')
+                if self.race_page_expired:return None
+                self.race_page_deadline=page_deadline_s
+                run_until=min(run_until,page_deadline_s)
             if recovered and intent.get('esc_us') == 1500 and self.race_brake_until is None:
                 self.race_paused = False
             if self.race_paused and not recovering:
@@ -217,6 +235,14 @@ class ConeCommandSender:
             if self.closed or self.fault or not numeric(deadline):
                 return
             now = self.clock()
+            if self.race_page_deadline is not None:
+                if now >= self.race_page_deadline:
+                    self._race_tick(now)
+                    return
+                if deadline <= now:return
+                self.race_page_deadline=deadline
+                self.race_until=deadline
+                return
             if self.page_deadline is not None and now >= self.page_deadline:
                 self._expire(now, reason='避障控制页心跳到期，已请求有限制动')
                 return

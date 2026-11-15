@@ -17,9 +17,11 @@ from .parking_speech import ParkingSpeech
 from .traffic_driving import (TrafficDrivingController, load_settings, validate_settings,
                               TRAFFIC_FORWARD_MIN_US, TRAFFIC_FORWARD_MAX_US, approach_settings)
 from .traffic_signal import TrafficSignalDetector, load_profile
-from .traffic_tracking import FixtureTrack
+from .traffic_tracking import FixtureTrack, stop_color_evidence
+from .runtime_timing import RACE_CONTROL_WINDOW_S
 from .motion_cache import GroundMotionCache
 from .preview_encoding import PreviewEncoder
+from .camera_frames import control_frame
 
 
 class TrafficCamera:
@@ -28,20 +30,21 @@ class TrafficCamera:
         self.states, self.s = states, settings
         self.clock = clock
         self.detectors = {c:TrafficSignalDetector(profile) for c in settings['cameras']}
-        self.tracks = {c:FixtureTrack() for c in settings['cameras']}
+        self.tracks = {c:FixtureTrack(max_gap_s=RACE_CONTROL_WINDOW_S) for c in settings['cameras']}
         self.motion_cache = GroundMotionCache(states, settings['motion_camera'], clock=clock or time.monotonic)
         self.encoder = PreviewEncoder()
         self.last_ids, self.last_times, self.observations = {}, {}, {}
         self.images, self.jpegs, self.errors = {}, {}, {}
         self.sequence = 0
         self.jpeg = self.preview = None
+        self.stop_callback = None
 
     def close(self):
         self.motion_cache.close()
         self.encoder.close()
 
     def begin_round(self):
-        self.tracks = {c:FixtureTrack() for c in self.s['cameras']}
+        self.tracks = {c:FixtureTrack(max_gap_s=RACE_CONTROL_WINDOW_S) for c in self.s['cameras']}
         # Force the next read to classify the cached frame again with a clean
         # identity, rather than using an off/green from the previous round.
         self.last_ids.clear()
@@ -51,30 +54,35 @@ class TrafficCamera:
     def _frame(self, camera, now, batch_started):
         state = self.states.get(camera)
         if state is None: raise ValueError(camera+' 摄像头未就绪')
-        with state.condition:
-            jpeg, fid, ms = state.raw_jpeg, state.raw_frame_id, state.raw_received_ms
-            failed = state.state in ('error','stopped')
+        view = control_frame(state)
+        fid, ms = view['frame_id'], view['captured_ms']
         observed_now = self.clock() if self.clock else now + (time.perf_counter()-batch_started)
-        if (failed or not jpeg or type(fid) is not int or not numeric(ms)
+        if (type(fid) is not int or not numeric(ms)
                 or not -1e-9 <= observed_now-ms/1000 <= self.s['max_frame_age_s']):
             raise ValueError(camera+' 摄像头画面失效')
-        return jpeg, fid, ms/1000
+        return view, fid, ms/1000
 
     def read(self, now):
         self.motion_cache.snapshot()
         changed = False
         batch_started = time.perf_counter()
         for camera in self.s['cameras']:
+            early_event=None
             try:
-                jpeg, fid, captured = self._frame(camera, now, batch_started)
+                view, fid, captured = self._frame(camera, now, batch_started)
                 if fid == self.last_ids.get(camera) and captured == self.last_times.get(camera):
                     continue
-                image = cv2.imdecode(np.frombuffer(jpeg,np.uint8),cv2.IMREAD_COLOR)
+                image, jpeg = view['image'], view['jpeg']
                 if image is None or [image.shape[1],image.shape[0]] != self.s['image_size']:
                     raise ValueError(camera+' 图像尺寸与480×360配置不一致')
                 track = self.tracks[camera]
                 observation = self.detectors[camera].detect(image, reference_box=track.box)
                 observation, tracking = track.update(observation, fid, captured)
+                detected=self.clock() if self.clock else now+(time.perf_counter()-batch_started)
+                color,box=stop_color_evidence(observation,track.box)
+                if color is not None and 0<=detected-captured<=self.s.get('fast_red_max_age_s',.15):
+                    early_event={'camera_id':camera,'frame_id':fid,'captured_s':captured,
+                        'detected_s':detected,'state':color,'bbox_xyxy':box,'stop_only':True}
                 self.observations[camera] = {'camera_id':camera,'frame_id':fid,'captured_s':captured,
                     'image_size':self.s['image_size'],'signal':observation,'fixture_track':tracking}
                 self.last_ids[camera], self.last_times[camera] = fid, captured
@@ -85,6 +93,9 @@ class TrafficCamera:
                 self.errors[camera] = str(exc)
                 self.observations.pop(camera,None);self.images.pop(camera,None);self.jpegs.pop(camera,None)
                 self.last_ids.pop(camera,None);self.last_times.pop(camera,None)
+            # Output failures must propagate, not be disguised as a camera error.
+            # The authorized owner can brake before another camera is processed.
+            if early_event is not None and callable(self.stop_callback):self.stop_callback(early_event)
         if not self.observations: raise ValueError('两路均无新鲜图像：'+'; '.join(self.errors.values()))
         if not changed: return None  # Cached copies cannot renew an output lease.
         self.sequence += 1
@@ -324,6 +335,7 @@ actuator, and only start can subsequently request forward/braking commands.
 
     def _work(self):
         actuator = reader = None
+        work_stop,work_token=self.stop,self.token
         try:
             self.folder.mkdir(parents=True, exist_ok=False)
             (self.folder/'settings.json').write_text(json.dumps({'driving': self.active_settings, 'vision': self.profile,
@@ -361,14 +373,30 @@ actuator, and only start can subsequently request forward/braking commands.
                         reset = getattr(reader, 'begin_round', None)
                         if reset:reset()
                         tracked_controller = self.controller
+                    active_controller,active_round=self.controller,self.round_number
+                    def early_stop(event):
+                        with self.lock:
+                            moment=self.clock()
+                            if (work_stop.is_set() or self.stop is not work_stop or self.token!=work_token
+                                    or self.controller is not active_controller or self.round_number!=active_round
+                                    or self.phase=='complete' or active_controller is None or moment>self.lease_until):return
+                            intent=active_controller.accept_early_stop(event,moment)
+                            if intent is None:return
+                            self.latest=intent;self.phase,self.reason=intent['phase'],intent['reason']
+                            if self.phase=='fault':
+                                self.stop.set();return
+                            self.execution=actuator.send(intent)
+                    reader.stop_callback=early_stop
                     sample = reader.read(now)
                     if sample is None:
                         self.stop.wait(.005)
                         continue
                     now = self.clock()
                     with self.lock:
-                        if self.stop.is_set():
+                        if work_stop.is_set() or self.stop is not work_stop or self.token!=work_token:
                             break
+                        if self.controller is not active_controller or self.round_number!=active_round:
+                            continue  # A start/cancel during vision cannot reuse another round's batch.
                         if now > self.lease_until or not 0 <= now-sample['captured_s'] <= self.active_settings['max_frame_age_s']:
                             raise ValueError('处理后画面或控制心跳已过期')
                         self.observation, self.preview_jpeg = sample, reader.preview

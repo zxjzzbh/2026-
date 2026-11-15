@@ -5,6 +5,8 @@ explicit prepare may acquire neutral output; start is a separate user action.
 """
 import copy
 from .preview_encoding import PreviewEncoder
+from .camera_frames import control_frame
+from .motion_cache import GroundMotionCache
 from .runtime_timing import VISION_MAX_AGE_S
 import json
 import threading
@@ -74,19 +76,16 @@ class ConeCamera:
         for camera in cameras:
             camera_started=time.perf_counter()
             try:
-                state=self.states[camera]
-                with state.condition:
-                    jpg,fid,ms=state.raw_jpeg,state.raw_frame_id,state.raw_received_ms
-                    failed=state.state in ('stopped','error')
-                    identity=copy.deepcopy(getattr(state,'identity',None))
-                now=self.clock()
-                if failed or not jpg or type(fid) is not int or not numeric(ms) or not 0<=now-ms/1000<=VISION_MAX_AGE_S:
+                view=control_frame(self.states[camera])
+                jpg,fid,ms=view['jpeg'],view['frame_id'],view['captured_ms']
+                identity=view['identity'];now=self.clock()
+                if not 0<=now-ms/1000<=VISION_MAX_AGE_S:
                     raise ValueError('camera unavailable')
                 capture=(fid,ms,identity)
                 mode=(capture,bool(track_cones),road_mask_mode)
                 if camera in self.rows and self.processing_modes.get(camera)==mode:continue
-                image=cv2.imdecode(np.frombuffer(jpg,np.uint8),cv2.IMREAD_COLOR)
-                if image is None or [image.shape[1],image.shape[0]]!=self.s['image_size']:raise ValueError('image size changed')
+                image=view['image']
+                if [image.shape[1],image.shape[0]]!=self.s['image_size']:raise ValueError('image size changed')
                 if camera in self.ids and fid<self.ids[camera]:
                     self.trackers[camera]=ImageConeTracker(camera,self.s,near_field_recovery=self.turn_aware)
                     self.track_samples.pop(camera,None)
@@ -363,6 +362,7 @@ class ConeObserverDrive:
             self.thread=threading.Thread(target=self._work,name='cone-observer',daemon=True);self.thread.start()
 
     def _work(self):
+        motion_cache=GroundMotionCache(self.states,clock=self.clock)
         try:
             reader=ConeCamera(self.states,self.settings,self.clock,turn_aware=True)
             while not self.stop.is_set():
@@ -382,8 +382,9 @@ class ConeObserverDrive:
                 except (ValueError,cv2.error) as exc:
                     with self.lock:
                         self.latest=self.preview=self.updated=None;self.reason=str(exc)+'；正在等待恢复'
-                        if self.run.active:self.run.cancel('相机画面中断，已结束避障',phase='fault')
                         self.short.cancel('相机画面中断，已结束短测',phase='fault')
+                    if self.run.active:
+                        self.run.tick(None,self.clock(),motion=motion_cache.snapshot())
                     self.stop.wait(.3);continue
                 with self.lock:
                     # A settings save/prepare can arrive while decoding or
@@ -395,12 +396,13 @@ class ConeObserverDrive:
                         self.reason='实际双摄识别中；当前仅观察，不驱动车辆'
                 # Actuator startup can take time; do not block page lease /
                 # cancel requests behind the camera status lock.
-                self.run.tick(reader.navigation,self.clock())
+                self.run.tick(reader.navigation,self.clock(),motion=motion_cache.snapshot())
                 self.short.tick(self.updated is not None and 0<=self.clock()-self.updated<=self.settings['max_frame_age_s'])
                 self.stop.wait(.02 if self.run.active or self.short.active else .08)
         except Exception as exc:
             with self.lock:self.reason=str(exc)
         finally:
+            motion_cache.close()
             if 'reader' in locals() and callable(getattr(reader,'close',None)):reader.close()
             with self.lock:
                 if self.run.active:self.run.cancel('识别线程停止，已结束避障',phase='fault')

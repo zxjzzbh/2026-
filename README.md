@@ -4,13 +4,13 @@
 
 **从 [项目内容概览](docs/overview.md) 开始。** 概览介绍各项功能、代码位置和完成程度；[当前进度](docs/current-status.md) 区分主线代码、历史部署与待验收项。完整自主赛道和停车入位尚未通过实车验收。
 
-## 2026-11-14 控制一致性修复
+## 2026-11-15 自主流程修复
 
-当前代码版本为 **`race-control-consistency-20261114`**。修复执行器实际租期与环境检查阻塞、识别与控制时间条件冲突，以及红绿灯、避障和停车的恢复问题；停车使用最终 PWM 对应曲率复核路径。完整核对 204 个运行源码和网页文件，网页文件未改动。
+当前代码版本为 **`race-flow-repair-20261115`**。包括此前本地恢复修复，以及红灯优先制动、斑马线漏检重确认、生产避障空间选边、失效路线撤销、停车带角度识别与原车位重定位、控制恢复和预览/日志隔离。完整核对 **209 个运行源码和网页文件**。
 
-本地全量检查 4033 项通过、6 项因环境或原始素材条件跳过。本次仅同步 GitHub，未部署或操作树莓派；正式全流程仍需完整停车动态标定与现场验收。
+本地全量 **4193 项通过、6 项跳过**；公开副本检查见验证记录。此次仅上传 GitHub，未部署或操作树莓派；正式全流程仍需真实停车标定与现场验收。
 
-[修改说明](docs/imports/2026-11-14-control-consistency/release-notes.txt) · [验证记录](docs/imports/2026-11-14-control-consistency/verification.json) · [最新代码说明](docs/latest-code.md) · [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip)
+[修改说明](docs/imports/2026-11-15-flow-repair/release-notes.txt) · [验证记录](docs/imports/2026-11-15-flow-repair/verification.json) · [最新代码说明](docs/latest-code.md) · [下载 main ZIP](https://github.com/zxjzzbh/2026-/archive/refs/heads/main.zip)
 
 ## 2026-10-20 停车固定版本（历史）
 

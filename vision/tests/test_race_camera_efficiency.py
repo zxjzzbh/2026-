@@ -233,7 +233,7 @@ def test_parking_preserves_actual_tracks_and_entry_skips_unused_primary_and_navi
     reader=isolated_race(states,bundle,lambda:1.,monkeypatch)
     fits,enriched=fit_spies(reader.cones,monkeypatch);received=[]
     monkeypatch.setattr('carvision.race_flow_camera.detect_parking',lambda image,settings:({},image.copy()))
-    monkeypatch.setattr(reader.parking,'update',lambda image,row,view,now:received.append(row))
+    monkeypatch.setattr(reader.parking,'update',lambda image,row,view,now,**kw:received.append(row))
     result=reader.read(stage,1.)
     assert result['captured_s']==1. and len(received)==1
     row=received[0]
@@ -253,7 +253,7 @@ def test_parking_preserves_actual_tracks_and_entry_skips_unused_primary_and_navi
 def test_same_frame_lane_only_to_parking_restores_tracking_without_renewing_capture(bundle,monkeypatch):
     states=caches();reader=isolated_race(states,bundle,lambda:1.,monkeypatch)
     monkeypatch.setattr('carvision.race_flow_camera.detect_parking',lambda image,settings:({},image.copy()))
-    received=[];monkeypatch.setattr(reader.parking,'update',lambda image,row,view,now:received.append(row))
+    received=[];monkeypatch.setattr(reader.parking,'update',lambda image,row,view,now,**kw:received.append(row))
     counts={camera:0 for camera in reader.cones.trackers}
     for camera,tracker in reader.cones.trackers.items():
         original=tracker.update

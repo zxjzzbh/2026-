@@ -258,6 +258,11 @@ class LowSpeedNavigator:
         correction='right' if near<soft else 'left' if near>1-soft else None
         result['boundary_correction']=correction
         if model and model.state=='paired':self.paired_corridor=(t,model)
+        if result['line_state']=='paired':
+            result['local_course']={'image_lane':[{'camera':self.camera,'captured_s':t,
+                'left':copy.deepcopy(road['left_inner']),'right':copy.deepcopy(road['right_inner']),
+                'line_held':False}]}
+
         result['uncertain_cones']=[]
         self.near_history={key:value for key,value in self.near_history.items() if 0<=t-value['captured_s']<=2.}
         def obstacle_reason(track,reason,y):

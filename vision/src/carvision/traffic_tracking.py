@@ -6,6 +6,7 @@ Missing, cropped or ambiguous lamps never become formal red/green votes.
 """
 from .brake_parking import numeric
 from .traffic_signal import _iou, _reference_geometry, stop_reference_geometry
+from .runtime_timing import RACE_CONTROL_WINDOW_S
 
 
 def fixture_box(signal):
@@ -27,8 +28,24 @@ def same_fixture(previous, current):
     return all(.75 <= ratio <= 1.35 for ratio in ratios)
 
 
+def stop_color_evidence(signal, reference=None):
+    """Current red/yellow geometry can stop, never grant a formal color vote."""
+    box=fixture_box(signal)
+    color=signal.get('state') if box is not None else None
+    if color in ('red','yellow'):
+        return color,box
+    box=fixture_box({'fixture_detected':True,'bbox_xyxy':signal.get('stop_only_box')})
+    color=signal.get('stop_only_color')
+    if color in ('red','yellow') and box is not None and reference is not None and stop_reference_geometry(box,reference):
+        return color,box
+    return None,None
+
+
 class FixtureTrack:
-    def __init__(self):
+    def __init__(self, *, max_gap_s=.25):
+        if not numeric(max_gap_s) or not 0 < max_gap_s <= RACE_CONTROL_WINDOW_S:
+            raise ValueError('invalid fixture acquisition interval')
+        self.max_gap_s=max_gap_s
         self.box = self.candidate = None
         self.count = 0
         self.last_id = self.last_capture = self.last_seen = None
@@ -61,7 +78,7 @@ class FixtureTrack:
             self.candidate = None
             return dict(signal), self.diagnostics()
         if self.box is None:
-            if (gap is None or gap > .25 or not same_fixture(self.candidate, current)):
+            if (gap is None or gap > self.max_gap_s+1e-9 or not same_fixture(self.candidate, current)):
                 self.count = 0
             self.count += 1
             self.candidate = current
@@ -80,7 +97,7 @@ class TrafficApproachGuard:
     """Filter each camera by identity before voting and latch stop-only evidence."""
     def __init__(self, settings):
         self.s = settings
-        self.tracks = {camera:FixtureTrack() for camera in ('primary','secondary')}
+        self.tracks = {camera:FixtureTrack(max_gap_s=RACE_CONTROL_WINDOW_S) for camera in ('primary','secondary')}
         self.stop_reason = None
         self.sources = []
         self.first_red = None
@@ -98,16 +115,7 @@ class TrafficApproachGuard:
             ordered = fresh and (track.last_id is None or fid > track.last_id and captured > track.last_capture)
             if fresh:
                 signal, info = track.update(row.get('signal') or {}, fid, captured)
-                color = signal.get('state') if fixture_box(signal) is not None else None
-                if color not in ('red','yellow'):
-                    # TrafficCamera may already have filtered a shape change.
-                    # Recheck its image-space association to this guard's own
-                    # locked fixture; arbitrary metadata cannot select a lamp.
-                    box = fixture_box({'fixture_detected':True,
-                                       'bbox_xyxy':signal.get('stop_only_box')})
-                    color = (signal.get('stop_only_color')
-                             if box is not None and track.box is not None
-                             and stop_reference_geometry(box,track.box) else None)
+                color,_ = stop_color_evidence(signal,track.box)
                 if color in ('red','yellow'):
                     stop_color_sources.append(camera)
                 if (approaching and ordered and color in ('red','yellow')

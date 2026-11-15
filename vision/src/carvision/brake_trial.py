@@ -24,6 +24,8 @@ from .crosswalk import CrosswalkDetector
 from .lane import LaneDetector
 from .parking_speech import ParkingSpeech
 from .crosswalk_calibration import load_profile,validate_profile
+from .camera_frames import control_frame
+from .preview_encoding import PreviewEncoder
 
 
 class TrialCamera:
@@ -41,6 +43,13 @@ class TrialCamera:
         self.lane = LaneDetector(load_config(None).lane)
         self.motion = GroundMotionEstimate()
         self.jpeg = None
+        self.encoder = PreviewEncoder()
+
+    def close(self):
+        if self.calibrated is not None:
+            close = getattr(self.calibrated, 'close', None)
+            if callable(close):close()
+        else:self.encoder.close()
 
     def read_processed(self, now, views, motion):
         """Competition-only reuse of validated, already decoded camera views."""
@@ -54,16 +63,13 @@ class TrialCamera:
             result = self.calibrated.read(now)
             self.jpeg = self.calibrated.jpeg
             return result
-        state = self.state
-        with state.condition:
-            jpeg, frame_id, captured = state.raw_jpeg, state.raw_frame_id, state.raw_received_ms
-            failed = state.state in ('error', 'stopped')
-        if (failed or jpeg is None or not numeric(captured)
+        view = control_frame(self.state)
+        image, frame_id, captured = view['image'], view['frame_id'], view['captured_ms']
+        if (type(frame_id) is not int or not numeric(captured)
                 or not 0 <= now - captured / 1000 <= self.settings['max_frame_age_s']):
             raise ValueError('第二路摄像头画面失效')
         if frame_id == self.last_id:
             return None  # Do not refresh the actuator lease with an old image.
-        image = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
         if image is None or [image.shape[1], image.shape[0]] != self.settings['image_size']:
             raise ValueError('第二路画面尺寸与原标定不一致')
         zebra, _ = self.detector.detect(image, captured)
@@ -71,12 +77,15 @@ class TrialCamera:
         for x, y, w, h in zebra['stripes_xywh']:
             clean[y:y+h, x:x+w] = 0
         lane, _ = self.lane.detect(clean)
-        self.last_id, self.jpeg = frame_id, jpeg
+        self.last_id = frame_id
+        self.jpeg = view['jpeg'] or self.encoder.submit(image)
+        motion=self.motion.update(image, frame_id, captured / 1000)
+        motion.update(captured_s=captured/1000,frame_id=frame_id)
         return {'fresh': True, 'frame_id': frame_id, 'captured_s': captured / 1000,
                 'image_size': self.settings['image_size'], 'candidate': zebra['candidate'],
                 'far_edge_y_normalized': zebra['far_edge_y_normalized'],
                 'lane_valid': lane.valid, 'lane_offset': lane.offset_normalized,
-                'motion': self.motion.update(image, frame_id, captured / 1000)}
+                'motion': motion}
 
 
 class BrakeTrialDrive:
@@ -331,7 +340,7 @@ class BrakeTrialDrive:
             return self.status()
 
     def _work(self):
-        actuator = None
+        actuator = reader = None
         try:
             self.folder.mkdir(parents=True, exist_ok=False)
             (self.folder/'settings.json').write_text(json.dumps(self.settings, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -373,6 +382,8 @@ class BrakeTrialDrive:
                             # Selection priority depends on this round's brake
                             # trigger as well as the calibration table. Freeze
                             # the reader and controller to the same snapshot.
+                            close=getattr(reader,'close',None)
+                            if callable(close):close()
                             reader = (self.reader_factory(self.states,copy.deepcopy(self.active_settings),clock=self.clock)
                                       if self.reader_factory is TrialCamera else self.reader_factory(self.states,copy.deepcopy(self.active_settings)))
                             reader_round = self.round_number
@@ -448,6 +459,8 @@ class BrakeTrialDrive:
         finally:
             if actuator:
                 actuator.close()  # Finite brake if driving, then neutral.
+            close=getattr(reader,'close',None)
+            if callable(close):close()
             if self.speech:
                 self.speech.close()
             with self.lock:

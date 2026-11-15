@@ -46,6 +46,9 @@ class RaceFlowCamera:
     def set_avoidance_target(self,camera,identifier):
         self.navigator.set_avoidance_target(camera if identifier else None,identifier or None)
 
+    def set_traffic_stop_callback(self,callback):
+        self.traffic.stop_callback=callback
+
     def _road_mask(self,camera,image,frame_id,captured_s,mask):
         # These references bind a mask to the exact decoded view, including a
         # restarted camera reusing a frame number. No cached view is re-fitted.
@@ -90,6 +93,7 @@ class RaceFlowCamera:
         self.motion_cache.close()
         self.encoder.close()
         self.traffic.close()
+        self.crosswalk.close()
         if callable(getattr(self.cones,'close',None)):self.cones.close()
 
     def _arming_sample(self):
@@ -106,6 +110,17 @@ class RaceFlowCamera:
         started=time.perf_counter();timing={}
         self.motion_cache.snapshot()
         if stage=='arming':return self._arming_sample()
+        # Stop-only traffic evidence must reach the arbiter before unrelated
+        # road fitting, the other camera and optional rendering finish.
+        traffic_time=0.
+        if stage=='traffic':
+            section=time.perf_counter()
+            try:value=self.traffic.read(self.clock())
+            except ValueError as exc:
+                if not str(exc).startswith('两路均无新鲜图像：'):raise
+                self.last_traffic=None;value=None
+            if value is not None:self.last_traffic=value
+            traffic_time=time.perf_counter()-section
         # Keep one curve model. A stage change can reprocess the same real
         # frame with its proper mask, without inventing another capture.
         self.mask_zebra=stage in ('crosswalk','traffic')
@@ -120,7 +135,7 @@ class RaceFlowCamera:
             if str(exc)=='两路摄像头均无新鲜画面':return None
             raise
         if changed is None:return None
-        timing['camera_and_road_s']=time.perf_counter()-started
+        timing['camera_and_road_s']=time.perf_counter()-started-traffic_time
         section=time.perf_counter()
         rows=copy.deepcopy(self.cones.rows);images=self.cones.images
         lane_rows={camera:row for camera,row in rows.items()
@@ -162,20 +177,16 @@ class RaceFlowCamera:
             sample['crosswalk']=copy.deepcopy(self.last_crosswalk)
             if sample['crosswalk']:sample['crosswalk']['motion']=self.motion_cache.snapshot()
         elif stage=='traffic':
-            try:value=self.traffic.read(self.clock())
-            except ValueError as exc:
-                if not str(exc).startswith('两路均无新鲜图像：'):raise
-                self.last_traffic=None;value=None
-            if value is not None:self.last_traffic=value
             sample['traffic']=copy.deepcopy(self.last_traffic)
             if sample['traffic']:sample['traffic']['motion']=self.motion_cache.snapshot()
             self.preview=self.traffic.preview
         elif stage in ('parking_search','parking_entry') and secondary:
             view,display=detect_parking(images['secondary'],self.b['parking'])
             sample['parking_view']=view
-            sample['parking']=self.parking.update(images['secondary'],secondary,view,self.clock())
+            sample['parking']=self.parking.update(images['secondary'],secondary,view,self.clock(),
+                motion=self.motion_cache.snapshot())
             self.preview=self.encoder.submit(display)
-        timing['task_s']=time.perf_counter()-section
+        timing['task_s']=time.perf_counter()-section+traffic_time
         sample['vision_processing_s']=time.perf_counter()-started
         sample['vision_stages_s']=timing
         self.latest=sample

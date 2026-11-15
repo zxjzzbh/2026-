@@ -98,6 +98,8 @@ def test_decode_limit_drains_skipped_frames_and_uses_the_latest_image(monkeypatc
     source = object.__new__(CameraSource)
     source.cap = Capture()
     source.decode_interval = .1
+    published=[]
+    source.frame_callback=lambda frame:published.append((frame.frame_id,frame.receive_monotonic_ms))
     source._condition = threading.Condition()
     source._stop = threading.Event()
     source._latest = source._error = None
@@ -105,6 +107,7 @@ def test_decode_limit_drains_skipped_frames_and_uses_the_latest_image(monkeypatc
     monkeypatch.setattr('carvision.sources.time.monotonic', lambda: next(times))
     source._read()
     assert decoded == [1, 4, 7]
+    assert published == [(0,10.),(1,120.),(2,240.)]
     assert np.all(source._latest.image == 7)
     assert source._latest.receive_monotonic_ms == 240
     assert isinstance(source._error, RuntimeError)
@@ -115,6 +118,7 @@ def test_decode_limit_reports_camera_disconnect_without_reusing_a_frame():
     source = object.__new__(CameraSource)
     source.cap = SimpleNamespace(grab=lambda: False, release=lambda: None)
     source.decode_interval = .1
+    source.frame_callback=None
     source._condition = threading.Condition()
     source._stop = threading.Event()
     source._latest = source._error = None

@@ -150,17 +150,17 @@ def replaced():
 def test_retired_target_cannot_ping_pong_or_extend_its_reacquire_window_on_duplicates():
     controller=replaced()
     for t in (.5,.6):
-        output=controller.step(lane(t,cones=[cone('A',.25,.85),cone('B',.5,.7)]),t)
+        output=controller.step(lane(t,cones=[cone('A',.75,.85),cone('B',.5,.7)]),t)
         assert output['target_id']=='B' and 'A' in output['target_reacquire_blocked_ids']
-    held=controller.step(lane(.6,cones=[cone('A',.25,.85),cone('B',.5,.7)]),.69)
+    held=controller.step(lane(.6,cones=[cone('A',.75,.85),cone('B',.5,.7)]),.69)
     assert held['fresh_control'] is False and controller.target=='B'
-    output=controller.step(lane(.701,cones=[cone('A',.25,.9),cone('B',.5,.7)]),.701)
+    output=controller.step(lane(.701,cones=[cone('A',.75,.9),cone('B',.5,.7)]),.701)
     assert output['target_id']=='A' and controller.count==0 and not controller.passed_ids
 
 
 def test_short_reacquire_hold_does_not_hide_a_different_current_blocker():
     controller=replaced()
-    output=controller.step(lane(.5,cones=[cone('A',.25,.85),cone('C',.3,.9),cone('B',.5,.7)]),.5)
+    output=controller.step(lane(.5,cones=[cone('A',.75,.85),cone('C',.7,.9),cone('B',.5,.7)]),.5)
     assert output['target_id']=='C' and controller.count==0 and not controller.passed_ids
 
 

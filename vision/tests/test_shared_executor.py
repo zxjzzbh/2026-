@@ -177,13 +177,17 @@ def test_status_has_no_output_or_lease_refresh_side_effects(rig):
     assert backend.writes==before and owner.guard.deadline==deadline
 
 
-def test_manual_watcher_is_paused_for_borrow_and_rebuilt_after_release(rig):
+def test_manual_watcher_is_paused_until_explicit_manual_enable_after_release(rig):
     controller=rig[3];owner=rig[4];controller.start();old=controller.thread
     actuator,worker=borrow(rig)
     assert not old.is_alive() and controller.stop_event.is_set()
     actuator.close()
+    assert owner.guard is None and controller.thread is old and controller.stop_event.is_set()
+    assert controller.mode=='emergency'
+    owner.dispatch('reset',{})
+    owner.dispatch('enable',{'client':CLIENT,'bench_ready':True})
     assert owner.guard is None and controller.thread is not old and controller.thread.is_alive()
-    assert not controller.stop_event.is_set() and controller.mode=='emergency'
+    assert not controller.stop_event.is_set() and controller.mode in ('settling','enabled')
 
 
 @pytest.mark.parametrize('late_exit',[False,True])

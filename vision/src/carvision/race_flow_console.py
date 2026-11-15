@@ -15,6 +15,7 @@ from .race_flow_camera import RaceFlowCamera
 from .parking_control import calibration_tables, parking_readiness
 from .brake_parking import crosswalk_trigger_reference
 from .handoff import StillnessWindow
+from .event_journal import EventJournal
 
 STOP_ACTIONS={'stop','emergency','finish_test','race_cancel','race_exit'}
 from .page_heartbeat import PAGE_LEASE_S as RACE_PAGE_LEASE_S
@@ -60,6 +61,7 @@ class RaceFlowDrive:
         self.reason='遥控结束并在切换区停稳后，手动进入自动流程';self.stage='idle'
         self.speech={};self.record=None;self.error=None;self.payment_scanned=False;self.log_key=None
         self.handoff={};self.cleanup_error=None;self.record_error=None
+        self.journal=None
         self.heartbeat_sequence=-1;self.heartbeat_count=0;self.last_heartbeat_s=None;self.maximum_heartbeat_gap_s=0.
         self.ignored_manual_stops=0;self.last_stop=None
         try:self.bundle=load_bundle(self.root,self.drive)
@@ -121,7 +123,8 @@ class RaceFlowDrive:
                 'handoff':dict(self.handoff),'page_heartbeat':self.heartbeat_status(),
                 'offline_autonomy':self.offline_competition,
                 'ignored_manual_stops':self.ignored_manual_stops,'last_stop':self.last_stop,
-                'cleanup_error':self.cleanup_error,'record_error':self.record_error,
+                'cleanup_error':self.cleanup_error,'record_error':self.record_error or (self.journal.error if self.journal else None),
+                'recording':self.journal.status() if self.journal else None,
                 'can_report_paid':self.active and self.stage=='payment','intent':current_intent,'last_intent_before_stop':stopped_intent,
                 'parking_missing':parking_blockers(self.bundle) if self.bundle else ['configuration_unavailable'],
                 'speech':{key:handle.status() for key,handle in self.speech.items()},
@@ -238,8 +241,6 @@ class RaceFlowDrive:
                         raise ValueError('请在本页启用遥控并在切换区停稳')
                     self.drive.payment.freeze_race_code(client,payload.get('payment_code_id'))
                 record=self.root/'run'/('race-flow-'+str(time.time_ns()))
-                record.mkdir(parents=True)
-                (record/'settings.json').write_text(json.dumps(bundle,ensure_ascii=False,indent=2),encoding='utf-8')
                 self.bundle=bundle;self.owner=client;self.token=secrets.token_hex(16);self.sequence=-1
                 with self.page_lock:
                     now=self.clock();self.cancel_event=threading.Event();self.active=True
@@ -290,6 +291,10 @@ class RaceFlowDrive:
         self.drive.request(action,payload);return self.status()
 
     def _record(self,event):
+        try:self._enqueue_record(event)
+        except Exception as exc:self.record_error=str(exc)
+
+    def _enqueue_record(self,event):
         if self.record is None:return
         core=self.controller.status(self.clock()) if self.controller else {}
         # No control identities/tokens, QR payloads or payment account data.
@@ -299,8 +304,10 @@ class RaceFlowDrive:
              'handoff':dict(self.handoff),
              'page_heartbeat':self.heartbeat_status(),'ignored_manual_stops':self.ignored_manual_stops,
              'last_stop':self.last_stop}
-        with (self.record/'events.jsonl').open('a',encoding='utf-8') as out:out.write(json.dumps(row,ensure_ascii=False,allow_nan=False)+'\n')
-        (self.record/'summary.json').write_text(json.dumps(row,ensure_ascii=False,indent=2),encoding='utf-8')
+        if self.journal is None or self.journal.folder!=self.record:
+            if self.journal is not None:self.journal.close()
+            self.journal=EventJournal(self.record,self.bundle)
+        self.journal.submit(row)
 
     def _send_intent(self, handle, intent, sample=None, previous_stage=None):
         if self.offline_competition:
@@ -318,6 +325,18 @@ class RaceFlowDrive:
         if intent.get('action') == 'neutral' and intent.get('esc_us') == 1500:
             intent = {**intent, 'page_deadline_s': self.lease_until}
         return handle.send(intent)
+
+    def _early_traffic_stop(self,event,cancel,token,handle):
+        with self.lock:
+            if (cancel.is_set() or not self._current(cancel,token) or not self.active
+                    or self.actuator is not handle or self.stage!='traffic'):
+                return
+            intent=self.controller.accept_early_stop(event,self.clock())
+            if intent is None:return
+            self.stage=self.controller.stage;self.reason=self.controller.reason
+            self.last_intent=intent
+            self._send_intent(handle,intent)
+            self._record('traffic_priority_stop')
 
     def _work(self,cancel=None,token=None,handoff_payload=None):
         cancel=self.cancel_event if cancel is None else cancel
@@ -376,6 +395,9 @@ class RaceFlowDrive:
                                                        recover_gaps=self.offline_competition)
                     self.stage=self.controller.stage;self.reason=self.controller.reason
                     self.handoff['wait_board_s']=self.clock()
+            if callable(getattr(reader,'set_traffic_stop_callback',None)):
+                reader.set_traffic_stop_callback(
+                    lambda event:self._early_traffic_stop(event,cancel,token,handle))
             self._record('manual_to_auto_handoff')
             while not cancel.is_set():
                 now=self.clock()
@@ -484,10 +506,19 @@ class RaceFlowDrive:
                     for speech in self.speech.values():
                         try:speech.close()
                         except Exception as exc:self.record_error=str(exc)
+            # The actuator has already been released. A short best-effort flush
+            # aids diagnostics without blocking driving or hiding storage errors.
+            if self.journal is not None:self.journal.flush()
 
     def _close_handle(self,handle):
         try:
             handle.close()
+            # The sender retires replay immediately. A borrowed worker may
+            # still be completing its finite brake; payment begins only after
+            # acknowledged neutral/release, independently of manual network readiness.
+            released_handle=handle.actuator if isinstance(handle,ConeCommandSender) else handle
+            confirm=getattr(released_handle,'confirm_release',None)
+            if callable(confirm):confirm()
             if getattr(handle,'close_error',None):
                 raise RuntimeError(handle.close_error)
         except Exception as exc:
@@ -522,3 +553,4 @@ class RaceFlowDrive:
 
     def close(self):
         self.closed=True;self.cancel('服务结束，已停止全流程')
+        if self.journal is not None:self.journal.close(.5)

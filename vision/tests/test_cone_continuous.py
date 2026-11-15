@@ -292,7 +292,7 @@ def test_edge_target_responds_on_first_frame_and_old_settings_still_load(setting
     assert ctl.progress()['steering_policy']=='shared_multi_row_pd'
 
 
-def test_one_cone_locks_its_side_and_stops_if_that_gap_disappears(settings):
+def test_one_cone_locks_a_feasible_side_and_pauses_if_that_gap_disappears(settings):
     ctl=warmed(continuous(settings),stop_for_cones=True)
     for i,x in enumerate((.5,.51,.52,.495,.51)):
         t=3.1+i*.1;data=observation(t)
@@ -300,8 +300,9 @@ def test_one_cone_locks_its_side_and_stops_if_that_gap_disappears(settings):
         ctl.step(data,t)
         if i==0:side=ctl.side
         assert ctl.side==side and ctl.target=='one' and ctl.count==0
-    data=observation(3.7);data['cones'][0].update(fraction=.30,near=False,y_fraction=.55)
-    with pytest.raises(ValueError,match='间隙'):ctl.step(data,3.7)
+    data=observation(3.7);data['cones'][0].update(fraction=.70,near=False,y_fraction=.55)
+    output=ctl.step(data,3.7)
+    assert output['esc_us']==1500 and output['steering_phase']=='route_recheck'
     assert ctl.side==side
 
 
@@ -389,7 +390,7 @@ def test_direct_controller_settings_cannot_bypass_gain_validation(settings,value
     with pytest.raises(ValueError,match='转向增益'):ContinuousConeController(s,0.)
 
 
-def test_second_cone_position_changes_the_first_avoidance_choice(settings):
+def test_first_cone_equal_space_prefers_right_independently_of_later_cone(settings):
     chosen=[]
     for second_x in (.15,.85):
         ctl=warmed(continuous(settings))
@@ -397,7 +398,7 @@ def test_second_cone_position_changes_the_first_avoidance_choice(settings):
         second={**first,'id':'next','fraction':second_x,'y_fraction':.45,'near':False}
         assert 1500<ctl.step(observation(3.1,cones=[first,second]),3.1)['esc_us']<=1600
         chosen.append(ctl.side)
-    assert chosen==['right','left']
+    assert chosen==['right','right']
 
 
 def test_sustained_outside_boundary_stops_even_in_operator_ended_trial(settings):
