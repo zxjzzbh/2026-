@@ -36,6 +36,21 @@ CANCEL_REASONS={
 }
 
 
+def practice_reference(settings,config_dir):
+    """Select the practice geometry in memory, preserving local measurements."""
+    ground=settings['ground']
+    if ground.get('verified') or ground.get('historical_verified') or ground.get('homography') is not None:
+        candidate=copy.deepcopy(settings)
+    else:
+        path=Path(config_dir)/'cone-legacy-ground-candidate.json'
+        candidate=reuse_legacy_ground(settings,json.loads(path.read_text(encoding='utf-8-sig')))
+    geometry=candidate['geometry']
+    if not geometry.get('measured') and geometry.get('lane_width_m')==1.23:
+        indoor=candidate['scene']['surface']=='indoor_white_line_track'
+        geometry['lane_width_m']=1.25 if indoor else 1.17
+    return candidate
+
+
 class ConeCamera:
     def __init__(self,states,settings,clock=time.monotonic,*,turn_aware=False):
         self.states,self.s,self.clock=states,settings,clock
@@ -240,7 +255,10 @@ class ConeObserverDrive:
                 self.run.command(action,payload,self.clock());return self.status()
             if action=='cone_prepare':
                 if self.short.active:raise ValueError('先结束固定档短测，再准备自动避障')
-                self.run.prepare(self.settings,self.drive.status(),payload,self.clock())
+                settings=self.settings
+                if payload.get('lane_feedback')=='weighted_rows' and payload.get('profile')==PROFILE:
+                    settings=practice_reference(settings,self.config.parent)
+                self.run.prepare(settings,self.drive.status(),payload,self.clock())
                 self.reset_navigation=True
                 self._start_observer();return self.status()
             if action=='cone_cancel':

@@ -263,10 +263,11 @@ class ConeRun:
             else:
                 try:
                     intent=self.controller.step(navigation,now)
-                except FeedbackPause:
+                except FeedbackPause as exc:
                     if not resumable:raise
                     intent=self.recovery.update(navigation,motion,now,stale=True,
                         was_forward=(self.intent or {}).get('esc_us',1500)>1500)
+                    intent['recovery_trigger']=str(exc)
                 self.phase,self.reason=intent['phase'],intent['reason']
             handle=self.actuator
             if not self.active or handle is None:return

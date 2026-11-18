@@ -22,8 +22,8 @@ def observation(t,cones=None,**changes):
     return legacy_observation(t,cones=cones,**changes)
 
 
-def continuous(settings):
-    s=trial_settings(settings);s['low_speed_test'].update(manual_stop_only=True,max_run_s=None)
+def continuous(settings,feedback='standard'):
+    s=trial_settings(settings,{'lane_feedback':feedback});s['low_speed_test'].update(manual_stop_only=True,max_run_s=None)
     return s
 
 
@@ -44,12 +44,13 @@ def mission_observation(t,**changes):
     return observation(t,**changes)
 
 
-def test_safe_guidance_has_no_periodic_stop_but_boundary_hazard_is_not_bypassed(settings):
-    ctl=ContinuousConeController(continuous(settings),0.)
+@pytest.mark.parametrize('feedback',['standard','weighted_rows'])
+def test_safe_guidance_has_no_periodic_stop_but_boundary_hazard_is_not_bypassed(settings,feedback):
+    ctl=ContinuousConeController(continuous(settings,feedback),0.)
     assert ctl.step(observation(1.,cones=[]),1.)['action']=='neutral'
     for t in np.arange(1.1,900.01,.1):
         t=round(float(t),8)
-        data=observation(t,cones=[])
+        data=observation(t,cones=[],weighted_ego_fraction=.5,boundary_observed=True)
         result=ctl.step(data,t)
         if t<ctl.arm_until:
             assert result['esc_us']==1500
@@ -61,9 +62,10 @@ def test_safe_guidance_has_no_periodic_stop_but_boundary_hazard_is_not_bypassed(
         ctl.step(observation(900.1,cones=[],boundary_danger=True),900.1)
 
 
-def test_target_disappearance_and_two_pass_count_do_not_end_trial(settings):
+@pytest.mark.parametrize('feedback',['standard','weighted_rows'])
+def test_target_disappearance_and_two_pass_count_do_not_end_trial(settings,feedback):
     from cone_mission_fixture import estimate_one
-    ctl=warmed(continuous(settings))
+    ctl=warmed(continuous(settings,feedback))
     ctl.step(observation(3.1),3.1)
     for t in np.arange(3.2,6.,.1):
         assert ctl.step(observation(float(t),cones=[]),float(t))['esc_us']>1500
@@ -436,13 +438,14 @@ def test_camera_and_clock_failures_and_worker_watchdog_are_not_bypassed(settings
     assert guard.fault and guard.esc==1400
 
 
-def test_actual_session_has_no_motion_timeout_and_stops_on_operator_cancel(settings,tmp_path):
+@pytest.mark.parametrize('feedback',['standard','weighted_rows'])
+def test_actual_session_has_no_motion_timeout_and_stops_on_operator_cancel(settings,tmp_path,feedback):
     made=[]
     def factory(s):
         a=Actuator();made.append(a);return a
     run=ConeRun(factory,tmp_path)
     run.prepare(settings,{'mode':'disabled','boot_test_phase':'esc_off','setup_token':'boot'},
-        {'profile':'legacy_low_speed','client':'page','setup_token':'boot','esc_off':True,'fb_mode_confirmed':True},0.)
+        {'profile':'legacy_low_speed','lane_feedback':feedback,'client':'page','setup_token':'boot','esc_off':True,'fb_mode_confirmed':True},0.)
     for t in (.1,.2,.3):run.tick(observation(t,cones=[]),t)
     run.command('cone_start',{'client':'page','run_token':run.token,'trial_sequence':1,
         'fb_mode_confirmed':True,'esc_on_static':True,'field_ready':True},.4)
@@ -450,10 +453,13 @@ def test_actual_session_has_no_motion_timeout_and_stops_on_operator_cancel(setti
     for i in range(660):
         t=.5+i*.2
         run.command('cone_keepalive',{'client':'page','run_token':run.token,'trial_sequence':i+2},t)
-        run.tick(observation(t,cones=[]),t)
+        run.tick(observation(t,cones=[],weighted_ego_fraction=.5,boundary_observed=True),t)
         assert run.active
         if t>run.controller.arm_until:assert made[0].intents[-1]['action']=='search'
-    run.cancel('operator stop')
+    if feedback=='weighted_rows':
+        assert made[0].intents[-1]['steering_policy']=='weighted_nine_rows'
+    run.cancel('operator stop',source='stop_button')
+    assert run.intent['esc_us']==1500 and run.first_stop['source']=='stop_button'
     assert not run.active and made[0].closed
     run.tick(observation(140.,cones=[]),140.)
     assert not run.active

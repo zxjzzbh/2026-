@@ -19,6 +19,7 @@
     cone:{name:'避障场地测试',key:'cone_trial.avoidance',prepare:'cone_prepare',start:'cone_start',stop:'cone_cancel',heartbeat:'cone_keepalive',observe:'cone_observe',observeStop:'cone_stop',image:'/api/cone/frame.jpg',
       description:'红地蓝桶 / 蓝地红桶 / 室内白线场地。白线恢复总时限1秒，单边预测最多0.25秒；越界、画面中断或失联时停止。',
       fields:[select('scene_surface','场地',[['red_running_track','红色跑道（蓝桶）'],['blue_running_track','蓝色跑道（红桶）'],['indoor_white_line_track','室内白线场地']],'red_running_track','cone_trial.settings.scene.surface'),
+        select('lane_feedback','巡线方式',[['standard','原场地测试'],['weighted_rows','九行巡线＋绕桶（手动结束）']],'standard'),
         number('white_v_min','白线最低亮度',0,255,1,200,'cone_trial.settings.scene.white_v_min'),number('test_forward_us','前进油门（μs）',1501,1625,1,1600),number('test_left_us','左转端点（μs）',1650,1870,5,1870),number('test_right_us','右转端点（μs）',1350,1570,5,1350),number('test_steering_gain','转向增益',1,3,.1,1.5,'cone_trial.avoidance.default_steering_gain')]},
     departure:{name:'蓝色挡板识别（仅播报）',key:'departure_trial',start:'departure_start',stop:'departure_stop',image:'/api/departure/frame.jpg',
       description:'只识别挡板和播报，不输出前进；无需电调准备。开始后保持车辆和镜头不动，由人移开挡板。',
@@ -38,6 +39,8 @@
     const every=options.setInterval||setInterval,later=options.setTimeout||setTimeout,clearLater=options.clearTimeout||clearTimeout;
     const el=id=>doc.getElementById(id),fieldNodes=new Map();
     let status=null,online=false,stale=false,busy=false,dirty=false,task='crosswalk',epoch=0,token=null,sequence=-1;
+    const practiceShortcut=new URLSearchParams(win.location?.search||'').get('task')==='lane_practice';
+    if(practiceShortcut){task='cone';el('task-select').value=task;}
     let heartbeatSequence=-1,pollBusy=false;const heartbeatRequests=new Set();
     let queue=Promise.resolve(),pulseBusy=false,selectedOnce=false,observationOwner=null,stopping=false,started=false,lastSnapshot=-Infinity;
     const selected=()=>TASKS[task],state=()=>path(status,selected().key)||{},owned=()=>!!state().active&&state().owner_client===client;
@@ -52,6 +55,7 @@
         if(f.type==='select'){for(const [value,title] of f.choices){const option=doc.createElement('option');option.value=value;option.textContent=title;input.append(option);}}
         else{input.type='number';input.min=f.min;input.max=f.max;input.step=f.step;input.required=!f.optional;}
         let value=path(status,f.path)??f.value;
+        if(practiceShortcut&&task==='cone'&&f.key==='lane_feedback')value='weighted_rows';
         if(task==='crosswalk'&&f.key==='brake_distance_cm')value=Math.round((status?.crosswalk_trial?.brake_trigger?.distance_m??.55)*100);
         input.value=value==null?'':String(value);input.addEventListener('input',()=>{dirty=true;render();});input.addEventListener('change',()=>{dirty=true;render();});
         label.append(text,input);el('settings-fields').append(label);fieldNodes.set(f.key,input);
@@ -107,6 +111,10 @@
         diagnostics.push('红窗1秒 / 绿窗2秒 / 制动350ms；单项绿灯只播报，保持停车。');
       }else el('traffic-current').hidden=true;
       if(task==='cone'){const n=status?.cone_trial?.latest?.navigation;
+        if(fieldNodes.get('lane_feedback')?.value==='weighted_rows'){
+          diagnostics.push('场地练习：斑马线、红灯、停车位和绕桶计数均不结束行驶。');
+          if(intent?.steering_policy==='weighted_nine_rows')diagnostics.push('本帧按九行白线位置巡线。');
+        }
         if(r.low_speed_stop_for_cones===false)diagnostics.push('锥桶碰撞停车已关闭，继续按白线引导行驶。');
         diagnostics.push(n?.line_missing?`白线恢复总时限${r.line_recovery_s??1}秒，持续不足停止。`:n?.reason||'等待新鲜边界与锥桶观测');}
       if(task==='departure'){for(const [camera,row] of Object.entries(r.observations||{}))diagnostics.push(`${camera}：${row.state} #${row.frame_id}`);}
@@ -158,6 +166,7 @@
     async function prepare(){if(el('prepare-task').disabled)return;return action(async()=>{
       const v=values(),d=selected(),body={esc_off:el('confirm-esc-off').checked,fb_mode_confirmed:el('confirm-fb').checked};
       if(task==='cone')Object.assign(body,{profile:'legacy_low_speed',test_forward_us:v.test_forward_us,test_left_us:v.test_left_us,test_right_us:v.test_right_us,test_steering_gain:v.test_steering_gain});
+      if(task==='cone'&&v.lane_feedback==='weighted_rows')body.lane_feedback=v.lane_feedback;
       if(task==='parking'||task==='visual')Object.assign(body,{selected_slot:v.selected_slot,forward_us:v.forward_us,steering_gain:v.steering_gain,controller_mode:d.mode});
       await enqueue(d.prepare,body);
       el('confirm-esc-off').checked=false;el('confirm-on-static').checked=false;el('confirm-field').checked=false;

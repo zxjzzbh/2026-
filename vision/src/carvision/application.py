@@ -187,6 +187,8 @@ class DebugApplication:
                 return self.status()
             target_key = next((key for prefix, key in self.prefixes.items() if action.startswith(prefix)), None)
             if target_key is not None:
+                if action=='cone_prepare' and payload.get('lane_feedback')=='weighted_rows' and isinstance(self.manual,PausedDrive):
+                    raise ValueError('连续巡线实车准备需要使用 --live 启动')
                 # A task's own start/heartbeat remains valid, but preparing a
                 # second movement task cannot acquire the same hardware.
                 other_active = any(self.task_active(key, state) for key in self.tasks if key != target_key)

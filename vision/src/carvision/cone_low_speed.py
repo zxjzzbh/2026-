@@ -44,9 +44,15 @@ def steering_gain(value):
 
 def trial_settings(settings,payload=None):
     payload=payload or {};s=copy.deepcopy(settings);s['max_frame_age_s']=VISION_MAX_AGE_S;g=s['geometry'];ground=s['ground']
-    if not ground.get('historical_verified') or not ground.get('reuse_source'):
+    feedback=payload.get('lane_feedback','standard')
+    if feedback not in ('standard','weighted_rows'):
+        raise ValueError('未知巡线方式')
+    measured=feedback=='weighted_rows' and ground.get('verified') is True
+    if not measured and not (ground.get('historical_verified') and ground.get('reuse_source')):
         raise ValueError('请先载入已有 GitHub 标定参考；本入口不要求重新采集')
-    GroundProjection(ground,require_verified=False)
+    GroundProjection(ground,require_verified=measured)
+    if feedback=='weighted_rows' and ground.get('image_size')!=s['image_size']:
+        raise ValueError('标定分辨率与当前图像不一致')
     for key in ('lane_width_m','vehicle_width_m','vehicle_length_m','rear_axle_to_front_m','rear_overhang_m','cone_base_width_m'):
         if not numeric(g.get(key)) or g[key]<=0:raise ValueError('已有车身尺寸缺失：'+key)
     if g['lane_width_m']<=g['vehicle_width_m']+.24:raise ValueError('白线内宽不足以进行该低速试验')
@@ -64,6 +70,8 @@ def trial_settings(settings,payload=None):
         'reported_displacement_m':.63,'reported_drive_s':1.5,'estimate_verified':False,
         'tail_powered_limit_s':1.0,'clearance_m':.05,'boundary_soft_fraction':.06,
         'boundary_release_fraction':.04,'boundary_hard_margin_m':.03}
+    if feedback=='weighted_rows':
+        s['low_speed_test']['lane_feedback']=feedback
     return s
 
 
@@ -143,7 +151,7 @@ class LowSpeedNavigator:
             result['boundary_failure_reason']=reason
             if turn_aware:
                 for key in ('lane_bounds_px','lane_rows','ego_fraction','ego_near_fraction',
-                            'ego_far_fraction','ego_range','heading_error'):
+                            'ego_far_fraction','ego_range','heading_error','weighted_ego_fraction'):
                     result.pop(key,None)
                 result.update(line_state='missing',boundary_observed=False,line_held=False)
             if not result.get('boundary_danger') and 0<=now-t<=VISION_MAX_AGE_S:
@@ -221,7 +229,10 @@ class LowSpeedNavigator:
                 result['boundary_danger']=True
                 return fail('白线预测不确定度占满车体净空，停止')
         centres=[]
-        for y in (y0,(y0+y1)/2,y1):
+        weighted=(turn_aware and model.state=='paired'
+                  and self.s.get('low_speed_test',{}).get('lane_feedback')=='weighted_rows')
+        rows=np.linspace(y0,y1,9) if weighted else (y0,(y0+y1)/2,y1)
+        for y in rows:
             left,right=corridor(y);width=right-left
             if width<=0:
                 return fail('边界线形相交，暂用图像引导继续观察')
@@ -231,6 +242,9 @@ class LowSpeedNavigator:
             if abs(H[0,0])<1e-8:return fail('旧标定中心参考无效')
             centre=float(-(H[0,1]*y+H[0,2])/H[0,0])
             q=(centre-left)/width;centres.append(q)
+        if weighted:
+            result['weighted_ego_fraction']=float(np.average(centres,weights=(1,2,3,4,5,4,3,2,1)))
+            centres=centres[::4]  # Preserve the three existing clearance and heading samples.
         result.update(ego_fraction=float(np.mean(centres)),half_envelope=half,
                       ego_near_fraction=float(centres[-1]),ego_far_fraction=float(centres[0]),
                       heading_error=float(centres[-1]-centres[0]),

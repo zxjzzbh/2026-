@@ -55,7 +55,8 @@ class ConeDetector:
             base=int(np.median(broad))
             start=max(0,round((base+1)*.1));end=max(start+1,round((base+1)*.3))
             upper=float(np.mean(widths[start:end]))
-            lower=float(np.mean(widths[round((base+1)*.8):base+1]))
+            lower_start=min(base,round((base+1)*.8))
+            lower=float(np.mean(widths[lower_start:base+1]))
             hull=float(cv2.contourArea(cv2.convexHull(contour)))
             tapered=(base>=bh*.55 and lower>=max(1,upper)*1.5 and .7<=bh/bw<=4
                      and .28<=area/(bw*bh)<=.85 and hull>0 and area/hull>=.75)

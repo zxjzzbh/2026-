@@ -67,6 +67,10 @@ function check(id){nodes.get(id).checked=true;api.render();}
  nodes.get('field-scene_surface').value='blue_running_track';await nodes.get('field-scene_surface').fire('change');await api.save();
  assert.deepEqual(requests.slice(-2).map(r=>r.action),['cone_settings','cone_white_threshold']);assert.equal(requests.at(-2).body.scene_surface,'blue_running_track');
  await api.observe();assert.equal(requests.at(-1).action,'cone_observe');await api.stop();assert.equal(requests.at(-1).action,'cone_stop');
+ nodes.get('field-lane_feedback').value='weighted_rows';await nodes.get('field-lane_feedback').fire('change');await api.save();
+ check('confirm-esc-off');check('confirm-fb');await api.prepare();
+ assert.equal(requests.at(-1).action,'cone_prepare');assert.equal(requests.at(-1).body.lane_feedback,'weighted_rows');
+ await api.stop();assert.equal(requests.at(-1).action,'cone_cancel');
  assert(api.choose('parking'));check('confirm-esc-off');check('confirm-fb');assert.equal(nodes.get('prepare-task').disabled,true,'metric missing prevents prepare');
  assert(api.choose('visual'));check('confirm-esc-off');check('confirm-fb');await api.prepare();
  assert.equal(requests.at(-1).body.controller_mode,'visual_trial');assert.equal(requests.at(-1).body.selected_slot,'right');
@@ -77,5 +81,8 @@ function check(id){nodes.get(id).checked=true;api.render();}
  assert(api.choose('traffic'));status.traffic_trial={...status.traffic_trial,active:true,owner_client:'other',run_token:'foreign',phase:'ready'};status=stamp(status);api.applyStatus(status);
  const before=requests.length;for(const fn of events.blur)fn();await flush();assert.equal(requests.length,before,'observer background cannot stop another owner');
  await nodes.get('emergency').fire('click');assert.equal(requests.at(-1).action,'emergency','explicit emergency stays global');
- console.log(JSON.stringify({hardware_output:false,checks:15}));
+ const direct=createDebugClient({document,window:{...window,location:{search:'?task=lane_practice'}},fetch:http,bootstrap:{key:'key',session:'session'},clientId:'page'});
+ direct.applyStatus(base());
+ assert.equal(direct.inspect().task,'cone');assert.equal(nodes.get('field-lane_feedback').value,'weighted_rows');
+ console.log(JSON.stringify({hardware_output:false,checks:17}));
 })().catch(e=>{console.error(e);process.exitCode=1});

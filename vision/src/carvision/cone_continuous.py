@@ -102,7 +102,8 @@ class ContinuousConeController(LowSpeedController):
                 'output_steering_us':round(self.actual_steering),'steering_gain':self.steering_gain,
                 'best_effort_route':self.best_effort,'steering_recentering':self.recentering,
                 'steering_center_us':CENTER_US,'recenter_reason':self.recenter_reason,
-                'steering_policy':'shared_multi_row_pd','pd_error':self.pd.error,'pd_derivative':self.pd.derivative,
+                'steering_policy':(self.last_output or {}).get('steering_policy','shared_multi_row_pd'),
+                'pd_error':self.pd.error,'pd_derivative':self.pd.derivative,
                 'line_state':self.current_line_state,'paired_stable':self.paired_stable,
                 'paired_frames':self.lane_evidence.count,'lane_return_confirmed':self.return_confirmed,
                 'tail_clearance_verified':False,'pass_evidence_kind':'image_sequence_estimate'}
@@ -445,12 +446,23 @@ class ContinuousConeController(LowSpeedController):
         target=next((c for c in cones if c['id']==self.target),None)
         desired,ego,heading,current_lane,visual,reason=self._guidance(nav,cones,target,lane,now)
         near,far,_=self._measurements(nav)
+        weighted=(self.options.get('lane_feedback')=='weighted_rows'
+                  and self.target_space=='lane_follow' and not self.target and reliable
+                  and nav.get('boundary_observed') and not nav.get('boundary_correction')
+                  and numeric(nav.get('weighted_ego_fraction')))
+        if weighted:
+            ego=nav['weighted_ego_fraction']
 
         # Follow the edge target immediately. Filter the derivative, not the
         # target, so a newly visible cone does not incur the old 0.18 s lag.
         self.filtered_target=None if self.target_space=='pending' else desired
         avoiding=self.target_space in ('lane','image')
         error,heading_compensation=combine_guidance(desired-ego,heading,avoiding)
+        if weighted:
+            # The weighted midpoint already accounts for half the near-to-far
+            # change on a linear lane. Keep the remaining heading contribution.
+            heading_compensation-=.5*heading
+            error=desired-ego+heading_compensation
         self.boundary_turn=None;self.soft_boundary_override=None
         if lane:
             # Uncertainty still enlarges path clearance and limits movement;
@@ -551,12 +563,14 @@ class ContinuousConeController(LowSpeedController):
         if self.boundary_output_withdrawal:
             cap=pulse=1500;action='neutral';steering_phase='boundary_withdrawal'
             reason='边界迫近，撤去外向旧舵并暂缓前进'
+        if action=='neutral' and self.options.get('lane_feedback')=='weighted_rows':
+            self.actual_steering=CENTER_US  # The board's neutral command centres S3 and S4 together.
         self.has_forward_command=True
         self.last_output={'action':action,'esc_us':pulse,'steering_us':round(self.actual_steering),
                 'phase':self.phase,'reason':reason,'experimental':True,'manual_stop_only':not self.handoff_after_two,
                 'boundary_correction':self.boundary_turn,'best_effort_route':self.best_effort,
                 'steering_phase':steering_phase,'requested_steering_us':self.requested_steering,
-                'steering_policy':'shared_multi_row_pd',
+                'steering_policy':'weighted_nine_rows' if weighted and not self.boundary_turn else 'shared_multi_row_pd',
                 'line_search':degraded,'boundary_observed':self.current_line_state=='paired',
                 'line_state':self.current_line_state,'paired_stable':self.paired_stable,
                 'target_feedback_steering':target_feedback,
