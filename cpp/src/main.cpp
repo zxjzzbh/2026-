@@ -1,4 +1,5 @@
 #include "smartcar/controller.hpp"
+#include "smartcar/hybrid.hpp"
 #include "smartcar/ground.hpp"
 #include "smartcar/perception.hpp"
 #include "smartcar/parking.hpp"
@@ -54,6 +55,7 @@ struct Settings {
     std::string primary = "/dev/v4l/by-id/usb-YT-FAY-220613_USB2.0_Camera-video-index0";
     std::string port = "/dev/ttyAMA0", speech = "我是山东大学启航队的无人车，请为我加油！";
     std::string ground = "calibration/ground_parking.json", road = "calibration/ground_road.json";
+    std::string modules = "../algorithms";
     std::string zebra_profile = "calibration/crosswalk-distance-20261024.json";
 };
 Settings load(const fs::path &p) {
@@ -99,6 +101,8 @@ Settings load(const fs::path &p) {
     string("announcement_text", s.speech);
     string("parking_ground", s.ground);
     string("road_ground", s.road);
+    string("legacy_module_dir", s.modules);
+    s.modules = fs::absolute(p.parent_path() / fs::u8path(s.modules)).u8string();
     string("zebra_distance_profile", s.zebra_profile);
     s.ground = (p.parent_path() / fs::u8path(s.ground)).u8string();
     s.road = (p.parent_path() / fs::u8path(s.road)).u8string();
@@ -249,25 +253,43 @@ class LatestCamera {
 
   public:
     explicit LatestCamera(const std::string &source) {
-        if (!capture_->camera.open(source))
-            throw std::runtime_error("cannot open primary camera");
-        capture_->camera.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-        capture_->camera.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-        capture_->camera.set(cv::CAP_PROP_BUFFERSIZE, 1);
-        capture_->camera.set(cv::CAP_PROP_FPS, 30);
-        worker_ = std::thread([capture = capture_]() {
-            try {
-                while (capture->running) {
+        worker_ = std::thread([capture = capture_, source]() {
+            bool outage = false;
+            const auto device = fs::u8path(source);
+            const bool local = device.is_absolute();
+            int backend = cv::CAP_ANY;
+#ifdef __linux__
+            if (source.compare(0, 5, "/dev/") == 0) backend = cv::CAP_V4L2;
+#endif
+            while (capture->running) {
+                try {
+                    std::error_code error;
+                    if (!capture->camera.isOpened() && (!local || fs::exists(device, error)) &&
+                        capture->camera.open(source, backend)) {
+                        capture->camera.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+                        capture->camera.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+                        capture->camera.set(cv::CAP_PROP_BUFFERSIZE, 1);
+                        capture->camera.set(cv::CAP_PROP_FPS, 30);
+                    }
                     cv::Mat next;
-                    if (!capture->camera.read(next) || next.empty())
-                        break;
-                    std::lock_guard<std::mutex> lock(capture->mutex);
-                    capture->frame = next;
-                    capture->timestamp = monotonic();
-                    ++capture->id;
+                    if (capture->camera.isOpened() && capture->camera.read(next) && !next.empty()) {
+                        std::lock_guard<std::mutex> lock(capture->mutex);
+                        capture->frame = std::move(next);
+                        capture->timestamp = monotonic();
+                        ++capture->id;
+                        capture->finished.notify_all();
+                        outage = false;
+                        continue;
+                    }
+                } catch (const cv::Exception &error) {
+                    if (!outage) std::cerr << error.what() << '\n';
                 }
-            } catch (...) {
-                capture->running = false;
+                if (!outage) std::cerr << "camera unavailable; retrying " << source << '\n';
+                outage = true;
+                capture->camera.release();
+                std::unique_lock<std::mutex> lock(capture->mutex);
+                capture->finished.wait_for(lock, std::chrono::milliseconds(300),
+                                           [&] { return !capture->running; });
             }
             capture->camera.release();
             {
@@ -277,17 +299,21 @@ class LatestCamera {
             capture->finished.notify_all();
         });
     }
-    bool latest(cv::Mat &frame, std::uint64_t &id, double &stamp) {
-        std::lock_guard<std::mutex> lock(capture_->mutex);
-        if (capture_->frame.empty())
+    bool latest(cv::Mat &frame, std::uint64_t &id, double &stamp, bool waitForNew = false) {
+        std::unique_lock<std::mutex> lock(capture_->mutex);
+        if (waitForNew)
+            capture_->finished.wait_for(lock, std::chrono::milliseconds(50),
+                                        [&] { return capture_->id > id || capture_->done; });
+        if (capture_->frame.empty() || (waitForNew && capture_->id == id))
             return false;
-        frame = capture_->frame.clone();
+        frame = capture_->frame; // worker replaces the Mat; this reference pins its pixel buffer
         id = capture_->id;
         stamp = capture_->timestamp;
         return true;
     }
     ~LatestCamera() {
         capture_->running = false;
+        capture_->finished.notify_all();
         if (!worker_.joinable())
             return;
         std::unique_lock<std::mutex> lock(capture_->mutex);
@@ -300,7 +326,7 @@ class LatestCamera {
             // Some camera drivers cannot cancel read(). The read-only worker owns its
             // entire state; it never captures this or any actuator. Do not hang exit.
             std::cerr
-                << "primary capture did not close promptly; terminating with read-only worker pending\n";
+                << "capture did not close promptly; exiting with read-only worker pending\n";
             worker_.detach();
         }
     }
@@ -360,6 +386,13 @@ int main(int argc, char **argv) {
             throw std::runtime_error("live drive requires supervised live camera task");
         if (drive && task == Task::Race && !handoff)
             throw std::runtime_error("release remote controller and complete stationary handoff before race");
+        if (drive && maxFrames > 0)
+            throw std::runtime_error("--max-frames is for observation or replay only");
+        std::signal(SIGINT, signalStop);
+        std::signal(SIGTERM, signalStop);
+#ifdef SIGBREAK
+        std::signal(SIGBREAK, signalStop);
+#endif
         GroundMap ground(settings.ground), roadGround(settings.road);
         Controller controller(settings.control, task);
         RoadPerception perception(settings.control, roadGround);
@@ -368,27 +401,27 @@ int main(int argc, char **argv) {
                 settings.zebra_profile, "secondary",
                 secondaryOverride.empty() ? settings.secondary : secondaryOverride));
         ParkingDetector parking(settings.control, ground);
-        ImageProcess::TrafficDetector traffic;
+        std::unique_ptr<HybridVision> hybrid;
+        if (task != Task::Parking)
+            hybrid = std::make_unique<HybridVision>(settings.modules, fs::absolute(fs::u8path(config)).u8string(),
+                primaryOverride.empty() ? settings.primary : primaryOverride,
+                secondaryOverride.empty() ? settings.secondary : secondaryOverride);
         cv::VideoCapture roadCamera, trafficCamera;
         std::string roadSource =
             video.empty() ? (secondaryOverride.empty() ? settings.secondary : secondaryOverride) : video;
-        if (!roadCamera.open(roadSource))
-            throw std::runtime_error("cannot open secondary camera/video: " + roadSource);
-        if (video.empty()) {
-            roadCamera.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-            roadCamera.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-            roadCamera.set(cv::CAP_PROP_BUFFERSIZE, 1);
-            roadCamera.set(cv::CAP_PROP_FPS, 30);
-        }
-        bool needsTraffic = task == Task::Race || task == Task::Traffic || task == Task::Observe;
+        const bool liveRoad = video.empty();
+        std::unique_ptr<LatestCamera> liveSecondary;
+        if (liveRoad)
+            liveSecondary = std::make_unique<LatestCamera>(roadSource);
+        else if (!roadCamera.open(roadSource))
+            throw std::runtime_error("cannot open secondary replay: " + roadSource);
+        bool needsTraffic = task != Task::Parking && (video.empty() || !trafficVideo.empty());
         std::unique_ptr<LatestCamera> livePrimary;
         std::string trafficSource;
         if (needsTraffic) {
             std::string path = trafficVideo.empty()
                                    ? (primaryOverride.empty() ? settings.primary : primaryOverride)
                                    : trafficVideo;
-            if (!video.empty() && trafficVideo.empty())
-                path = video;
             trafficSource = path;
             if (video.empty() && trafficVideo.empty())
                 livePrimary = std::make_unique<LatestCamera>(path);
@@ -396,34 +429,6 @@ int main(int argc, char **argv) {
                 throw std::runtime_error("cannot open primary traffic video");
         }
         cv::Mat frame;
-        // A single missed frame on a live camera must not end the whole run. A replay file
-        // legitimately ends when read() fails, so only the live path retries and recovers.
-        const bool liveRoad = video.empty();
-        int roadReadFailures = 0;
-        auto nextRoadFrame = [&]() -> bool {
-            for (;;) {
-                if (interrupted)
-                    return false;
-                if (roadCamera.read(frame) && !frame.empty()) {
-                    roadReadFailures = 0;
-                    return true;
-                }
-                if (!liveRoad)
-                    return false; // replay end is a normal termination
-                if (++roadReadFailures > 250) { // ~5 s at 20 ms before giving up
-                    std::cerr << "secondary camera read failed repeatedly; stopping\n";
-                    return false;
-                }
-                if (roadReadFailures == 1)
-                    std::cerr << "secondary camera read failed; retrying\n";
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            }
-        };
-        if (!nextRoadFrame())
-            throw std::runtime_error("secondary camera has no frames");
-        // Calibration covers full 4:3 frames. Never reshape a cropped/wide image to fit it.
-        if (std::abs(double(frame.cols) / frame.rows - 4.0 / 3) > 0.01)
-            throw std::runtime_error("camera aspect ratio differs from calibration; no crop/warp allowed");
         fs::path run =
             fs::u8path(output) / std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
         fs::create_directories(run);
@@ -454,72 +459,97 @@ int main(int argc, char **argv) {
         std::unique_ptr<Recorder> trafficRecorder;
         if (needsTraffic)
             trafficRecorder = std::make_unique<Recorder>((run / "primary.avi").u8string());
-        std::signal(SIGINT, signalStop);
-        std::signal(SIGTERM, signalStop);
         Actuator actuator(settings.control, drive, settings.port);
         std::future<void> speech;
-        std::uint64_t frameId = 0;
-        double replayFps = roadCamera.get(cv::CAP_PROP_FPS);
+        std::uint64_t frameId = 0, observationId = 0, roadCameraId = 0;
+        double replayFps = liveRoad ? 30 : roadCamera.get(cv::CAP_PROP_FPS);
         if (replayFps < 1)
             replayFps = 30;
         std::string previousState;
-        bool trafficActive = false;
+        const double primaryFps = trafficCamera.isOpened() ? trafficCamera.get(cv::CAP_PROP_FPS) : 0.;
+        if (trafficCamera.isOpened() && (!std::isfinite(primaryFps) || primaryFps <= 0))
+            throw std::runtime_error("primary replay needs a valid frame rate");
+        std::uint64_t replayPrimaryId = 0;
+        cv::Mat replayPrimary;
+        bool primaryEof = false;
         std::uint64_t lastRecordedLamp = 0;
         double raceStart = -1, lastControlTime = -1, redWaitSeconds = 0;
-        bool completedTask = false;
-        do {
-            if (interrupted)
+        bool completedTask = false, waitingForRoad = false;
+        double lastRoadCapture = monotonic();
+        while (!interrupted) {
+            double roadCaptured = -1;
+            if (liveRoad) {
+                actuator.check();
+                const bool fresh = liveSecondary->latest(frame, roadCameraId, roadCaptured, true);
+                const double now = monotonic();
+                if (!waitingForRoad && (!fresh || now - roadCaptured > .5) && now - lastRoadCapture > .5) {
+                    waitingForRoad = true;
+                    Observation missing;
+                    missing.frame_id = ++observationId;
+                    missing.time = now;
+                    missing.frame_ok = false;
+                    actuator.submit(controller.update(missing));
+                    perception.reset();
+                    parking.invalidateMotion();
+                    log << "{\"event\":\"waiting_for_road_camera\",\"state\":\"" << Controller::name(controller.stage())
+                        << "\",\"reason\":\"等待地面相机恢复\",\"time\":" << std::setprecision(12) << now << "}\n" << std::flush;
+                }
+                if (!fresh || now - roadCaptured > .5) {
+                    if (show && cv::waitKey(1) == 27) break;
+                    continue;
+                }
+                waitingForRoad = false;
+                lastRoadCapture = roadCaptured;
+            } else if (!roadCamera.read(frame) || frame.empty()) {
+                if (!frameId) throw std::runtime_error("secondary replay has no frames");
                 break;
-            if (frame.empty()) { // defensive: an empty frame must never terminate the run
-                if (!nextRoadFrame())
-                    break;
             }
+            if (frame.cols * 3 != frame.rows * 4)
+                throw std::runtime_error("secondary input must have a full 4:3 frame");
             ++frameId;
-            double timestamp = video.empty() ? monotonic() : double(frameId) / replayFps;
+            double timestamp = video.empty() ? roadCaptured : double(frameId) / replayFps;
             cv::resize(frame, frame, cv::Size(480, 360)); // uniform full-frame scale only
-            Observation o = perception.update(frame, frameId, timestamp);
+            Observation o = perception.update(frame, ++observationId, timestamp);
             if (o.motion_valid)
                 parking.predictMotion(o.forward_delta, o.lateral_delta, o.yaw_delta);
             o.bay = parking.detect(frame, o.lane);
-            bool trafficStage = controller.stage() == Stage::TrafficApproach ||
-                                controller.stage() == Stage::TrafficBrake ||
-                                controller.stage() == Stage::TrafficWait;
-            if (trafficStage && !trafficActive)
-                traffic.reset(timestamp);
-            trafficActive = trafficStage;
-            // Consume offline paired frames together to preserve their recorded alignment.
+            const Stage stage = controller.stage();
+            const bool watch = task == Task::Observe;
+            const bool useHybrid = watch || stage == Stage::ZebraApproach || stage == Stage::TrafficApproach ||
+                stage == Stage::TrafficBrake || stage == Stage::TrafficWait || stage == Stage::Obstacles;
             cv::Mat lamp;
-            std::uint64_t lampId = frameId;
-            double lampStamp = timestamp;
-            bool lampOk = false;
-            if (needsTraffic && !livePrimary)
-                lampOk = trafficCamera.read(lamp) && !lamp.empty();
-            if (needsTraffic && (trafficStage || task == Task::Observe)) {
-                if (livePrimary)
-                    lampOk = livePrimary->latest(lamp, lampId, lampStamp) && monotonic() - lampStamp < .5;
-                if (!lampOk) {
-                    lamp.release();
-                    if (trafficStage)
-                        o.frame_ok = false;
+            std::uint64_t lampId = 0;
+            double lampStamp = -1;
+            if (trafficCamera.isOpened()) {
+                // Pair by media time; multiple road frames may reference one primary frame.
+                while (!primaryEof && double(replayPrimaryId + 1)/primaryFps <= timestamp + 1e-8) {
+                    cv::Mat next;
+                    if (!trafficCamera.read(next)) { primaryEof = true; break; }
+                    replayPrimary = std::move(next);
+                    ++replayPrimaryId;
                 }
-                auto action = traffic.update(lamp, lampId, lampStamp);
-                auto state = traffic.getState();
-                o.red = action == ImageProcess::TrafficLightAction::RED_STOP ||
-                        state == ImageProcess::TrafficLightState::WAIT_GREEN;
-                // GREEN_CONFIRMED is history; permission uses fresh associated light evidence below.
-                if (lampOk && lampId != lastRecordedLamp) {
-                    cv::Mat recordedLamp;
-                    cv::resize(lamp, recordedLamp, cv::Size(480, 360));
-                    trafficRecorder->frame(recordedLamp, lampId, lampStamp);
+                lampId = replayPrimaryId;
+                lampStamp = double(lampId)/primaryFps;
+                if (lampId && timestamp-lampStamp <= .25) lamp = replayPrimary;
+            } else if (livePrimary && useHybrid) {
+                livePrimary->latest(lamp,lampId,lampStamp);
+            }
+            if (!lamp.empty()) {
+                if (lamp.cols*3 != lamp.rows*4) throw std::runtime_error("primary input must have a full 4:3 frame");
+                cv::resize(lamp,lamp,cv::Size(480,360));
+                if (lampId != lastRecordedLamp && trafficRecorder && useHybrid) {
+                    trafficRecorder->frame(lamp,lampId,lampStamp);
                     lastRecordedLamp = lampId;
                 }
             }
-            // Motion/light evidence uses capture time; pulse/hold timing starts when the
-            // command is actually decided, after image processing, not before it.
-            const double controlTime = video.empty() ? monotonic() : timestamp;
+            HybridEvidence legacy;
+            if (useHybrid && hybrid) {
+                legacy = hybrid->update(watch ? "observe" : Controller::name(stage), frame, lamp, lampId,
+                                        lampStamp, liveRoad ? monotonic() : timestamp, settings.control, o);
+            }
+            const double controlTime = liveRoad ? monotonic() : timestamp;
             o.time = controlTime;
-            if (trafficStage)
-                o.green = traffic.currentGreen(controlTime);
+            if (o.green && controlTime > legacy.green_until) o.green = false;
             o.brake_feedback_valid = drive && video.empty();
             o.brake_completed_event_id = actuator.completedBrakeEvent();
             Command q = controller.update(o);
@@ -531,10 +561,11 @@ int main(int argc, char **argv) {
                 if (dt > 0 && dt < 1.0)
                     redWaitSeconds += dt;
             }
-            lastControlTime = controlTime;
+            if (!completedTask) lastControlTime = controlTime;
             if (q.done)
                 completedTask = true;
-            actuator.submit(q, video.empty() ? timestamp : -1.0);
+            if (!q.keep_existing_output)
+                actuator.submit(q, video.empty() ? timestamp : -1.0);
             if (q.announce &&
                 (!speech.valid() || speech.wait_for(std::chrono::seconds(0)) == std::future_status::ready))
                 speech = std::async(std::launch::async, speak, settings.speech);
@@ -560,13 +591,15 @@ int main(int argc, char **argv) {
                 << ",\"lane_right\":" << o.lane.right_x << ",\"target_x\":" << q.target_x
                 << ",\"zebra_detected\":" << o.zebra_detected << ",\"zebra_distance_valid\":" << o.zebra
                 << ",\"zebra_rear_axle_y\":" << o.zebra_y
-                << ",\"zebra_image_stripes\":" << visionDiagnostics.zebra_image_stripes
-                << ",\"zebra_near_edge_px\":" << visionDiagnostics.zebra_near_edge_px
-                << ",\"zebra_image_reason\":\"" << escape(visionDiagnostics.zebra_image_reason) << "\""
+                << ",\"zebra_image_stripes\":" << (useHybrid ? legacy.stripes : 0)
+                << ",\"zebra_near_edge_px\":" << (useHybrid ? legacy.near_px : -1.)
+                << ",\"zebra_image_reason\":\"" << escape(o.zebra_distance_reason) << "\""
                 << ",\"zebra_range_status\":\"" << escape(o.zebra_range_status) << "\""
                 << ",\"zebra_distance_reason\":\"" << escape(o.zebra_distance_reason) << "\""
-                << ",\"cones_visible\":" << o.cones.size() << ",\"cones_passed\":" << q.cones_passed
-                << ",\"cone_image_candidates\":" << visionDiagnostics.cone_image_candidates
+                << ",\"cones_visible\":" << legacy.cones_visible << ",\"cones_passed\":" << q.cones_passed
+                << ",\"legacy_cone_phase\":\"" << escape(legacy.cone_phase) << "\",\"legacy_cone_camera\":\"" << escape(legacy.cone_camera)
+                << "\",\"legacy_zebra_camera\":\"" << escape(legacy.zebra_camera) << "\",\"legacy_signal_color\":\"" << escape(legacy.signal_color) << "\""
+                << ",\"native_cone_image_candidates\":" << visionDiagnostics.cone_image_candidates
                 << ",\"unmapped_cones\":" << visionDiagnostics.unmapped_cones
                 << ",\"cone_model_candidates\":" << visionDiagnostics.cone_model_candidates
                 << ",\"brake_event_id\":" << q.brake_event_id
@@ -577,7 +610,8 @@ int main(int argc, char **argv) {
                 << ",\"right_clear\":" << o.bay.right_clear << ",\"left_blocked\":" << o.bay.left_blocked
                 << ",\"right_blocked\":" << o.bay.right_blocked << ",\"bay_confidence\":" << o.bay.confidence
                 << ",\"motion_valid\":" << o.motion_valid << ",\"forward_delta\":" << o.forward_delta
-                << ",\"stopped\":" << o.stopped_confirmed << ",\"red\":" << o.red << ",\"green\":" << o.green
+                << ",\"stopped\":" << o.stopped_confirmed << ",\"red\":" << o.red
+                << ",\"signal_stop\":" << o.signal_stop << ",\"green\":" << o.green
                 << "}\n";
             log.flush(); // bounded one-line telemetry, visible without waiting for a stage change
             recorder.frame(frame, frameId, timestamp);
@@ -594,9 +628,9 @@ int main(int argc, char **argv) {
                 if (cv::waitKey(1) == 27)
                     break;
             }
-            if (q.done || (maxFrames > 0 && frameId >= static_cast<unsigned>(maxFrames)))
+            if (maxFrames > 0 && frameId >= static_cast<unsigned>(maxFrames))
                 break;
-        } while (nextRoadFrame());
+        }
         {
             // 有效时间 T = 运行时间 + 加罚时间 - 红绿灯停车时间（细则二.5）。加罚由裁判记录，
             // 本程序只负责测运行时间与红绿灯等待时间，便于现场核对成绩。

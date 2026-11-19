@@ -716,6 +716,40 @@ int main() {
             check(r.at(9.0).throttle_us == 1500,
                   "bay lost beyond memory limit must stop and wait for relocalization");
         }
+        {
+            Run r(Task::Race);
+            r.o.board_visible = r.o.board_observation_valid = true;
+            for (int i = 0; i < 3; ++i) r.at(.1 * i);
+            r.o.board_visible = false;
+            for (int i = 3; i < 6; ++i) r.at(.1 * i);
+            r.o.zebra_front_trigger = .4;
+            r.o.zebra = r.o.zebra_detected = true;
+            r.o.zebra_y = .335 + .50;
+            check(r.at(.6).throttle_us >= 1570, "legacy crosswalk measures from the vehicle front");
+            r.o.zebra_y = .335 + .40;
+            check(r.at(.7).throttle_us == 1400, "legacy front gap reaches calibrated trigger");
+            r.at(1.1);
+            r.o.stopped_confirmed = true;
+            r.at(1.2);
+            r.at(11.3);
+            r.o.green = true;
+            r.at(11.4);
+            check(r.car.stage() == Stage::Obstacles, "qualified light hands off to old cone navigation");
+            r.o.cone_drive = LegacyConeDrive{1570, 1530, 1, false, 11.5, "tracking second cone"};
+            check(r.at(11.5).steering_us == 1530, "legacy cone correction reaches common actuator command");
+            check(r.at(12.1).throttle_us == 1500, "expired cone steering cannot renew motion");
+            r.o.cone_drive = LegacyConeDrive{1500, 1610, 2, false, 12.2, "recentering"};
+            r.at(12.2);
+            check(r.car.stage() == Stage::Obstacles, "two passes still require recentering");
+            r.o.cone_drive = LegacyConeDrive{1570, 1610, 2, true, 12.3, "complete"};
+            check(r.at(12.3).throttle_us == 1570, "handoff follows the current clear lane into parking");
+            check(r.car.stage() == Stage::ParkingApproach, "second pass and recenter hand off to parking");
+            r.o.bay = bay();
+            r.at(12.4);
+            r.at(12.8);
+            r.at(12.9);
+            check(r.at(15.).done, "new parking completes after endpoint and stationary evidence");
+        }
         std::cout << checks << " controller checks passed\n";
         return 0;
     } catch (const std::exception &e) {

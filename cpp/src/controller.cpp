@@ -510,7 +510,7 @@ Command Controller::update(const Observation &o) {
         }
         q = follow(o, laneTarget());
         if (zebra_seen_ && zebra_y_ - c_.front_extent <=
-                               c_.zebra_stop_gap + c_.braking_distance + kDistanceRoundoffM) {
+                               o.zebra_front_trigger.value_or(c_.zebra_stop_gap + c_.braking_distance) + kDistanceRoundoffM) {
             transition(Stage::ZebraBrake, o.time);
             q = neutral("zebra brake");
             q.throttle_us = c_.brake_us;
@@ -560,9 +560,9 @@ Command Controller::update(const Observation &o) {
     }
     case Stage::TrafficApproach:
         q = follow(o, laneTarget());
-        if (o.red) {
+        if (o.red || o.signal_stop) {
             transition(Stage::TrafficBrake, o.time);
-            q = neutral("red confirmed");
+            q = neutral(o.red ? "red confirmed" : "current signal requests braking");
             q.throttle_us = c_.brake_us;
             q.brake_event_id = brake_event_id_;
         } else if (o.green) {
@@ -589,7 +589,36 @@ Command Controller::update(const Observation &o) {
         q.reason = "wait for associated confirmed green";
         break;
     case Stage::Obstacles:
-        q = obstacle(o);
+        if (o.cone_drive) {
+            const auto &d = *o.cone_drive;
+            if (d.passed < 0 || (d.complete && d.passed < 2) ||
+                d.steering_us < c_.steering_right_us || d.steering_us > c_.steering_left_us ||
+                (d.throttle_us != c_.neutral_us && d.throttle_us != c_.brake_us &&
+                 (d.throttle_us < c_.forward_min_us || d.throttle_us > c_.forward_us)))
+                throw std::runtime_error("invalid legacy cone intent");
+            if (d.captured_s < 0 || o.time < d.captured_s || o.time - d.captured_s > .5) {
+                q = neutral("cone observation expired");
+                break;
+            }
+            cones_passed_ = d.passed;
+            if (d.complete) {
+                transition(task_ == Task::Obstacle ? Stage::Finished : Stage::ParkingApproach, o.time);
+                q = task_ == Task::Obstacle ? neutral("legacy two cones passed and lane recentered") : parking(o);
+            } else {
+                q = neutral(d.reason);
+                q.throttle_us = d.throttle_us;
+                q.steering_us = d.steering_us;
+                q.keep_existing_output = d.repeat_forward && d.throttle_us > c_.neutral_us;
+                if (q.throttle_us == c_.brake_us) {
+                    if (!brake_event_id_) brake_event_id_ = ++brake_event_seq_;
+                    q.brake_event_id = brake_event_id_;
+                } else {
+                    brake_event_id_ = 0;
+                }
+            }
+        } else {
+            q = obstacle(o);
+        }
         break;
     case Stage::ParkingApproach:
         q = parking(o);
@@ -685,7 +714,7 @@ Command Controller::update(const Observation &o) {
         break;
     }
     case Stage::Finished:
-        q = neutral("task complete; payment window starts");
+        q = neutral("任务已完成，保持中位，等待手动终止");
         break;
     }
     q.state = name(stage_);

@@ -3,6 +3,7 @@ import json
 import hashlib
 from pathlib import Path
 import subprocess
+import tempfile
 import threading
 import time
 
@@ -18,6 +19,7 @@ def public_session(secret):
 class Supervisor:
     TASKS = frozenset(('race', 'zebra', 'traffic', 'obstacle', 'parking', 'observe'))
     MANUAL_LEASE_S = 1.5
+    TEST_NEUTRAL_S = 3.0
 
     def __init__(self, root, *, hardware_factory=Hardware, preview=None,
                  popen=subprocess.Popen, clock=time.monotonic, background=True):
@@ -38,6 +40,7 @@ class Supervisor:
         self.output_confirmed = False
         self.last_command = self.clock()
         self.brake_until = 0
+        self.test_ready_at = None
         self.closed = False
         self.stop_event = threading.Event()
         self.worker = None
@@ -95,6 +98,7 @@ class Supervisor:
 
     def _stop(self):
         self.generation += 1
+        self.test_ready_at = None
         self.mode = 'stopping'
         self.requested = (1610, 1500)
         if self.process is not None:
@@ -127,6 +131,36 @@ class Supervisor:
                 raise ValueError('需要确认遥控切换区交接完成')
             if self.output[1] != 1500 or self.requested[1] != 1500 or self.brake_until > self.clock():
                 raise ValueError('先松开遥控并停稳，再启动自主任务')
+        self._launch(session, task)
+
+    def _start_test(self, session, data):
+        task = data.get('task')
+        if not isinstance(task, str) or task not in self.TASKS:
+            raise ValueError('未知测试项目')
+        if self.mode not in ('idle', 'prepared', 'fault') or self.process is not None:
+            raise ValueError('请先结束当前操作，再开始测试')
+        if task == 'race' and data.get('handoff_complete') is not True:
+            raise ValueError('全流程测试须在切换区完成交接后开始')
+        if task == 'observe':
+            self._launch(session, task)
+            return
+        if not (self.root / 'cpp/build/smartcar').is_file():
+            raise RuntimeError('C++ 主程序尚未编译完成')
+        self.generation += 1
+        self.owner, self.task, self.run_dir = session, task, None
+        self.mode = 'test_preparing'
+        self.reason = f'正在输出中位，约 {self.TEST_NEUTRAL_S:g} 秒后自动开始测试'
+        self.requested = (1610, 1500)
+        if self.hardware is None:
+            self._open()
+        else:
+            self._write(*self.requested)
+        self.preview.stop()
+        self.last_command = self.clock()
+        self.test_ready_at = self.last_command + self.TEST_NEUTRAL_S
+
+    def _launch(self, session, task, *, preview_stopped=False):
+        drive = task != 'observe'
         executable = self.root / 'cpp/build/smartcar'
         if not executable.is_file():
             raise RuntimeError('C++ 主程序尚未编译完成')
@@ -134,9 +168,12 @@ class Supervisor:
         self.mode = 'starting'
         self.generation += 1
         self._release()
-        self.preview.stop()
-        self.run_dir = self.root / 'run' / ('cpp-' + str(time.time_ns()))
-        self.run_dir.mkdir(parents=True, exist_ok=False)
+        if not preview_stopped:
+            self.preview.stop()
+        self.test_ready_at = None
+        runs = self.root / 'run'
+        runs.mkdir(parents=True, exist_ok=True)
+        self.run_dir = Path(tempfile.mkdtemp(prefix=f'cpp-{time.time_ns()}-', dir=runs))
         command = [str(executable), '--task', task, '--config', str(self.config),
                    '--output', str(self.run_dir)]
         if drive:
@@ -171,10 +208,12 @@ class Supervisor:
             # This grants no driving rights and recovers a lost browser session.
             if action != 'stop' and self.owner is not None and self.owner != session:
                 raise PermissionError('其他页面持有控制权，请在原页面停止后再操作')
-            if action in ('enable', 'command', 'brake', 'start'):
+            if action in ('enable', 'command', 'brake', 'start', 'start_test'):
                 generation = data.get('generation')
                 if type(generation) is not int or generation != self.generation:
                     raise ValueError('控制轮次已改变，拒绝旧指令；请等待页面读取当前状态')
+            if self.mode == 'test_preparing' and action != 'stop':
+                raise ValueError('测试正在准备中，可以点击结束测试取消')
             try:
                 if action == 'prepare':
                     if self.mode not in ('idle', 'fault') or self.process is not None:
@@ -225,23 +264,46 @@ class Supervisor:
                         self.brake_until = self.clock() + .35
                 elif action == 'start':
                     self._start(session, data)
+                elif action == 'start_test':
+                    self._start_test(session, data)
                 elif action == 'stop':
                     self._stop()
                 else:
                     raise ValueError('未知操作')
-            except (ValueError, PermissionError):
+            except (ValueError, PermissionError) as exc:
+                if action == 'start_test' and self.mode in ('test_preparing', 'starting'):
+                    self._fault(exc)
                 raise
             except Exception as exc:
-                self.mode, self.reason = 'fault', str(exc)
-                try:
-                    self._release()
-                except Exception as release_error:
-                    self.reason += '；中位输出未确认：' + str(release_error)
+                self._fault(exc)
                 raise
         return self.status()
 
+    def _fault(self, exc):
+        failed_start = self.mode in ('test_preparing', 'starting')
+        self.mode, self.reason = 'fault', str(exc)
+        try:
+            self._release()
+        except Exception as release_error:
+            self.reason += '；中位输出未确认：' + str(release_error)
+        if failed_start:
+            self.owner = self.test_ready_at = None
+            self.preview.start()
+
     def tick(self):
         with self.lock:
+            if self.mode == 'test_preparing':
+                try:
+                    now = self.clock()
+                    if now - self.last_command > self.MANUAL_LEASE_S:
+                        self.test_ready_at = now + self.TEST_NEUTRAL_S
+                    self._write(1610, 1500)
+                    self.last_command = now
+                    if now >= self.test_ready_at:
+                        self._launch(self.owner, self.task, preview_stopped=True)
+                except Exception as exc:
+                    self._fault(exc)
+                return
             if self.process is not None:
                 code = self.process.poll()
                 if code is not None:
@@ -335,11 +397,7 @@ class Supervisor:
                 self.tick()
             except Exception as exc:
                 with self.lock:
-                    self.mode, self.reason = 'fault', str(exc)
-                    try:
-                        self._release()
-                    except Exception as release_error:
-                        self.reason += '；中位输出未确认：' + str(release_error)
+                    self._fault(exc)
 
     def close(self):
         self.stop_event.set()

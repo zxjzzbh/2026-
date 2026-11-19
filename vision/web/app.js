@@ -3,16 +3,26 @@
 (() => {
   const $ = id => document.getElementById(id);
   const debugPage = location.pathname.startsWith('/debug');
-  const modes = {idle:'未准备',prepared:'已准备 · 等待现场操作',manual:'5G 遥控',starting:'正在交接并启动',autonomous:'车端自主运行',observing:'仅观察识别 · 不驱动车辆',stopping:'正在停止',fault:'已停止 · 请查看原因'};
+  const modes = {idle:debugPage ? '待测试' : '未准备',prepared:'已准备 · 等待现场操作',manual:'5G 遥控',test_preparing:'正在准备测试',starting:'正在交接并启动',autonomous:'车端自主运行',observing:'仅观察识别 · 不驱动车辆',stopping:'正在停止',fault:'已停止 · 请查看原因'};
   const state = {session:'',csrf:'',status:null,connected:false,busy:false,pendingAction:'',actionId:0,commandBusy:false,sequence:Date.now()*1000,held:new Map(),keys:new Set(),brakeUntil:0,lastError:'',networkError:false,lastStatus:0};
   const buttons = [...document.querySelectorAll('[data-drive]')];
   let stoppedByVisibility = false;
 
   $('page-title').textContent = debugPage ? '单项调试' : '比赛控制';
   document.title = `智能车 · C++ ${debugPage ? '单项调试' : '比赛控制'}`;
-  $('page-description').textContent = debugPage ? '使用同一套 C++ 程序，逐项核对识别与运行。' : '遥控到达切换区，停稳后交给车端自主运行。';
-  $('task-heading').textContent = debugPage ? '单项任务' : '自主驾驶';
+  $('page-description').textContent = debugPage ? '选好项目，点击开始测试。准备中或运行中都可以结束。' : '遥控到达切换区，停稳后交给车端自主运行。';
+  $('task-heading').textContent = debugPage ? '现场测试' : '自主驾驶';
   $('task-picker').hidden = !debugPage;
+  if (debugPage) {
+    $('manual-card').hidden = $('observe').hidden = $('task-number').hidden = $('handoff-help').hidden = true;
+    $('task-actions').classList.add('button-row','test-actions');
+    $('task-actions').appendChild($('stop'));
+    $('stop').textContent = '结束测试';
+    try {
+      const previous = localStorage.getItem('smartcar.testTask');
+      if ([...$('task').options].some(option => option.value === previous)) $('task').value = previous;
+    } catch (_) { /* Storage is optional. */ }
+  }
   $(debugPage ? 'debug-link' : 'race-link').setAttribute('aria-current','page');
 
   function error(message) {
@@ -40,7 +50,7 @@
     } finally { clearTimeout(timer); }
   }
 
-  function ownManual() { return state.status?.mode === 'manual' && state.status.owner === state.session; }
+  function ownManual() { return !debugPage && state.status?.mode === 'manual' && state.status.owner === state.session; }
   function canManual() { return ownManual() && state.connected && !state.busy && !document.hidden && Date.now() >= state.brakeUntil; }
   function authorized() { return !state.status?.owner || state.status.owner === state.session; }
   function controlsConfirmed() { return $('supervised').checked && $('esc-on').checked && $('stationary').checked; }
@@ -54,20 +64,32 @@
     $('connection').textContent = state.connected ? '车端已连接' : (s ? '连接中断 · 正在重试' : '正在连接');
     $('connection').classList.toggle('offline',!state.connected);
     $('mode').textContent = s ? (modes[mode] || mode) : '正在读取车端状态…';
-    $('reason').textContent = s?.reason || (s ? '请按现场状态选择操作。' : '读取完成前不会开放操作。');
+    $('reason').textContent = debugPage && mode === 'idle' ? '可以开始下一轮测试。' : s?.reason || (s ? '请按现场状态选择操作。' : '读取完成前不会开放操作。');
     $('ownership').textContent = !s?.owner ? '当前未占用控制。' : free ? '当前浏览器会话持有控制。' : '控制由其他浏览器会话持有，请先在原控制页停止。';
     $('prepare').disabled = !available || !['idle','fault'].includes(mode) || !$('esc-off').checked || !$('supervised').checked || !!s?.process_running;
     $('enable').disabled = !available || mode !== 'prepared' || !controlsConfirmed();
-    $('start').disabled = !available || !['prepared','manual'].includes(mode) || !controlsConfirmed() || !!s?.process_running;
-    $('start').textContent = debugPage ? `停稳 · 开始${$('task').selectedOptions[0].textContent}` : '停稳 · 切入自主驾驶';
+    const readyToStart = debugPage ? ['idle','prepared','fault'].includes(mode) : ['prepared','manual'].includes(mode) && controlsConfirmed();
+    $('start').disabled = !available || !readyToStart || !!s?.process_running;
+    $('start').textContent = debugPage ? '开始测试' : '停稳 · 切入自主驾驶';
     $('observe').disabled = !available || !['idle','prepared','fault'].includes(mode) || !!s?.process_running;
     $('stop').disabled = !state.csrf || state.pendingAction === 'stop' || !s || (!state.busy && !s.owner && !s.process_running && mode === 'idle');
-    $('task').disabled = state.busy || !!s?.process_running;
+    $('task').disabled = state.busy || mode === 'test_preparing' || !!s?.process_running;
+    if (debugPage && s?.task && (mode === 'test_preparing' || s.process_running)) $('task').value = s.task;
     $('throttle').disabled = state.busy || mode === 'autonomous';
     for (const button of buttons) button.disabled = !canManual();
     $('neutral').disabled = !canManual();
     $('brake').disabled = !canManual();
-    if (mode === 'autonomous') $('start-help').textContent = '车端正在独立运行。网页不发送遥控指令或保活指令。';
+    if (debugPage) {
+      let help;
+      if (mode === 'test_preparing') help = '车端正在保持中位，点“结束测试”可取消启动。';
+      else if (s?.process_running) help = '本轮运行中。点“结束测试”可释放车辆控制。';
+      else if (!free || mode === 'manual') help = '当前控制已占用，请先结束当前操作。';
+      else if (currentTask() === 'observe') help = '只采集图像进行识别。';
+      else if (currentTask() === 'race') help = '在切换区交接并停稳后，由现场监管人点击开始测试。';
+      else help = '车辆通电、停稳后，由现场监管人点击开始测试。';
+      $('start-help').textContent = help;
+    }
+    else if (mode === 'autonomous') $('start-help').textContent = '车端正在独立运行。网页不发送遥控指令或保活指令。';
     else if (!free) $('start-help').textContent = '请先释放其他浏览器会话的控制。';
     else if (['prepared','manual'].includes(mode)) $('start-help').textContent = '请打开电调、确认停稳并勾选现场监管，再开始任务。';
     else $('start-help').textContent = '需要先关闭电调并准备，再完成开机、停稳确认。';
@@ -97,7 +119,7 @@
 
   async function rawAction(action, fields = {}, timeout = 6000) {
     const payload = {action,csrf:state.csrf,...fields};
-    if (['enable','start','command','brake'].includes(action)) {
+    if (['enable','start','start_test','command','brake'].includes(action)) {
       if (!Number.isSafeInteger(state.status?.generation)) throw new Error('尚未读取最新控制状态，请稍后重试。');
       payload.generation = state.status.generation;
     }
@@ -144,7 +166,7 @@
         if (actionId !== state.actionId) return;
       }
       if (action === 'brake') state.brakeUntil = Date.now()+500;
-      const result = await rawAction(action,fields,action === 'start' ? 15000 : 8000);
+      const result = await rawAction(action,fields,['start','start_test'].includes(action) ? 15000 : 8000);
       if (actionId === state.actionId) acceptStatus(result);
     } catch (e) { if (actionId === state.actionId) error(e.message); }
     finally { if (actionId === state.actionId) { state.busy = false; state.pendingAction = ''; render(); } }
@@ -152,13 +174,20 @@
 
   $('prepare').addEventListener('click',() => act('prepare',{esc_off:$('esc-off').checked,supervised:$('supervised').checked}));
   $('enable').addEventListener('click',() => act('enable',{esc_on:$('esc-on').checked,stationary:$('stationary').checked}));
-  $('start').addEventListener('click',() => act('start',{task:currentTask(),supervised:$('supervised').checked,stationary:$('stationary').checked,handoff_complete:true}));
+  $('start').addEventListener('click',() => {
+    const task = currentTask();
+    if (debugPage) return act('start_test',task === 'race' ? {task,handoff_complete:true} : {task});
+    return act('start',{task,supervised:$('supervised').checked,stationary:$('stationary').checked,handoff_complete:true});
+  });
   $('observe').addEventListener('click',() => act('start',{task:'observe'}));
   $('stop').addEventListener('click',() => act('stop'));
   $('brake').addEventListener('click',() => act('brake'));
   $('neutral').addEventListener('click',() => { clearHeld(); void manualCommand(true); });
   for (const id of ['supervised','esc-off','esc-on','stationary','task']) {
     $(id).addEventListener('change',() => {
+      if (debugPage && id === 'task') {
+        try { localStorage.setItem('smartcar.testTask',currentTask()); } catch (_) { /* Storage is optional. */ }
+      }
       if (id === 'esc-off' && $('esc-off').checked) $('esc-on').checked = false;
       if (id === 'esc-on' && $('esc-on').checked) $('esc-off').checked = false;
       render();

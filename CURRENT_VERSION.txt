@@ -1,4 +1,4 @@
-car-cpp-perception-20261119
-Current source is at cpp/, vision/, and deployment/.
-All 83 source files match the verified Raspberry Pi release.
-See README.md, DEPLOYMENT.json, SOURCE-MANIFEST.json, and docs/latest-code.md.
+smartcar_oneclick_20261119
+Current source: cpp/, vision/, deployment/.
+Release and download: docs/latest-code.md and README.md.
+This is a source publication. Previous vehicle deployment is recorded separately in DEPLOYMENT.json.
