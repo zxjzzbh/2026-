@@ -10,7 +10,17 @@ target_link_libraries(car_core PUBLIC Threads::Threads)
 add_library(car_vision src/ground.cpp src/perception.cpp src/zebra.cpp src/zebra_distance.cpp src/parking.cpp src/TrafficLight.cpp)
 target_include_directories(car_vision PUBLIC include ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(car_vision PUBLIC car_core ${OpenCV_LIBS})
-add_executable(smartcar src/main.cpp)
+find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter Development)
+add_executable(smartcar src/main.cpp src/hybrid.cpp)
+target_link_libraries(smartcar PRIVATE Python3::Python)
+execute_process(COMMAND "${Python3_EXECUTABLE}" -c "import cv2, numpy, sysconfig; print(sysconfig.get_path('platlib'))"
+ OUTPUT_VARIABLE hybrid_python_packages OUTPUT_STRIP_TRAILING_WHITESPACE
+ RESULT_VARIABLE hybrid_import_status)
+if(NOT hybrid_import_status EQUAL 0)
+ message(FATAL_ERROR "Selected Python needs numpy and cv2 for the legacy competition algorithms")
+endif()
+file(TO_CMAKE_PATH "${hybrid_python_packages}" hybrid_python_packages)
+target_compile_definitions(smartcar PRIVATE HYBRID_PYTHON_PACKAGES="${hybrid_python_packages}" HYBRID_PYTHON_EXECUTABLE="${Python3_EXECUTABLE}")
 target_link_libraries(smartcar PRIVATE car_vision)
 if(MSVC)
  add_compile_options(/utf-8 /W4)
@@ -38,9 +48,11 @@ endforeach()
 
 # The 5G gateway is part of the same release. These tests use fake transports
 # and processes only; CTest never prepares or moves the vehicle.
-find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
 add_test(NAME fiveg_bridge
  COMMAND ${Python3_EXECUTABLE} -m unittest discover
  -s "${CMAKE_CURRENT_SOURCE_DIR}/../vision/tests" -p "test_*.py" -v)
 set_tests_properties(fiveg_bridge PROPERTIES
  ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/../vision/src;PYTHONDONTWRITEBYTECODE=1")
+add_test(NAME hybrid_replay
+ COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_hybrid.py" $<TARGET_FILE:smartcar>)
+set_tests_properties(hybrid_replay PROPERTIES ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1;PYTHONIOENCODING=utf-8")

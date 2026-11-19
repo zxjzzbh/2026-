@@ -14,15 +14,12 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - name: Verify exact published release
-        run: python tools/verify_release.py
-      - name: Install OpenCV development libraries
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libopencv-dev
+        run: python3 tools/verify_release.py
+      - name: Install matching C++ and Python OpenCV libraries
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libopencv-dev python3-dev python3-opencv python3-numpy
       - name: Configure
-        run: cmake -S cpp -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S cpp -B build -DCMAKE_BUILD_TYPE=Release -DPython3_EXECUTABLE=/usr/bin/python3
       - name: Build
         run: cmake --build build --parallel 2
       - name: Offline tests (no vehicle connection)

@@ -247,6 +247,70 @@ class SupervisorTests(unittest.TestCase):
         self.assertIn('--supervised', self.commands[0])
         self.assertIn('--drive', self.commands[0])
 
+    def advance_preparation(self, seconds):
+        for _ in range(seconds * 4):
+            self.now += .25
+            self.supervisor.tick()
+
+    def test_one_click_driving_test_can_be_repeated_from_idle(self):
+        for task in ('parking', 'obstacle', 'traffic', 'zebra', 'race'):
+            self.child = FakeProcess()
+            response = self.action('start_test', task=task, handoff_complete=task == 'race')
+            self.assertEqual((response['mode'], response['task']), ('test_preparing', task))
+            before = len(self.commands)
+            self.advance_preparation(2)
+            self.assertEqual(len(self.commands), before)
+            self.advance_preparation(1)
+            self.assertEqual(len(self.commands), before + 1)
+            self.assertIn(task, self.commands[-1])
+            self.assertIn('--drive', self.commands[-1])
+            self.assertEqual('--handoff-complete' in self.commands[-1], task == 'race')
+            self.assertEqual(set(self.hardware[-1].writes), {(1610, 1500)})
+            self.assertEqual(self.action('stop')['mode'], 'idle')
+            self.assertTrue(self.child.terminated)
+            self.assertTrue(all(not hardware.opened for hardware in self.hardware))
+
+    def test_stop_cancels_pending_start_and_rejects_late_request(self):
+        first = self.supervisor.generation
+        self.action('start_test', task='parking')
+        self.advance_preparation(2)
+        with self.assertRaises(ValueError):
+            self.action('start_test', task='zebra')
+        self.supervisor.action('second-browser', {'action':'stop'})
+        self.advance_preparation(5)
+        with self.assertRaises(ValueError):
+            self.action('start_test', generation=first, task='parking')
+        self.assertEqual(self.commands, [])
+        self.assertTrue(self.preview.running)
+        self.assertFalse(self.hardware[0].opened)
+
+    def test_test_setup_failure_releases_resources_and_cancels_launch(self):
+        self.action('start_test', task='obstacle')
+        self.hardware[0].fail = True
+        self.advance_preparation(4)
+        self.assertEqual(self.supervisor.mode, 'fault')
+        self.assertIsNone(self.supervisor.owner)
+        self.assertFalse(self.hardware[0].opened)
+        self.assertTrue(self.preview.running)
+        self.assertEqual(self.commands, [])
+
+    def test_quick_observe_and_existing_control_ownership(self):
+        with self.assertRaises(ValueError):
+            self.action('start_test', task='race')
+        with self.assertRaises(ValueError):
+            self.start()
+        self.assertEqual(self.action('start_test', task='observe')['mode'], 'observing')
+        self.assertNotIn('--drive', self.commands[0])
+        self.action('stop')
+        self.assertEqual(self.hardware, [])
+        self.manual()
+        with self.assertRaises(PermissionError):
+            self.supervisor.action('other', {'action':'start_test', 'task':'parking',
+                                             'generation':self.supervisor.generation})
+        with self.assertRaises(ValueError):
+            self.action('start_test', task='parking')
+        self.assertEqual(self.supervisor.mode, 'manual')
+
     def test_autonomous_does_not_depend_on_browser_heartbeat(self):
         self.manual()
         self.start()

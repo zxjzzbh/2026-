@@ -1,5 +1,8 @@
 {
   "schema_version": 1,
+  "legacy_crosswalk_white_masks": {"secondary": {"s_max": 72, "fallback_s_max": 60, "v_min": 130}},
+  "legacy_cone_settings": "calibration/sources/cone-latest-20261029.local.json",
+  "legacy_module_dir": "../algorithms",
   "secondary_camera": "/dev/v4l/by-id/usb-H65_USB_CAMERA_H65_USB_CAMERA-video-index0",
   "primary_camera": "/dev/v4l/by-id/usb-YT-FAY-220613_USB2.0_Camera-video-index0",
   "uart": "/dev/ttyAMA0",

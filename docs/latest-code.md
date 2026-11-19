@@ -1,16 +1,10 @@
-# 当前最新版
+# 最新源码 · 一键测试版
 
-当前版本：**car-cpp-perception-20261119**，与本次已部署的树莓派版本一致。
+当前版本为 `smartcar_oneclick_20261119`。[下载完整源码 ZIP](https://github.com/zxjzzbh/2026-/releases/download/smartcar-oneclick-20261119/smartcar-oneclick-20261119.zip) · [下载校验文件](https://github.com/zxjzzbh/2026-/releases/download/smartcar-oneclick-20261119/smartcar-oneclick-20261119.zip.sha256)
 
-- `cpp/`：C++ 识别、测距、比赛和单项任务控制、执行器、实测标定及离线测试。
-- `vision/src/carvision/`：5G 网页服务、遥控和自主交接。
-- `vision/web/`：比赛和调试网页；`deployment/`：当前服务文件。
-- [当前修改与限制](../README.md)、[部署回执](../DEPLOYMENT.json)、[83 文件完整校验表](../SOURCE-MANIFEST.json)。
+调试页 `/debug/` 选择项目后，点“开始测试”。车端保持 3 秒中位后启动；准备中或运行中都可以点“结束测试”。“仅观察识别”直接采集图像。比赛页 `/competition/` 保留正式遥控交接流程。
 
-比赛入口：`http://100.124.156.117:8080/competition/`；调试入口：`http://100.124.156.117:8080/debug/`。
-网页须通过树莓派服务访问，不能双击 HTML 代替车辆服务。
-
-仓库旧 Python 自主主流程、旧桌面切换器及其部署入口已从当前分支移除，历史可从 Git 记录查阅。
-其他硬件/固件及历史审查资料保留供参考；旧文档、历史发布包和其中的命令不是本版运行或部署入口。
-当前标定包含用户指定的 10 月 24 日斑马线专项表，原二维/停车标定保留。
-本地与树莓派 CTest 均 9/9 通过，包含 28 项 5G 检查；没有完成全流程实车验收。
+- `cpp/` 包含比赛入口、控制器、感知算法、配置和离线回归。
+- `vision/` 包含 5G 服务、比赛页和调试页。`deployment/` 包含车端服务文件。
+- 源码包 SHA-256 为 `abe8e9c295a723f16ad51317390ff226d6530c1f50f0dac59f5ef8403bb2ec53`。仓库运行文件与压缩包逐文件核对。[仓库校验清单](../SOURCE-MANIFEST.json)
+- 电脑端 10 组离线测试及其中 32 项 5G 服务测试通过。此版本尚未上车验证。[使用说明](../README.md) · [验证方法](reproduce.md) · [部署状态](../DEPLOYMENT.json)

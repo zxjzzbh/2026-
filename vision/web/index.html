@@ -26,7 +26,7 @@
 
     <div class="workspace">
       <div class="controls">
-        <section class="card" aria-labelledby="manual-heading">
+        <section id="manual-card" class="card" aria-labelledby="manual-heading">
           <h2 id="manual-heading"><span class="number">01</span>5G 遥控</h2>
           <p>首次使用先关闭电调并准备，准备完成后再打开电调。</p>
           <fieldset class="confirmations">
@@ -53,10 +53,10 @@
         </section>
 
         <section class="card" aria-labelledby="autonomy-heading">
-          <h2 id="autonomy-heading"><span class="number">02</span><span id="task-heading">自主驾驶</span></h2>
-          <div id="task-picker" hidden><label for="task">调试项目</label><select id="task"><option value="parking">停车入位</option><option value="obstacle">两桶避障</option><option value="traffic">红绿灯</option><option value="zebra">斑马线</option><option value="race">比赛全流程</option></select></div>
-          <p>先让遥控回到中位并确认停稳，再点击下方按钮。交接后由树莓派独立运行，网页只显示状态和提供停止操作。</p>
-          <button id="start" class="primary wide" disabled>停稳 · 切入自主驾驶</button>
+          <h2 id="autonomy-heading"><span class="number" id="task-number">02</span><span id="task-heading">自主驾驶</span></h2>
+          <div id="task-picker" hidden><label for="task">测试项目</label><select id="task"><option value="parking">停车入位</option><option value="obstacle">两桶避障</option><option value="traffic">红绿灯</option><option value="zebra">斑马线</option><option value="race">比赛全流程</option><option value="observe">仅观察识别（不驱动车辆）</option></select></div>
+          <p id="handoff-help">先让遥控回到中位并确认停稳，再点击下方按钮。交接后由树莓派独立运行，网页只显示状态和提供停止操作。</p>
+          <div id="task-actions"><button id="start" class="primary wide" disabled>停稳 · 切入自主驾驶</button></div>
           <p class="muted" id="start-help">需要先准备，并完成现场确认。</p>
           <button id="observe" class="secondary wide" disabled>仅观察识别（不驱动车辆）</button>
           <p class="muted">自主运行期间，切换页面或网络短暂中断不会发送停止指令。每次实际试车仍须由你在现场监管。</p>

@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -44,7 +45,16 @@ struct Bay {
     std::uint64_t generation = 0; // increases only after fresh consecutive geometry confirmation
     bool current_geometry = false; // current image anchors the bay; not solely predicted memory
 };
+struct LegacyConeDrive {
+    int throttle_us, steering_us, passed;
+    bool complete;
+    double captured_s;
+    std::string reason;
+    bool repeat_forward = false;
+};
 struct Observation {
+    std::optional<LegacyConeDrive> cone_drive;
+    std::optional<double> zebra_front_trigger;
     std::uint64_t frame_id = 0;
     double time = 0;
     bool frame_ok = true, board_visible = false, board_observation_valid = false;
@@ -57,6 +67,7 @@ struct Observation {
     std::string zebra_distance_reason;
     std::string zebra_range_status = "not_detected";
     bool red = false, green = false; // current qualified light candidates, not arbitrary green pixels
+    bool signal_stop = false; // stop-only guard evidence can precede a formal red vote
     bool motion_valid = false;
     double forward_delta = 0, lateral_delta = 0, yaw_delta = 0;
     bool stopped_confirmed = false;
@@ -67,6 +78,7 @@ struct Command {
     int throttle_us = 1500, steering_us = 1610;
     std::string state, reason;
     bool announce = false, done = false;
+    bool keep_existing_output = false; // no new source frame; leave the previous command's expiry intact
     int cones_passed = 0;
     double target_x = 0;
     std::uint64_t brake_event_id = 0; // one persistent identifier per brake transaction
