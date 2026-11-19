@@ -1,0 +1,67 @@
+{
+  "version": "car-cpp-perception-20261119",
+  "base_version": "car-cpp-board-start-20261119",
+  "source": "D:\\programs_i_made_during_university\\5G智能车\\race_perception_fix_20261119\\release",
+  "deployed": true,
+  "single_release_verified": true,
+  "motion_requested": false,
+  "physical_race_verified": false,
+  "fiveg_present": true,
+  "handoff_present": true,
+  "fiveg_web_changed": false,
+  "zebra_profile": "crosswalk-near-edge-20261024-final",
+  "zebra_profile_sha256": "fd4329b5f07ff3b0ccc4bd2b026f569af3b65be9947ddfa42a88de47550c84a2",
+  "status": "deployed and fully verified",
+  "remaining": [
+    "physical stop position not verified",
+    "image-only lane and out-of-depth cones still lack qualified ground geometry",
+    "short final parking correction requires a measured short-distance motion model"
+  ],
+  "local_ctest_groups": 9,
+  "ctest_failures": 0,
+  "fiveg_tests": 28,
+  "replayed_sampled_scenes": 41,
+  "remote_root": "/home/pi/smartcar-race-20261002",
+  "source_files_verified": 80,
+  "temporary_code_artifacts": [],
+  "ctest": {
+    "local": {
+      "groups": 9,
+      "failures": 0
+    },
+    "candidate": {
+      "groups": 9,
+      "failures": 0
+    },
+    "installed": {
+      "groups": 9,
+      "failures": 0
+    }
+  },
+  "vehicle_ctest_groups": 9,
+  "preserved_configs": {
+    "original_files": 58,
+    "verified_files": 59,
+    "unchanged_original_files": 56,
+    "allowed_updated": [
+      "cpp/config/calibration/provenance.json",
+      "cpp/config/race.json"
+    ],
+    "allowed_added": [
+      "cpp/config/calibration/crosswalk-distance-20261024.json"
+    ],
+    "all_other_files_byte_identical": true,
+    "allowed_changes_only": true
+  },
+  "local_backup": "D:\\programs_i_made_during_university\\5G智能车\\race_perception_fix_20261119\\verified-cleanup",
+  "evidence": [
+    "local-ctest.xml",
+    "candidate-ctest.xml",
+    "installed-ctest.xml",
+    "full-installed-manifest.json",
+    "preserved-configs.json",
+    "verified-cleanup/single-release-verification.json",
+    "http-verification.json",
+    "sample-replay-report.json"
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "source": "D:\\programs_i_made_during_university\\5G智能车\\tmp\\parking-static-1m-20261113\\measured-1794575104206792400\\bay-ground-candidate.json",
+  "frame_count": 5,
+  "coordinate_frame": "bay_inner_edge_center_x_right_y_forward",
+  "expected_marker_distance_from_entrance_outer_m": 0.45,
+  "expected_marker_distance_from_white_inner_m": 0.3,
+  "mode": "held_out_ground_markers_static_near_field",
+  "measurements": {
+    "left": {
+      "image_px": [
+        66.98028008002287,
+        336.79554774458114
+      ],
+      "image_px_by_frame": [
+        [
+          66.85632962862564,
+          336.8495527243155
+        ],
+        [
+          66.98028008002287,
+          336.7819376964847
+        ],
+        [
+          67.0984100877193,
+          336.7261513157895
+        ],
+        [
+          66.8431105047749,
+          336.85402455661665
+        ],
+        [
+          67.09402460456943,
+          336.79554774458114
+        ]
+      ],
+      "expected_xy_m": [
+        -0.32,
+        -0.55
+      ],
+      "estimated_xy_m": [
+        -0.30879766445889356,
+        -0.5516359108842375
+      ],
+      "white_inner_edge_distance_m": 0.31120233554110643,
+      "entrance_outer_distance_m": 0.4516359108842375,
+      "error_xy_m": [
+        0.011202335541106445,
+        -0.0016359108842374237
+      ],
+      "error_m": 0.011321153916306548,
+      "max_error_across_frames_m": 0.011561394498489962,
+      "inside_original_fit_region": false
+    },
+    "right": {
+      "image_px": [
+        363.452607184241,
+        319.3472832369942
+      ],
+      "image_px_by_frame": [
+        [
+          363.39156908665103,
+          319.36674473067916
+        ],
+        [
+          363.452607184241,
+          319.2996523754345
+        ],
+        [
+          363.30428832116786,
+          319.3339416058394
+        ],
+        [
+          363.4714450867052,
+          319.3472832369942
+        ],
+        [
+          363.4870729455217,
+          319.3490304709141
+        ]
+      ],
+      "expected_xy_m": [
+        0.32,
+        -0.55
+      ],
+      "estimated_xy_m": [
+        0.3214262229642946,
+        -0.5612878571334907
+      ],
+      "white_inner_edge_distance_m": 0.2985737770357054,
+      "entrance_outer_distance_m": 0.46128785713349074,
+      "error_xy_m": [
+        0.0014262229642945656,
+        -0.011287857133490675
+      ],
+      "error_m": 0.011377602146760868,
+      "max_error_across_frames_m": 0.011421836521947563,
+      "inside_original_fit_region": false
+    }
+  },
+  "max_point_error_m": 0.011377602146760868,
+  "max_error_across_frames_m": 0.011561394498489962,
+  "runtime_verified": false,
+  "notes": [
+    "Original homography was reused unchanged. Checks are outside the original fit quadrilateral.",
+    "Vehicle-relative offset, camera blind area and motion are outside this check."
+  ]
+}

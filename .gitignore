@@ -94,3 +94,6 @@ desktop.ini
 
 # User-requested, reviewed AI handoff archive; other archives remain ignored.
 !/docs/handoff/2026-10-12/smartcar-ai-handoff-20261012.zip
+
+# Reviewed measured calibration record; contains no connection secrets.
+!/cpp/config/calibration/sources/cone-latest-20261029.local.json

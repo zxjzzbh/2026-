@@ -1,0 +1,201 @@
+{
+  "verified": false,
+  "image_size": [
+    480,
+    360
+  ],
+  "coordinate_frame": "bay_inner_edge_center_x_right_y_forward",
+  "inputs_m": {
+    "bumper_to_entrance_outer": 0.94,
+    "white_inner_width": 1.24,
+    "yellow_inner_length": 1.0,
+    "entrance_tape_width_measured": 0.1
+  },
+  "pixel_corners": [
+    [
+      66.38879936584915,
+      263.6098360659285
+    ],
+    [
+      370.80998894724826,
+      250.1572539599406
+    ],
+    [
+      309.4274421722571,
+      218.00315862257628
+    ],
+    [
+      146.24880967405812,
+      223.34806042115878
+    ]
+  ],
+  "homography": [
+    [
+      -0.001736062780960134,
+      -0.00019248909100482535,
+      0.4416971813386112
+    ],
+    [
+      0.0002809818903889536,
+      0.006358398951535816,
+      -1.6947905352261812
+    ],
+    [
+      -0.00010592144305982675,
+      -0.005453686929731427,
+      1.0
+    ]
+  ],
+  "valid_polygon_px": [
+    [
+      66.38879936584915,
+      263.6098360659285
+    ],
+    [
+      370.80998894724826,
+      250.1572539599406
+    ],
+    [
+      309.4274421722571,
+      218.00315862257628
+    ],
+    [
+      146.24880967405812,
+      223.34806042115878
+    ]
+  ],
+  "max_frame_corner_spread_px": 0.8681567039672209,
+  "independent_check_count": 0,
+  "readings": [
+    {
+      "frame": "secondary-0.jpg",
+      "pixel_corners": [
+        [
+          65.98620595927937,
+          263.6403575897937
+        ],
+        [
+          370.74152779130645,
+          250.1358788816278
+        ],
+        [
+          309.55635298100975,
+          218.06091342018635
+        ],
+        [
+          145.43942393021112,
+          223.24191936385168
+        ]
+      ],
+      "entrance_tape_width_image_estimate_m": 0.10362907499074936,
+      "samples": {
+        "near_inner": 53,
+        "near_outer": 53,
+        "far_inner": 44,
+        "left_white_inner": 15,
+        "right_white_inner": 34
+      }
+    },
+    {
+      "frame": "secondary-1.jpg",
+      "pixel_corners": [
+        [
+          66.27162784054012,
+          263.5822103431523
+        ],
+        [
+          370.8205988144254,
+          250.17862903825335
+        ],
+        [
+          309.2985313635045,
+          218.00074458419223
+        ],
+        [
+          145.7624630331624,
+          223.41828065245474
+        ]
+      ],
+      "entrance_tape_width_image_estimate_m": 0.10340812057256699,
+      "samples": {
+        "near_inner": 53,
+        "near_outer": 53,
+        "far_inner": 44,
+        "left_white_inner": 16,
+        "right_white_inner": 34
+      }
+    },
+    {
+      "frame": "secondary-2.jpg",
+      "pixel_corners": [
+        [
+          66.93281344146446,
+          263.50266396420585
+        ],
+        [
+          370.79937908007116,
+          250.18846755127106
+        ],
+        [
+          309.24991667687203,
+          218.00557266096035
+        ],
+        [
+          147.1169596961248,
+          223.3514665669045
+        ]
+      ],
+      "entrance_tape_width_image_estimate_m": 0.10233651101589203,
+      "samples": {
+        "near_inner": 53,
+        "near_outer": 53,
+        "far_inner": 44,
+        "left_white_inner": 15,
+        "right_white_inner": 34
+      }
+    },
+    {
+      "frame": "secondary-3.jpg",
+      "pixel_corners": [
+        [
+          66.50597089115819,
+          263.6374617887047
+        ],
+        [
+          370.9457441507601,
+          250.12375612241075
+        ],
+        [
+          309.65366634992216,
+          217.9838971391537
+        ],
+        [
+          146.73515631495383,
+          223.34465427541303
+        ]
+      ],
+      "entrance_tape_width_image_estimate_m": 0.10275068879127502,
+      "samples": {
+        "near_inner": 53,
+        "near_outer": 53,
+        "far_inner": 44,
+        "left_white_inner": 16,
+        "right_white_inner": 34
+      }
+    }
+  ],
+  "bumper_to_entrance_inner_m": 1.04,
+  "rear_axle_offset_if_centered_and_square_m": 1.375,
+  "tape_width_cross_check": {
+    "observed_m": [
+      0.10362907499074936,
+      0.10340812057256699,
+      0.10233651101589203,
+      0.10275068879127502
+    ],
+    "measured_m": 0.1,
+    "max_abs_disagreement_m": 0.0036290749907493536,
+    "used_for_bay_shape_fit": false,
+    "scope": "Image-derived tape width checked against ruler; not validation of near-field position."
+  }
+}

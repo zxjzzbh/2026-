@@ -1,0 +1,42 @@
+{
+  "sources": [
+    {
+      "source": "D:\\programs_i_made_during_university\\5G智能车\\parking_initial_edges_20261117\\candidate\\vision\\calibration\\parking-static-20261113\\measured-1794575104206792400\\bay-ground-candidate.json",
+      "file": "sources/parking-static-20261113/measured-1794575104206792400/bay-ground-candidate.json",
+      "sha256": "376edbc2bcbeb32c9049cce4ffb0d63280b3d257853f2e2a9e61646561214722"
+    },
+    {
+      "source": "D:\\programs_i_made_during_university\\5G智能车\\parking_initial_edges_20261117\\candidate\\vision\\calibration\\parking-static-20261113\\measured-1794575104206792400\\bay-ground-rear-axle-candidate.json",
+      "file": "sources/parking-static-20261113/measured-1794575104206792400/bay-ground-rear-axle-candidate.json",
+      "sha256": "d6e482b346533f20fe3c79362ef92f5f06be1404ee95010195c246efc615f27b"
+    },
+    {
+      "source": "D:\\programs_i_made_during_university\\5G智能车\\parking_initial_edges_20261117\\candidate\\vision\\calibration\\parking-static-20261113\\check-1794575933931921900\\near-field-validation.json",
+      "file": "sources/parking-static-20261113/check-1794575933931921900/near-field-validation.json",
+      "sha256": "c2b808b7d5877600415b3eeaafc007e1bffeb84da6a861e7e9c4ad71f923a1cc"
+    },
+    {
+      "source": "D:\\programs_i_made_during_university\\5G智能车\\parking_initial_edges_20261117\\candidate\\vision\\calibration\\parking-static-20261113\\check45-1794576519124491600\\near-field-validation.json",
+      "file": "sources/parking-static-20261113/check45-1794576519124491600/near-field-validation.json",
+      "sha256": "124509890caf4a4c838bf2a862a1db76be19eda76e4fa759f2bcf18762eb311c"
+    },
+    {
+      "source": "D:\\programs_i_made_during_university\\5G智能车\\parking_initial_edges_20261117\\candidate\\vision\\calibration\\parking-static-20261113\\source-index.json",
+      "file": "sources/parking-static-20261113/source-index.json",
+      "sha256": "3f8a67a91be6e68b83b536ece34eea3812610bad9d0cec1c520dcaaad7bf3574"
+    },
+    {
+      "source": "D:\\programs_i_made_during_university\\5G智能车\\parking_initial_edges_20261117\\candidate\\vision\\configs\\cone-latest-20261029.local.json",
+      "file": "sources/cone-latest-20261029.local.json",
+      "sha256": "a06d2b204bda40e4c0bdf9f30519d2975de579c8676be17a91bafbd99375c9e3"
+    },
+    {
+      "source": "D:\\programs_i_made_during_university\\5G智能车\\parking_initial_edges_20261117\\candidate\\vision\\configs\\crosswalk-distance-calibration.json",
+      "file": "crosswalk-distance-20261024.json",
+      "sha256": "fd4329b5f07ff3b0ccc4bd2b026f569af3b65be9947ddfa42a88de47550c84a2",
+      "use": "selected by user for zebra front-to-near-edge distance only, 0.40-0.65 m"
+    }
+  ],
+  "dynamic_verified": false,
+  "note": "Source files copied byte-for-byte. Static data does not verify camera mounting or dynamic motion today."
+}

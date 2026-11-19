@@ -1,0 +1,21 @@
+[Unit]
+Description=Smart car C++ R2 and 5G control
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/smartcar-race-20261002
+Environment=PYTHONPATH=/home/pi/smartcar-race-20261002/vision/src
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pi/smartcar-race-20261002/.venv/bin/python -m carvision.server --root /home/pi/smartcar-race-20261002 --port 8080
+Restart=on-failure
+RestartSec=3
+KillMode=control-group
+TimeoutStopSec=12
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

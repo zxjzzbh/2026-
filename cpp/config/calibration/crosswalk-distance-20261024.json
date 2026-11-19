@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "profile_id": "crosswalk-near-edge-20261024-final",
+  "enabled": true,
+  "verified": true,
+  "motion_enabled": true,
+  "distance_reference": "vehicle_front_to_nearest_paper_edge_m",
+  "image_feature": "paper_row_near_edge_y_normalized",
+  "image_edge_definition": "Each visible strip bbox y+h-1; median across one crosswalk row, divided by height-1. Clipped rows are invalid.",
+  "cameras": {
+    "primary": {
+      "identity": "USB2.0 Camera: USB2.0 Camera | usb-xhci-hcd.1-2",
+      "image_size": [
+        480,
+        360
+      ],
+      "captured_on": "2026-10-24",
+      "verified": true,
+      "pose": {
+        "fixed": true,
+        "verified": true,
+        "description": "Current fixed view in final 8-pair capture; see camera JPEG and evidence. Earlier poses excluded."
+      },
+      "references": [
+        {
+          "distance_m": 0.4,
+          "near_edge_y_normalized": 0.9805013927576601,
+          "measured": true,
+          "evidence": "evidence.json: primary 0.4",
+          "near_edge_y_px": 352.0,
+          "sample_count": 8,
+          "spread_px": 0
+        },
+        {
+          "distance_m": 0.5,
+          "near_edge_y_normalized": 0.8579387186629527,
+          "measured": true,
+          "evidence": "evidence.json: primary 0.5",
+          "near_edge_y_px": 308.0,
+          "sample_count": 8,
+          "spread_px": 0
+        },
+        {
+          "distance_m": 0.65,
+          "near_edge_y_normalized": 0.7270194986072424,
+          "measured": true,
+          "evidence": "evidence.json: primary 0.65",
+          "near_edge_y_px": 261.0,
+          "sample_count": 8,
+          "spread_px": 0
+        }
+      ],
+      "white_mask": {
+        "s_max": 80,
+        "v_min": 200
+      },
+      "runtime_detector_verified": false
+    },
+    "secondary": {
+      "identity": "H65 USB CAMERA: H65 USB CAMERA | usb-xhci-hcd.0-2",
+      "image_size": [
+        480,
+        360
+      ],
+      "captured_on": "2026-10-24",
+      "verified": true,
+      "pose": {
+        "fixed": true,
+        "verified": true,
+        "description": "Current fixed view in final 8-pair capture; see camera JPEG and evidence. Earlier poses excluded."
+      },
+      "references": [
+        {
+          "distance_m": 0.4,
+          "near_edge_y_normalized": 0.9526462395543176,
+          "measured": true,
+          "evidence": "evidence.json: secondary 0.4",
+          "near_edge_y_px": 342.0,
+          "sample_count": 8,
+          "spread_px": 0
+        },
+        {
+          "distance_m": 0.5,
+          "near_edge_y_normalized": 0.8802228412256268,
+          "measured": true,
+          "evidence": "evidence.json: secondary 0.5",
+          "near_edge_y_px": 316.0,
+          "sample_count": 8,
+          "spread_px": 0
+        },
+        {
+          "distance_m": 0.65,
+          "near_edge_y_normalized": 0.8050139275766016,
+          "measured": true,
+          "evidence": "evidence.json: secondary 0.65",
+          "near_edge_y_px": 289.0,
+          "sample_count": 8,
+          "spread_px": 0
+        }
+      ],
+      "white_mask": {
+        "s_max": 100,
+        "v_min": 170
+      },
+      "runtime_detector_verified": false
+    }
+  },
+  "overlap": {
+    "verified": true,
+    "reference_distance_m": 0.5,
+    "evidence": "Both fixed views independently observed operator-identified 40/50/65 cm papers in 8 paired fresh frames."
+  },
+  "visible_measured_range_m": [
+    0.4,
+    0.65
+  ],
+  "unavailable_references": [
+    {
+      "distance_m": 0.25,
+      "reason": "Paper present but outside current visible views; no pixel value and no extrapolation."
+    }
+  ],
+  "measurement_status": "stationary_visible_range_measured",
+  "active_runtime_applied": true,
+  "physical_stop_verified": false,
+  "notes": [
+    "Near physical edge and near image edge correspond directly; no paper-length conversion is used.",
+    "Primary mask uses stricter white threshold to isolate floor glare; real crosswalk-row recognition remains to be verified.",
+    "No value from an earlier camera pose is retained. No braking output, speed or hold timing is changed.",
+    "Runtime crosswalk entries explicitly consume this near-edge profile; legacy parking keeps its separate historical table. Physical stop position is not yet verified."
+  ]
+}

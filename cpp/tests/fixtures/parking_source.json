@@ -1,0 +1,23 @@
+{
+  "source": "parking_tracking_recovery_20261117\\startup-scene-1794887793441080600\\0-raw.jpg",
+  "sha256": "a133c12926d4c8417a2bb64d0f9ea3e510ebb83aaac24bf00ed9ea7d4d94e5b2",
+  "scenario": "static real image; left half-bay visible; right outer edge occluded by blue board; end band beyond measured mapping domain",
+  "video_source": "tmp/car_cpp_replay/previous_parking.avi",
+  "video_frames": [
+    1,
+    2,
+    3,
+    21,
+    22,
+    23
+  ],
+  "physical_success_verified": false,
+  "fixture_sha256": {
+    "parking_replay_001.png": "70cd64f59ae7649186b1bc8d60b911a84ddd7710240406dd7b8ec1907e0abdf6",
+    "parking_replay_002.png": "57609a7605877735b97c1d378978c04ee29add67fd47c4da29e619896f99ff42",
+    "parking_replay_003.png": "38be8da36a1c5df0f511b498fdfee026e60a56dba77e01fa2e5911080da6f61b",
+    "parking_replay_021.png": "e223bc7bab1bd6198d65977b0bd4486d6b1e8cdb0cbb62852e7dc7585e6ac69e",
+    "parking_replay_022.png": "0a92dbf662879c1d250c4a082a1eb356d9a54e650a27e9780d0a2ee9e1028681",
+    "parking_replay_023.png": "ae78d50687c11d4d94a6dedcc2f286111abbc92f8d912919c2e5f2e3e0743566"
+  }
+}

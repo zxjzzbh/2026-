@@ -2,7 +2,7 @@
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import shutil
 import stat
@@ -48,19 +48,57 @@ def snapshot(root, record):
     return {'targets': [p.name for p in targets], 'entries': entries}
 
 
-def source_hashes(root):
+DEFAULT_SOURCE_ROOTS = ('vision/src', 'vision/web')
+CPP_SOURCE_ROOTS = ('cpp/src', 'cpp/include', 'cpp/config', 'cpp/tests', 'cpp/tools',
+                    'cpp/CMakeLists.txt')
+
+
+def checked_source_roots(root, source_roots=None):
+    """Never allow an explicit file subset to replace mandatory complete trees."""
+    supplied = DEFAULT_SOURCE_ROOTS if source_roots is None else source_roots
+    if not isinstance(supplied, (list, tuple)) or not supplied:
+        raise ValueError('source_roots must be a nonempty list of relative paths')
+    selected = set()
+    for name in supplied:
+        if not isinstance(name, str):
+            raise ValueError('Invalid source root')
+        path = PurePosixPath(name)
+        if (not name or path.is_absolute() or '..' in path.parts or ':' in name
+                or '\\' in name or path.as_posix() != name or name == '.'):
+            raise ValueError('Source root must be a canonical relative path: ' + name)
+        selected.add(name)
+    # Requiring explicit directory entries avoids accidentally checking just a
+    # few selected files while claiming a complete release was verified.
+    required = set(DEFAULT_SOURCE_ROOTS)
+    if (root / 'cpp').exists():
+        required.update(CPP_SOURCE_ROOTS)
+    if not required.issubset(selected):
+        raise ValueError('Missing complete source roots: ' + repr(sorted(required - selected)))
+    return tuple(sorted(selected))
+
+
+def source_hashes(root, source_roots=None):
+    root = Path(root)
     result = {}
-    for sub in ('vision/src', 'vision/web'):
-        for path in (root / sub).rglob('*'):
-            if path.is_file() and path.suffix not in ('.pyc', '.pyo'):
-                if path.resolve() != path:
-                    raise ValueError('Source link is not allowed: ' + str(path))
+    for sub in checked_source_roots(root, source_roots):
+        base = root / sub
+        if not base.exists() or base.resolve() != base:
+            raise ValueError('Missing or linked source root: ' + str(base))
+        paths = [base]
+        if base.is_dir():
+            for parent, dirs, files in os.walk(base, followlinks=False):
+                paths.extend(Path(parent) / name for name in dirs + files)
+        for path in paths:
+            info = path.lstat()
+            if path.resolve() != path or not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode)):
+                raise ValueError('Source links and special files are not allowed: ' + str(path))
+            if stat.S_ISREG(info.st_mode) and path.suffix not in ('.pyc', '.pyo'):
                 result[path.relative_to(root).as_posix()] = sha(path)
     return result
 
 
-def verify_source(root, expected):
-    if not expected or source_hashes(root) != expected:
+def verify_source(root, expected, source_roots=None):
+    if not expected or source_hashes(root, source_roots) != expected:
         raise ValueError('Installed source file set or hashes differ from the reviewed release')
 
 
@@ -74,6 +112,53 @@ def code_roots(search_roots):
             if path.name == 'carvision' and path.parent.name == 'src':
                 roots.append(str(path))
     return sorted(set(roots))
+
+
+def cpp_code_copies(search_roots):
+    """Inventory C++ projects and runtime binaries, without deleting anything.
+
+    CMake's generated build metadata is not a second source project. Source
+    copies are recognized by the project declaration or the smartcar header
+    layout; ELF binaries named smartcar (including backup suffixes) are also
+    reported even when copied away from a complete source tree.
+    """
+    projects, binaries = set(), set()
+    for base in search_roots:
+        for parent, dirs, files in os.walk(base, followlinks=False):
+            dirs[:] = [n for n in dirs if n not in ('.venv', '.git', 'wheels', 'test-wheels',
+                       '.cache', 'node_modules', 'CMakeFiles', '_deps')
+                       and not (Path(parent) / n).is_symlink()]
+            path = Path(parent)
+            project = (path / 'include/smartcar').is_dir() and (path / 'src/main.cpp').is_file()
+            cmake = path / 'CMakeLists.txt'
+            if 'CMakeLists.txt' in files and not cmake.is_symlink():
+                text = cmake.read_text(encoding='utf-8', errors='replace')
+                project = project or bool(re.search(r'\bproject\s*\(\s*smartcar(?:[\s_)\-]|$)',
+                                                     text, re.IGNORECASE))
+            if project:
+                projects.add(str(path))
+            for name in files:
+                if not re.fullmatch(r'smartcar(?:[._-].*)?', name):
+                    continue
+                binary = path / name
+                if binary.is_symlink():
+                    continue
+                with binary.open('rb') as stream:
+                    if stream.read(4) == b'\x7fELF':
+                        binaries.add(str(binary))
+    return {'projects': sorted(projects), 'binaries': sorted(binaries)}
+
+
+def verify_cpp_copies(root, search_roots, expected_source):
+    copies = cpp_code_copies(search_roots)
+    expected_projects = [str(root / 'cpp')] if (root / 'cpp').is_dir() else []
+    # Every allowed executable must be individually SHA-256 checked in the
+    # installed manifest. A second standalone executable is never implied.
+    allowed_binaries = {str(root / name) for name in expected_source
+                        if name == 'cpp/build/smartcar'}
+    if copies['projects'] != expected_projects or set(copies['binaries']) != allowed_binaries:
+        raise ValueError('Unexpected or unverified C++ code copies require review: ' + repr(copies))
+    return copies
 
 
 def deployment_artifacts(root):
@@ -90,9 +175,9 @@ def deployment_artifacts(root):
     return sorted(found)
 
 
-def delete_verified(root, record, expected_snapshot, expected_source):
+def delete_verified(root, record, expected_snapshot, expected_source, source_roots=None):
     root, record = checked_record(root, record)
-    verify_source(root, expected_source)
+    verify_source(root, expected_source, source_roots)
     if snapshot(root, record) != expected_snapshot:
         raise ValueError('Temporary files changed after the PC backup; nothing removed')
     for name in expected_snapshot['targets']:
@@ -101,7 +186,7 @@ def delete_verified(root, record, expected_snapshot, expected_source):
             shutil.rmtree(path)
         else:
             path.unlink()
-    verify_source(root, expected_source)
+    verify_source(root, expected_source, source_roots)
     if snapshot(root, record)['targets']:
         raise ValueError('Temporary code artifacts remain')
 
@@ -124,13 +209,15 @@ def main():
             for name in sorted(data['snapshot']['entries']):
                 archive.add(record / name, arcname=name, recursive=False)
     elif action == 'delete':
-        delete_verified(root, record, data['snapshot'], data['source'])
+        delete_verified(root, record, data['snapshot'], data['source'], data.get('source_roots'))
         print(json.dumps({'temporary_code_removed': True}))
     elif action == 'verify':
-        verify_source(root, data['source'])
-        roots = code_roots([root.parent, Path('/tmp'), Path('/opt'), Path('/srv')])
+        verify_source(root, data['source'], data.get('source_roots'))
+        search_roots = [root.parent, Path('/tmp'), Path('/opt'), Path('/srv')]
+        roots = code_roots(search_roots)
         if roots != [str(root / 'vision/src/carvision')]:
             raise ValueError('Unexpected code copies require review: ' + repr(roots))
+        cpp_copies = verify_cpp_copies(root, search_roots, data['source'])
         artifacts = deployment_artifacts(root)
         if artifacts:
             raise ValueError('Earlier deployment artifacts require verified cleanup: ' + repr(artifacts))
@@ -146,6 +233,8 @@ def main():
             temporary.replace(root / 'CURRENT_VERSION.txt')
         print(json.dumps({'source_matches': True, 'source_files': len(data['source']),
                           'code_roots': roots, 'temporary_code_artifacts': artifacts,
+                          'source_roots': checked_source_roots(root, data.get('source_roots')),
+                          'cpp_code_copies': cpp_copies,
                           'single_release_verified': True}))
     else:
         raise ValueError('Unknown cleanup operation')

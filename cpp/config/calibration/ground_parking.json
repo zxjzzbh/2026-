@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "verified": false,
+  "detector_verified": false,
+  "coordinate_frame": "rear_axle_x_right_y_forward",
+  "image_size": [
+    480,
+    360
+  ],
+  "homography": [
+    [
+      -0.0017396249687579594,
+      -0.00011925577429605544,
+      0.449518069084457
+    ],
+    [
+      6.441805688077501e-05,
+      -0.0011447196047732397,
+      -0.30197367042123013
+    ],
+    [
+      -0.00010592144305982675,
+      -0.005453686929731427,
+      1.0
+    ]
+  ],
+  "valid_polygon_px": [
+    [
+      370.80999755859375,
+      250.15725708007812
+    ],
+    [
+      363.4526062011719,
+      319.3472900390625
+    ],
+    [
+      66.98027801513672,
+      336.7955627441406
+    ],
+    [
+      66.38880157470703,
+      263.6098327636719
+    ],
+    [
+      146.24880981445312,
+      223.34805297851562
+    ],
+    [
+      309.42742919921875,
+      218.00315856933594
+    ]
+  ],
+  "static_sample_envelope_px": [
+    [
+      370.80999755859375,
+      250.15725708007812
+    ],
+    [
+      363.4526062011719,
+      319.3472900390625
+    ],
+    [
+      66.98027801513672,
+      336.7955627441406
+    ],
+    [
+      66.38880157470703,
+      263.6098327636719
+    ],
+    [
+      146.24880981445312,
+      223.34805297851562
+    ],
+    [
+      309.42742919921875,
+      218.00315856933594
+    ]
+  ],
+  "date": "2026-11-13",
+  "use": "offline static calibration candidate for the 1.00 m indoor test bay",
+  "field_measurements_m": {
+    "bumper_to_entrance_outer": 0.94,
+    "white_inner_width": 1.24,
+    "yellow_inner_length": 1.0,
+    "entrance_tape_width_measured": 0.1,
+    "left_front_tyre_outer_to_white_inner": 0.49,
+    "left_rear_tyre_outer_to_white_inner": 0.48,
+    "outer_tyre_span": 0.29,
+    "wheelbase": 0.245,
+    "rear_axle_to_bumper": 0.335
+  },
+  "estimated_pose_in_bay_frame": {
+    "rear_axle_x_m": 0.004879166645679889,
+    "rear_axle_y_m": -1.3747208332848468,
+    "front_axle_x_m": 0.014879166645679898,
+    "heading_right_deg": 2.3392530741721567
+  },
+  "fit_reference": "measured-1794575104206792400/bay-ground-candidate.json",
+  "vehicle_geometry_reference": "race_rules_fix_20261113\\candidate\\vision\\configs\\vehicle-geometry-measurements-20261025.json",
+  "static_check_max_error_m": {
+    "30_cm": 0.009244969318014034,
+    "45_cm": 0.011561394498489962
+  },
+  "scope_notes": [
+    "94 cm is treated as a perpendicular distance from bumper centre to the entrance tape outer edge.",
+    "Left wheel measurements are referenced to the outer tyre edges at the axle centres.",
+    "Four markers checked two fixed ground rows. The sampled envelope is provided as evidence, not as a verified runtime mask.",
+    "Coordinates and heading depend on the ruler readings and the fixed camera pose. Dynamic parking is not validated."
+  ],
+  "runtime_verified": false,
+  "dynamic_verified": false,
+  "current_pose_verified": false,
+  "max_error_m": 0.03,
+  "source_kind": "static_ruler_fit_with_four_held_out_points",
+  "camera": "secondary",
+  "domain_basis": "convex_hull_of_actual_fit_and_check_points"
+}

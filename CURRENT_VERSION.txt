@@ -1,3 +1,4 @@
-race-flow-repair-20261115
-Published source synchronized on 2026-11-15; not deployed to Raspberry Pi.
-See docs/imports/2026-11-15-flow-repair/release-notes.txt
+car-cpp-perception-20261119
+Current source is at cpp/, vision/, and deployment/.
+All 83 source files match the verified Raspberry Pi release.
+See README.md, DEPLOYMENT.json, SOURCE-MANIFEST.json, and docs/latest-code.md.

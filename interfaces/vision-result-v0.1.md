@@ -1,3 +1,5 @@
+> 历史参考：本文的旧 Python 路径和接口不代表当前 C++/5G 实现。当前入口见 [最新版说明](../docs/latest-code.md)；硬件测量资料保留供核对。
+
 # 感知结果 v0.1 草案
 
 维护模块 vision。用于回放和后续联调，未与 vehicle/firmware 冻结，不是 UART 协议。每帧一行 JSON，类型见 `vision/src/carvision/results.py`。

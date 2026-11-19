@@ -1,0 +1,16 @@
+{
+  "source_archives": [
+    {
+      "file": "car.zip",
+      "sha256": "f37fc4973a293acf6d399143e4c8e108e813d566cdc1792ddeb11eab6e003023"
+    },
+    {
+      "file": "红绿灯识别demo.zip",
+      "sha256": "f0dcc116927645bb4e3f92abc76de5b427e1b6df362a6593533ca24e6446405b"
+    }
+  ],
+  "current_python_release": "parking_initial_edges_20261117",
+  "original_archives_unchanged": true,
+  "vehicle_contacted": false,
+  "note": "TrafficLight derives from user demo. Original monolithic task dispatch and direct GPIO driver replaced with modular state controller and this car RasAdapter5A protocol. No license grant is inferred from supplied archives."
+}

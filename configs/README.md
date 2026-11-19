@@ -1,9 +1,5 @@
-# 共享配置
+# 当前入口
 
-只存跨模块配置模板，例如未来的整车任务配置 `vehicle.example.json`。模块专用阈值放模块自己的 `configs/`。
+当前车辆配置位于 `cpp/config/race.json`，相机标定位于 `cpp/config/calibration/`。这里保留的其他模板是历史资料。
 
-当前运行配置集中在 `vision/configs/`：`default.json` 为感知、`race-2026.json` 为比赛、`autonomy-pi5.json` 为 Pi5 实测与准备状态。此顶层目录暂不复制第二份配置。配置中的未完成项仍是 false/null。
-
-个人实车参数可保存为 `vehicle.local.json` 等本地文件；`*.local.json/yaml/yml/toml/ini` 已被忽略。共享可公开的默认参数和校准示例应使用不含 `.local` 的文件名，并注明适用硬件。
-
-真实密码和 token 不写入模板；模板用空值或清楚的占位符。复制模板不代表程序已经支持它，需要配套加载代码。
+完整说明见 [最新版](../docs/latest-code.md) 和 [离线验证](../docs/reproduce.md)。

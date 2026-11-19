@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>智能车 · C++ 比赛控制</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="page-head">
+      <div><p class="eyebrow">C++ 新版 · 5G 控制</p><h1 id="page-title">比赛控制</h1><p id="page-description">遥控到达切换区，停稳后交给车端自主运行。</p></div>
+      <nav aria-label="页面切换"><a href="/competition/" id="race-link">比赛页</a><a href="/debug/" id="debug-link">调试页</a></nav>
+    </header>
+
+    <section class="status-card" aria-labelledby="status-heading">
+      <div class="status-heading"><h2 id="status-heading">车辆状态</h2><span class="badge" id="connection">正在连接</span></div>
+      <strong class="mode" id="mode">正在读取车端状态…</strong>
+      <p id="reason" aria-live="polite">读取完成前不会开放操作。</p>
+      <p class="muted" id="ownership"></p>
+      <p class="error" id="error" role="alert" hidden></p>
+      <div class="status-footer"><span id="telemetry">尚无运行记录</span><button id="stop" class="stop" disabled>停止并释放控制</button></div>
+    </section>
+
+    <div class="workspace">
+      <div class="controls">
+        <section class="card" aria-labelledby="manual-heading">
+          <h2 id="manual-heading"><span class="number">01</span>5G 遥控</h2>
+          <p>首次使用先关闭电调并准备，准备完成后再打开电调。</p>
+          <fieldset class="confirmations">
+            <legend>现场确认</legend>
+            <label><input type="checkbox" id="supervised">我在车旁监管，能够随时关闭电调</label>
+            <label><input type="checkbox" id="esc-off">电调已关闭</label>
+            <label><input type="checkbox" id="esc-on">电调已打开</label>
+            <label><input type="checkbox" id="stationary">车辆已停稳，场地已就绪</label>
+          </fieldset>
+          <div class="button-row"><button id="prepare" disabled>电调关闭 · 准备</button><button id="enable" disabled>启用遥控</button></div>
+          <div class="throttle-setting"><label for="throttle">前进油门</label><input id="throttle" type="number" min="1570" max="1600" step="1" value="1570"><span>μs</span></div>
+          <p class="muted">持按前进或方向按钮，松开回中位。键盘 ↑ 前进，← → 转向，↓ 回中位；空格制动。</p>
+          <div id="drive-pad" class="drive-pad" aria-label="持按遥控">
+            <button class="drive" data-drive="forward-left" disabled>↖ 左前进</button>
+            <button class="drive" data-drive="forward" disabled>↑ 前进</button>
+            <button class="drive" data-drive="forward-right" disabled>↗ 右前进</button>
+            <button class="drive" data-drive="left" disabled>← 转向</button>
+            <button id="neutral" class="secondary" disabled>回中位</button>
+            <button class="drive" data-drive="right" disabled>转向 →</button>
+          </div>
+          <button id="brake" class="brake" disabled>制动 350 ms</button>
+          <p class="muted">制动是 1400 μs 制动脉冲，不是倒车。遥控连接中断时，车端会回中位。</p>
+          <p class="output" id="manual-output">当前遥控请求：中位</p>
+        </section>
+
+        <section class="card" aria-labelledby="autonomy-heading">
+          <h2 id="autonomy-heading"><span class="number">02</span><span id="task-heading">自主驾驶</span></h2>
+          <div id="task-picker" hidden><label for="task">调试项目</label><select id="task"><option value="parking">停车入位</option><option value="obstacle">两桶避障</option><option value="traffic">红绿灯</option><option value="zebra">斑马线</option><option value="race">比赛全流程</option></select></div>
+          <p>先让遥控回到中位并确认停稳，再点击下方按钮。交接后由树莓派独立运行，网页只显示状态和提供停止操作。</p>
+          <button id="start" class="primary wide" disabled>停稳 · 切入自主驾驶</button>
+          <p class="muted" id="start-help">需要先准备，并完成现场确认。</p>
+          <button id="observe" class="secondary wide" disabled>仅观察识别（不驱动车辆）</button>
+          <p class="muted">自主运行期间，切换页面或网络短暂中断不会发送停止指令。每次实际试车仍须由你在现场监管。</p>
+        </section>
+      </div>
+
+      <div class="visuals">
+        <section class="card" aria-labelledby="video-heading">
+          <div class="status-heading"><h2 id="video-heading">摄像头画面</h2><span id="video-state" class="muted">等待画面</span></div>
+          <figure><div class="frame-wrap"><img id="secondary-frame" alt="第二路地面摄像头画面"><span class="frame-placeholder">等待第二路画面</span></div><figcaption>第二路 · 巡线、避障和停车</figcaption></figure>
+          <figure><div class="frame-wrap"><img id="primary-frame" alt="第一路红绿灯摄像头画面"><span class="frame-placeholder">等待第一路画面</span></div><figcaption>第一路 · 红绿灯</figcaption></figure>
+          <p class="muted">画面按需刷新，不叠加请求。是否正在行驶请结合现场情况判断。</p>
+        </section>
+        <section class="card" aria-labelledby="run-heading"><h2 id="run-heading">本轮运行</h2><dl id="run-details"><dt>阶段</dt><dd id="run-stage">—</dd><dt>执行输出</dt><dd id="run-output">—</dd><dt>记录目录</dt><dd id="run-dir">—</dd></dl></section>
+      </div>
+    </div>
+    <footer>比赛：斑马线停车 10 秒 · 正常前进不低于 1570 μs · 自主与遥控共用一套控制入口</footer>
+  </main>
+</body>
+</html>

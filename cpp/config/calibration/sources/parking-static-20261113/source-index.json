@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "record_date": "2026-11-13",
+  "copied_on": "2026-11-14",
+  "runtime_verified": false,
+  "dynamic_verified": false,
+  "configuration_modified": false,
+  "scope": "Static diagnostic evidence for fixed secondary camera and 1.00m indoor clear bay, lane inner width 1.24m. Two held-out marker cross-sections; no dynamic pose or steering-speed verification.",
+  "restrictions": [
+    "Do not promote any verified flag when loading these records.",
+    "Do not replace the 1.17m outdoor lane configuration with the 1.24m indoor measurement.",
+    "The 0.45m brake reserve has unknown braking procedure and no measured low-speed PWM table.",
+    "Original JSON files are copied byte-for-byte; absolute source references may refer to the original local workspace."
+  ],
+  "files": [
+    {
+      "file": "measured-1794575104206792400/bay-ground-candidate.json",
+      "source_workspace_relative": "tmp/parking-static-1m-20261113/measured-1794575104206792400/bay-ground-candidate.json",
+      "sha256": "376edbc2bcbeb32c9049cce4ffb0d63280b3d257853f2e2a9e61646561214722",
+      "role": "bay-coordinate static fit"
+    },
+    {
+      "file": "measured-1794575104206792400/bay-ground-rear-axle-candidate.json",
+      "source_workspace_relative": "tmp/parking-static-1m-20261113/measured-1794575104206792400/bay-ground-rear-axle-candidate.json",
+      "sha256": "d6e482b346533f20fe3c79362ef92f5f06be1404ee95010195c246efc615f27b",
+      "role": "rear-axle transform using operator ruler readings"
+    },
+    {
+      "file": "check-1794575933931921900/near-field-validation.json",
+      "source_workspace_relative": "tmp/parking-static-1m-20261113/check-1794575933931921900/near-field-validation.json",
+      "sha256": "c2b808b7d5877600415b3eeaafc007e1bffeb84da6a861e7e9c4ad71f923a1cc",
+      "role": "30cm independent static marker cross-section"
+    },
+    {
+      "file": "check45-1794576519124491600/near-field-validation.json",
+      "source_workspace_relative": "tmp/parking-static-1m-20261113/check45-1794576519124491600/near-field-validation.json",
+      "sha256": "124509890caf4a4c838bf2a862a1db76be19eda76e4fa759f2bcf18762eb311c",
+      "role": "45cm independent static marker cross-section"
+    },
+    {
+      "file": "parking-braking-reserve-45cm.json",
+      "source_workspace_relative": "tmp/parking-static-1m-20261113/parking-braking-reserve-45cm.json",
+      "sha256": "bee15f2106d5c51097576e7dd2363fa21e549a690cb8e9230655d0f8057d731e",
+      "role": "operator accepted planning reserve, not dynamic calibration"
+    }
+  ]
+}

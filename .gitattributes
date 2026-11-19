@@ -27,3 +27,13 @@ docs/handoff/2026-10-12/pending-steering/*.patch -text whitespace=-blank-at-eol
 # Curated binary frame streams and UTF-8 replay indices.
 *.mjpg binary
 *.jsonl text eol=lf
+
+# Preserve the exact deployed release, including original calibration JSON bytes.
+/cpp/** -text
+/vision/** -text
+/deployment/** -text
+/README.md -text
+/DEPLOYMENT.json -text
+# Original CRLF calibration files retain their measured-source hashes.
+/cpp/**/*.json whitespace=trailing-space,space-before-tab,cr-at-eol
+/DEPLOYMENT.json whitespace=trailing-space,space-before-tab,cr-at-eol
