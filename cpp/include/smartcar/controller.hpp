@@ -39,10 +39,13 @@ class Controller {
     int bay_side_ = 0;
     bool zebra_seen_ = false, zebra_mapping_pending_ = false, parking_correction_active_ = false;
     double zebra_y_ = 0;
-    double hold_elapsed_ = 0;
-    bool prev_stopped_ = false, zebra_rebraked_ = false;
-    int forward_roll_frames_ = 0;
-    double forward_roll_since_ = -1;
+    bool zebra_approach_confirmed_ = false;
+    int zebra_visual_frames_ = 0;
+    double zebra_visual_first_s_ = -1, zebra_visual_last_s_ = -1;
+    double zebra_visual_first_px_ = -1, zebra_visual_last_px_ = -1;
+    std::string zebra_visual_source_;
+    int zebra_brake_retries_ = 0, zebra_retry_motion_frames_ = 0;
+    double zebra_retry_motion_since_ = -1;
     Bay bay_;
     Lane last_lane_;
     Command last_command_;
@@ -51,6 +54,9 @@ class Controller {
     Command neutral(const std::string &reason) const;
     Command follow(const Observation &o, double target);
     void moveRememberedTargets(const Observation &o);
+    bool outdoor_brake_latched_ = false;
+    double outdoor_brake_start_ = -1.;
+    Command outdoorParking(const Observation &o);
     Command parking(const Observation &o);
 };
 } // namespace smartcar

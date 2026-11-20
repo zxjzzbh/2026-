@@ -225,20 +225,23 @@ Lane imageLane(const cv::Mat &white, cv::Size size, const Config &config,
     };
     // Compare all pairs at one row. Comparing a short distant pair at its own
     // upper row with a near pair would favour an adjacent lane spuriously.
+    // Prefer a fixed observed mid-ground row. A longer unrelated stripe must
+    // not push the shared row below the actual current lane's visible ends.
     double common_ref = -1;
+    const double desired_ref = std::min(ref_y, size.height * .65);
     for (size_t i = 0; i < edges.size(); ++i)
         for (size_t j = i + 1; j < edges.size(); ++j) {
             const double first = std::max(edges[i].min_y, edges[j].min_y);
             const double last = std::min(edges[i].max_y, edges[j].max_y);
             if (last - first < size.height * .10) continue;
-            const double y = std::clamp(ref_y, first, last);
+            const double y = std::clamp(desired_ref, first, last);
             const double a = edges[i].x + (y - ref_y) * edges[i].dxdy;
             const double b = edges[j].x + (y - ref_y) * edges[j].dxdy;
             if (std::min(a, b) <= size.width * .5 && std::max(a, b) >= size.width * .5 &&
                 std::abs(a - b) >= size.width * .28 && std::abs(a - b) <= size.width * 1.1 &&
                 converges(a < b ? edges[i] : edges[j], a < b ? edges[j] : edges[i],
                           std::abs(a - b), y, first))
-                common_ref = std::max(common_ref, y);
+                common_ref = std::max(common_ref, std::min(y, desired_ref));
         }
     double best = 1e10;
     for (size_t i = 0; i < edges.size(); ++i)
@@ -261,6 +264,13 @@ Lane imageLane(const cv::Mat &white, cv::Size size, const Config &config,
             // Both genuine tape strips must converge, rather than diverge, toward the horizon.
             if (!converges(l, r, width, image_ref, first_y))
                 continue;
+            bool intervening=false;
+            for (const auto &edge:edges) {
+                if (image_ref<edge.min_y || image_ref>edge.max_y) continue;
+                const double x=image_x(edge);
+                if (x>lx+size.width*.035 && x<rx-size.width*.035) {intervening=true;break;}
+            }
+            if (intervening) continue;
             const double center = (lx + rx) / 2;
             // The nearest pair bracketing the car wins over a more symmetric
             // but wider pair from adjacent running lanes.
@@ -312,6 +322,7 @@ void RoadPerception::reset() {
     have_frame_ = false;
     last_frame_id_ = 0;
     previous_time_ = 0;
+    last_lane_seen_s_ = -1;
     stopped_since_ = -1;
     stopped_frames_ = lane_streak_ = zebra_streak_ = board_streak_ = 0;
     previous_lane_ = {};
@@ -409,7 +420,7 @@ void RoadPerception::motion(const cv::Mat &gray, const cv::Mat &mask, Observatio
         fail();
 }
 
-Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double time) {
+Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double time, PerceptionTasks tasks) {
     diagnostics_ = {};
     if (have_frame_ && id == last_frame_id_)
         return cached_;
@@ -450,47 +461,31 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
     feature_mask.setTo(0, expanded_blue); // vertical blue objects cannot supply ground odometry
     motion(gray, feature_mask, out);
     std::vector<std::vector<cv::Point>> contours;
-    // Recover dim, low-saturation tape only if it is brighter than the nearby
-    // pavement across its width. A shadow edge alone has no narrow bright ridge.
-    cv::Mat dim, local, lane_white;
-    cv::inRange(hsv, cv::Scalar(0, 0, 60), cv::Scalar(179, 85, 149), dim);
-    const int width = 2 * std::max(3, cvRound(bgr.cols * .032)) + 1;
-    cv::morphologyEx(gray, local, cv::MORPH_TOPHAT, cv::getStructuringElement(cv::MORPH_RECT, {width, 1}));
-    dim &= (local >= 22);
-    lane_white = white | dim;
-    cv::morphologyEx(lane_white, lane_white, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, {3, 3}));
+    if (tasks.lane || tasks.zebra) cv::findContours(white, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+    diagnostics_.white_components = int(contours.size());
     std::vector<Tape> lanes, zebra_bars;
-    auto measure = [&](const cv::Mat &mask, bool collect_bars, bool collect_lanes) {
-        cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
-        if (collect_bars)
-            diagnostics_.white_components = int(contours.size());
-        for (const auto &contour : contours) {
-            if (cv::contourArea(contour) < 12)
-                continue;
-            Tape t;
-            if (!describeTape(contour, ground_, bgr.size(), config_.lookahead, t)) {
-                ++diagnostics_.rejected_tapes;
-                continue;
-            }
-            if (collect_bars && t.length >= 0.21 && t.length <= 0.40 && t.width >= 0.065 && t.width <= 0.15 &&
-                std::abs(t.heading) < 0.55)
-                zebra_bars.push_back(t);
-            if (!collect_lanes)
-                continue;
-            if (t.length < 0.45 || t.residual > 0.075 || t.min_y > config_.lookahead + 0.25 ||
-                t.max_y < config_.lookahead - 0.25) {
-                ++diagnostics_.rejected_tapes;
-                continue;
-            }
-            // Overexposed broad patches have no measured thin-tape footprint and failed above.
-            lanes.push_back(t);
+    if (tasks.lane || tasks.zebra) {
+    for (const auto &contour : contours) {
+        if (cv::contourArea(contour) < 12)
+            continue;
+        Tape t;
+        if (!describeTape(contour, ground_, bgr.size(), config_.lookahead, t)) {
+            ++diagnostics_.rejected_tapes;
+            continue;
         }
-    };
-    // Only the original white mask supplies crosswalk geometry.
-    bool has_dim_tape = cv::countNonZero(dim) > 0;
-    measure(white, true, !has_dim_tape);
-    if (has_dim_tape)
-        measure(lane_white, false, true);
+        if (t.length >= 0.21 && t.length <= 0.40 && t.width >= 0.065 && t.width <= 0.15 &&
+            std::abs(t.heading) < 0.55)
+            zebra_bars.push_back(t);
+        if (t.length < 0.45 || t.residual > 0.075 || t.min_y > config_.lookahead + 0.25 ||
+            t.max_y < config_.lookahead - 0.25) {
+            ++diagnostics_.rejected_tapes;
+            continue;
+        }
+        // Overexposed broad patches have no measured thin-tape footprint and failed above.
+        lanes.push_back(t);
+    }
+    }
+    if (tasks.lane) {
     double best = 1e10;
     for (size_t i = 0; i < lanes.size(); ++i)
         for (size_t j = i + 1; j < lanes.size(); ++j) {
@@ -545,8 +540,17 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
     if (out.lane.valid) {
         out.lane.metric = true;
         out.lane.lateral_uncertainty_m = .03;
-    } else
-        out.lane = imageLane(lane_white, bgr.size(), config_, ground_, diagnostics_);
+    } else {
+        // Sunlit red ground can enter the broad low-light white mask and
+        // absorb a genuine stripe. Fit stricter current paint first, then
+        // retain the original shadow mask as a bounded fallback.
+        cv::Mat bright_white;
+        cv::inRange(hsv, cv::Scalar(0,0,170), cv::Scalar(179,60,255), bright_white);
+        cv::morphologyEx(bright_white,bright_white,cv::MORPH_CLOSE,
+                        cv::getStructuringElement(cv::MORPH_RECT,{3,3}));
+        out.lane=imageLane(bright_white,bgr.size(),config_,ground_,diagnostics_);
+        if(!out.lane.valid) out.lane=imageLane(white,bgr.size(),config_,ground_,diagnostics_);
+    }
     if (out.lane.valid) {
         const bool consistent =
             lane_streak_ == 0 || (std::abs((out.lane.left_x + out.lane.right_x) -
@@ -554,13 +558,16 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
                                   std::abs(out.lane.heading - previous_lane_.heading) < 0.25);
         lane_streak_ = consistent ? lane_streak_ + 1 : 1;
         previous_lane_ = out.lane;
+        last_lane_seen_s_ = time;
         if (lane_streak_ < config_.confirm_frames)
             out.lane.valid = false;
-    } else {
+    } else if (last_lane_seen_s_ < 0 || time-last_lane_seen_s_ > .30) {
         lane_streak_ = 0;
         previous_lane_ = {};
     }
+    }
 
+    if (tasks.zebra) {
     std::sort(zebra_bars.begin(), zebra_bars.end(), [](const Tape &a, const Tape &b) { return a.x < b.x; });
     std::vector<double> zebra_near;
     for (size_t i = 0; i < zebra_bars.size(); ++i) {
@@ -628,6 +635,8 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
         out.zebra_distance_reason = "paper row visible; no compatible distance profile";
     }
 
+    }
+    if (tasks.board) {
     cv::morphologyEx(blue, blue, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, {3, 3}));
     bool board = false;
     cv::Rect observed_board;
@@ -635,9 +644,12 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
     // full-colour candidate for shade, and separately extract the bright blue
     // panel body. Convex-hull corners tolerate a small hand notch, while actual
     // filled area still rejects triangles, thin poles and mostly empty boxes.
-    for (int minimum_value : {45, 120}) {
+    // In direct sun a pale blue panel and the sky can be one low-threshold
+    // component touching the image border. Brighter layers separate the panel
+    // without weakening the shape, position or removal-evidence checks below.
+    for (const auto &layer : {std::pair<int,int>{70,45},{70,120},{70,180},{70,210},{70,235},{100,120}}) {
         cv::Mat board_mask;
-        cv::inRange(hsv, cv::Scalar(88, 70, minimum_value), cv::Scalar(137, 255, 255), board_mask);
+        cv::inRange(hsv, cv::Scalar(88, layer.first, layer.second), cv::Scalar(137, 255, 255), board_mask);
         cv::morphologyEx(board_mask, board_mask, cv::MORPH_CLOSE,
                          cv::getStructuringElement(cv::MORPH_RECT, {7, 7}));
         cv::morphologyEx(board_mask, board_mask, cv::MORPH_OPEN,
@@ -687,6 +699,13 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
     bool cleared = false;
     diagnostics_.board_reference_valid = board_reference_.area() > 0;
     if (!board && board_reference_.area() > 0) {
+        // A moving/tilting panel can vacate its old rectangle while still
+        // blocking the forward path. Blue sky is above this ground-facing
+        // band; the bonnet is below it. Never count old-ROI floor alone as
+        // removal when a substantial current blue obstruction remains.
+        const cv::Rect path(int(bgr.cols*.18),int(bgr.rows*.45),
+                            int(bgr.cols*.64),int(bgr.rows*.33));
+        diagnostics_.board_path_blue_fraction=double(cv::countNonZero(blue(path)))/path.area();
         const cv::Rect lower(board_reference_.x, board_reference_.y + board_reference_.height * 2 / 3,
                              board_reference_.width, std::max(1, board_reference_.height / 3));
         const cv::Rect roi = lower & cv::Rect(0, 0, bgr.cols, bgr.rows);
@@ -702,10 +721,12 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
         if (roi.area() > 0) {
             diagnostics_.board_clear_fraction = double(floor) / roi.area();
             diagnostics_.board_blue_fraction = double(blue_pixels) / roi.area();
-            cleared = diagnostics_.board_clear_fraction > .50 && diagnostics_.board_blue_fraction < .02;
+            cleared = diagnostics_.board_clear_fraction > .50 && diagnostics_.board_blue_fraction < .02 &&
+                      diagnostics_.board_path_blue_fraction < .02;
         }
     }
     out.board_observation_valid = out.board_visible || cleared;
+    }
 
     previous_gray_ = gray.clone();
     previous_feature_mask_ = feature_mask;

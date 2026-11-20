@@ -102,10 +102,12 @@ class TrafficApproachGuard:
         self.sources = []
         self.first_red = None
         self.result = {}
+        self.stop_candidates = {camera:None for camera in ('primary','secondary')}
 
     def update(self, observations, now, *, approaching):
         filtered = {}
         stop_color_sources = []
+        confirmed_stop_color_sources = []
         for camera, track in self.tracks.items():
             row = observations.get(camera) or {}
             captured, fid = row.get('captured_s'), row.get('frame_id')
@@ -114,25 +116,69 @@ class TrafficApproachGuard:
                      and 0 <= now-captured <= self.s['max_frame_age_s'])
             ordered = fresh and (track.last_id is None or fid > track.last_id and captured > track.last_capture)
             if fresh:
-                signal, info = track.update(row.get('signal') or {}, fid, captured)
-                color,_ = stop_color_evidence(signal,track.box)
+                current=row.get('signal') or {}
+                pending=self.stop_candidates[camera]
+                # A third current frame may retain weaker LED emission after
+                # two strong frames. A blank/off frame can never complete the
+                # streak, nor can an unacquired weak candidate start it.
+                if (ordered and current.get('weak_red_emission') and current.get('state')=='unknown'
+                        and pending is not None and pending['color']=='red' and pending['count']>=2
+                        and 0<captured-pending['last_s']<=self.s.get('fast_red_max_gap_s',.25)+1e-9
+                        and same_fixture(pending['box'],fixture_box(current))):
+                    current={**current,'state':'red','signal_for_race':'red','reason':'current_red_emission_hysteresis'}
+                signal, info = track.update(current, fid, captured)
+                color,box = stop_color_evidence(signal,track.box)
                 if color in ('red','yellow'):
                     stop_color_sources.append(camera)
-                if (approaching and ordered and color in ('red','yellow')
-                        and now-captured <= self.s.get('fast_red_max_age_s', .15)):
-                    self._stop('first_trustworthy_'+color, camera)
+                candidate=self.stop_candidates[camera]
+                if ordered:
+                    eligible=(color in ('red','yellow') and box is not None
+                              and now-captured<=self.s.get('fast_red_max_age_s',.15))
+                    if eligible:
+                        match=(candidate is not None and candidate['color']==color
+                               and 0<captured-candidate['last_s']<=self.s.get('fast_red_max_gap_s',.15)+1e-9
+                               and same_fixture(candidate['box'],box))
+                        candidate=({'color':color,'box':box,'first_s':captured,'last_s':captured,'count':1,'confirmed':False}
+                                   if not match else {**candidate,'box':box,'last_s':captured,'count':candidate['count']+1})
+                        # Allow three fresh frames at the actual ~10 Hz field
+                        # rate; once confirmed, continuous same-colour evidence
+                        # remains eligible for the formal red/green cycle.
+                        span=max(.30,self.s.get('fast_red_max_span_s',.2))
+                        if not candidate['confirmed']:
+                            if captured-candidate['first_s']>span+1e-9:
+                                candidate.update(first_s=captured,count=1)
+                            elif candidate['count']>=self.s.get('fast_red_frames',3):
+                                candidate['confirmed']=True
+                        self.stop_candidates[camera]=candidate
+                    else:
+                        self.stop_candidates[camera]=candidate=None
+                confirmed=(candidate is not None and color==candidate['color'] and info['locked']
+                           and candidate['confirmed'] and
+                           now-captured<=self.s.get('fast_red_max_age_s',.15)+1e-9)
+                if confirmed:
+                    confirmed_stop_color_sources.append(camera)
+                if approaching and ordered and confirmed:
+                    self._stop('confirmed_current_'+color, camera)
                     if self.first_red is None and color=='red':
                         self.first_red = {'camera':camera, 'frame_id':fid,
                                           'captured_s':captured, 'decision_s':now}
-                # A single unassociated frame may stop the car, but cannot
-                # establish a formal red/green cycle or borrow another ID.
+                # Unconfirmed colour revokes green, but cannot create a
+                # permanent brake transaction before fixture acquisition.
+                if color in ('red','yellow') and not confirmed:
+                    signal={**signal,'state':'unknown','signal_for_race':'unknown',
+                            'reason':'stop_color_confirming'}
                 if not info['locked']:
                     signal = {**signal, 'state':'unknown', 'signal_for_race':'unknown',
                               'fixture_detected':False, 'bbox_xyxy':None, 'reason':'fixture_acquiring'}
                 filtered[camera] = {**row, 'signal':signal}
+            elif not fresh:
+                self.stop_candidates[camera]=None
         self.result = {'stop_reason':self.stop_reason, 'sources':list(self.sources),
                        'current_stop_color_sources':stop_color_sources,
+                       'confirmed_stop_color_sources':confirmed_stop_color_sources,
                        'first_red':self.first_red,
+                       'stop_confirmation':{c:None if v is None else {'color':v['color'],'frames':v['count']}
+                                            for c,v in self.stop_candidates.items()},
                        'cameras':{c:t.diagnostics() for c,t in self.tracks.items()},
                        'any_locked':any(t.box is not None for t in self.tracks.values())}
         return filtered, dict(self.result)

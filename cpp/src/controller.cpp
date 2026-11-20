@@ -59,8 +59,6 @@ Controller::Controller(Config c, Task t) : c_(c) {
         c.traffic_max_approach_s <= 0)
         throw std::invalid_argument("invalid controller geometry, gain or timing");
     if (c.forward_min_us < 1570 || c.forward_us < c.forward_min_us || c.forward_us > 1600 ||
-        (c.approach_forward_us && (*c.approach_forward_us < c.forward_min_us || *c.approach_forward_us > 1600)) ||
-        (c.zebra_brake_us != c.brake_us && c.zebra_brake_us != kZebraReverseUs) ||
         c.neutral_us != 1500 || c.brake_us != 1400 || c.brake_s <= 0 || c.brake_s > 0.5 ||
         c.zebra_hold_s < 10 || c.lane_width <= c.body_width + 2 * c.clearance || c.braking_distance <= 0 ||
         c.parking_length <= c.front_extent + c.rear_extent + c.parking_stop_gap ||
@@ -96,14 +94,18 @@ void Controller::reset(Task t) {
     bay_side_ = 0;
     zebra_seen_ = false;
     zebra_mapping_pending_ = false;
-    zebra_rebraked_ = false;
-    forward_roll_frames_ = 0;
-    forward_roll_since_ = -1;
+    outdoor_brake_latched_ = false;
+    outdoor_brake_start_ = -1.;
     parking_correction_active_ = false;
     zebra_y_ = 0;
     brake_event_id_ = 0;
-    hold_elapsed_ = 0;
-    prev_stopped_ = false;
+    zebra_brake_retries_ = zebra_retry_motion_frames_ = 0;
+    zebra_approach_confirmed_=false;
+    zebra_visual_frames_=0;
+    zebra_visual_first_s_=zebra_visual_last_s_=-1;
+    zebra_visual_first_px_=zebra_visual_last_px_=-1;
+    zebra_visual_source_.clear();
+    zebra_retry_motion_since_ = -1;
     bay_ = Bay{};
     last_lane_ = Lane{};
     last_command_ = neutral("not started");
@@ -112,8 +114,6 @@ void Controller::transition(Stage s, double now) {
     stage_ = s;
     entered_ = now;
     hold_started_ = -1;
-    hold_elapsed_ = 0;
-    prev_stopped_ = false;
     // Every fresh brake entry gets its own strictly increasing, non-zero event ID so the
     // output policy executes it exactly once. Repeated frames inside the same brake pulse
     // reuse the same ID, so repeated requests never extend or re-arm the pulse.
@@ -131,8 +131,7 @@ bool Controller::brakeComplete(const Observation &o) const {
     if (brake_feedback_required_)
         return o.brake_feedback_valid && brake_event_id_ != 0 &&
                o.brake_completed_event_id == brake_event_id_;
-    const int pulse = stage_ == Stage::ZebraBrake ? c_.zebra_brake_us : c_.brake_us;
-    return o.time - entered_ >= c_.brakePulseSeconds(pulse);
+    return o.time - entered_ >= c_.brake_s;
 }
 Command Controller::neutral(const std::string &reason) const {
     Command q;
@@ -150,6 +149,12 @@ Command Controller::follow(const Observation &o, double target) {
     if (!lane.valid || (!o.lane.valid && o.time - last_lane_time_ > c_.recovery_s))
         return neutral("lane unavailable; awaiting current geometry");
     const double half = c_.body_width / 2 + c_.clearance;
+    if (!o.lane.valid) {
+        const double reserve=half+lane.lateral_uncertainty_m+.08;
+        if(!lane_prediction_valid_ || (!lane.metric && !lane.model_projected) ||
+           o.time-last_lane_time_>.25 || lane.left_x>-reserve || lane.right_x<reserve)
+            return neutral("lane unavailable; no safe current-boundary recovery");
+    }
     if (lane.right_x - lane.left_x < 2 * half)
         return neutral("corridor narrower than vehicle");
     target = clamp(target, lane.left_x + half, lane.right_x - half);
@@ -159,8 +164,7 @@ Command Controller::follow(const Observation &o, double target) {
     double dt = last_time_ < 0 ? .05 : clamp(o.time - last_time_, 0, .2);
     requested = clamp(requested, c_.steering_right_us, c_.steering_left_us);
     steering_ += clamp(requested - steering_, -c_.max_steering_rate * dt, c_.max_steering_rate * dt);
-    const bool approach = stage_ == Stage::ZebraApproach || stage_ == Stage::TrafficApproach;
-    q.throttle_us = approach && o.lane.valid ? c_.approach_forward_us.value_or(c_.forward_us) : c_.forward_us;
+    q.throttle_us = o.lane.valid ? c_.forward_us : c_.forward_min_us;
     q.steering_us = static_cast<int>(std::lround(steering_));
     q.target_x = target;
     return q;
@@ -214,7 +218,51 @@ void Controller::moveRememberedTargets(const Observation &o) {
         bay_.heading = heading;
     }
 }
+Command Controller::outdoorParking(const Observation &o) {
+    const auto &d = o.outdoor_parking;
+    if (!d || d->captured_s < 0 || o.time < d->captured_s || o.time - d->captured_s > .25)
+        return neutral("waiting for fresh outdoor parking frame");
+    Command q = neutral(d->reason);
+    q.outdoor_parking_command = true;
+    const bool recent_forward = last_command_.throttle_us > c_.neutral_us && o.time - last_time_ <= .25;
+    if (d->brake && !outdoor_brake_latched_ && outdoor_brake_start_ < 0 && recent_forward) {
+        brake_event_id_ = ++brake_event_seq_;
+        outdoor_brake_start_ = o.time;
+    }
+    outdoor_brake_latched_ = d->brake;
+    if (outdoor_brake_start_ >= 0) {
+        bool completed = brake_feedback_required_ ?
+            (o.brake_feedback_valid && o.brake_completed_event_id == brake_event_id_) :
+            o.time - outdoor_brake_start_ >= .25;
+        if (!completed) {
+            q.brake_event_id = brake_event_id_;
+            q.throttle_us = c_.brake_us;
+            return q;
+        }
+        outdoor_brake_start_ = -1.;
+    }
+    if (d->complete && o.stopped_confirmed) {
+        transition(Stage::Finished, o.time);
+        return neutral("outdoor parking sequence complete; stationary confirmed");
+    }
+    if (d->brake || d->complete || d->duty <= 12000) return q;
+    if (d->duty > 12700 || d->steering < 1500 || d->steering > 2000)
+        return neutral("outdoor parking command outside calibrated bounds");
+    // Donor ESC uses 200 Hz and 40000 duty counts. Translate its servo range to S3.
+    const int target = std::max(c_.forward_min_us, static_cast<int>(std::lround(d->duty / 8.0)));
+    const double dt = clamp(o.time-last_time_, 0., .1);
+    // S3 accepts forward commands starting at 1570 us. Preserve the donor's
+    // 600 counts/s rise above that first supported step (75 us/s).
+    const int previous = recent_forward ? last_command_.throttle_us : c_.forward_min_us;
+    q.throttle_us = recent_forward ? std::min(target, previous + static_cast<int>(std::lround(75*dt)))
+                                   : c_.forward_min_us;
+    const int span = d->steering >= 1750 ? c_.steering_left_us - c_.steering_center_us
+                                        : c_.steering_center_us - c_.steering_right_us;
+    q.steering_us = c_.steering_center_us + static_cast<int>(std::lround((d->steering - 1750) * span / 250.0));
+    return q;
+}
 Command Controller::parking(const Observation &o) {
+    if (c_.outdoor_parking) return outdoorParking(o);
     if (o.bay.valid) {
         if (!bay_locked_) {
             if (o.bay.left_clear && !o.bay.left_blocked)
@@ -262,7 +310,8 @@ Command Controller::update(const Observation &o) {
     brake_feedback_required_ = brake_feedback_required_ || o.brake_feedback_valid;
     if (seen_frame_ && (o.frame_id <= last_frame_ || o.time < last_time_)) {
         steering_ = c_.steering_center_us;
-        return neutral("duplicate or out-of-order observation");
+        last_command_ = neutral("duplicate or out-of-order observation");
+        return last_command_;
     }
     seen_frame_ = true;
     last_frame_ = o.frame_id;
@@ -272,14 +321,14 @@ Command Controller::update(const Observation &o) {
     if (last_time_ < 0)
         entered_ = o.time;
     if (!o.frame_ok) {
+        zebra_retry_motion_frames_ = 0;
+        zebra_retry_motion_since_ = -1;
         if (zebra_seen_) {
             zebra_seen_ = false;
             zebra_mapping_pending_ = true;
         }
         lane_prediction_valid_ = false;
         board_count_ = board_absent_ = 0;
-        forward_roll_frames_ = 0;
-        prev_stopped_ = false; // an unreadable frame cannot credit stationary hold time
         steering_ = c_.steering_center_us;
         last_time_ = o.time;
         if (parking_correction_active_) {
@@ -289,7 +338,8 @@ Command Controller::update(const Observation &o) {
             brake.brake_event_id = brake_event_id_;
             return brake;
         }
-        return neutral("camera unavailable");
+        last_command_ = neutral("camera unavailable");
+        return last_command_;
     }
     moveRememberedTargets(o);
     if (o.lane.valid) {
@@ -330,6 +380,7 @@ Command Controller::update(const Observation &o) {
                         if (o.lane.valid) {
                             transition(Stage::ZebraApproach, o.time);
                             q.reason = "blue board removed";
+                            q.launch_beep = true;
                         } else {
                             q.reason = "start board removed; waiting for visible lane";
                         }
@@ -340,14 +391,39 @@ Command Controller::update(const Observation &o) {
             board_count_ = board_absent_ = 0;
         }
         break;
-    case Stage::ZebraApproach:
+    case Stage::ZebraApproach: {
+        // A confirmed paper row approaching through the image must not be
+        // forgotten when its contours fragment before reaching the measured
+        // distance band. Stop conservatively; do not invent metre distance.
+        if(o.zebra_detected && o.zebra_near_px>=0 && !o.zebra_source.empty()) {
+            if(zebra_visual_source_!=o.zebra_source || zebra_visual_last_s_<0 ||
+               o.time-zebra_visual_last_s_>.35 || o.zebra_near_px<zebra_visual_last_px_-15) {
+                zebra_visual_frames_=0;
+                zebra_visual_first_s_=o.time;
+                zebra_visual_first_px_=o.zebra_near_px;
+            }
+            ++zebra_visual_frames_;
+            zebra_visual_last_s_=o.time;
+            zebra_visual_last_px_=o.zebra_near_px;
+            zebra_visual_source_=o.zebra_source;
+            if(zebra_visual_frames_>=3 && o.time-zebra_visual_first_s_>=.15 &&
+               o.zebra_near_px-zebra_visual_first_px_>=12 && o.zebra_near_px>=180)
+                zebra_approach_confirmed_=true;
+        } else if(!o.zebra_detected && zebra_approach_confirmed_ &&
+                  zebra_visual_last_s_>=0 && o.time-zebra_visual_last_s_>=.12) {
+            transition(Stage::ZebraBrake,o.time);
+            q=neutral("confirmed approaching crosswalk lost; conservative brake without a verified stop distance");
+            q.throttle_us=c_.brake_us;
+            q.brake_event_id=brake_event_id_;
+            break;
+        }
         if (o.zebra_detected &&
             (o.zebra_range_status == "too_near" || o.zebra_range_status == "clipped")) {
             transition(Stage::ZebraBrake, o.time);
             q = neutral(o.zebra_range_status == "too_near"
                             ? "confirmed crosswalk closer than calibrated range; braking without a verified stop distance"
                             : "confirmed crosswalk near edge unavailable; controlled brake without a verified stop distance");
-            q.throttle_us = c_.zebra_brake_us;
+            q.throttle_us = c_.brake_us;
             q.brake_event_id = brake_event_id_;
             break;
         }
@@ -381,87 +457,78 @@ Command Controller::update(const Observation &o) {
                                o.zebra_front_trigger.value_or(c_.zebra_stop_gap + c_.braking_distance) + kDistanceRoundoffM) {
             transition(Stage::ZebraBrake, o.time);
             q = neutral("zebra brake");
-            q.throttle_us = c_.zebra_brake_us;
+            q.throttle_us = c_.brake_us;
             q.brake_event_id = brake_event_id_;
         }
         break;
+    }
     case Stage::ZebraBrake:
         if (!brakeComplete(o)) {
-            q.throttle_us = c_.zebra_brake_us;
+            q.throttle_us = c_.brake_us;
             q.brake_event_id = brake_event_id_;
             q.reason = "zebra brake pulse";
-        } else {
-            transition(Stage::ZebraHold, o.time);
-            q.reason = "waiting for stationary evidence";
+            break;
         }
-        break;
+        transition(Stage::ZebraHold, o.time);
+        [[fallthrough]]; // Begin the timed neutral hold on the acknowledged pulse boundary.
     case Stage::ZebraHold: {
         const double dt = last_time_ < 0 ? 0.0 : std::max(0.0, o.time - last_time_);
-        // "Confirmed moving" is distinguishable from "cannot tell": only a valid motion
-        // estimate with real displacement restarts the hold. An unreadable frame must not
-        // keep zeroing (nor credit) the 10 second stationary window.
-        const bool moving = o.motion_valid &&
-                            (std::abs(o.forward_delta) > 0.005 || std::abs(o.lateral_delta) > 0.005 ||
-                             std::abs(o.yaw_delta) > 0.02);
-        // One extra pulse only after the preceding neutral acknowledgement
-        // (timed in replay) and several fresh observations of forward roll.
-        const bool rolling = !zebra_rebraked_ && !announced_ && !o.stopped_confirmed &&
-                             o.time - entered_ >= .2 && dt > 0 && dt <= .25 && o.motion_valid &&
-                             o.forward_delta > std::max(.001, .05 * dt) && o.forward_delta < 1.5 * dt &&
-                             std::abs(o.lateral_delta) < o.forward_delta && std::abs(o.yaw_delta) < .04;
+        // Field-confirmed F/B ESC only. Never infer stillness from a UART ACK.
+        // Three distinct, continuous motion estimates plus neutral settling
+        // may request a new transaction, at most twice per zebra stop.
+        const bool rolling = !o.stopped_confirmed && o.motion_valid && dt > 0 && dt <= .25 &&
+            std::hypot(o.forward_delta,o.lateral_delta)/dt > .03;
         if (rolling) {
-            if (forward_roll_frames_++ == 0)
-                forward_roll_since_ = o.time;
-            if (forward_roll_frames_ >= 3 && o.time - forward_roll_since_ >= .20) {
-                zebra_rebraked_ = true;
-                transition(Stage::ZebraBrake, o.time);
-                q = neutral("continued forward roll after zebra brake");
-                q.throttle_us = c_.zebra_brake_us;
-                q.brake_event_id = brake_event_id_;
-                break;
-            }
+            if (!zebra_retry_motion_frames_) zebra_retry_motion_since_ = o.time;
+            ++zebra_retry_motion_frames_;
         } else {
-            forward_roll_frames_ = 0;
+            zebra_retry_motion_frames_ = 0;
+            zebra_retry_motion_since_ = -1;
         }
-        if (o.stopped_confirmed) {
-            if (hold_started_ < 0)
-                hold_started_ = o.time;
-            // Only intervals bordered by two verified-stationary frames count; the first
-            // stopped frame after any unknown/moving gap contributes zero.
-            if (prev_stopped_)
-                hold_elapsed_ += dt;
-            if (!announced_) {
-                q.announce = true;
-                announced_ = true;
-            }
-            if (hold_elapsed_ >= c_.zebra_hold_s)
-                transition(task_ == Task::Zebra ? Stage::Finished : Stage::TrafficApproach, o.time);
-        } else if (moving) {
+        if (c_.zebra_brake_retry_enabled && zebra_brake_retries_<2 &&
+            o.time-entered_>=.2 && zebra_retry_motion_frames_>=3 &&
+            o.time-zebra_retry_motion_since_>=.15) {
+            ++zebra_brake_retries_;
+            zebra_retry_motion_frames_ = 0;
+            zebra_retry_motion_since_ = -1;
+            transition(Stage::ZebraBrake,o.time);
+            q=neutral("confirmed rolling after zebra brake; bounded F/B brake retry");
+            q.throttle_us=c_.brake_us;
+            q.brake_event_id=brake_event_id_;
+            break;
+        }
+        // The countdown is a control decision. Optical flow may contradict it, but
+        // absent flow does not delay its start or pause ten seconds at neutral.
+        const bool displaced = o.motion_valid &&
+            (std::hypot(o.forward_delta, o.lateral_delta) > .03 || std::abs(o.yaw_delta) > .08);
+        const bool moving = rolling || displaced;
+        if (moving)
             hold_started_ = -1;
-            hold_elapsed_ = 0;
+        else if (hold_started_ < 0)
+            hold_started_ = o.time;
+        q.zebra_hold_started = hold_started_ >= 0;
+        q.zebra_hold_elapsed_s = q.zebra_hold_started ? o.time - hold_started_ : 0;
+        q.zebra_hold_remaining_s = std::max(0.0, c_.zebra_hold_s - q.zebra_hold_elapsed_s);
+        if (q.zebra_hold_started && !announced_) {
+            q.announce = true;
+            announced_ = true;
         }
-        // Unknown frames (neither stopped-confirmed nor measured-moving) fall through here:
-        // they preserve hold_elapsed_ instead of resetting it.
-        prev_stopped_ = o.stopped_confirmed;
-        q.reason = "10 second stationary zebra hold";
+        q.reason = moving ? "measured movement during neutral hold" : "timed zebra hold after brake pulse";
+        if (c_.zebra_brake_retry_enabled && zebra_brake_retries_>=2 && moving)
+            q.reason = "zebra brake retry limit reached; waiting at neutral";
+        if (q.zebra_hold_started && q.zebra_hold_elapsed_s >= c_.zebra_hold_s)
+            transition(task_ == Task::Zebra ? Stage::Finished : Stage::TrafficApproach, o.time);
         break;
     }
     case Stage::TrafficApproach:
         q = follow(o, laneTarget());
-        if (o.red || o.signal_stop) {
+        if (o.signal_stop) {
             transition(Stage::TrafficBrake, o.time);
-            q = neutral(o.red ? "red confirmed" : "current signal requests braking");
+            q = neutral("fixture reached one-metre reference");
             q.throttle_us = c_.brake_us;
             q.brake_event_id = brake_event_id_;
-        } else if (o.green) {
-            transition(task_ == Task::Traffic ? Stage::Finished : Stage::Obstacles, o.time);
-            q.reason = "green confirmed; proceeding";
-        } else if (o.time - entered_ >= c_.traffic_max_approach_s) {
-            // Missing evidence never completes a rule task, including in the full race.
-            // Keep processing new light observations here so a recovered red/green
-            // can resume this same task without a page action or controller reset.
-            q = neutral("traffic light unresolved; awaiting current signal evidence");
-        }
+        } else if (o.time - entered_ >= c_.traffic_max_approach_s)
+            q = neutral("waiting for the one-metre fixture reference");
         break;
     case Stage::TrafficBrake:
         if (!brakeComplete(o)) {
@@ -472,7 +539,7 @@ Command Controller::update(const Observation &o) {
         q.reason = "traffic brake pulse then neutral";
         break;
     case Stage::TrafficWait:
-        if (o.green && !o.red)
+        if (o.stopped_confirmed && o.green && !o.red)
             transition(task_ == Task::Traffic ? Stage::Finished : Stage::Obstacles, o.time);
         q.reason = "wait for associated confirmed green";
         break;
@@ -607,6 +674,7 @@ Command Controller::update(const Observation &o) {
     }
     q.state = name(stage_);
     q.cones_passed = cones_passed_;
+    q.zebra_brake_retries = zebra_brake_retries_;
     q.done = stage_ == Stage::Finished;
     if (q.throttle_us > c_.neutral_us)
         q.throttle_us = std::max(c_.forward_min_us, q.throttle_us);

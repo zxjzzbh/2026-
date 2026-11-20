@@ -128,8 +128,9 @@ class DualSignalVotes:
         self.green_window_s = window_s if green_window_s is None else green_window_s
         self.maximum_gap_s = maximum_gap_s
         if (type(fast_red_frames) is not int or fast_red_frames not in (2,3)
+                or not numeric(fast_red_max_span_s) or not 0<fast_red_max_span_s<=.5
                 or any(not numeric(v) or not 0 < v <= .25
-                       for v in (fast_red_max_span_s,fast_red_max_gap_s,fast_red_max_age_s))):
+                       for v in (fast_red_max_gap_s,fast_red_max_age_s))):
             raise ValueError('invalid fast red evidence budget')
         self.fast_settings = (fast_red_frames,fast_red_max_span_s,fast_red_max_gap_s,fast_red_max_age_s)
         self.reset()

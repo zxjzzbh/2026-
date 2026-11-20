@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "reference": "车头到灯架正下方地面基准线，单位cm",
+  "note": "仅为原场地静态图像标定；搬动灯架、改变高度角度或云台后必须复核；不是实测刹车距离。",
+  "camera_pose": {
+    "yaw_gpio": 22,
+    "pitch_gpio": 23,
+    "yaw_us": 1435,
+    "pitch_us": 1430,
+    "frame_width": 352,
+    "frame_height": 288,
+    "camera_index": 0
+  },
+  "traffic": {
+    "roi": [
+      0,
+      0,
+      1,
+      0.6
+    ],
+    "housing_v_max": 95,
+    "aspect_min": 2.3,
+    "aspect_max": 5.5,
+    "min_width_px": 18,
+    "min_height_px": 6,
+    "min_dark_fraction": 0.25,
+    "s_min": 100,
+    "v_min": 150,
+    "red_h": [
+      [
+        0,
+        12
+      ],
+      [
+        165,
+        179
+      ]
+    ],
+    "yellow_h": [
+      [
+        15,
+        38
+      ]
+    ],
+    "green_h": [
+      [
+        40,
+        95
+      ]
+    ],
+    "min_lit_pixels": 4,
+    "min_lit_fraction": 0.025,
+    "confirm_frames": 3,
+    "green_frames": 4,
+    "approach_width": null,
+    "stop_width": null,
+    "approach_duty": 12600,
+    "wait_timeout": 18.0,
+    "lost_seconds": 0.4,
+    "minimum_stop_seconds": 0.5,
+    "calibrated": false,
+    "position_note": "灯壳宽/图宽；在触发传感器后的1米停车区内标定制动点，不能从灯尺寸直接当作米数",
+    "led_cluster_enabled": true,
+    "led_cluster_note": "2026-10-12 real 352x288 LED samples; red/green only; preserve four-frame green confirmation; no distance/brake recalibration."
+  },
+  "samples": {
+    "RED": [
+      {
+        "distance_cm": 60,
+        "center_y_px": 76.5
+      },
+      {
+        "distance_cm": 90,
+        "center_y_px": 92.5
+      },
+      {
+        "distance_cm": 120,
+        "center_y_px": 105.5
+      }
+    ],
+    "GREEN": [
+      {
+        "distance_cm": 60,
+        "center_y_px": 84.5
+      },
+      {
+        "distance_cm": 90,
+        "center_y_px": 99.5
+      },
+      {
+        "distance_cm": 120,
+        "center_y_px": 110.5
+      }
+    ]
+  }
+}

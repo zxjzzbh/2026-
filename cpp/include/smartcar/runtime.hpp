@@ -10,6 +10,7 @@
 
 namespace smartcar {
 std::vector<unsigned char> actuatorPacket(int steering_us, int throttle_us);
+std::vector<unsigned char> launchBuzzerPacket(bool stop = false);
 class OutputPolicy {
     Config config_;
     Command requested_;
@@ -46,10 +47,14 @@ class Actuator {
     unsigned gapStopCount() const { return gap_stops_; }
     std::uint64_t activeBrakeEvent() const { return active_brake_event_; }
     std::uint64_t completedBrakeEvent() const { return completed_brake_event_; }
+    unsigned launchBeepEvents() const { return launch_beep_events_; }
+    bool launchBeepSent() const { return launch_beep_sent_; }
+    bool buzzerActive() const { return buzzer_active_; }
 
   private:
     void loop();
     void write(int steering, int throttle);
+    void writePacket(const std::vector<unsigned char> &packet);
     Config config_;
     bool drive_ = false;
     int fd_ = -1;
@@ -59,6 +64,10 @@ class Actuator {
     std::atomic<unsigned> gap_stops_{0};
     std::atomic<std::uint64_t> active_brake_event_{0}, completed_brake_event_{0};
     std::mutex mutex_;
+    bool launch_beep_pending_ = false, launch_beep_seen_ = false;
+    std::atomic<unsigned> launch_beep_events_{0};
+    std::atomic<bool> launch_beep_sent_{false};
+    std::atomic<bool> buzzer_active_{false};
     OutputPolicy policy_;
     std::chrono::steady_clock::time_point updated_;
 };

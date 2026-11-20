@@ -1,0 +1,102 @@
+[
+  {
+    "camera": "primary",
+    "index": 687,
+    "metadata": {
+      "video_index": 687,
+      "source_frame": 2320,
+      "time": 3101.301598964
+    },
+    "file": "field_20261120_primary-687.jpg"
+  },
+  {
+    "camera": "primary",
+    "index": 688,
+    "metadata": {
+      "video_index": 688,
+      "source_frame": 2327,
+      "time": 3101.765667584
+    },
+    "file": "field_20261120_primary-688.jpg"
+  },
+  {
+    "camera": "primary",
+    "index": 689,
+    "metadata": {
+      "video_index": 689,
+      "source_frame": 2334,
+      "time": 3102.23375825
+    },
+    "file": "field_20261120_primary-689.jpg"
+  },
+  {
+    "camera": "primary",
+    "index": 690,
+    "metadata": {
+      "video_index": 690,
+      "source_frame": 2340,
+      "time": 3102.633721001
+    },
+    "file": "field_20261120_primary-690.jpg"
+  },
+  {
+    "camera": "primary",
+    "index": 691,
+    "metadata": {
+      "video_index": 691,
+      "source_frame": 2347,
+      "time": 3103.101761871
+    },
+    "file": "field_20261120_primary-691.jpg"
+  },
+  {
+    "camera": "secondary",
+    "index": 1676,
+    "metadata": {
+      "video_index": 1676,
+      "source_frame": 1677,
+      "time": 3101.240508738
+    },
+    "file": "field_20261120_secondary-1676.jpg"
+  },
+  {
+    "camera": "secondary",
+    "index": 1677,
+    "metadata": {
+      "video_index": 1677,
+      "source_frame": 1678,
+      "time": 3101.704498137
+    },
+    "file": "field_20261120_secondary-1677.jpg"
+  },
+  {
+    "camera": "secondary",
+    "index": 1678,
+    "metadata": {
+      "video_index": 1678,
+      "source_frame": 1679,
+      "time": 3102.140928096
+    },
+    "file": "field_20261120_secondary-1678.jpg"
+  },
+  {
+    "camera": "secondary",
+    "index": 1679,
+    "metadata": {
+      "video_index": 1679,
+      "source_frame": 1680,
+      "time": 3102.54055322
+    },
+    "file": "field_20261120_secondary-1679.jpg"
+  },
+  {
+    "camera": "secondary",
+    "index": 1680,
+    "metadata": {
+      "video_index": 1680,
+      "source_frame": 1681,
+      "time": 3103.040596072
+    },
+    "file": "field_20261120_secondary-1680.jpg"
+  }
+]

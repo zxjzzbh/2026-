@@ -1,17 +1,19 @@
 {
-  "version": "smartcar_oneclick_zebra_reverse1590_20261120",
+  "version": "smartcar_outdoor_parking1618_cone1115_20261120",
   "source_manifest": "SOURCE-MANIFEST.json",
-  "source_files": 151,
+  "source_files": 245,
   "runtime": "C++ with embedded Python competition algorithms and 5G gateway",
-  "local_ctest": "10/10",
-  "fiveg_tests": 32,
+  "local_ctest": "17/17",
   "pi_ctest": null,
   "physical_race_verified": false,
   "archive": {
-    "tag": "smartcar-oneclick-zebra-reverse1590-20261120",
-    "file": "smartcar-oneclick-zebra-reverse1590-20261120.zip",
-    "sha256": "1f3a88964e5c0e69c9291fb4cb65804f0fd9f1f1bc1d95f1d601db54baec7dcd",
-    "bytes": 3235955,
-    "url": "https://github.com/zxjzzbh/2026-/releases/download/smartcar-oneclick-zebra-reverse1590-20261120/smartcar-oneclick-zebra-reverse1590-20261120.zip"
-  }
+    "tag": "smartcar-outdoor-parking1618-cone1115-20261120",
+    "file": "smartcar-outdoor-parking1618-cone1115-20261120.zip",
+    "sha256": "c367371dcb16cb1f2fcd3dbe44fa559e7d8b316cb54278bb44c9690e82e548b4",
+    "bytes": 5801016,
+    "url": "https://github.com/zxjzzbh/2026-/releases/download/smartcar-outdoor-parking1618-cone1115-20261120/smartcar-outdoor-parking1618-cone1115-20261120.zip"
+  },
+  "cone_commit": "7db04fb03c79dee57718d6de666259a9e246019a",
+  "parking_source": "室外停车单项_20261120_1618.zip",
+  "source_package_runtime_files_match": true
 }

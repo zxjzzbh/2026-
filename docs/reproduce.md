@@ -10,6 +10,6 @@ cmake --build build --config Release --parallel 2
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-十组 CTest 覆盖控制、识别、组合回放和 5G 网页服务，其中包含 32 项 Python 服务测试，使用图像、模拟观测和假执行器。
+17 组 CTest 覆盖控制、识别、组合回放、扩展板语音传输和 5G 网页服务，使用图像、模拟观测和假执行器。
 GitHub CI 使用 Linux。本版车端状态与上一版部署回执见[部署记录](../DEPLOYMENT.json)。
 不得重跑历史 `vision/tools` 或桌面更新器；部署须保留实际配置、日志、录像与驱动，并完成单版本完整校验。

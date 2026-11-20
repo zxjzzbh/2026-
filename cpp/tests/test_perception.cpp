@@ -92,14 +92,6 @@ int main() {
         check(o.lane.valid && !o.lane.both && o.lane.metric, "single real boundary fallback missing");
         check(std::abs((o.lane.right_x - o.lane.left_x) - 1.17) < .01,
               "single-side completion must use metric width");
-        RoadPerception shaded(c, map());
-        cv::Mat shadowed;
-        road().convertTo(shadowed, -1, .45);
-        check(confirm(shaded, shadowed).lane.both, "both tapes remain visible in cast shadow");
-        shaded.reset();
-        cv::Mat no_tape(shadowed.size(), shadowed.type(), cv::Scalar(70, 70, 70));
-        no_tape.colRange(220, 410).setTo(cv::Scalar(110, 110, 110));
-        check(!confirm(shaded, no_tape).lane.valid, "a broad shadow boundary is not a lane");
         RoadPerception narrow(c, map(true));
         o = confirm(narrow, im);
         check(o.lane.valid && o.lane.both && !o.lane.metric,

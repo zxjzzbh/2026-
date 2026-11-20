@@ -8,7 +8,7 @@ from legacy.crosswalk_calibration import validate_profile, estimate_distance
 from legacy.crosswalk_selection import CrosswalkSelection
 from legacy.traffic_signal import TrafficSignalDetector, load_profile
 from legacy.traffic_voting import DualSignalVotes
-from legacy.traffic_tracking import TrafficApproachGuard, same_fixture, stop_color_evidence
+from legacy.traffic_tracking import TrafficApproachGuard, fixture_box, same_fixture, stop_color_evidence
 from legacy.cone_vision import ConeDetector, ImageConeTracker
 from legacy.cone_road import ConeRoadContext
 from legacy.cone_low_speed import trial_settings, DualLowSpeedNavigator
@@ -26,12 +26,11 @@ def read_json(path):
 
 
 class Crosswalk(CrosswalkSelection):
-    def __init__(self, profile, white_masks, brake_trigger=None):
+    def __init__(self, profile, white_masks, trigger_distance_m=None):
         self.profile = validate_profile(profile, require_ready=True)
-        near, far = self.profile["overlap_range_m"]
-        self.trigger = near if brake_trigger is None else brake_trigger
-        if not near <= self.trigger <= far:
-            raise ValueError("Crosswalk brake trigger must be within both cameras' measured range")
+        lo,hi=self.profile["overlap_range_m"]
+        self.trigger = lo if trigger_distance_m is None else float(trigger_distance_m)
+        if not lo<=self.trigger<=hi:raise ValueError('crosswalk trigger outside measured camera overlap')
         self.active_source = "secondary"
         self.primary_locked = False
         self.confirmation_id = None
@@ -100,8 +99,15 @@ class Crosswalk(CrosswalkSelection):
                     trigger=self.trigger)
 
 
+from legacy.traffic_photometry import RedPhotometry
+
+
 class Signals:
-    def __init__(self, config):
+    def __init__(self, config, one_metre_span=None):
+        if one_metre_span is not None and not 0 < one_metre_span < 480:
+            raise ValueError("invalid one-metre primary lamp span")
+        self.one_metre_span = one_metre_span
+        self.near_box = None
         s = read_json(config/"legacy/traffic-driving.json")
         self.age = s["max_frame_age_s"]
         self.guard = TrafficApproachGuard(s)
@@ -113,39 +119,102 @@ class Signals:
                                      **{k:s[k] for k in ("fast_red_frames","fast_red_max_span_s",
                                                          "fast_red_max_gap_s","fast_red_max_age_s")})
         self.cache = {}
+        self.photometry = {c:RedPhotometry() for c in CAMERAS}
+        self.green_streak = {c:None for c in CAMERAS}
         self.stage = None
 
     def update(self, views, now, stage):
         if stage == "traffic_wait_green" and self.stage != stage:
             self.votes.begin_green_wait()
+            self.green_streak = {c:None for c in CAMERAS}
         self.stage = stage
         rows = {}
         for cam, (image, fid, stamp) in views.items():
             old = self.cache.get(cam)
             if old is None or (old["frame_id"], old["captured_s"]) != (fid, stamp):
                 reference = self.guard.tracks[cam].box or self.stop_boxes.get(cam) or self.votes.boxes[cam]
+                ranging = cam == "primary" and self.one_metre_span is not None
+                if ranging:
+                    reference = self.near_box
+                raw=self.detector.detect(image, reference_box=reference,
+                                         near_span=self.one_metre_span if ranging else None)
+                raw=self.photometry[cam].update(raw,fid,stamp,now)
                 old = dict(camera_id=cam, frame_id=fid, captured_s=stamp, image_size=[480,360],
-                           signal=self.detector.detect(image, reference_box=reference))
+                           signal=raw)
                 self.cache[cam] = old
             rows[cam] = old
         approaching = stage in ("traffic_approach", "observe")
         filtered, evidence = self.guard.update(rows, now, approaching=approaching)
-        for cam in evidence["current_stop_color_sources"]:
+        for cam in evidence["confirmed_stop_color_sources"]:
             _, box = stop_color_evidence(rows[cam]["signal"], self.guard.tracks[cam].box)
+            # The guard may confirm a weaker current emission frame after
+            # two strong red frames. Preserve its locked real fixture even
+            # when the unfiltered third row still says unknown, so that this
+            # same fixture can later authorize green release.
+            box = box if box is not None else self.guard.tracks[cam].box
             if box is not None and cam not in self.stop_boxes:
                 self.stop_boxes[cam] = box
+        for cam in CAMERAS:
+            row=filtered.get(cam) or {}
+            raw=row.get('signal') or {}
+            stamp=row.get('captured_s',-1);fid=row.get('frame_id',-1)
+            previous=self.green_streak[cam]
+            if raw.get('state')!='green' or not 0<=now-stamp<=self.age:
+                self.green_streak[cam]=None
+            elif previous is None:
+                self.green_streak[cam]=dict(first_s=stamp,last_s=stamp,fid=fid,count=1,box=raw['bbox_xyxy'])
+            elif fid>previous['fid'] and stamp>previous['last_s']:
+                if stamp-previous['last_s']>self.age+1e-9 or not same_fixture(previous['box'],raw['bbox_xyxy']):
+                    self.green_streak[cam]=dict(first_s=stamp,last_s=stamp,fid=fid,count=1,box=raw['bbox_xyxy'])
+                else:previous.update(last_s=stamp,fid=fid,count=previous['count']+1,box=raw['bbox_xyxy'])
         v = self.votes.update(filtered, now)
         self.red_sources.update(v["red_sources"])
         green_sources = set(v["current_green_sources"]) if v["green_confirmed"] else set()
-        if stage == "traffic_wait_green":
+        green_sources={cam for cam in green_sources if self.green_streak[cam] is not None
+                       and self.green_streak[cam]['last_s']-self.green_streak[cam]['first_s']>=self.votes.green_window_s-1e-9
+                       and self.green_streak[cam]['count']>=3}
+        if stage == "traffic_wait_green" and self.one_metre_span is None:
             green_sources = {cam for cam in green_sources if cam in self.red_sources or
                              same_fixture(self.stop_boxes.get(cam), self.guard.tracks[cam].box)}
         if evidence["current_stop_color_sources"]:
             green_sources.clear()
-        return dict(available=int(v["any_fresh"]), red=int(bool(v["red_confirmed"] or v["fast_red_sources"])),
-                    stop=int(bool((approaching and evidence["stop_reason"]) or
-                                  v["fast_red_timeout_sources"] or v["yellow_present"])),
+            self.green_streak = {c:None for c in CAMERAS}
+        stop_reason = evidence["stop_reason"] if approaching else None
+        if not stop_reason and v["fast_red_timeout_sources"]:
+            stop_reason = 'fast_red_timeout:' + ','.join(v["fast_red_timeout_sources"])
+        if not stop_reason and v["yellow_present"]:
+            stop_reason = 'confirmed_current_yellow'
+        span = -1.
+        stop_until = -1.
+        if self.one_metre_span is not None:
+            primary = rows.get("primary", {})
+            raw = primary.get("signal", {})
+            box = fixture_box(raw)
+            centers = raw.get("lamp_centers", [])
+            near = False
+            if box and len(centers) == 3 and box[0] <= 240 <= box[2]:
+                span = centers[2][0] - centers[0][0]
+                near = span >= self.one_metre_span
+            if approaching and near:
+                self.near_box = box
+                stop_until = primary["captured_s"] + self.age
+            matched = same_fixture(self.near_box, box)
+            if matched and not approaching:
+                self.near_box = box
+            green_sources &= {"primary"} if matched and stage == "traffic_wait_green" else set()
+            stop_reason = "one_metre_fixture" if approaching and near else None
+        observations=[]
+        for cam,row in rows.items():
+            raw=row['signal']
+            brightness='/'.join(format(f['median_v'],'.1f') for f in raw.get('lamp_features',[]))
+            candidate=evidence['stop_confirmation'].get(cam) or {}
+            observations.append(cam+'='+raw.get('state','unknown')+':'+raw.get('reason','')
+                                +':V='+brightness+':S='+('/'.join(format(f.get('median_s',-1),'.1f') for f in raw.get('lamp_features',[])))+':red_soft='+str((raw.get('lamp_features') or [{}])[0].get('soft_red_fraction',0))+':stop_frames='+str(candidate.get('frames',0))
+                                +':photometry='+json.dumps(raw.get('red_photometry',{}),separators=(',',':')))
+        return dict(available=int(v["any_fresh"] if self.one_metre_span is None else "primary" in rows), red=int(bool(v["red_confirmed"] or v["fast_red_sources"])),
+                    stop=int(bool(stop_reason)), stop_until=stop_until, span_px=span,
                     green=int(bool(green_sources)), raw=v["raw_state"],
+                    stop_reason=stop_reason or '', observation=';'.join(observations),
                     green_until=max((rows[k]["captured_s"]+self.age for k in green_sources),default=-1.))
 
 
@@ -165,6 +234,8 @@ class Cones:
 
     def update(self, views, now):
         images, rows = {}, {}
+        import time
+        began=time.perf_counter()
         for cam,(img,fid,stamp) in views.items():
             row = self.cache.get(cam)
             if row is None or (fid,stamp) != (row["frame_id"], row["captured_s"]):
@@ -177,6 +248,7 @@ class Cones:
                 metric, unresolved = (project_tracks(tracks,self.settings)
                                       if self.metric_ready and cam==self.settings["camera"] else ([],[]))
                 row = dict(camera_id=cam,frame_id=fid,captured_s=stamp,tracks=tracks,
+                           raw_candidates=sum(item.get('kind') == 'cone_candidate' for item in det),
                            lane_valid=road["valid"],lane_reason=road["reason"],road_context=road,
                            metric_cones=metric,metric_unresolved=unresolved,
                            tracking_diagnostics=self.trackers[cam].latest_diagnostics)
@@ -204,11 +276,7 @@ class Cones:
         self.navigator.set_avoidance_target(cmd.get("target_camera") if target else None, target or None)
         count = self.controller.count
         camera = (nav or {}).get("source_camera") or "secondary"
-        # Report both views even when the planner selected just one to steer.
-        visible_by_camera = {cam: sum(1 for t in row["tracks"] if t.get("visible") and
-                                      t.get("confirmed") and t.get("kind") == "cone_candidate") for cam, row in rows.items()
-                             if 0 <= now - row["captured_s"] <= VISION_MAX_AGE_S}
-        visible = visible_by_camera.get(camera, 0)
+        visible = sum(t.get("visible",False) and t.get("confirmed",False) for t in rows.get(camera,{}).get("tracks",[]))
         pwm = cmd["esc_us"]
         current = rows.get(camera, {})
         view_key = (camera, current.get("frame_id"), current.get("captured_s"))
@@ -219,11 +287,15 @@ class Cones:
                 pwm = 1500
         self.last_forward_view = view_key if pwm > 1500 else None
         return dict(pwm=pwm, steering=cmd["steering_us"], passed=count,
+                    lane_valid=int((nav or {}).get('line_state')=='paired' and (nav or {}).get('boundary_observed',False)),
+                    raw_primary=rows.get('primary',{}).get('raw_candidates',0),
+                    raw_secondary=rows.get('secondary',{}).get('raw_candidates',0),
+                    confirmed_primary=sum(t.get('confirmed',False) and t.get('visible',False) for t in rows.get('primary',{}).get('tracks',[])),
+                    confirmed_secondary=sum(t.get('confirmed',False) and t.get('visible',False) for t in rows.get('secondary',{}).get('tracks',[])),
+                    processing_ms=(time.perf_counter()-began)*1000,
                     repeat_forward=int(repeat_forward),
                     done=int(phase=="complete" and count>=2), phase=phase,
                     reason=cmd["reason"],source=camera,visible=int(visible),
-                    primary_visible=visible_by_camera.get("primary", -1),
-                    secondary_visible=visible_by_camera.get("secondary", -1),
                     captured_s=rows.get(camera,{}).get("captured_s",-1.))
 
 
@@ -232,15 +304,15 @@ class Hybrid:
         path = Path(config_file)
         cfg = read_json(path)
         self.profile = read_json(path.parent/cfg["zebra_distance_profile"])
-        self.crosswalk = Crosswalk(self.profile, cfg.get("legacy_crosswalk_white_masks", {}),
-                                   cfg.get("crosswalk_brake_trigger_m"))
-        self.signals = Signals(path.parent)
+        self.crosswalk = Crosswalk(self.profile, cfg.get("legacy_crosswalk_white_masks", {}),cfg.get("zebra_front_trigger_m",.4))
+        self.signals = Signals(path.parent, cfg["traffic_one_metre_span_px"])
         cone_base = load_cone_settings(path.parent/"legacy/cone-trial.json")
         cone_base = reuse_legacy_ground(cone_base, read_json(path.parent/"legacy/cone-legacy-ground-candidate.json"))
         cone_base["geometry"]["lane_width_m"] = cfg["lane_width_m"]
-        self.cone_settings = trial_settings(cone_base, {"test_forward_us": cfg["forward_us"], "test_run_s": 120})
+        self.cone_settings = trial_settings(cone_base, {"test_forward_us": cfg["cone_forward_us"], "test_run_s": 120})
         self.primary_ground = read_json(path.parent/"legacy/cone-primary-ground-reference.json")
         self.cones = None
+        self.parking = None
         def camera_family(identity):
             identity = identity.lower()
             h65 = "h65" in identity
@@ -271,10 +343,15 @@ class Hybrid:
         if stage in ("zebra_approach","observe"):
             out["zebra"] = self.crosswalk.update(metric_views)
         if stage.startswith("traffic_") or stage=="observe":
-            out["signal"] = self.signals.update(views,now,stage)
+            out["signal"] = self.signals.update(metric_views,now,stage)
         if stage in ("two_cones","observe"):
             if self.cones is None:
                 self.cones = Cones(self.cone_settings,self.primary_ground,now)
             out["cone"] = self.cones.update(cone_views,now)
+        if stage in ("parking_approach", "observe"):
+            if self.parking is None:
+                from outdoor_parking import OutdoorParking
+                self.parking = OutdoorParking()
+            out["parking"] = self.parking.update(metric_views.get("secondary"), now)
         return json.dumps(out,ensure_ascii=False,allow_nan=False)
 

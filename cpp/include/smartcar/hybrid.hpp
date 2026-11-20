@@ -7,10 +7,14 @@
 namespace smartcar {
 struct HybridEvidence {
     int stripes = 0;
-    int cones_visible = 0, primary_cones = -1, secondary_cones = -1;
+    int cones_visible = 0;
+    int cone_raw_primary = 0, cone_raw_secondary = 0, cone_confirmed_primary = 0, cone_confirmed_secondary = 0;
+    bool cone_lane_valid = false;
+    double cone_processing_ms = 0;
     double near_px = -1;
-    double green_until = -1;
+    double green_until = -1, signal_stop_until = -1, signal_span_px = -1;
     std::string zebra_camera, cone_phase, cone_camera, signal_color;
+    std::string signal_stop_reason, signal_observation;
 };
 
 // The embedded interpreter receives copies of camera pixels. Only the C++ actuator writes commands.

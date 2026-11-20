@@ -8,7 +8,6 @@ namespace smartcar {
 struct Point {
     double x = 0, y = 0;
 }; // metres, rear axle origin, right/forward positive
-inline constexpr int kZebraReverseUs = 1300;
 struct Config {
     double lane_width = 1.17, body_width = 0.30, wheelbase = 0.245;
     double front_extent = 0.335, rear_extent = 0.085, clearance = 0.04;
@@ -20,13 +19,10 @@ struct Config {
          traffic_max_approach_s = 25.0;
     double max_steering_rate = 500.0;
     int neutral_us = 1500, brake_us = 1400, forward_min_us = 1570, forward_us = 1570;
-    int zebra_brake_us = 1400; // Older race profiles use the ordinary brake.
-    double brakePulseSeconds(int throttle_us) const {
-        return throttle_us == kZebraReverseUs ? 0.12 : brake_s;
-    }
-    std::optional<int> approach_forward_us;
     int steering_center_us = 1610, steering_left_us = 1870, steering_right_us = 1350;
     int confirm_frames = 3;
+    bool outdoor_parking = false;
+    bool zebra_brake_retry_enabled = false;
 };
 struct Lane {
     bool valid = false, both = false;
@@ -51,7 +47,14 @@ struct LegacyConeDrive {
     std::string reason;
     bool repeat_forward = false;
 };
+struct OutdoorParkingDrive {
+    int duty, steering;
+    bool brake, complete;
+    double captured_s;
+    std::string stage, side, reason;
+};
 struct Observation {
+    std::optional<OutdoorParkingDrive> outdoor_parking;
     std::optional<LegacyConeDrive> cone_drive;
     std::optional<double> zebra_front_trigger;
     std::uint64_t frame_id = 0;
@@ -64,6 +67,8 @@ struct Observation {
     bool zebra_detected = false; // confirmed image row, independent of distance availability
     std::string zebra_distance_reason;
     std::string zebra_range_status = "not_detected";
+    double zebra_near_px = -1;
+    std::string zebra_source;
     bool red = false, green = false; // current qualified light candidates, not arbitrary green pixels
     bool signal_stop = false; // stop-only guard evidence can precede a formal red vote
     bool motion_valid = false;
@@ -76,6 +81,11 @@ struct Command {
     int throttle_us = 1500, steering_us = 1610;
     std::string state, reason;
     bool announce = false, done = false;
+    bool launch_beep = false;
+    bool outdoor_parking_command = false;
+    bool zebra_hold_started = false;
+    double zebra_hold_elapsed_s = 0, zebra_hold_remaining_s = 10;
+    int zebra_brake_retries = 0;
     bool keep_existing_output = false; // no new source frame; leave the previous command's expiry intact
     int cones_passed = 0;
     double target_x = 0;

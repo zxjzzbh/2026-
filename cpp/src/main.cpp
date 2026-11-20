@@ -1,4 +1,5 @@
 #include "smartcar/controller.hpp"
+#include "smartcar/announcement.hpp"
 #include "smartcar/hybrid.hpp"
 #include "smartcar/ground.hpp"
 #include "smartcar/perception.hpp"
@@ -56,6 +57,10 @@ struct Settings {
     std::string port = "/dev/ttyAMA0", speech = "我是山东大学启航队的无人车，请为我加油！";
     std::string ground = "calibration/ground_parking.json", road = "calibration/ground_road.json";
     std::string modules = "../algorithms";
+    std::string announcement_wav = "audio/zebra_announcement.wav", announcement_device = "auto";
+    std::string announcement_backend = "i2c_tts", announcement_helper;
+    int announcement_volume = 8;
+    std::string announcement_wav_text = "我是山东大学启航队的无人车，请为我加油！";
     std::string zebra_profile = "calibration/crosswalk-distance-20261024.json";
 };
 Settings load(const fs::path &p) {
@@ -89,21 +94,23 @@ Settings load(const fs::path &p) {
     number("clearance_m", s.control.clearance);
     number("braking_distance_m", s.control.braking_distance);
     number("brake_s", s.control.brake_s);
-    if (!file["zebra_brake_us"].empty() && !file["zebra_brake_us"].isInt())
-        throw std::runtime_error("zebra_brake_us must be an integer");
-    number("zebra_brake_us", s.control.zebra_brake_us);
     number("zebra_hold_s", s.control.zebra_hold_s);
+    number("zebra_brake_retry_enabled", s.control.zebra_brake_retry_enabled);
     number("parking_stop_gap_m", s.control.parking_stop_gap);
     number("forward_us", s.control.forward_us);
-    int approach_forward_us = s.control.forward_us;
-    number("approach_forward_us", approach_forward_us);
-    s.control.approach_forward_us = approach_forward_us;
     number("steering_gain", s.control.steering_gain);
     number("traffic_max_approach_s", s.control.traffic_max_approach_s);
     string("secondary_camera", s.secondary);
     string("primary_camera", s.primary);
     string("uart", s.port);
     string("announcement_text", s.speech);
+    string("announcement_backend", s.announcement_backend);
+    number("announcement_volume", s.announcement_volume);
+    s.announcement_helper = fs::absolute(p.parent_path()/"../tools/announce_i2c.py").u8string();
+    string("announcement_wav", s.announcement_wav);
+    string("announcement_device", s.announcement_device);
+    string("announcement_wav_text", s.announcement_wav_text);
+    s.announcement_wav = (p.parent_path() / fs::u8path(s.announcement_wav)).u8string();
     string("parking_ground", s.ground);
     string("road_ground", s.road);
     string("legacy_module_dir", s.modules);
@@ -129,34 +136,6 @@ Task taskFrom(const std::string &n) {
     if (n == "observe")
         return Task::Observe;
     throw std::runtime_error("unknown task");
-}
-void speak(const std::string &text) {
-#ifdef __linux__
-    // 斑马线停车期间必须播报规则要求的话语。先尝试 espeak-ng，失败再降级到经典 espeak，
-    // 避免因缺少单一合成器导致“未播报”而被加罚。
-    auto play = [&](const char *program, bool mandarin) {
-        pid_t pid;
-        std::vector<char *> args;
-        args.push_back(const_cast<char *>(program));
-        if (mandarin) {
-            args.push_back(const_cast<char *>("-v"));
-            args.push_back(const_cast<char *>("cmn"));
-        }
-        args.push_back(const_cast<char *>(text.c_str()));
-        args.push_back(nullptr);
-        if (posix_spawnp(&pid, program, nullptr, nullptr, args.data(), environ) != 0)
-            return false;
-        int status = 0;
-        while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {
-        }
-        return status == 0;
-    };
-    if (play("espeak-ng", true) || play("espeak", true) || play("espeak", false))
-        return;
-    std::cerr << "announcement unavailable: install espeak-ng (sudo apt install espeak-ng)\n";
-#else
-    std::cout << "ANNOUNCEMENT: " << text << '\n';
-#endif
 }
 class Recorder {
     std::mutex mutex_;
@@ -398,19 +377,17 @@ int main(int argc, char **argv) {
 #ifdef SIGBREAK
         std::signal(SIGBREAK, signalStop);
 #endif
-        GroundMap ground(settings.ground), roadGround(settings.road);
+        GroundMap roadGround(settings.road);
+        settings.control.outdoor_parking = true;
         Controller controller(settings.control, task);
         RoadPerception perception(settings.control, roadGround);
         if (!settings.zebra_profile.empty())
             perception.setZebraDistanceProfile(std::make_shared<ZebraDistanceProfile>(
                 settings.zebra_profile, "secondary",
                 secondaryOverride.empty() ? settings.secondary : secondaryOverride));
-        ParkingDetector parking(settings.control, ground);
-        std::unique_ptr<HybridVision> hybrid;
-        if (task != Task::Parking)
-            hybrid = std::make_unique<HybridVision>(settings.modules, fs::absolute(fs::u8path(config)).u8string(),
-                primaryOverride.empty() ? settings.primary : primaryOverride,
-                secondaryOverride.empty() ? settings.secondary : secondaryOverride);
+        HybridVision hybrid(settings.modules, fs::absolute(fs::u8path(config)).u8string(),
+                            primaryOverride.empty() ? settings.primary : primaryOverride,
+                            secondaryOverride.empty() ? settings.secondary : secondaryOverride);
         cv::VideoCapture roadCamera, trafficCamera;
         std::string roadSource =
             video.empty() ? (secondaryOverride.empty() ? settings.secondary : secondaryOverride) : video;
@@ -465,7 +442,10 @@ int main(int argc, char **argv) {
         if (needsTraffic)
             trafficRecorder = std::make_unique<Recorder>((run / "primary.avi").u8string());
         Actuator actuator(settings.control, drive, settings.port);
-        std::future<void> speech;
+        std::atomic<bool> cancelSpeech{false};
+        std::future<AnnouncementResult> speech;
+        std::string announcementStatus = "not_requested", announcementReason;
+        int announcementAttempts = 0;
         std::uint64_t frameId = 0, observationId = 0, roadCameraId = 0;
         double replayFps = liveRoad ? 30 : roadCamera.get(cv::CAP_PROP_FPS);
         if (replayFps < 1)
@@ -495,7 +475,6 @@ int main(int argc, char **argv) {
                     missing.frame_ok = false;
                     actuator.submit(controller.update(missing));
                     perception.reset();
-                    parking.invalidateMotion();
                     log << "{\"event\":\"waiting_for_road_camera\",\"state\":\"" << Controller::name(controller.stage())
                         << "\",\"reason\":\"等待地面相机恢复\",\"time\":" << std::setprecision(12) << now << "}\n" << std::flush;
                 }
@@ -514,14 +493,16 @@ int main(int argc, char **argv) {
             ++frameId;
             double timestamp = video.empty() ? roadCaptured : double(frameId) / replayFps;
             cv::resize(frame, frame, cv::Size(480, 360)); // uniform full-frame scale only
-            Observation o = perception.update(frame, ++observationId, timestamp);
-            if (o.motion_valid)
-                parking.predictMotion(o.forward_delta, o.lateral_delta, o.yaw_delta);
-            o.bay = parking.detect(frame, o.lane);
             const Stage stage = controller.stage();
             const bool watch = task == Task::Observe;
+            const bool parkingStage = stage == Stage::ParkingApproach || stage == Stage::ParkingBrake || stage == Stage::ParkingHold;
+            const double roadBegin = monotonic();
+            PerceptionTasks roadTasks{watch || (stage != Stage::Obstacles && stage != Stage::ZebraHold && !parkingStage),
+                                      watch, watch || stage == Stage::WaitBoard};
+            Observation o = perception.update(frame, ++observationId, timestamp, roadTasks);
+            const double roadMs = (monotonic()-roadBegin)*1000;
             const bool useHybrid = watch || stage == Stage::ZebraApproach || stage == Stage::TrafficApproach ||
-                stage == Stage::TrafficBrake || stage == Stage::TrafficWait || stage == Stage::Obstacles;
+                stage == Stage::TrafficBrake || stage == Stage::TrafficWait || stage == Stage::Obstacles || parkingStage;
             cv::Mat lamp;
             std::uint64_t lampId = 0;
             double lampStamp = -1;
@@ -548,12 +529,20 @@ int main(int argc, char **argv) {
                 }
             }
             HybridEvidence legacy;
-            if (useHybrid && hybrid) {
-                legacy = hybrid->update(watch ? "observe" : Controller::name(stage), frame, lamp, lampId,
+            const double hybridBegin = monotonic();
+            if (useHybrid) {
+                legacy = hybrid.update(watch ? "observe" : Controller::name(stage), frame, lamp, lampId,
                                         lampStamp, liveRoad ? monotonic() : timestamp, settings.control, o);
             }
+            const double hybridMs = (monotonic()-hybridBegin)*1000;
+            const double parkingMs = parkingStage ? hybridMs : 0.;
             const double controlTime = liveRoad ? monotonic() : timestamp;
             o.time = controlTime;
+            if(liveRoad && controlTime-timestamp>.25) {
+                o.motion_valid=false;
+                o.stopped_confirmed=false;
+            }
+            if (controlTime > legacy.signal_stop_until) o.signal_stop = false;
             if (o.green && controlTime > legacy.green_until) o.green = false;
             o.brake_feedback_valid = drive && video.empty();
             o.brake_completed_event_id = actuator.completedBrakeEvent();
@@ -571,9 +560,46 @@ int main(int argc, char **argv) {
                 completedTask = true;
             if (!q.keep_existing_output)
                 actuator.submit(q, video.empty() ? timestamp : -1.0);
-            if (q.announce &&
-                (!speech.valid() || speech.wait_for(std::chrono::seconds(0)) == std::future_status::ready))
-                speech = std::async(std::launch::async, speak, settings.speech);
+            if (speech.valid() && speech.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                const auto result = speech.get();
+                announcementStatus = result.completed ? "completed" : result.command_sent ? "submitted" : "failed";
+                announcementReason = result.reason;
+                std::cerr << "announcement " << announcementStatus << ": " << announcementReason << '\n';
+            }
+            if (q.announce) {
+                announcementStatus = "pending";
+                announcementAttempts = 0;
+            }
+            if (nowStage == Stage::ZebraHold && q.zebra_hold_started &&
+                announcementStatus != "completed" && announcementStatus != "submitted" && announcementStatus != "simulated" &&
+                !speech.valid() && announcementAttempts < (settings.announcement_backend == "i2c_tts" ? 1 : 2) && q.zebra_hold_remaining_s > .5) {
+                if (!drive) {
+                    announcementStatus = "simulated";
+                    announcementReason = "offline replay never opens audio hardware";
+                } else if (settings.announcement_backend == "wav" && settings.speech != settings.announcement_wav_text) {
+                    announcementStatus = "failed";
+                    announcementAttempts = 2;
+                    announcementReason = "configured text differs from recorded WAV text";
+                } else {
+                    cancelSpeech.store(false);
+                    const double deadline = std::min(5.5, q.zebra_hold_remaining_s);
+                    ++announcementAttempts;
+                    announcementStatus = "playing";
+                    if (settings.announcement_backend == "i2c_tts")
+                        speech = std::async(std::launch::async,playExpansionTTS,
+                            std::string(HYBRID_PYTHON_EXECUTABLE),settings.announcement_helper,
+                            settings.speech,settings.announcement_volume,deadline,std::cref(cancelSpeech));
+                    else if (settings.announcement_backend == "wav")
+                        speech = std::async(std::launch::async, playAnnouncement,
+                            settings.announcement_wav, settings.announcement_device, deadline,
+                            std::cref(cancelSpeech), std::string("aplay"));
+                    else {
+                        announcementStatus="failed";announcementAttempts=2;
+                        announcementReason="unknown announcement backend";
+                    }
+                }
+            }
+            if (nowStage != Stage::ZebraHold && speech.valid()) cancelSpeech.store(true);
             const auto &visionDiagnostics = perception.diagnostics();
             log << std::setprecision(12) << "{\"frame\":" << frameId << ",\"time\":" << timestamp
                 << ",\"control_time\":" << controlTime << ",\"state\":\"" << q.state << "\",\"reason\":\""
@@ -581,12 +607,20 @@ int main(int argc, char **argv) {
                 << ",\"steering_us\":" << q.steering_us << ",\"last_output_us\":" << actuator.lastOutputUs()
                 << ",\"local_gap_stop_count\":" << actuator.gapStopCount()
                 << ",\"drive_enabled\":" << (drive ? "true" : "false") << ",\"lane_valid\":" << o.lane.valid
+                << ",\"road_processing_ms\":" << roadMs
+                << ",\"lane_processing_enabled\":" << roadTasks.lane
+                << ",\"parking_processing_ms\":" << parkingMs
+                << ",\"hybrid_processing_ms\":" << hybridMs
+                << ",\"capture_age_ms\":" << std::max(0.0,controlTime-timestamp)*1000
+                << ",\"launch_beep_requested\":" << q.launch_beep
+                << ",\"launch_beep_sent\":" << actuator.launchBeepSent()
                 << ",\"board_visible\":" << o.board_visible
                 << ",\"board_observation_valid\":" << o.board_observation_valid
                 << ",\"board_candidate\":" << visionDiagnostics.board_candidate
                 << ",\"board_reference_valid\":" << visionDiagnostics.board_reference_valid
                 << ",\"board_clear_fraction\":" << visionDiagnostics.board_clear_fraction
                 << ",\"board_blue_fraction\":" << visionDiagnostics.board_blue_fraction
+                << ",\"board_path_blue_fraction\":" << visionDiagnostics.board_path_blue_fraction
                 << ",\"white_components\":" << visionDiagnostics.white_components
                 << ",\"image_lane_candidates\":" << visionDiagnostics.image_lane_candidates
                 << ",\"rejected_tapes\":" << visionDiagnostics.rejected_tapes
@@ -601,20 +635,39 @@ int main(int argc, char **argv) {
                 << ",\"zebra_image_reason\":\"" << escape(o.zebra_distance_reason) << "\""
                 << ",\"zebra_range_status\":\"" << escape(o.zebra_range_status) << "\""
                 << ",\"zebra_distance_reason\":\"" << escape(o.zebra_distance_reason) << "\""
-                << ",\"primary_cones\":" << legacy.primary_cones << ",\"secondary_cones\":" << legacy.secondary_cones
+                << ",\"cone_raw_primary\":" << legacy.cone_raw_primary
+                << ",\"cone_lane_valid\":" << legacy.cone_lane_valid
+                << ",\"cone_raw_secondary\":" << legacy.cone_raw_secondary
+                << ",\"cone_confirmed_primary\":" << legacy.cone_confirmed_primary
+                << ",\"cone_confirmed_secondary\":" << legacy.cone_confirmed_secondary
+                << ",\"cone_processing_ms\":" << legacy.cone_processing_ms
                 << ",\"cones_visible\":" << legacy.cones_visible << ",\"cones_passed\":" << q.cones_passed
                 << ",\"legacy_cone_phase\":\"" << escape(legacy.cone_phase) << "\",\"legacy_cone_camera\":\"" << escape(legacy.cone_camera)
                 << "\",\"legacy_zebra_camera\":\"" << escape(legacy.zebra_camera) << "\",\"legacy_signal_color\":\"" << escape(legacy.signal_color) << "\""
                 << ",\"brake_event_id\":" << q.brake_event_id
+                << ",\"zebra_brake_retries\":" << q.zebra_brake_retries
                 << ",\"brake_completed_event_id\":" << o.brake_completed_event_id
+                << ",\"outdoor_parking_stage\":\"" << (o.outdoor_parking ? escape(o.outdoor_parking->stage) : "") << "\""
+                << ",\"outdoor_parking_side\":\"" << (o.outdoor_parking ? escape(o.outdoor_parking->side) : "") << "\""
+                << ",\"outdoor_parking_reason\":\"" << (o.outdoor_parking ? escape(o.outdoor_parking->reason) : "") << "\""
                 << ",\"bay_valid\":" << o.bay.valid << ",\"entry_y\":" << o.bay.entry_y
                 << ",\"end_y\":" << o.bay.end_y << ",\"entry_visible\":" << o.bay.entry_visible
                 << ",\"end_visible\":" << o.bay.end_visible << ",\"left_clear\":" << o.bay.left_clear
                 << ",\"right_clear\":" << o.bay.right_clear << ",\"left_blocked\":" << o.bay.left_blocked
                 << ",\"right_blocked\":" << o.bay.right_blocked << ",\"bay_confidence\":" << o.bay.confidence
+                << ",\"zebra_brake_retries\":" << q.zebra_brake_retries
+                << ",\"zebra_hold_started\":" << q.zebra_hold_started
+                << ",\"zebra_hold_elapsed_s\":" << q.zebra_hold_elapsed_s
+                << ",\"zebra_hold_remaining_s\":" << q.zebra_hold_remaining_s
+                << ",\"announcement_status\":\"" << escape(announcementStatus) << "\""
+                << ",\"announcement_reason\":\"" << escape(announcementReason) << "\""
+                << ",\"announcement_attempts\":" << announcementAttempts
                 << ",\"motion_valid\":" << o.motion_valid << ",\"forward_delta\":" << o.forward_delta
                 << ",\"stopped\":" << o.stopped_confirmed << ",\"red\":" << o.red
+                << ",\"signal_span_px\":" << legacy.signal_span_px
                 << ",\"signal_stop\":" << o.signal_stop << ",\"green\":" << o.green
+                << ",\"signal_stop_reason\":\"" << escape(legacy.signal_stop_reason) << "\""
+                << ",\"signal_observation\":\"" << escape(legacy.signal_observation) << "\""
                 << "}\n";
             log.flush(); // bounded one-line telemetry, visible without waiting for a stage change
             recorder.frame(frame, frameId, timestamp);
@@ -648,6 +701,8 @@ int main(int argc, char **argv) {
                 << ",\"red_wait_s\":" << redWaitSeconds << ",\"valid_time_estimate_s\":" << validTime
                 << "}\n";
         }
+        cancelSpeech.store(true);
+        if (speech.valid()) speech.get();
         actuator.close();
         log.flush();
         roadCamera.release();

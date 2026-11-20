@@ -22,11 +22,7 @@ namespace smartcar {
 void OutputPolicy::submit(Command q, double stamp) {
     if (!std::isfinite(stamp))
         throw std::invalid_argument("invalid command timestamp");
-    if (q.throttle_us < config_.neutral_us) {
-        if (q.throttle_us != config_.brake_us &&
-            !(q.throttle_us == kZebraReverseUs && config_.zebra_brake_us == kZebraReverseUs &&
-              q.state == "zebra_brake"))
-            throw std::invalid_argument("reverse pulse outside configured zebra brake");
+    if (q.throttle_us == config_.brake_us) {
         if (q.brake_event_id == 0)
             throw std::invalid_argument("brake request requires a nonzero event ID");
         if (q.brake_event_id > last_event_id_) {
@@ -43,9 +39,9 @@ Command OutputPolicy::resolve(double now) {
         throw std::invalid_argument("invalid output timestamp");
     Command q = requested_;
     // A completed/cancelled event can never be re-armed by a repeated request.
-    if (q.throttle_us < config_.neutral_us)
+    if (q.throttle_us == config_.brake_us)
         q.throttle_us = config_.neutral_us;
-    if (active_brake_ && now - brake_started_ >= config_.brakePulseSeconds(active_brake_->throttle_us)) {
+    if (active_brake_ && now - brake_started_ >= (active_brake_->outdoor_parking_command ? .25 : config_.brake_s)) {
         completed_event_id_ = active_brake_->brake_event_id;
         active_brake_.reset();
         // A neutral write terminates this transaction before acknowledging it.
@@ -63,7 +59,7 @@ Command OutputPolicy::resolve(double now) {
     // an accepted pulse short. Explicit stop()/Actuator::close() can cancel it.
     if (active_brake_)
         return *active_brake_;
-    if (now - command_time_ > 1.0) {
+    if (now - command_time_ > (q.outdoor_parking_command ? .25 : 1.0)) {
         q.throttle_us = config_.neutral_us;
         q.steering_us = config_.steering_center_us;
     }
@@ -87,8 +83,7 @@ Command OutputPolicy::stop(double now) {
 }
 std::vector<unsigned char> actuatorPacket(int steering, int throttle) {
     if (steering < 1350 || steering > 1870 ||
-        (throttle != kZebraReverseUs && throttle != 1400 && throttle != 1500 &&
-         (throttle < 1570 || throttle > 1600)))
+        (throttle != 1400 && throttle != 1500 && (throttle < 1570 || throttle > 1600)))
         throw std::invalid_argument("actuator command outside configured electrical envelope");
     // RasAdapter5A function 4, set PWM, 20 ms, two servos: S3 steering / S4 ESC.
     std::vector<unsigned char> p{0xaa,
@@ -110,6 +105,21 @@ std::vector<unsigned char> actuatorPacket(int steering, int throttle) {
         crc ^= p[i];
         for (int b = 0; b < 8; ++b)
             crc = (crc >> 1) ^ ((crc & 1) ? 0x8c : 0);
+    }
+    p.push_back(crc);
+    return p;
+}
+std::vector<unsigned char> launchBuzzerPacket(bool stop) {
+    // Hiwonder RasAdapter5A SDK set_buzzer: function 2, <HHHH>
+    // 2000 Hz, on 150 ms, off 100 ms, repeat once. Explicit frequency-zero
+    // stop is also scheduled by this same UART worker and on shutdown.
+    std::vector<unsigned char> p{0xaa,0x55,2,8,
+        static_cast<unsigned char>(stop?0:0xd0),static_cast<unsigned char>(stop?0:7),
+        static_cast<unsigned char>(stop?100:150),0,100,0,1,0};
+    unsigned char crc=0;
+    for (std::size_t i=2;i<p.size();++i) {
+        crc^=p[i];
+        for(int bit=0;bit<8;++bit) crc=(crc>>1)^((crc&1)?0x8c:0);
     }
     p.push_back(crc);
     return p;
@@ -177,21 +187,27 @@ void Actuator::submit(const Command &q, double captureStamp) {
     // A picture captured long before it reached the actuator must not re-command forward.
     // Neutral and brake are always allowed (fail-safe); only stale forward is degraded.
     if (captureStamp >= 0.0 && cmd.throttle_us > config_.neutral_us &&
-        received - captureStamp > kCaptureFreshnessS) {
+        received - captureStamp > (cmd.outdoor_parking_command ? .25 : kCaptureFreshnessS)) {
         cmd.throttle_us = config_.neutral_us;
         cmd.steering_us = config_.steering_center_us;
     }
-    policy_.submit(cmd, received);
+    policy_.submit(cmd, cmd.outdoor_parking_command && captureStamp >= 0 ? captureStamp : received);
+    if (cmd.launch_beep && !launch_beep_seen_ &&
+        (captureStamp < 0 || received-captureStamp <= kCaptureFreshnessS)) {
+        launch_beep_seen_ = launch_beep_pending_ = true;
+    }
 }
 void Actuator::check() const {
     if (failed_)
         throw std::runtime_error("actuator transport failed");
 }
 void Actuator::write(int s, int t) {
+    writePacket(actuatorPacket(s,t));
+}
+void Actuator::writePacket(const std::vector<unsigned char> &p) {
     if (!drive_)
         return;
 #ifdef __linux__
-    auto p = actuatorPacket(s, t);
     std::size_t written = 0;
     auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
     while (written < p.size()) {
@@ -207,16 +223,17 @@ void Actuator::write(int s, int t) {
             throw std::runtime_error("UART write failed");
     }
 #else
-    (void)s;
-    (void)t;
+    (void)p;
 #endif
 }
 void Actuator::loop() {
     bool was_expired = false;
+    auto beep_stop_at = std::chrono::steady_clock::time_point{};
     while (running_) {
         Command q;
         std::chrono::steady_clock::time_point stamp;
         std::uint64_t active_event, completed_event;
+        bool beep = false;
         auto now = std::chrono::steady_clock::now();
         {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -224,6 +241,8 @@ void Actuator::loop() {
             q = policy_.resolve(std::chrono::duration<double>(now.time_since_epoch()).count());
             active_event = policy_.activeBrakeEvent();
             completed_event = policy_.completedBrakeEvent();
+            beep = launch_beep_pending_;
+            launch_beep_pending_ = false;
         }
         bool expired = std::chrono::duration<double>(now - stamp).count() > 1.0;
         if (expired && !was_expired)
@@ -237,6 +256,17 @@ void Actuator::loop() {
             last_output_us_ = q.throttle_us;
             active_brake_event_ = active_event;
             completed_brake_event_ = completed_event; // only after the end-of-pulse neutral write succeeds
+            if (buzzer_active_ && now >= beep_stop_at) {
+                writePacket(launchBuzzerPacket(true));
+                buzzer_active_ = false;
+            }
+            if (beep && !expired && running_) {
+                writePacket(launchBuzzerPacket());
+                ++launch_beep_events_;
+                launch_beep_sent_ = drive_;
+                buzzer_active_ = true;
+                beep_stop_at = std::chrono::steady_clock::now() + std::chrono::milliseconds(150);
+            }
         } catch (...) {
             failed_ = true;
             running_ = false;
@@ -245,6 +275,10 @@ void Actuator::loop() {
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
     try {
+        if (buzzer_active_) {
+            writePacket(launchBuzzerPacket(true));
+            buzzer_active_ = false;
+        }
         write(config_.steering_center_us, config_.neutral_us);
         last_output_us_ = config_.neutral_us;
         active_brake_event_ = 0;
@@ -257,6 +291,7 @@ void Actuator::close() {
     {
         std::lock_guard<std::mutex> lock(mutex_);
         policy_.stop(std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count());
+        launch_beep_pending_ = false;
     }
     if (worker_.joinable())
         worker_.join();

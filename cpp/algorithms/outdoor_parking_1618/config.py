@@ -1,0 +1,228 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+"""整车共用的默认参数：相机、驱动、巡线、斑马线和起点挡板。
+
+每个参数只定义一次，数值沿用整理前最终生效的值。比赛现场入口还会
+通过 fusion_run.runtime_config 在内存中应用现场参数，运行结束后恢复。
+旧入口使用的参数也保留在这里，避免独立调试脚本失去配置。
+"""
+
+from pathlib import Path
+
+
+# 文件位置：标定文件跟随程序目录，音频沿用树莓派上的路径。
+PROJECT_DIR = Path(__file__).resolve().parent
+CAMERA_POSE_FILE = PROJECT_DIR / "camera_pose.json"
+LANE_TARGET_FILE = PROJECT_DIR / "lane_target.json"
+AUDIO_FILE = Path("/home/pi/src26/zebra/nihao_nihao.wav")
+DEBUG_DIR = PROJECT_DIR / "debug"
+DEBUG_DIR.mkdir(exist_ok=True)
+
+
+# GPIO 引脚和已标定的云台姿态。
+STEER_GPIO = 12
+MOTOR_GPIO = 13
+ENABLE_GPIO = 17
+YAW_GPIO = 22
+PITCH_GPIO = 23
+DEFAULT_YAW_US = 1435
+DEFAULT_PITCH_US = 1430
+GIMBAL_SETTLE_SECONDS = 1.0
+
+
+# 摄像头：保持标定时的分辨率和编码模式。
+CAMERA_INDEX = 0
+CAMERA_WIDTH = 352
+CAMERA_HEIGHT = 288
+CAMERA_FPS = 30
+CAMERA_USE_MJPG = False
+CAMERA_WARMUP_FRAMES = 15
+
+
+# 转向脉宽，单位为微秒。脉宽增大向左，减小向右。
+# 车道中心在画面右侧时误差为正，因此修正方向使用 -1。
+STEER_CENTER_US = 1750
+STEER_MIN_US = 1500
+STEER_MAX_US = 2000
+STEER_SIGN = -1
+
+
+# 电机占空比：200 Hz、量程 40000，12000 为已标定的停止值。
+MOTOR_PWM_FREQ = 200
+MOTOR_PWM_RANGE = 40000
+STOP_DUTY = 12000
+LOW_FORWARD_DUTY = 12480
+CRUISE_DUTY = 12600
+CROSSWALK_APPROACH_DUTY = 12480
+MOTOR_SLEW_STEP = 80
+
+# 起步短时加力与切换到接近速度时的短刹车，当前均关闭。
+# 这些参数仍供原来的独立入口使用。
+ENABLE_LAUNCH_BOOST = False
+LAUNCH_BOOST_DUTY = 13200
+LAUNCH_BOOST_TIME = 0.10
+LAUNCH_PROFILE = "approach"
+ENABLE_APPROACH_KICK_STOP = False
+APPROACH_KICK_STOP_DUTY = 11920
+APPROACH_KICK_STOP_TIME = 0.06
+APPROACH_KICK_STOP_MIN_DELTA = 300
+
+# 主动刹车的占空比与持续时间，沿用已有试车值。
+BRAKE_DUTY = 11840
+BRAKE_TIME = 0.20
+
+# Crosswalk only: ESC must be physically set to F/R. Then return to STOP_DUTY.
+# Independent of cone-fault / traffic-light / parking brake parameters above.
+CROSS_FR_BRAKE_DUTY = 10400
+PARK_MANUAL_BRAKE_DUTY = 10600
+CROSS_FR_BRAKE_TIME = 0.25
+
+
+# 起点蓝色挡板：先确认看见挡板，再等待它连续消失。
+START_MODE = "barrier"  # 可选 "barrier" 或 "manual"。
+BARRIER_BLUE_LOWER = (90, 43, 46)
+BARRIER_BLUE_UPPER = (124, 255, 255)
+BARRIER_BLUE_RATIO_THRESHOLD = 0.5
+BARRIER_ARM_WINDOW = 5
+BARRIER_ARM_HITS = 3
+BARRIER_CLEAR_FRAMES = 3
+BARRIER_CLEAR_SETTLE_SECONDS = 0.20
+RESET_LANE_ON_START = True
+
+
+# 巡线默认区域。学长检测器的边缘/霍夫参数在wisecar_vision.py内固定，
+# 下方旧LANE_CANNY/HOUGH等参数保留给旧工具；新检测器不读取这些旧参数。
+LANE_ROI_Y0_RATIO = 0.35
+LANE_ROI_Y1_RATIO = 0.65
+LANE_GAUSSIAN_KERNEL = 5
+LANE_CLAHE_CLIP = 2.0
+LANE_CANNY_LOW = 45
+LANE_CANNY_HIGH = 110
+LANE_HOUGH_RHO = 2
+LANE_HOUGH_THETA_DEG = 1
+LANE_HOUGH_THRESHOLD = 12
+LANE_MIN_LINE_LENGTH = 25
+LANE_MAX_LINE_GAP = 12
+
+# 过滤过平或过陡的线段，再按几何关系配成左右两条边界。
+LANE_MIN_ABS_ANGLE_DEG = 10
+LANE_MAX_ABS_ANGLE_DEG = 80
+LANE_MIN_ABS_DXDY = 0.15
+# 在取图区域的这个高度判断左右边界：0 是顶部，1 是底部。
+LANE_PAIR_REF_RATIO = 0.62
+LANE_LEFT_REF_MAX_RATIO = 0.62
+LANE_RIGHT_REF_MIN_RATIO = 0.38
+LANE_PAIR_MIN_WIDTH_RATIO = 0.18
+LANE_PAIR_MAX_WIDTH_RATIO = 0.85
+LANE_PAIR_MIN_BOTTOM_WIDTH_RATIO = 0.35
+LANE_PAIR_MAX_BOTTOM_WIDTH_RATIO = 1.40
+LANE_VP_MIN_Y_RATIO = -4.0
+LANE_VP_MAX_Y_RATIO = 0.80
+
+# 车道宽度、中心位置的连续帧平滑，以及短时只看见单边时的补线。
+LANE_WIDTH_FILTER = 0.80
+LANE_SINGLE_FALLBACK_MIN_DUAL_FRAMES = 5
+LANE_CENTER_FILTER = 0.70
+LANE_ERROR_DEADBAND_PX = 2
+LANE_CENTER_HISTORY = 5
+LANE_CENTER_MAX_JUMP_PX = 28
+LANE_WIDTH_MAX_REL_JUMP = 0.30
+LANE_TEMPORAL_WARMUP_DUAL = 4
+LANE_TARGET_X_RATIO_DEFAULT = 0.50
+LANE_LOST_STOP_FRAMES = 12
+
+# 发车前检查允许少量单边或丢线帧，避免偶发漏检阻止发车。
+PREFLIGHT_WINDOW = 12
+PREFLIGHT_MIN_VALID = 8
+PREFLIGHT_MIN_DUAL = 4
+PREFLIGHT_MAX_CENTER_MEDIAN_ERROR_PX = 15
+PREFLIGHT_TIMEOUT_SECONDS = 6.0
+
+
+# 巡线 PD：按偏离中心的距离和误差变化速度修正方向。
+PID_PROFILES = {
+    "cruise": {
+        "kp_us_per_px": 1.60,
+        "kd_us_per_px": 0.50,
+        "max_correction_us": 100,
+        "min_effective_us": 8,
+    },
+    "approach": {
+        "kp_us_per_px": 2.20,
+        "kd_us_per_px": 0.35,
+        "max_correction_us": 130,
+        "min_effective_us": 8,
+    },
+}
+
+
+# 斑马线全局取图范围和白色筛选。
+CROSS_ROI_X0 = 0.04
+CROSS_ROI_X1 = 0.96
+CROSS_ROI_Y0 = 0.30
+CROSS_ROI_Y1 = 0.995
+CROSS_S_MAX = 105
+CROSS_V_MIN = 135
+CROSS_PRESERVE_THIN_STRIPES = True
+
+# 远处检测：多块白色矩形需要横向分布，并连续多帧通过确认。
+CROSS_MIN_AREA = 25
+CROSS_MAX_AREA = 4500
+CROSS_MIN_LONG_SHORT = 1.15
+CROSS_MAX_LONG_SHORT = 8.0
+CROSS_MIN_FILL = 0.40
+CROSS_MIN_SOLIDITY = 0.72
+CROSS_MIN_RECTS = 3
+CROSS_MAX_Y_SPAN_RATIO = 0.06
+CROSS_MIN_X_SPAN_RATIO = 0.22
+CROSS_ARM_HISTORY = 3
+CROSS_ARM_HITS = 2
+
+# 近处检测：只看画面下方，允许白块变大或被画面边缘裁切。
+CROSS_NEAR_Y0 = 0.68
+CROSS_NEAR_X0 = 0.05
+CROSS_NEAR_X1 = 0.95
+CROSS_NEAR_MIN_AREA = 90
+CROSS_NEAR_MIN_W = 12
+CROSS_NEAR_MIN_H = 5
+CROSS_NEAR_MIN_FILL = 0.32
+CROSS_NEAR_MIN_RECTS = 2
+CROSS_NEAR_MIN_X_SPAN_RATIO = 0.22
+
+# 近处白块底边跟踪：拒绝单帧大跳变，持续出现的新位置才接管。
+CROSS_NEAR_MAX_JUMP = 0.075
+CROSS_NEAR_JUMP_CONFIRM_FRAMES = 4
+CROSS_NEAR_EMA_ALPHA = 0.35
+
+# 当前使用白条顶边判断接近和刹车。数值是画面高度比例，不能当作距离。
+CROSS_USE_STRIPE_TOP = True
+CROSS_APPROACH_STRIPE_TOP = 0.65
+CROSS_BRAKE_STRIPE_TOP = 0.72
+CROSS_EARLY_STOP_ON_ARM = False
+CROSS_CONFIRMED_CLOSE_BRAKE = False
+CROSS_SHADOW_MIN_TOP = 0.45
+CROSS_CLOSE_SHAPE_TOP = 0.68
+
+# 底边模式与近区丢失后的刹车条件仍保留，供原检测流程和旧入口使用。
+CROSS_APPROACH_NEAR_BOTTOM = 0.82
+CROSS_APPROACH_HISTORY = 3
+CROSS_APPROACH_HITS = 2
+CROSS_BRAKE_NEAR_BOTTOM = 0.90
+CROSS_BRAKE_HISTORY = 3
+CROSS_BRAKE_HITS = 2
+CROSS_BLINDZONE_ARM_NEAR_BOTTOM = 0.90
+CROSS_MISS_STREAK_TO_BRAKE = 3
+CROSSWALK_ENABLE_DELAY_SECONDS = 0.0
+
+
+# 斑马线停车与播报。原入口默认停车后结束，本项不是现场入口的全部流程。
+STOP_HOLD_SECONDS = 10.0
+RESUME_AFTER_CROSSWALK = False
+
+
+# 运行记录与画面超时保护；总时长为 0 时不按计时结束。
+SHOW_DEBUG_WINDOWS = False
+LOG_EVERY_N_FRAMES = 10
+MAX_FRAME_AGE_SECONDS = 0.20
+STALE_FRAME_STOP_COUNT = 4
+MAX_RUN_SECONDS = 0.0

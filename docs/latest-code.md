@@ -1,12 +1,11 @@
-# 最新源码 · 一键测试版
+# 最新组合源码
 
-当前版本为 `smartcar_oneclick_zebra_reverse1590_20261120`。[下载完整源码 ZIP](https://github.com/zxjzzbh/2026-/releases/download/smartcar-oneclick-zebra-reverse1590-20261120/smartcar-oneclick-zebra-reverse1590-20261120.zip) · [下载校验文件](https://github.com/zxjzzbh/2026-/releases/download/smartcar-oneclick-zebra-reverse1590-20261120/smartcar-oneclick-zebra-reverse1590-20261120.zip.sha256)
+当前版本为 smartcar_outdoor_parking1618_cone1115_20261120。[下载完整源码 ZIP](https://github.com/zxjzzbh/2026-/releases/download/smartcar-outdoor-parking1618-cone1115-20261120/smartcar-outdoor-parking1618-cone1115-20261120.zip) · [下载校验文件](https://github.com/zxjzzbh/2026-/releases/download/smartcar-outdoor-parking1618-cone1115-20261120/smartcar-outdoor-parking1618-cone1115-20261120.zip.sha256)
 
-接近斑马线和红绿灯时，有当前车道观测的巡航油门为 1590 微秒。斑马线用 1300 微秒反向脉冲，目标时长 0.12 秒，随后回到 1500 微秒中位。实际停车落点待实车测量。
+常规巡线、发车和斑马线使用 11 月 20 日斑马线丢失制动修复附件，语音使用扩展板语音修复附件。锥桶使用 GitHub 11 月 15 日比赛版，停车使用本次 16:18 室外停车单项包。完整模块来源、运行方式和参数在 [README](../README.md)。
 
-调试页 `/debug/` 选择项目后，点“开始测试”。车端保持 3 秒中位后启动；准备中或运行中都可以点“结束测试”。“仅观察识别”直接采集图像。比赛页 `/competition/` 保留正式遥控交接流程。
+接近阶段有当前车道时使用 1600 微秒。红绿灯在约一米处先停车，停稳后等待同灯组绿灯。斑马线制动脉冲完成并回中位即开始十秒计时和播报。停车单项和全流程末段共用新停车模块。
 
-- `cpp/` 包含比赛入口、控制器、感知算法、配置和离线回归。
-- `vision/` 包含 5G 服务、比赛页和调试页。`deployment/` 包含车端服务文件。
-- 源码包 SHA-256 为 `1f3a88964e5c0e69c9291fb4cb65804f0fd9f1f1bc1d95f1d601db54baec7dcd`。仓库运行文件与压缩包逐文件核对。[仓库校验清单](../SOURCE-MANIFEST.json)
-- 电脑端 10 组离线测试及其中 32 项 5G 服务测试通过。此版本尚未上车验证。[使用说明](../README.md) · [验证方法](reproduce.md) · [部署状态](../DEPLOYMENT.json)
+Windows 本地构建与 17 组离线测试通过。停车录像回放中，反光第 9 帧选左库，近景第 106 帧选左库，进场 80 帧未锁定库位。三段均未报入库完成。源码已发布，车端部署与实车完整流程验证仍待完成。
+
+源码包 SHA-256 为 c367371dcb16cb1f2fcd3dbe44fa559e7d8b316cb54278bb44c9690e82e548b4。归档运行文件与仓库 cpp、vision、deployment 三个目录逐字节核对，仓库首页额外包含下载入口。[仓库文件校验](../SOURCE-MANIFEST.json) · [历史部署记录](../DEPLOYMENT.json)

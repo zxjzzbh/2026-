@@ -1,8 +1,13 @@
 {
-  "version": "smartcar_oneclick_zebra_reverse1590_20261120",
+  "version": "smartcar_outdoor_parking1618_cone1115_20261120",
   "algorithm": "SHA-256 of exact bytes",
-  "file_count": 151,
+  "file_count": 251,
   "files": [
+    {
+      "path": "CURRENT_VERSION.txt",
+      "bytes": 249,
+      "sha256": "e807bd08e324a6b4c6b579ada7eb1552dffd51141f8ffc7bf0f0e6937bcdf7cd"
+    },
     {
       "path": "DEPLOYMENT.json",
       "bytes": 523,
@@ -10,8 +15,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 13578,
-      "sha256": "935f38c4f8b2180671e6b372ebdfeb0423885f8db52d139405bd908b989d0f0b"
+      "bytes": 5361,
+      "sha256": "06d68e09ead1002039018ff1e921146a2ca66929d562aee4cafe1ae1cbc010d6"
     },
     {
       "path": "cpp/.clang-format",
@@ -25,18 +30,18 @@
     },
     {
       "path": "cpp/CMakeLists.txt",
-      "bytes": 3229,
-      "sha256": "70d85d467560f98204e2bd1191ab9b95e05a15b4b4cd0be3420bac2730544cce"
+      "bytes": 3961,
+      "sha256": "5a8887d029a5aed687232426eacf3f85b5c660cc1220774b208b46c0feba894f"
     },
     {
       "path": "cpp/README.md",
-      "bytes": 733,
-      "sha256": "a436edc3f3573c706009fd931a5e375f6d765b84cf3b1a3534dc77d9d910c21d"
+      "bytes": 690,
+      "sha256": "07ea05f51575b196f5738f76f4567fabaf3e6f3767db487071c1af7fb93c0992"
     },
     {
       "path": "cpp/algorithms/hybrid.py",
-      "bytes": 15921,
-      "sha256": "0046228843d973c8951ea4f6db3b90aef07e3428d768d63581b398895706d3a9"
+      "bytes": 20736,
+      "sha256": "96aa6acbe58d3871f31a7bd9728489d824608539a34351395147be92a7e341c5"
     },
     {
       "path": "cpp/algorithms/legacy/__init__.py",
@@ -274,24 +279,229 @@
       "sha256": "9f1d315e9ba6401944d0abadc17b16a7f1436cf5695e6ebf7d311d7ee31f2f1e"
     },
     {
+      "path": "cpp/algorithms/legacy/traffic_photometry.py",
+      "bytes": 3585,
+      "sha256": "5576ed87a44347583ccfa181e50ab33f61977786216d09d9555fa85c3d9d7aff"
+    },
+    {
       "path": "cpp/algorithms/legacy/traffic_signal.py",
-      "bytes": 22343,
-      "sha256": "a8696ac4d1b196f3ef7d4fc6c39cfdbfbeb5a2f133b546966a844b2918fa21dd"
+      "bytes": 24966,
+      "sha256": "7f1f6261c4b977175d4332553b48db5d0525d99c5affe9297cb017c965f7900d"
     },
     {
       "path": "cpp/algorithms/legacy/traffic_tracking.py",
-      "bytes": 7421,
-      "sha256": "d095061a376979e192fd50a357f33f0f3a635182c4751595884080b53521d13f"
+      "bytes": 10766,
+      "sha256": "d0acf3674e51e7bb26a1b40401ea1ed0fdbe631816d44f8afd7b28b69ec44479"
     },
     {
       "path": "cpp/algorithms/legacy/traffic_voting.py",
-      "bytes": 13668,
-      "sha256": "9036f8dece2f66e664a1595b737f259ca12a31175f88bdd6dd562c3fe8921c1e"
+      "bytes": 13733,
+      "sha256": "de08353ab0a7fded90c96c2892063ac29dddc1aaeea02d88acf819ac34d947ff"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking.py",
+      "bytes": 2739,
+      "sha256": "db86f4068d3a42b030f4ba878cbe5acbdd8af170cce3ed9bd4eec6bc16d213a4"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/barrier.py",
+      "bytes": 2877,
+      "sha256": "f94fbdb367ac8920d2aabf5943180d9415c67da9b00ae5dad80b8101e7ea6af4"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/camera_pose.json",
+      "bytes": 285,
+      "sha256": "e12989340f0b6c70e0ab5b34a873f7d96598e9f545bc439b3b6bfcadeee84251"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/camera_stream.py",
+      "bytes": 3717,
+      "sha256": "5b902af0894d550c6926588d4e88262c71fa154fed159e18f9f8539922ee4f67"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/competition_config.json",
+      "bytes": 2105,
+      "sha256": "881e7e00b3b2ac98aa4e80ba12734224636d58af8009e33b4bc52e33e9638d67"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/competition_config.py",
+      "bytes": 9940,
+      "sha256": "bbc9d8508ae64164a6021063b57c931781902c4f33f269d8580db01aca766844"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/cone_relaxed_logic.py",
+      "bytes": 3032,
+      "sha256": "a30f918015a59827d93b0aed1b06743d6a7179879cfdaee0aa0a13fed370bd4e"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/cone_solo.py",
+      "bytes": 21128,
+      "sha256": "5fd28ae0a70db979c23833b1ccb8aa72cadaea5a4f717c65940cd292901d9434"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/cone_solo_logic.py",
+      "bytes": 38408,
+      "sha256": "99fba1c5e25d397a9f94ba987c1f54c4c2d6e518963615611c9592875a9f6093"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/config.py",
+      "bytes": 6845,
+      "sha256": "7c097d169de36a08cbb307213c45e7edd53714f5f6d8bf40bd34e403b16d7ccf"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/crosswalk.py",
+      "bytes": 32822,
+      "sha256": "d1b906188046399c2c9c08ebad07f703178bdac620be90264bb73dd08167bc04"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/fusion_logic.py",
+      "bytes": 19206,
+      "sha256": "26e01500f1c34a87d78580ba346f1ce653a9a5edbafd7a8b744b7138fd837377"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/fusion_run.py",
+      "bytes": 39866,
+      "sha256": "106563213e84d45632f06dce1cba660ea082bcbfdf134f770c235de14b3f083d"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/fusion_snapshots.py",
+      "bytes": 2450,
+      "sha256": "bf1696a33f631f6196d627b3e3189bbad9fb65b2da37295ef5b86d24518b4c19"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/lane_follow.py",
+      "bytes": 26087,
+      "sha256": "0dc793684d5e0dc616f815539e35683b395b7576030f657ff788534aa99c4f90"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/lane_follow_relaxed.py",
+      "bytes": 713,
+      "sha256": "82aa3804f44e157b3069a2f412304d6b4c9b5d8718784a4919f953f8440063ba"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/lane_target.json",
+      "bytes": 216,
+      "sha256": "01a0b9a7e3059df7565b09585626748e566362255e5847de5c2805703f57dda7"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/light_cone_run.py",
+      "bytes": 7786,
+      "sha256": "dffacfb7b2982b0082aff400e166131616b225f21d119b5ac7e0a6fff3954619"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/light_stop_calibration.json",
+      "bytes": 2103,
+      "sha256": "502003c426c86f26115725a6f86df39e7b306eb6b1feab281a512deab5640e49"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/parked_photos.py",
+      "bytes": 1778,
+      "sha256": "38abb027bc86af7bda74669dbe0c600c899d99ed618d36a1b3bf211335114973"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/parking_modules/parking_bypass_perception.py",
+      "bytes": 15582,
+      "sha256": "e3edf26e40ae0d0967ac62a30147794c18da860d6032aa3bd277e0d2ec3ee8d6"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/parking_modules/parking_bypass_policy.py",
+      "bytes": 14928,
+      "sha256": "1621ded9cdec238ccb1f9877293fdc6f3a7814e669362e252e51b16c340566f9"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/parking_modules/parking_corridor_tracker.py",
+      "bytes": 6170,
+      "sha256": "61eb4a72718ffddddf4ab82dfad044bc37609141a59820ab6f2855e1cc2cd5fa"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/parking_modules/parking_entry_geometry.py",
+      "bytes": 16149,
+      "sha256": "49a693240cb0fa3e97385ae91e1efa067a3216dc639cc72cc1eca57c18b64403"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/parking_modules/parking_entry_preview.py",
+      "bytes": 8715,
+      "sha256": "08265e8d768aaf1135aec84663ce1db1fb479ffc34b39a2c58bdda555c5007dd"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/parking_modules/parking_side_exit_perception.py",
+      "bytes": 17498,
+      "sha256": "91e3e7fc2ffe752c4162b3c83dce70de3a02a8da65ac7df5b689d45b04a064d2"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/parking_modules/parking_side_exit_policy.py",
+      "bytes": 14002,
+      "sha256": "fd8fdc920bf2404eaa11377acb438c401b8d5ccd446805b826bc27f6581274e4"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/parking_record_camera.py",
+      "bytes": 2444,
+      "sha256": "4f59d58ee8f3db1215998f4957018e67b64b901e6f3a813dfb529e9474ae7a15"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/race_loop_diagnostics.py",
+      "bytes": 1515,
+      "sha256": "10dd85bf21a1d0dda0259e7260252b613ec4e9c60c3e6aa35c49515a70dad66c"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/race_manual.py",
+      "bytes": 7010,
+      "sha256": "2278693a95fd058ebe22bd279381c01da723b7770ff75cb295898257eb99697f"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/race_master_config.json",
+      "bytes": 954,
+      "sha256": "b91cca59a8587372268ca5b2a5d94db82032b54beefd105c39c6ac916c29d7a3"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/race_master_logic.py",
+      "bytes": 21911,
+      "sha256": "0aebd017f3d99d798a8edb6bae10b8780a39732614100788192ffaef7a2eb7c9"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/race_master_run.py",
+      "bytes": 32412,
+      "sha256": "dc5e97a73d006029071f6c7c53d9cf54b784ca09a0fe4d0f64f77e3c85523ec8"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/race_parking_current.py",
+      "bytes": 2379,
+      "sha256": "72936cc00e500536a538c0853aae94fff9c40fc4b1c759b9604a0d59c15076ed"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/run_parking.py",
+      "bytes": 239,
+      "sha256": "ea149f7c2b24d205690f9e79e0ab58e35f0d10cee00122f4ee22ce8e6ce6e04d"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/standalone_parking_20261119/parking_only_test.py",
+      "bytes": 68120,
+      "sha256": "1df777cc4a81ae72c50953493bcc71e3299bc3cad39ac68e29c54f7ac5305d82"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/standalone_parking_20261119/parking_side_exit_perception.py",
+      "bytes": 19731,
+      "sha256": "44ef9bf9463038a5a28795f1589e5673b80e0b536db739e5e6a25e368aa956d3"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/traffic_light.py",
+      "bytes": 18083,
+      "sha256": "61cc23964c11984d5a64c85615270a9edcff5e66e7af07672bd950344068f51f"
+    },
+    {
+      "path": "cpp/algorithms/outdoor_parking_1618/wisecar_vision.py",
+      "bytes": 15351,
+      "sha256": "5842e50be3ca221842ea2fe5281352005703b766ca417c9538ab8783198e94a7"
     },
     {
       "path": "cpp/build.sh",
       "bytes": 203,
       "sha256": "d2435c003ee7563ebe623f9873ebaa8e8e20da7d34a3729f5c1e12c758605adb"
+    },
+    {
+      "path": "cpp/config/audio/zebra_announcement.wav",
+      "bytes": 214876,
+      "sha256": "02f73dcbd5e8461d84c49f64dcb93149b8bc0bff61b5814f5ec6bf073364cf5a"
     },
     {
       "path": "cpp/config/calibration/crosswalk-distance-20261024.json",
@@ -360,18 +570,18 @@
     },
     {
       "path": "cpp/config/legacy/traffic-driving.json",
-      "bytes": 1999,
-      "sha256": "87136b7a42ba24eb4f9de6027a65d9e3ee8336b5e0c89ad7798c3ce39b06d356"
+      "bytes": 2044,
+      "sha256": "4b3e3e501bd5dbc7015bc5f608c15e87a6ef91564a66855e58c2a5b5a8befcb7"
     },
     {
       "path": "cpp/config/legacy/traffic-signal.json",
-      "bytes": 868,
-      "sha256": "f632948d92efaf4aa4c8f2401f90fd0e0aa4512574abd74f5152954875b35ec1"
+      "bytes": 999,
+      "sha256": "663a1225468f7b348834c0e5d0146cdd17fa7f96e70935aa0b6cc72b20b2e8ce"
     },
     {
       "path": "cpp/config/race.json",
-      "bytes": 1106,
-      "sha256": "f164a9cc839465a6ec52060016ae320cd14f2d8994ebdb872d2206d089fbf05e"
+      "bytes": 1389,
+      "sha256": "aa72baedd9b1cda8d27bf3c7db5de2441b6e56ce793e0afce59c6a155a2dafa2"
     },
     {
       "path": "cpp/docs/calibration.md",
@@ -379,9 +589,29 @@
       "sha256": "78ec777987942979c0fbe9c8eb66a35b710e564cc9ae25dcd87e116ff0ae094f"
     },
     {
+      "path": "cpp/docs/expansion-tts-fix-20261120.md",
+      "bytes": 1685,
+      "sha256": "0b520f0dad7d905ad569a0158a489a45a0c36855f044c22e922662ed65f7b90a"
+    },
+    {
+      "path": "cpp/docs/field-sixfix-20261120.md",
+      "bytes": 5975,
+      "sha256": "30e92f58ab5b0d804e85815f35ffbde64952276841550f51e1e5aa4031926a6f"
+    },
+    {
       "path": "cpp/docs/perception.md",
       "bytes": 6272,
       "sha256": "47b982fdc2f35aacd3ec7ab1ffc21850dd86f569dd6c6f386e3aff66ddb905a9"
+    },
+    {
+      "path": "cpp/docs/race-signal-zebra-fix-20261120.md",
+      "bytes": 3624,
+      "sha256": "1ce5a2458316d82cee4d13df1d03fe0c7c20f8eb6a43361583df2c9b5a02bc12"
+    },
+    {
+      "path": "cpp/docs/red-trigger-fix-20261120.md",
+      "bytes": 2194,
+      "sha256": "d11f1845a8f7c4d770aa6f8957385a11dbce35769c090da17bae1e22795678a9"
     },
     {
       "path": "cpp/docs/source-provenance.json",
@@ -389,9 +619,19 @@
       "sha256": "b557bc9477267b7f9ed92c74d34a4b01549537fd700455fe1236ddedde72063f"
     },
     {
+      "path": "cpp/docs/traffic-all-off-fix-20261120.md",
+      "bytes": 1973,
+      "sha256": "359803ba72eb2f22789b35966e24bd598dd765126d8fea8074b44e45665a2176"
+    },
+    {
       "path": "cpp/docs/traffic-demo-integration.md",
       "bytes": 4176,
       "sha256": "c7083b9d14bdfdb28a541d66c4304c6368fa857ac5bfa231e47ae3addc68df36"
+    },
+    {
+      "path": "cpp/docs/zebra-loss-fix-20261120.md",
+      "bytes": 1168,
+      "sha256": "103e56b3345066085aeab61093fdeabe56329675888d7d1cc4476350352052b8"
     },
     {
       "path": "cpp/docs/复核整改-R2-20261119.md",
@@ -400,8 +640,8 @@
     },
     {
       "path": "cpp/docs/竞赛合规与现场操作.md",
-      "bytes": 10645,
-      "sha256": "288dc3114d055f5acaf5bd4c1792e1a51198621c6e38694e210be35dc9b7d238"
+      "bytes": 10991,
+      "sha256": "b21e07c29b12f20a20309b1e7b50d06eae15c3bfce4d191f67e21bfe7c5cafb4"
     },
     {
       "path": "cpp/include/TrafficLight.hpp",
@@ -409,9 +649,14 @@
       "sha256": "ae188b0dc7074e56bb0bb37c3442f4a624c7550ab44ff58c76f7047e670179cd"
     },
     {
+      "path": "cpp/include/smartcar/announcement.hpp",
+      "bytes": 828,
+      "sha256": "be835676a94d41be5bd8b338e4f19f66faaf8ea3ab7a0681b92b77c87d57d1fb"
+    },
+    {
       "path": "cpp/include/smartcar/controller.hpp",
-      "bytes": 1912,
-      "sha256": "bd2ab8d8286fe6910e15a5d81b4ec062ccb83321fbf42c5b8884f98b38918802"
+      "bytes": 2187,
+      "sha256": "77ef39c4b3ae1638a7f0fbddbc382d43871f85ffc53e3b905a2ab124942af0bb"
     },
     {
       "path": "cpp/include/smartcar/ground.hpp",
@@ -420,8 +665,8 @@
     },
     {
       "path": "cpp/include/smartcar/hybrid.hpp",
-      "bytes": 1039,
-      "sha256": "9b697bc053abe7565748cdbd47c4f71cbf2d1fccd2508fca241426e6dda771c8"
+      "bytes": 1249,
+      "sha256": "a8377d13f04780e429c86411fe53ca0e5ef3d46af6e39d2e79214156df1833af"
     },
     {
       "path": "cpp/include/smartcar/parking.hpp",
@@ -430,18 +675,18 @@
     },
     {
       "path": "cpp/include/smartcar/perception.hpp",
-      "bytes": 1881,
-      "sha256": "329a80a80c3e104df154211f126130fbdf708a0acb1b58f0ab783e6220dd78d7"
+      "bytes": 2086,
+      "sha256": "79d6da7cfef3d7a59ab0ca3d08ac19921cb661a684ad03dca7fcae523a489686"
     },
     {
       "path": "cpp/include/smartcar/runtime.hpp",
-      "bytes": 2452,
-      "sha256": "812aab70f7e39ce42dddaf1f8395dd7964adab43135ace19a08f89d951cfb051"
+      "bytes": 2980,
+      "sha256": "f8148546ab70a6c5d7a14b7ca6d90c6b0314c66b439681f8d8c0f224fa3b91fb"
     },
     {
       "path": "cpp/include/smartcar/types.hpp",
-      "bytes": 3786,
-      "sha256": "6f5c3b98b9fec2d8f67dfa118a66d6c913063bde01a28e3360de37ba94acae7e"
+      "bytes": 3956,
+      "sha256": "00115cb54fc3bbc893f422cbff5ce4749087932b89d10da47f7738136227c202"
     },
     {
       "path": "cpp/include/smartcar/zebra.hpp",
@@ -469,9 +714,14 @@
       "sha256": "eef242dab152ba09e3141b66e909a8c85bfbef424cee5f8cab06864e9c9d80d5"
     },
     {
+      "path": "cpp/src/announcement.cpp",
+      "bytes": 5586,
+      "sha256": "ae61a060142d78837c6ab22b284d19cc7389e8ed8727d8a4328792e4ab56c086"
+    },
+    {
       "path": "cpp/src/controller.cpp",
-      "bytes": 29813,
-      "sha256": "02c33ecd360433e3bc36c4e3bb16e4a163b3b15a1a7f88dba8d28b59384b0adc"
+      "bytes": 32813,
+      "sha256": "7047488e92dc988d941eca6e44e433bd08cce16111f9778c1085a7cc4a5996ed"
     },
     {
       "path": "cpp/src/ground.cpp",
@@ -480,13 +730,13 @@
     },
     {
       "path": "cpp/src/hybrid.cpp",
-      "bytes": 5499,
-      "sha256": "df7805019af32ac6c786fd654a389e5ca520728e793cff871401b14926e2d3b7"
+      "bytes": 6279,
+      "sha256": "392618a2d1e02018744e2d02d944703c595f2d2cd1c08be4a2b3585be2d9047e"
     },
     {
       "path": "cpp/src/main.cpp",
-      "bytes": 33346,
-      "sha256": "20918fed6214e86802c1e876999f70fe4e6deb1371fcbeb7878b0ae74b777d14"
+      "bytes": 37443,
+      "sha256": "6fc61201ca123a9123cf6b44250825536dd46bc4cf6d3d76d11c03b97d3ff696"
     },
     {
       "path": "cpp/src/parking.cpp",
@@ -495,13 +745,13 @@
     },
     {
       "path": "cpp/src/perception.cpp",
-      "bytes": 34594,
-      "sha256": "6b998f107bf6e31d2e3a146e4070db522443b01c5a35b66d86805e798a2797ec"
+      "bytes": 35868,
+      "sha256": "5db0867592bd06746733effd3deacbeaea6ad2b54a0aeba61f6d6d2239be8b05"
     },
     {
       "path": "cpp/src/runtime.cpp",
-      "bytes": 9952,
-      "sha256": "235ac4fe268b86b12de2084ad2b36999e566bcf910c00a5b9472b0590263fcad"
+      "bytes": 11538,
+      "sha256": "120eb2ad0cdc7e8ac9fc4d4b58faef7cec243771b0dcea60af838d8989eaae22"
     },
     {
       "path": "cpp/src/zebra.cpp",
@@ -524,14 +774,159 @@
       "sha256": "cdd0e57a8e5ecb12fd678e049e73fc69f1c731b1ba08c6c7730de896758d873d"
     },
     {
-      "path": "cpp/tests/fixtures/cone-removed-secondary-a.jpg",
-      "bytes": 11534,
-      "sha256": "ef97fc4be9ca6169dff6eefed279f2f9165f4a3ab000e2be250dd03d01308ccf"
+      "path": "cpp/tests/fixtures/field_20261120_board.json",
+      "bytes": 2182,
+      "sha256": "bb76928442cd4c1b89477abb8a44ccc04947bc1c571a56ad37579be9410ef34a"
     },
     {
-      "path": "cpp/tests/fixtures/cone-track-glare-secondary.jpg",
-      "bytes": 12461,
-      "sha256": "e1855562c653f892c232c8f9858d0876e4b7b09be13bb71694bf608b695b25c0"
+      "path": "cpp/tests/fixtures/field_20261120_cones.json",
+      "bytes": 2188,
+      "sha256": "b069838ea3b378287ae9af969d8c9e74406ffab8f7fef86906010b04d6828aa8"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_primary-680.jpg",
+      "bytes": 39874,
+      "sha256": "c5dc14f258fc742b39fc382fc76c07b5b4497540608c55ce0577569d71458e25"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_primary-687.jpg",
+      "bytes": 92097,
+      "sha256": "6005d053395604709a38092fb02e1379e72818d099d81ce792631ce2b61e1102"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_primary-688.jpg",
+      "bytes": 90797,
+      "sha256": "6c24c289d14153e827e0409908150a1c30dd81b0bca555a15e74c1039fe0cee6"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_primary-689.jpg",
+      "bytes": 89285,
+      "sha256": "3f96066d785ca4bbba7c11a19809f268e600d26ba98c8c6153ba881d20901791"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_primary-690.jpg",
+      "bytes": 85299,
+      "sha256": "cb6431020c86b37daee93f47bc72f288e43b91d2000db7a3a6d1ac1e498ed749"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_primary-691.jpg",
+      "bytes": 82047,
+      "sha256": "a0c50bfecfffba080c27f09cf16299c3faa651335f64e5914d24b8ae2f12d226"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1007.jpg",
+      "bytes": 35554,
+      "sha256": "116238feb416087fd41cad78dd4662060112de82b9176eeb6b4f07054d885e7c"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1291.jpg",
+      "bytes": 32862,
+      "sha256": "7b614ccb20cae1fda176a31d1058de3db37eb77ff35d5fdff4cf196de144cdc9"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1598.jpg",
+      "bytes": 38674,
+      "sha256": "82d805dccd852a40cd5ae101dc98e2d926651837872da549f2c2b8969c57de62"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1601.jpg",
+      "bytes": 39026,
+      "sha256": "9219e4d12d41b08dd5de34b0d1b5e4dd8bd0bd17b96706c2be35c44b4199b07d"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1602.jpg",
+      "bytes": 39526,
+      "sha256": "9dfe9d9adbd629c16a472c8cf8d91515963d7cb4272193a380eac39fcdd84bc5"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1603.jpg",
+      "bytes": 40278,
+      "sha256": "bfa946fee08fc2d677314be9196b4d859edfa44003866befb4d5bb1840de4acc"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1604.jpg",
+      "bytes": 41856,
+      "sha256": "10d3e54aa6c08aab9edd24592f16e7b3f11af731a532425a519c0e9cc492ab82"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1676.jpg",
+      "bytes": 73260,
+      "sha256": "abe6798a70fbe85372d26077fc4224d303a272cfd084238f51814ba02ae13802"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1677.jpg",
+      "bytes": 72653,
+      "sha256": "26ed60997818f620cda458587d319bff5ac4907f6449d5d2f95a3ea6d1254a9d"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1678.jpg",
+      "bytes": 72288,
+      "sha256": "a2e13949f404ed2abaf3579d33697536018f9831f8e73ede4d1fee2916c0a01c"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1679.jpg",
+      "bytes": 70743,
+      "sha256": "a05aeab0d7a21a2e62d5f83563a51661b5ff080e35788339ff1280784261cf00"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-1680.jpg",
+      "bytes": 68176,
+      "sha256": "dec41323f350035d3446246db60a2903dd1cc4cfeed74a12042b032eaab2891e"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-650.jpg",
+      "bytes": 75306,
+      "sha256": "654a1ebf64666dea14b156e959f7f3514e74eb3c4cfb25c7df4659154d8c408c"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-660.jpg",
+      "bytes": 76187,
+      "sha256": "c8c1e01edd8f2ee23bb81a63ad03a2d62ed36d61ac4c1e22e38472b11f3efa21"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-666.jpg",
+      "bytes": 72630,
+      "sha256": "d11cb912c2db32c657e97642cc73f4e676179f2fa611cc652da32e3a45bd2ed2"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-667.jpg",
+      "bytes": 69782,
+      "sha256": "c3575c0851b4acb80140c10def5f205a538ac4455fc68b9fbc24ce403a04743c"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-680.jpg",
+      "bytes": 77719,
+      "sha256": "70587bfb64841aca5d923095b2e6fafccf3194299439051b5d583de2739ab791"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-700.jpg",
+      "bytes": 76729,
+      "sha256": "cdf83c4c3c83f2831ad74dd34e96f0d9ed665ea48bd7e8326a3a2085503ecc51"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-701.jpg",
+      "bytes": 36088,
+      "sha256": "5028510646d9f3b82b588990ab126debb14bfb5b560d2efe307d462ace03e07d"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-740.jpg",
+      "bytes": 76744,
+      "sha256": "50e73c969398b0315086925226fdce85a5b4a25adda5697b8355190a61a16fcb"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-780.jpg",
+      "bytes": 74776,
+      "sha256": "a83ca06862801aa22df7c8d6d6e92d4ea94a70a1a320e581ca974dbddea073b7"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-800.jpg",
+      "bytes": 74440,
+      "sha256": "f6a1f9efa702b11e69bb0d9b8d87d25c333078c2d6272d38a98cdfb1518dca09"
+    },
+    {
+      "path": "cpp/tests/fixtures/field_20261120_secondary-830.jpg",
+      "bytes": 66074,
+      "sha256": "04bd56b41a605e9034b993e4dfc453573ab7c50a2c284ba2cd94c98801c8fff9"
     },
     {
       "path": "cpp/tests/fixtures/parking_entry_distant.png",
@@ -542,6 +937,11 @@
       "path": "cpp/tests/fixtures/parking_entry_glare.png",
       "bytes": 209108,
       "sha256": "edd681828d29a358e95334cd1248636104095710449301629e83bf5c21e75104"
+    },
+    {
+      "path": "cpp/tests/fixtures/parking_glare_first16.avi",
+      "bytes": 1328816,
+      "sha256": "3862e046e9ce81f4d083e07d8591cfb22f34f642251d1fdb036b338a678a9caa"
     },
     {
       "path": "cpp/tests/fixtures/parking_left_clear_right_board.jpg",
@@ -599,19 +999,64 @@
       "sha256": "0a54d63f241d3ab885bbe1404cc8c1180a82d84c61f12369c7cf8a07965ba479"
     },
     {
-      "path": "cpp/tests/fixtures/traffic_outdoor_green.png",
-      "bytes": 402617,
-      "sha256": "0fe5379646930898fc7e7e77ffe43e0034d0ce684b5e1d96dc629744d54b7036"
+      "path": "cpp/tests/fixtures/start_sky_board_100.jpg",
+      "bytes": 30019,
+      "sha256": "0a55ae4b6748ca5154d8662ff0a364888864b2430bd2c90c36537267f7a9aade"
     },
     {
-      "path": "cpp/tests/fixtures/traffic_outdoor_off.png",
-      "bytes": 404090,
-      "sha256": "6ed0bb501ea8cb453831bf5b6e4f535cf03679e214ed1d95f6f934ab67335962"
+      "path": "cpp/tests/fixtures/start_sky_board_110.jpg",
+      "bytes": 29923,
+      "sha256": "1118e5719313eb8e766f665988c2dada987fa832dcf6862e0764c2d3877048e0"
     },
     {
-      "path": "cpp/tests/fixtures/traffic_outdoor_red.png",
-      "bytes": 408185,
-      "sha256": "d763a9cfd46af9f38d70e22edf9cca36c44d9cecbe59e7f739036617501f8c87"
+      "path": "cpp/tests/fixtures/start_sky_board_120.jpg",
+      "bytes": 29848,
+      "sha256": "8868c8a0827c07c4c19ea36507f9cddd84addf3d6b6eb9726d476f2b17d97bfc"
+    },
+    {
+      "path": "cpp/tests/fixtures/start_sky_board_130.jpg",
+      "bytes": 30125,
+      "sha256": "797fbf870d98a5ae6b838b2346dc276e42179f67c820e89ecffa443bf5dfe457"
+    },
+    {
+      "path": "cpp/tests/fixtures/start_sky_clear.jpg",
+      "bytes": 26902,
+      "sha256": "14caef769dff4a05bb0f3ffe7111ad2e2bb3a9e474871e2bddb76de5a9e7533c"
+    },
+    {
+      "path": "cpp/tests/fixtures/traffic_off_false_fixture.jpg",
+      "bytes": 28510,
+      "sha256": "df40a853d3309adcf4d10d8575fee76ac122e938a16dd0189b6c95ef8a0dd854"
+    },
+    {
+      "path": "cpp/tests/fixtures/traffic_off_sun_primary.jpg",
+      "bytes": 21135,
+      "sha256": "6d1234c0e75e436c65d86670dd56ec10dfd0747e6d6aeaab6a1529b033b00ec1"
+    },
+    {
+      "path": "cpp/tests/fixtures/traffic_off_sun_secondary.jpg",
+      "bytes": 18580,
+      "sha256": "b0cb1ee6ecc8259097319b20a6b0b2dbbb37bdd5e0b6ec7113a5dc28df45a80c"
+    },
+    {
+      "path": "cpp/tests/fixtures/traffic_trigger_red_1640.jpg",
+      "bytes": 38277,
+      "sha256": "01a4775f1f26a6ec45a0b6309ef90fc4fc8a3b78da7531f2df129ddee1539fb2"
+    },
+    {
+      "path": "cpp/tests/fixtures/traffic_trigger_red_1641.jpg",
+      "bytes": 39499,
+      "sha256": "eee4c831ec1151cdfe7176491f058aec081c7131ef0f9987048e78065111e569"
+    },
+    {
+      "path": "cpp/tests/fixtures/traffic_trigger_red_1642.jpg",
+      "bytes": 40996,
+      "sha256": "8f2619577061e98c91cbe57c136e698a9d9c807eca284818126f6a529e779bd9"
+    },
+    {
+      "path": "cpp/tests/fixtures/zebra_loss_20261120.json",
+      "bytes": 31082,
+      "sha256": "6db366b6f7eea6db9148c75c501dc43a794bc8740b5ecbfbc3ba7dc458e78aa7"
     },
     {
       "path": "cpp/tests/fixtures/zebra_outdoor_0401.jpg",
@@ -649,14 +1094,34 @@
       "sha256": "ba7093d83c027fefd46de3bbc174d907929d15e1cbea6d9481ee5bbd7ac9383f"
     },
     {
+      "path": "cpp/tests/test_announce_i2c.py",
+      "bytes": 1785,
+      "sha256": "666c583299c76077e2d5352b82495fe4bbb8ad6278f11ce1eb99a3dde25fb251"
+    },
+    {
+      "path": "cpp/tests/test_announcement.cpp",
+      "bytes": 2584,
+      "sha256": "07dfe14bcd44beffecb19c8190416fcc3f334461ba2de2918ca4bb23fd40190f"
+    },
+    {
       "path": "cpp/tests/test_controller.cpp",
-      "bytes": 29063,
-      "sha256": "9135a2212c448383a0f7c6c8794ad885b2c706e3d39516bcfb37d441a116f5cd"
+      "bytes": 33450,
+      "sha256": "9e1471ee171bbe56d3dfeef76aa08c648b25851d367b165243de6560fcb51753"
+    },
+    {
+      "path": "cpp/tests/test_field_pipeline.py",
+      "bytes": 2664,
+      "sha256": "ed6fd810aaed1387a93026eeda28afd59456f18802f542467c76333bc30e0d09"
+    },
+    {
+      "path": "cpp/tests/test_field_runtime.cpp",
+      "bytes": 3128,
+      "sha256": "19cdd1829eecd462400f22c30920326055650bd7e3dd7e5a9a9cee59e88918b7"
     },
     {
       "path": "cpp/tests/test_hybrid.py",
-      "bytes": 15148,
-      "sha256": "4d6572de9dbe133d62140eb7182b0be2688a1a9a929674bbbe6273ebccdcdca7"
+      "bytes": 15273,
+      "sha256": "01bf0fdc167704eeb8c36ab9a5043d30396d4581dbc7143a6ff92111e7a40a12"
     },
     {
       "path": "cpp/tests/test_parking.cpp",
@@ -665,8 +1130,8 @@
     },
     {
       "path": "cpp/tests/test_perception.cpp",
-      "bytes": 16926,
-      "sha256": "afd7a0e61725af60547616bd7cd8af455eb78d99c4141c0c4bb98de3b3debdb9"
+      "bytes": 16157,
+      "sha256": "16341883393befd63d21c160206b3f5c6bae23ac623d9deab7ae539066644f3a"
     },
     {
       "path": "cpp/tests/test_road_integration.cpp",
@@ -675,13 +1140,23 @@
     },
     {
       "path": "cpp/tests/test_runtime.cpp",
-      "bytes": 6155,
-      "sha256": "f2155630f4d1c700d89e5a716f35a3dc3f897139fbedc7fa6c7ba4ad21f681e7"
+      "bytes": 6600,
+      "sha256": "f360f85f3c11c4c80e7b92d3c6f664a5270fe151ade88217a8eefdc3fe886851"
+    },
+    {
+      "path": "cpp/tests/test_start_board.cpp",
+      "bytes": 3669,
+      "sha256": "0778b3fc9fef7ce86b8018e7c6cadf69c80a5339b5cba589f0e891494d3899c2"
     },
     {
       "path": "cpp/tests/test_traffic.cpp",
       "bytes": 12813,
       "sha256": "ef7b1ce45ce6142665446078373ece0029dde4b640b7fd7365e61b2d27fdcd21"
+    },
+    {
+      "path": "cpp/tests/test_traffic_off.py",
+      "bytes": 7506,
+      "sha256": "884b61ddd5df367504eef16c48470b8106ac359aab529e3c06460e832e112afe"
     },
     {
       "path": "cpp/tests/test_zebra.cpp",
@@ -694,19 +1169,44 @@
       "sha256": "2fe323d65366d622a80fa29d1c2247c58522ab828523fc020020b51cae040988"
     },
     {
+      "path": "cpp/tests/test_zebra_loss.cpp",
+      "bytes": 1868,
+      "sha256": "5d2294646479fd7b5ec0fae855b33983f3b9934b3848035f93db46e45c2f3efa"
+    },
+    {
+      "path": "cpp/tools/announce_i2c.py",
+      "bytes": 3001,
+      "sha256": "ba6ce356453d557a786c51f1d3fc2950aa3c06711925d997c44c529b0a78232c"
+    },
+    {
       "path": "cpp/tools/import_calibration.py",
       "bytes": 5507,
       "sha256": "322bbf4e2f4e501a214f5c6f86e225122bcd1083591d5bb12206730348e4f848"
     },
     {
       "path": "cpp/tools/pack_release.py",
-      "bytes": 2350,
-      "sha256": "80d09a4144d4c7ce0de58c7546c809f528d656d6d58059a2ceea82ccbba56589"
+      "bytes": 2306,
+      "sha256": "00492ce46efcfd3c55d11fcc29e1161ff99971cbc3d9926d0ab2a44c780c8fdb"
     },
     {
       "path": "deployment/smartcar-preview.service",
       "bytes": 603,
       "sha256": "c12713ac083c419f0be9bf2a60e93ce28e645a4b2a863b4727bca4b97fd5209f"
+    },
+    {
+      "path": "docs/latest-code.md",
+      "bytes": 1558,
+      "sha256": "4fb629e0ed26da0e287c4def8be5c98a5be3a5f387ff531080bbccd265e97b81"
+    },
+    {
+      "path": "docs/reproduce.md",
+      "bytes": 943,
+      "sha256": "0406b92ff3e194d00c4f9886f6d91749c0380c422ff0d02967153e021c0e785c"
+    },
+    {
+      "path": "source-snapshot.json",
+      "bytes": 874,
+      "sha256": "3e567a321ed1c228af0ae0d4b23ad095059c34a6e24fb01559887bad3a97f229"
     },
     {
       "path": "vision/src/carvision/__init__.py",
@@ -745,8 +1245,8 @@
     },
     {
       "path": "vision/web/app.js",
-      "bytes": 16996,
-      "sha256": "ce98fa2dd31e5b118cc60dc56e90fbf42e0c5954c5d698e3a4c47086a6df6def"
+      "bytes": 17791,
+      "sha256": "ce63ef1f7a9952c40709050fdbdb9d32eeafc722addead3cfc29419fc0e1f7eb"
     },
     {
       "path": "vision/web/index.html",

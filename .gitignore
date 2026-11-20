@@ -97,3 +97,6 @@ desktop.ini
 
 # Reviewed measured calibration record; contains no connection secrets.
 !/cpp/config/calibration/sources/cone-latest-20261029.local.json
+
+# Required consecutive parking frames for the published offline regression.
+!/cpp/tests/fixtures/parking_glare_first16.avi

@@ -1,0 +1,43 @@
+{
+  "stage_order": [
+    "CROSSWALK",
+    "TRAFFIC",
+    "CONES",
+    "PARK_SEARCH"
+  ],
+  "skip_traffic": false,
+  "cruise_duty": 12600,
+  "cone_cruise_duty": 12700,
+  "cone_duty": 12700,
+  "approach_duty": 12600,
+  "hold_seconds": 10,
+  "lane_roi": [
+    0.42,
+    0.72
+  ],
+  "cone_color": "red",
+  "cone_roi_top": 0.6,
+  "cone_turn_us": 120,
+  "cone_min_turn_us": 85,
+  "cone_padding": 0.21,
+  "cone_lane_margin": 0.22,
+  "cone_protection": false,
+  "expected_cones": 2,
+  "barrier_roi": [
+    0.2,
+    0.55,
+    0.8,
+    0.88
+  ],
+  "parking_settle_seconds": 0.3,
+  "parking_duty": 12700,
+  "parking_turn_us": 140,
+  "parking_kp_us": 700,
+  "parking_pass_seconds": 0.3,
+  "announcement_file": "/home/pi/src26/race_master_20261011/shandong_apple_band_cheer.wav",
+  "qr_script": "/home/pi/src26/parking_qr_task_20261008/capture_qr_scan.py",
+  "qr_seconds": 20,
+  "max_seconds": 600,
+  "traffic_approach_duty": 12550,
+  "crosswalk_drive_duty": 12850
+}

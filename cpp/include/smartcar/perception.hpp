@@ -8,6 +8,9 @@
 #include <memory>
 
 namespace smartcar {
+struct PerceptionTasks {
+    bool lane = true, zebra = true, board = true;
+};
 struct PerceptionDiagnostics {
     int white_components = 0, rejected_tapes = 0;
     int motion_features = 0, motion_inliers = 0;
@@ -15,6 +18,7 @@ struct PerceptionDiagnostics {
     bool fresh = false;
     bool board_candidate = false, board_reference_valid = false;
     double board_clear_fraction = 0, board_blue_fraction = 0;
+    double board_path_blue_fraction = 0;
     int image_lane_candidates = 0;
     int zebra_image_stripes = 0;
     double zebra_near_edge_px = -1;
@@ -26,7 +30,8 @@ class RoadPerception {
   public:
     RoadPerception(const Config &config, const GroundMap &ground);
     void setZebraDistanceProfile(std::shared_ptr<const ZebraDistanceProfile> profile);
-    Observation update(const cv::Mat &bgr, std::uint64_t frame_id, double time);
+    Observation update(const cv::Mat &bgr, std::uint64_t frame_id, double time,
+                       PerceptionTasks tasks = {});
     const PerceptionDiagnostics &diagnostics() const { return diagnostics_; }
     void reset();
 
@@ -39,6 +44,7 @@ class RoadPerception {
     cv::Mat previous_gray_, previous_feature_mask_;
     cv::Mat calibrated_mask_;
     double previous_time_ = 0, stopped_since_ = -1;
+    double last_lane_seen_s_ = -1;
     std::uint64_t last_frame_id_ = 0;
     bool have_frame_ = false;
     int lane_streak_ = 0, zebra_streak_ = 0, board_streak_ = 0;

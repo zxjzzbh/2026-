@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "school": "",
+  "team": "",
+  "announcement_file": "/home/pi/src26/zebra/nihao_nihao.wav",
+  "announcement_note": "暂用你好你好；正式比赛替换为学校、队名和加油词",
+  "expected_cones": 2,
+  "traffic": {
+    "roi": [
+      0.1,
+      0.0,
+      0.9,
+      0.6
+    ],
+    "housing_v_max": 95,
+    "aspect_min": 2.3,
+    "aspect_max": 5.5,
+    "min_width_px": 18,
+    "min_height_px": 6,
+    "min_dark_fraction": 0.25,
+    "s_min": 100,
+    "v_min": 150,
+    "red_h": [
+      [
+        0,
+        12
+      ],
+      [
+        165,
+        179
+      ]
+    ],
+    "yellow_h": [
+      [
+        15,
+        38
+      ]
+    ],
+    "green_h": [
+      [
+        40,
+        95
+      ]
+    ],
+    "min_lit_pixels": 4,
+    "min_lit_fraction": 0.025,
+    "confirm_frames": 3,
+    "green_frames": 4,
+    "approach_width": null,
+    "stop_width": null,
+    "approach_duty": 12600,
+    "wait_timeout": 18.0,
+    "lost_seconds": 0.4,
+    "minimum_stop_seconds": 0.5,
+    "calibrated": false,
+    "position_note": "灯壳宽/图宽；在触发传感器后的1米停车区内标定制动点，不能从灯尺寸直接当作米数"
+  },
+  "parking": {
+    "roi": [
+      0.03,
+      0.3,
+      0.97,
+      0.995
+    ],
+    "yellow_low": [
+      18,
+      90,
+      100
+    ],
+    "yellow_high": [
+      40,
+      255,
+      255
+    ],
+    "blue_low": [
+      90,
+      80,
+      60
+    ],
+    "blue_high": [
+      124,
+      255,
+      255
+    ],
+    "line_min_width": 0.25,
+    "line_aspect_min": 3.0,
+    "board_min_area": 0.006,
+    "confirm_frames": 3,
+    "entry_pass_y": null,
+    "stop_y": null,
+    "calibrated": false,
+    "duty": 12600,
+    "front_x": 0.47,
+    "kp_us": 300.0,
+    "max_turn_us": 90.0,
+    "lost_seconds": 0.4,
+    "max_seconds": 30.0,
+    "end_max_jump": 0.1,
+    "position_note": "入口黄线接近画面底部但仍可见时采entry；车位远端黄线到达预定制动点时采stop；需实测四轮入位且不越界"
+  },
+  "camera_pose": null
+}

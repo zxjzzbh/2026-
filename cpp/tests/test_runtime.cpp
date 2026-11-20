@@ -3,6 +3,10 @@
 #include <iostream>
 using namespace smartcar;
 int main() {
+    const std::vector<unsigned char> expectedBuzzer{0xaa,0x55,2,8,0xd0,7,150,0,100,0,1,0,0xbd};
+    assert(launchBuzzerPacket()==expectedBuzzer);
+    const std::vector<unsigned char> expectedStop{0xaa,0x55,2,8,0,0,100,0,100,0,1,0,0x9d};
+    assert(launchBuzzerPacket(true)==expectedStop);
     auto p = actuatorPacket(1610, 1500);
     assert(p.size() == 15);
     assert(p[0] == 0xaa && p[1] == 0x55 && p[3] == 10);
@@ -23,40 +27,19 @@ int main() {
     assert(rejected);
     for (int throttle : {1400, 1500, 1570, 1600})
         assert(actuatorPacket(1610, throttle).size() == 15);
-    Config policyConfig;
     {
-        Config zebraConfig;
-        zebraConfig.zebra_brake_us = kZebraReverseUs;
-        OutputPolicy output(zebraConfig);
-        Command reverse;
-        reverse.throttle_us = kZebraReverseUs;
-        reverse.state = "zebra_brake";
-        auto rejects = [&](OutputPolicy &writer, const Command &q) {
-            try {
-                writer.submit(q, 0);
-            } catch (const std::invalid_argument &) {
-                return true;
-            }
-            return false;
-        };
-        assert(rejects(output, reverse)); // no event ID
-        reverse.brake_event_id = 1;
-        OutputPolicy legacy(policyConfig);
-        assert(rejects(legacy, reverse));
-        reverse.state = "traffic_brake";
-        assert(rejects(output, reverse));
-        reverse.state = "zebra_brake";
-        auto packet = actuatorPacket(1610, output.resolve(reverse, 0, 0).throttle_us);
-        assert(packet[11] == 4 && packet[12] == 0x14 && packet[13] == 0x05);
-        assert(output.resolve(reverse, .11, .11).throttle_us == 1300);
-        assert(output.resolve(.12).throttle_us == 1500 && output.completedBrakeEvent() == 1);
-        assert(output.resolve(reverse, .5, .5).throttle_us == 1500);
-        reverse.brake_event_id = 2;
-        assert(output.resolve(reverse, .6, .6).throttle_us == 1300);
-        assert(output.stop(.61).throttle_us == 1500);
-        assert(output.resolve(reverse, .62, .62).throttle_us == 1500);
-        assert(output.completedBrakeEvent() == 1);
+        OutputPolicy outdoor(Config{});
+        Command cmd;
+        cmd.outdoor_parking_command = true;
+        cmd.throttle_us = 1588;
+        assert(outdoor.resolve(cmd, 1., 1.20).throttle_us == 1588);
+        assert(outdoor.resolve(1.26).throttle_us == 1500);
+        cmd.throttle_us = 1400; cmd.brake_event_id = 1;
+        assert(outdoor.resolve(cmd, 2., 2.).throttle_us == 1400);
+        assert(outdoor.resolve(2.24).throttle_us == 1400);
+        assert(outdoor.resolve(2.26).throttle_us == 1500);
     }
+    Config policyConfig;
     OutputPolicy policy(policyConfig);
     Command pulse;
     pulse.throttle_us = 1400;
@@ -133,5 +116,25 @@ int main() {
     assert(a.activeBrakeEvent() == 1 && a.lastOutputUs() == 1400);
     a.close();
     assert(a.activeBrakeEvent() == 0 && a.lastOutputUs() == 1500 && a.completedBrakeEvent() == 0);
+    {
+        Actuator beep(c,false,"never-open-for-beep");
+        Command launch;
+        launch.launch_beep=true;
+        beep.submit(launch);
+        beep.submit(neutral); // producer replacement cannot lose the one-shot cue
+        const auto end=std::chrono::steady_clock::now()+std::chrono::seconds(1);
+        while (!beep.launchBeepEvents() && std::chrono::steady_clock::now()<end)
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        assert(beep.launchBeepEvents()==1 && !beep.launchBeepSent());
+        for(int i=0;i<10;++i) beep.submit(launch);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        assert(beep.launchBeepEvents()==1);
+        const auto stopDeadline=std::chrono::steady_clock::now()+std::chrono::seconds(1);
+        while (beep.buzzerActive() && std::chrono::steady_clock::now()<stopDeadline)
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        assert(!beep.buzzerActive()); // no producer frames required to stop the buzzer
+        beep.close();
+        assert(beep.lastOutputUs()==1500 && !beep.buzzerActive());
+    }
     std::cout << "runtime packet and dry-output checks passed\n";
 }

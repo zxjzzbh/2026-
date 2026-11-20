@@ -1,4 +1,4 @@
-smartcar_oneclick_zebra_reverse1590_20261120
+smartcar_outdoor_parking1618_cone1115_20261120
 Current source: cpp/, vision/, deployment/.
 Release and download: docs/latest-code.md and README.md.
 This is a source publication. Previous vehicle deployment is recorded separately in DEPLOYMENT.json.

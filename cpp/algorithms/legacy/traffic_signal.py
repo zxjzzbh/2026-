@@ -13,12 +13,14 @@ import cv2
 import numpy as np
 
 from .traffic_lamps import _color
-from .traffic_fixture_geometry import arc_anchors,radial_edges,red_spill_supported
+from .traffic_fixture_geometry import arc_anchors,radial_edges,red_spill_supported,rim_support
 
 DEFAULTS = {'schema_version':1,'algorithm':'fixture_photometry_v1',
             'min_emission_value':230.0,'min_brightness_margin':25.0,
             'min_emission_fraction':.25,'off_max_value':225.0,'bloom_min_brightness_margin':15.0,
             'nonwhite_min_brightness_margin':75.0,
+            'green_min_emission_value':160.0,'green_min_local_contrast':12.0,
+            'red_soft_core_fraction':.35,
             'green_confirm_s':.6,'green_min_frames':3,'max_frame_gap_s':.8,
             'recommended_camera':'primary','field_verified':False}
 
@@ -36,6 +38,8 @@ def load_profile(path=None):
                           ('min_emission_fraction',.1,1),('off_max_value',100,229),
                           ('bloom_min_brightness_margin',10,100),
                           ('nonwhite_min_brightness_margin',25,150),
+                          ('green_min_emission_value',100,230),('green_min_local_contrast',5,100),
+                          ('red_soft_core_fraction',.25,.8),
                           ('green_confirm_s',.3,3),('max_frame_gap_s',.1,2)]:
         x=profile.get(name)
         if type(x) not in (int,float) or not math.isfinite(x) or not low<=x<=high:
@@ -94,9 +98,21 @@ def _features(hsv,cx,cy,r,index,anchors):
     visible=[q for q in quadrants if q.sum()>=max(5,.1*np.pi*((r*1.5)**2-(r*.72)**2))]
     distributed=len(visible)>=2 and sum(float(color[q].mean())>=.025 for q in visible)>=min(3,len(visible))
     shape=any(np.hypot(cx-a[0],cy-a[1])<r*.5 and .55<r/a[2]<1.8 for a in anchors)
+    # Spatial contrast is separate from the median: a coloured plastic lens
+    # and a powered LED can have similar (or reversed) whole-lens medians.
+    blur=cv2.GaussianBlur(val,(0,0),max(.8,r*.12))
+    peaks=val.astype(np.float32)-blur.astype(np.float32)
     return {'median_v':float(np.median(val[core])),
+            'median_s':float(np.median(sat[core])),
+            'soft_red_fraction':float(((hue>=165)&(sat>=35)&(sat<=125)&(val>=200))[core].mean()),
             'emission_fraction':float(((val>=230)&((sat<=45)|color))[core].mean()),
             'white_fraction':float(((val>=238)&(sat<=45))[core].mean()),
+            'green_emission_fraction':float(((val>=160)&((sat<=45)|color))[core].mean()),
+            'ring_median_v':float(np.median(val[ring])),
+            'local_contrast':float(np.median(val[core])-np.median(val[ring])),
+            'p90_v':float(np.percentile(val[core],90)),
+            'clipped_fraction':float((val[core]>=250).mean()),
+            'led_peak_fraction':float(((peaks>=12)&(val>=120))[core].mean()),
             'color_fraction':float(color[core].mean()),'halo_fraction':float(color[ring].mean()),
             'saturated_fraction':float((sat[core]>=50).mean()),'shape_support':bool(shape),
             'distributed_halo':bool(distributed),
@@ -133,51 +149,38 @@ def stop_reference_geometry(box,reference):
             and .75<=geometry['area_ratio']<=4 and drift<=.75*diagonal)
 
 
-def _outdoor_led_state(image, group):
-    # Sunlight lights up all three coloured covers. Switched-on LEDs add
-    # separated pale peaks inside their own lens, also in a dim exposure.
-    if not all(f['shape_support'] and f['color_fraction'] >= .45 for f in group['features']):
-        return None
-    radius = group['radius'] * .76
-    if radius < 4:
-        return None
-    measurements = []
-    for cx, cy in group['centers']:
-        x0, y0 = max(0, int(cx-radius)), max(0, int(cy-radius))
-        patch = image[y0:int(cy+radius)+1, x0:int(cx+radius)+1]
-        yy, xx = np.ogrid[:patch.shape[0], :patch.shape[1]]
-        dx, dy = xx + x0 - cx, yy + y0 - cy
-        inside = dx*dx + dy*dy <= radius*radius
-        if inside.sum() < .85*np.pi*radius*radius:
-            return None
-        pale = patch.min(axis=2).astype(float)
-        value = patch.max(axis=2)
-        median = np.median(pale[inside])
-        peak = np.percentile(pale[inside], 98)
-        high = np.percentile(value[inside], 98)
-        dots = inside & (pale > median + max(18., .65*(peak-median))) & (value >= high-20)
-        # Require highlights separated across the lens, so one glint cannot release the car.
-        count, _, _, centers = cv2.connectedComponentsWithStats(dots.astype(np.uint8), connectivity=8)
-        centers = centers[1:count]
-        spread = (dots.sum() >= 3 and any(np.hypot(*(a-b)) >= radius*.82
-                                          for a,b in combinations(centers, 2)))
-        measurements.append((peak-median, high, high-np.median(value[inside]), spread))
-    for i, (lift, high, contrast, spread) in enumerate(measurements):
-        other = max(row[0] for j,row in enumerate(measurements) if i != j)
-        if i != 1 and spread and high >= 170 and contrast >= 24 and lift >= max(35., other*1.3+5):
-            return ('red', 'yellow', 'green')[i]
-    # All three tinted, textured covers are visible under the same illumination.
-    # Borderline/emissive surfaces stay unknown if no single lamp stands out.
-    if (max(f['median_v'] for f in group['features']) < 230 and
-            max(row[0] for row in measurements) <= min(row[0] for row in measurements)*1.35+10):
-        return 'off'
-    return None
+def _housing_support(hsv,centers,radius):
+    """Require a shared dark backing, excluding the three actual lens discs.
+
+    Fence highlights/white sky must not complete two coloured spots into a lamp.
+    This is image geometry only; it does not assert that any lens is powered.
+    """
+    h,w=hsv.shape[:2]
+    x1=max(0,int(centers[0][0]-radius*1.2));x2=min(w,int(centers[2][0]+radius*1.2+1))
+    y1=max(0,int(min(y for x,y in centers)-radius*1.2));y2=min(h,int(max(y for x,y in centers)+radius*1.2+1))
+    if x2<=x1 or y2<=y1:return 0.
+    yy,xx=np.ogrid[y1:y2,x1:x2];backing=np.ones((y2-y1,x2-x1),dtype=bool)
+    for x,y in centers:backing&=(xx-x)**2+(yy-y)**2>(radius*1.03)**2
+    if backing.sum()<12:return 0.
+    region=hsv[y1:y2,x1:x2]
+    # A sunlit black housing can reach V~160 in the actual field camera.
+    # Require subdued neutral backing rather than night-time black pixels.
+    return float(((region[:,:,2]<210)&(region[:,:,1]<140))[backing].mean())
+
+
+def _housing_value(hsv,centers,radius):
+    yy,xx=np.ogrid[:hsv.shape[0],:hsv.shape[1]]
+    mask=(xx>=centers[0][0]-radius*1.2)&(xx<=centers[2][0]+radius*1.2)
+    mask=mask&(yy>=min(y for x,y in centers)-radius*1.2)&(yy<=max(y for x,y in centers)+radius*1.2)
+    for x,y in centers:mask&=(xx-x)**2+(yy-y)**2>(radius*1.03)**2
+    mask&=(hsv[:,:,1]<140)&(hsv[:,:,2]<210)
+    return float(np.median(hsv[:,:,2][mask])) if mask.sum()>=12 else None
 
 
 class TrafficSignalDetector:
     def __init__(self,profile=None):self.profile=load_profile() if profile is None else profile
 
-    def detect(self,image,*,reference_box=None):
+    def detect(self,image,*,reference_box=None,near_span=None):
         started=time.perf_counter()
         if image is None or image.ndim!=3 or image.shape[2]!=3:raise ValueError('BGR image required')
         if reference_box is not None:
@@ -193,7 +196,7 @@ class TrafficSignalDetector:
             if f and f['white_fraction']>=.6 and f['halo_fraction']>=.12 and f['distributed_halo']:
                 red_cores.append((x,y,r))
         anchors+=arc_anchors(image,red_cores[:3])
-        gradients=radial_edges(image) if red_cores else None
+        gradients=radial_edges(image)
         proposals=[];seen=set()
         for first,second in combinations(sorted(anchors),2):
             if max(first[2],second[2])/min(first[2],second[2])>1.8:continue
@@ -209,17 +212,27 @@ class TrafficSignalDetector:
                 seen.add(signature)
                 fs=[_features(hsv,x,y,radius,k,anchors) for k,(x,y) in enumerate(centers)]
                 if any(f is None for f in fs):continue
-                evidence=[f['shape_support'] or (f['white_fraction']>.45 and f['halo_fraction']>.04) for f in fs]
+                # A white patch is not a third lens. A bloomed lens without a
+                # colour anchor needs its own measured circular rim.
+                evidence=[f['shape_support'] or (f['white_fraction']>.45 and f['halo_fraction']>.04
+                           and rim_support(gradients,*centers[k],radius)>=.65) for k,f in enumerate(fs)]
                 color_support=sum(f['color_fraction']>.12 or f['halo_fraction']>.1 for f in fs)
                 red_recovery=bool(gradients is not None and (not all(evidence) or color_support<2)
                     and red_spill_supported(fs,centers,radius,gradients))
-                if (not all(evidence) or color_support<2) and not red_recovery:continue
+                # At close range the housing can be cropped or overexposed. Require
+                # three current lens observations and two colours for this range cue.
+                close_group = (near_span is not None and 2*dx >= near_span and color_support >= 2
+                               and all(f['shape_support'] or
+                                       (f['white_fraction']>.45 and f['halo_fraction']>.04) for f in fs))
+                if (not all(evidence) or color_support<2) and not red_recovery and not close_group:continue
+                housing=_housing_support(hsv,centers,radius)
+                if housing<.55 and not red_recovery and not close_group:continue
                 bbox=[max(0,int(centers[0][0]-radius*1.3)),max(0,int(min(y for x,y in centers)-radius*1.3)),
                       min(w,int(centers[-1][0]+radius*1.3+1)),min(h,int(max(y for x,y in centers)+radius*1.3+1))]
                 score=sum(min(f['color_fraction'],.8)+min(f['halo_fraction'],.3)+.3*f['shape_support'] for f in fs)
                 score+=min(radius/100,.3)
                 proposals.append({'bbox':bbox,'centers':centers,'radius':radius,'features':fs,
-                                  'score':score,'red_recovery':red_recovery})
+                                  'score':score,'red_recovery':red_recovery,'housing_support':housing})
         proposals.sort(key=lambda p:p['score'],reverse=True)
         groups=[]
         for p in proposals:
@@ -251,10 +264,36 @@ class TrafficSignalDetector:
                 'algorithm':self.profile['algorithm'],'field_verified':False,'hardware_output':False}
         if groups:
             g=groups[0];fs=g['features'];vs=[f['median_v'] for f in fs]
-            result.update(bbox_xyxy=g['bbox'],lamp_features=fs,lamp_centers=g['centers'],lamp_radius_px=g['radius'])
+            result.update(bbox_xyxy=g['bbox'],lamp_features=fs,lamp_centers=g['centers'],lamp_radius_px=g['radius'],
+                          housing_support=g['housing_support'],housing_median_v=_housing_value(hsv,g['centers'],g['radius']))
+            red=fs[0]
+            result['weak_red_emission']=bool(g['radius']>=6 and red['median_v']>=200
+                and red['local_contrast']>=35 and red['color_fraction']>=.6
+                and red['soft_red_fraction']>=.20 and red['median_s']<=1.05*fs[1]['median_s']
+                and fs[1]['color_fraction']>=.5 and fs[2]['color_fraction']>=.5)
             active=[]
             for i,f in enumerate(fs):
                 if g.get('red_recovery') and i!=0:continue
+                if i==2:
+                    # Green is not required to outshine sunlit red/yellow
+                    # plastics. 160 is only a candidate threshold: require
+                    # own green core, local contrast and full fixture geometry.
+                    if (f['median_v']>=self.profile['green_min_emission_value']
+                            and f['color_fraction']>=.35
+                            and f['local_contrast']>=self.profile['green_min_local_contrast']):
+                        active.append(i)
+                    continue
+                if (i==0 and g['radius']>=6 and f['shape_support']
+                        and f['median_v']>=200 and f['local_contrast']>=35
+                        and f['color_fraction']>=.6
+                        and f['soft_red_fraction']>=self.profile['red_soft_core_fraction']
+                        and f['median_s']<=1.05*fs[1]['median_s']
+                        and fs[1]['color_fraction']>=.5 and fs[2]['color_fraction']>=.5):
+                    # Verified trigger footage: powered red develops a bright,
+                    # desaturated pink core while sunlit yellow remains equally
+                    # bright. Compare chroma on the same fixture, not V alone.
+                    active.append(i)
+                    continue
                 margin=self.profile['min_brightness_margin']
                 if f['white_fraction']<.3:
                     margin=max(margin,self.profile['nonwhite_min_brightness_margin'])
@@ -265,19 +304,21 @@ class TrafficSignalDetector:
                         and f['emission_fraction']>=self.profile['min_emission_fraction']
                         and (f['color_fraction']>=.18 or f['halo_fraction']>=.05 and f['distributed_halo'])):
                     active.append(i)
+            # A red/green conflict must not fall back to off or authorize green.
+            if 0 in active:active=[0]
+            elif 1 in active:active=[1]
             if len(groups)>1 and groups[1]['score']>=g['score']*.9:
                 result['reason']='multiple_fixture_candidates'
             elif len(active)==1:
                 state=('red','yellow','green')[active[0]]
                 result.update(state=state,signal_for_race=state,
                     reason='bloomed_red_with_current_fixture_edges' if g.get('red_recovery') else 'position_and_emission_agree')
+                if state=='red' and fs[0]['soft_red_fraction']>=self.profile['red_soft_core_fraction']:
+                    result['reason']='red_emission_chroma_on_current_fixture'
                 if g.get('stop_only_reference'):
                     result.update(state='unknown',signal_for_race='unknown',fixture_detected=False,
                                   bbox_xyxy=None,reason='tracked_fixture_missing',
                                   stop_only_color='red',stop_only_box=g['bbox'])
-            elif not active and not g.get('red_recovery') and (led := _outdoor_led_state(image, g)):
-                result.update(state=led, signal_for_race=led if led != 'off' else 'unknown',
-                              reason='distributed_lens_highlights' if led != 'off' else 'sunlit_unlit_lenses')
             elif max(vs)<self.profile['off_max_value'] and all(f['color_fraction']>.12 for f in fs):
                 result.update(state='off',reason='fixture_present_without_emission')
             else:result['reason']='ambiguous_emission'

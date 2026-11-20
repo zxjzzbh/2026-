@@ -92,17 +92,29 @@ HybridEvidence HybridVision::update(const std::string &stage, const cv::Mat &roa
         e.stripes = int(z["stripes"]);
         e.near_px = z["near"].empty() ? -1. : double(z["near"]);
         e.zebra_camera = std::string(z["source"]);
+        o.zebra_near_px=e.near_px;
+        o.zebra_source=e.zebra_camera;
     }
     auto s = json["signal"];
     if (!s.empty()) {
         o.red = int(s["red"]) != 0;
         o.green = int(s["green"]) != 0;
         e.green_until = double(s["green_until"]);
+        e.signal_stop_until = double(s["stop_until"]);
+        e.signal_span_px = double(s["span_px"]);
         o.signal_stop = int(s["stop"]) != 0;
         e.signal_color = std::string(s["raw"]);
+        e.signal_stop_reason = std::string(s["stop_reason"]);
+        e.signal_observation = std::string(s["observation"]);
         if (!int(s["available"]))
             o.frame_ok = false;
     }
+    auto park = json["parking"];
+    if (!park.empty())
+        o.outdoor_parking = OutdoorParkingDrive{
+            int(park["duty"]), int(park["steer"]), int(park["brake"]) != 0,
+            int(park["done"]) != 0, double(park["captured_s"]),
+            std::string(park["stage"]), std::string(park["side"]), std::string(park["reason"])};
     auto cone = json["cone"];
     if (!cone.empty()) {
         o.cone_drive =
@@ -110,8 +122,12 @@ HybridEvidence HybridVision::update(const std::string &stage, const cv::Mat &roa
                             int(cone["done"]) != 0, double(cone["captured_s"]), std::string(cone["reason"])};
         o.cone_drive->repeat_forward = int(cone["repeat_forward"]) != 0;
         e.cones_visible = int(cone["visible"]);
-        e.primary_cones = int(cone["primary_visible"]);
-        e.secondary_cones = int(cone["secondary_visible"]);
+        e.cone_lane_valid = int(cone["lane_valid"]) != 0;
+        e.cone_raw_primary = int(cone["raw_primary"]);
+        e.cone_raw_secondary = int(cone["raw_secondary"]);
+        e.cone_confirmed_primary = int(cone["confirmed_primary"]);
+        e.cone_confirmed_secondary = int(cone["confirmed_secondary"]);
+        e.cone_processing_ms = double(cone["processing_ms"]);
         e.cone_phase = std::string(cone["phase"]);
         e.cone_camera = std::string(cone["source"]);
     }
