@@ -15,7 +15,8 @@ from legacy.cone_low_speed import trial_settings, DualLowSpeedNavigator
 from legacy.cone_continuous import ContinuousConeController
 from legacy.cone_recovery import FeedbackPause
 from legacy.runtime_timing import VISION_MAX_AGE_S
-from legacy.cone_planning import readiness, project_tracks
+from legacy.cone_planning import load_settings as load_cone_settings, readiness, project_tracks
+from legacy.cone_navigation import reuse_legacy_ground
 
 CAMERAS = ("secondary", "primary")
 
@@ -25,9 +26,12 @@ def read_json(path):
 
 
 class Crosswalk(CrosswalkSelection):
-    def __init__(self, profile, white_masks):
+    def __init__(self, profile, white_masks, brake_trigger=None):
         self.profile = validate_profile(profile, require_ready=True)
-        self.trigger = self.profile["overlap_range_m"][0]
+        near, far = self.profile["overlap_range_m"]
+        self.trigger = near if brake_trigger is None else brake_trigger
+        if not near <= self.trigger <= far:
+            raise ValueError("Crosswalk brake trigger must be within both cameras' measured range")
         self.active_source = "secondary"
         self.primary_locked = False
         self.confirmation_id = None
@@ -152,6 +156,7 @@ class Cones:
         self.detectors = {k:ConeDetector(settings) for k in CAMERAS}
         self.trackers = {k:ImageConeTracker(k, settings, near_field_recovery=True) for k in CAMERAS}
         self.navigator = DualLowSpeedNavigator(settings, primary_ground)
+        self.navigator.set_single_recovery_limit(1.)
         self.controller = ContinuousConeController(settings, now, initialized=True, handoff_after_two=True)
         self.waiting_for_feedback = False
         self.last_forward_view = None
@@ -163,6 +168,8 @@ class Cones:
         for cam,(img,fid,stamp) in views.items():
             row = self.cache.get(cam)
             if row is None or (fid,stamp) != (row["frame_id"], row["captured_s"]):
+                if row is not None and fid < row["frame_id"]:
+                    self.trackers[cam] = ImageConeTracker(cam, self.settings, near_field_recovery=True)
                 det, mask = self.detectors[cam].detect(img)
                 road = self.roads[cam].inspect(img,mask,frame_id=fid,captured_s=stamp)
                 self.roads[cam].enrich(det,img,road)
@@ -184,15 +191,24 @@ class Cones:
                 raise FeedbackPause(nav.get("reason") or "等待可通行的边界")
             cmd = self.controller.step(nav,now)
             self.waiting_for_feedback = False
-        except FeedbackPause as pause:
+        except ValueError as pause:
+            # A narrow corridor is reported as ValueError by the pinned controller.
+            if not isinstance(pause, FeedbackPause) and str(pause) != "白线内没有可容纳当前车体包络的空间":
+                raise
             if not self.waiting_for_feedback:
                 self.controller.recover_control(now)
                 self.waiting_for_feedback = True
             cmd = dict(phase="waiting_for_feedback", esc_us=1500, steering_us=1610, reason=str(pause))
         phase = cmd["phase"]
+        target = cmd.get("target_id")
+        self.navigator.set_avoidance_target(cmd.get("target_camera") if target else None, target or None)
         count = self.controller.count
         camera = (nav or {}).get("source_camera") or "secondary"
-        visible = sum(t.get("visible",False) and t.get("confirmed",False) for t in rows.get(camera,{}).get("tracks",[]))
+        # Report both views even when the planner selected just one to steer.
+        visible_by_camera = {cam: sum(1 for t in row["tracks"] if t.get("visible") and
+                                      t.get("confirmed") and t.get("kind") == "cone_candidate") for cam, row in rows.items()
+                             if 0 <= now - row["captured_s"] <= VISION_MAX_AGE_S}
+        visible = visible_by_camera.get(camera, 0)
         pwm = cmd["esc_us"]
         current = rows.get(camera, {})
         view_key = (camera, current.get("frame_id"), current.get("captured_s"))
@@ -206,6 +222,8 @@ class Cones:
                     repeat_forward=int(repeat_forward),
                     done=int(phase=="complete" and count>=2), phase=phase,
                     reason=cmd["reason"],source=camera,visible=int(visible),
+                    primary_visible=visible_by_camera.get("primary", -1),
+                    secondary_visible=visible_by_camera.get("secondary", -1),
                     captured_s=rows.get(camera,{}).get("captured_s",-1.))
 
 
@@ -214,10 +232,13 @@ class Hybrid:
         path = Path(config_file)
         cfg = read_json(path)
         self.profile = read_json(path.parent/cfg["zebra_distance_profile"])
-        self.crosswalk = Crosswalk(self.profile, cfg.get("legacy_crosswalk_white_masks", {}))
+        self.crosswalk = Crosswalk(self.profile, cfg.get("legacy_crosswalk_white_masks", {}),
+                                   cfg.get("crosswalk_brake_trigger_m"))
         self.signals = Signals(path.parent)
-        self.cone_settings = trial_settings(read_json(path.parent/cfg["legacy_cone_settings"]),
-            {"test_forward_us":cfg["forward_us"],"test_steering_gain":cfg["obstacle_gain"]})
+        cone_base = load_cone_settings(path.parent/"legacy/cone-trial.json")
+        cone_base = reuse_legacy_ground(cone_base, read_json(path.parent/"legacy/cone-legacy-ground-candidate.json"))
+        cone_base["geometry"]["lane_width_m"] = cfg["lane_width_m"]
+        self.cone_settings = trial_settings(cone_base, {"test_forward_us": cfg["forward_us"], "test_run_s": 120})
         self.primary_ground = read_json(path.parent/"legacy/cone-primary-ground-reference.json")
         self.cones = None
         def camera_family(identity):
@@ -237,10 +258,14 @@ class Hybrid:
     def step(self, stage, road_bytes, rid, rt, primary_bytes, pid, pt, now):
         def view(data):
             return np.frombuffer(data,dtype=np.uint8).reshape(360,480,3)
-        views = {}
+        views, cone_views = {}, {}
         for cam,raw,fid,ts in (("secondary",road_bytes,rid,rt),("primary",primary_bytes,pid,pt)):
-            if raw is not None and 0 <= now-ts <= .25+1e-9:
-                views[cam] = (view(raw),fid,ts)
+            if raw is not None and 0 <= now-ts <= VISION_MAX_AGE_S:
+                sample = (view(raw),fid,ts)
+                if self.calibrated[cam]:
+                    cone_views[cam] = sample
+                if now-ts <= .25+1e-9:
+                    views[cam] = sample
         metric_views = {k:v for k,v in views.items() if self.calibrated[k]}
         out = {}
         if stage in ("zebra_approach","observe"):
@@ -250,6 +275,6 @@ class Hybrid:
         if stage in ("two_cones","observe"):
             if self.cones is None:
                 self.cones = Cones(self.cone_settings,self.primary_ground,now)
-            out["cone"] = self.cones.update(metric_views,now)
+            out["cone"] = self.cones.update(cone_views,now)
         return json.dumps(out,ensure_ascii=False,allow_nan=False)
 

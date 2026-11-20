@@ -259,7 +259,7 @@ class ContinuousConeController(LowSpeedController):
     def _lane_target(self,cones,nav):
         half=nav['half_envelope'];ego=self._measurements(nav)[0]
         if half+.03>1-half-.03:
-            raise FeedbackPause('白线内空间不足，等待可通行的边界')
+            raise ValueError('白线内没有可容纳当前车体包络的空间')
         target=next((c for c in cones if c['id']==self.target),None)
         # A disappeared/clipped target may retain independent pass evidence,
         # but its historical lane fraction is no longer a motion target.

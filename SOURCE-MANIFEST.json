@@ -1,17 +1,17 @@
 {
-  "version": "smartcar_oneclick_20261119",
+  "version": "smartcar_oneclick_zebra_reverse1590_20261120",
   "algorithm": "SHA-256 of exact bytes",
-  "file_count": 138,
+  "file_count": 151,
   "files": [
     {
       "path": "DEPLOYMENT.json",
-      "bytes": 505,
-      "sha256": "bdd74a520732062adef39a6c3db727097c12c0613edd41af197c65a6563fc83a"
+      "bytes": 523,
+      "sha256": "1913939caede613c7476c97019b4fe86589629ddbb07547872836cba543d2c6a"
     },
     {
       "path": "README.md",
-      "bytes": 7009,
-      "sha256": "46c4770919461d237645e546894c422894ccb2cac191f2f3454640cd2fd8150e"
+      "bytes": 13578,
+      "sha256": "935f38c4f8b2180671e6b372ebdfeb0423885f8db52d139405bd908b989d0f0b"
     },
     {
       "path": "cpp/.clang-format",
@@ -35,8 +35,8 @@
     },
     {
       "path": "cpp/algorithms/hybrid.py",
-      "bytes": 14085,
-      "sha256": "f6db52e8bc8038c14608ad5c1717f2f47c19101258af4e80104eba2863dcad25"
+      "bytes": 15921,
+      "sha256": "0046228843d973c8951ea4f6db3b90aef07e3428d768d63581b398895706d3a9"
     },
     {
       "path": "cpp/algorithms/legacy/__init__.py",
@@ -50,13 +50,18 @@
     },
     {
       "path": "cpp/algorithms/legacy/brake_output.py",
-      "bytes": 153,
-      "sha256": "9170f2f70f7466df921b0d11d6fae39e5d76367e564d4e0dc51da27c6c4b03f8"
+      "bytes": 11427,
+      "sha256": "b507178f340473912bca04605b7c15fe9da59d4264bc1b1f78b6ff167343c9cf"
     },
     {
       "path": "cpp/algorithms/legacy/brake_parking.py",
-      "bytes": 153,
-      "sha256": "9170f2f70f7466df921b0d11d6fae39e5d76367e564d4e0dc51da27c6c4b03f8"
+      "bytes": 32710,
+      "sha256": "8b40ba52fc0739e5fa6fb23833f1df52d4307599b1e6ad6c6856ec4bc52fd16f"
+    },
+    {
+      "path": "cpp/algorithms/legacy/brake_timing.py",
+      "bytes": 798,
+      "sha256": "e6952d65a6f3c0fcf896cb59455a0c8a9de820d3c6ffbaaacc125b69792a94c1"
     },
     {
       "path": "cpp/algorithms/legacy/cone_boundaries.py",
@@ -65,13 +70,13 @@
     },
     {
       "path": "cpp/algorithms/legacy/cone_command.py",
-      "bytes": 82,
-      "sha256": "037593198efe54fc85cb0365eb23a2b193e02be06c7ec6c2ce2198056dc619ac"
+      "bytes": 15115,
+      "sha256": "cd0139ba3292b819adc3d617282e89d10f2e576de629d48119ee3e6da5677a14"
     },
     {
       "path": "cpp/algorithms/legacy/cone_continuous.py",
       "bytes": 36681,
-      "sha256": "0bad1cad2956fa07ae3974c9a7615a5962affa2e948936ed1ffb0b983798a5d3"
+      "sha256": "25265d11b77710f2a8d74d8fd302fa3555c4c1637262823234d9a445500b0fdb"
     },
     {
       "path": "cpp/algorithms/legacy/cone_corridor.py",
@@ -90,13 +95,13 @@
     },
     {
       "path": "cpp/algorithms/legacy/cone_latest_engine/__init__.py",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      "bytes": 68,
+      "sha256": "afade6652b04929061ed12b6424bbaa61a8a695fd7cd86c03bb06c79b9f60b9e"
     },
     {
       "path": "cpp/algorithms/legacy/cone_latest_engine/brake_parking.py",
-      "bytes": 153,
-      "sha256": "9170f2f70f7466df921b0d11d6fae39e5d76367e564d4e0dc51da27c6c4b03f8"
+      "bytes": 16752,
+      "sha256": "80f107212273719c9c2484077b75440be46de3bf3810d14fdda68857b65dff62"
     },
     {
       "path": "cpp/algorithms/legacy/cone_latest_engine/cone_local_flow.py",
@@ -119,6 +124,11 @@
       "sha256": "5858470204907f5d2b4465d0f5a888135c5f387f98017f94d174d205458b0e10"
     },
     {
+      "path": "cpp/algorithms/legacy/cone_latest_engine/steering.py",
+      "bytes": 3263,
+      "sha256": "ccb8d4e41efb13d9b1e49bc55f7df394d5c7604b542d7ddc43f0af7a615900c7"
+    },
+    {
       "path": "cpp/algorithms/legacy/cone_low_speed.py",
       "bytes": 52469,
       "sha256": "a1030ba128665dcdcb1df4b22f6502d2c1346634623fbad94ce0d5cd49bcaeec"
@@ -132,6 +142,11 @@
       "path": "cpp/algorithms/legacy/cone_mission.py",
       "bytes": 5956,
       "sha256": "cf9537665d3c52b6b323c3d6cc3e00257414ba994371a5bac1cc6ac9737bb974"
+    },
+    {
+      "path": "cpp/algorithms/legacy/cone_navigation.py",
+      "bytes": 21617,
+      "sha256": "25d3008242329a119334fe6ae19602455d1417df1441aa12c69fa0e27a9676c2"
     },
     {
       "path": "cpp/algorithms/legacy/cone_passage.py",
@@ -175,8 +190,8 @@
     },
     {
       "path": "cpp/algorithms/legacy/cone_trial_output.py",
-      "bytes": 340,
-      "sha256": "0a383f650f25f574aa32304c42b2ac688f16c3f444cf4d31d5613daebc50d096"
+      "bytes": 8636,
+      "sha256": "08442632b01d2b4654c230a67436e0fb1c25f0a0f4592ac87ccff68745fc030b"
     },
     {
       "path": "cpp/algorithms/legacy/cone_vision.py",
@@ -260,8 +275,8 @@
     },
     {
       "path": "cpp/algorithms/legacy/traffic_signal.py",
-      "bytes": 19447,
-      "sha256": "481423376d9b446755c83fd9c27f8236ef81b261d315f5bcab04bc23f9b2ed4f"
+      "bytes": 22343,
+      "sha256": "a8696ac4d1b196f3ef7d4fc6c39cfdbfbeb5a2f133b546966a844b2918fa21dd"
     },
     {
       "path": "cpp/algorithms/legacy/traffic_tracking.py",
@@ -329,9 +344,19 @@
       "sha256": "3f8a67a91be6e68b83b536ece34eea3812610bad9d0cec1c520dcaaad7bf3574"
     },
     {
+      "path": "cpp/config/legacy/cone-legacy-ground-candidate.json",
+      "bytes": 2116,
+      "sha256": "6d1f30c3b6265ce53c5928440343828edb4275a07fd7bb6194dc2bf512a5d119"
+    },
+    {
       "path": "cpp/config/legacy/cone-primary-ground-reference.json",
       "bytes": 1184,
       "sha256": "146f73cceefcfe29a9d5394433c67adc2686a4ed9c12aa3a7eec2bae787e70af"
+    },
+    {
+      "path": "cpp/config/legacy/cone-trial.json",
+      "bytes": 2652,
+      "sha256": "2062d1df6f9fb0dab157b4bc90b86abdea3aafe23102b106fb6e3f7b49cf59f9"
     },
     {
       "path": "cpp/config/legacy/traffic-driving.json",
@@ -345,8 +370,8 @@
     },
     {
       "path": "cpp/config/race.json",
-      "bytes": 1117,
-      "sha256": "94e65a1f777c7d4bb3de8b05fba96750de278225670061d3c25817c66ea62632"
+      "bytes": 1106,
+      "sha256": "f164a9cc839465a6ec52060016ae320cd14f2d8994ebdb872d2206d089fbf05e"
     },
     {
       "path": "cpp/docs/calibration.md",
@@ -355,8 +380,8 @@
     },
     {
       "path": "cpp/docs/perception.md",
-      "bytes": 6482,
-      "sha256": "8873fdd68d6eb2d4f0dd6571b896b2a007a7a3b3b102c46a185ec48afb22ebf4"
+      "bytes": 6272,
+      "sha256": "47b982fdc2f35aacd3ec7ab1ffc21850dd86f569dd6c6f386e3aff66ddb905a9"
     },
     {
       "path": "cpp/docs/source-provenance.json",
@@ -385,8 +410,8 @@
     },
     {
       "path": "cpp/include/smartcar/controller.hpp",
-      "bytes": 1985,
-      "sha256": "3f11e88593b034109bf11e2f5a459c72138d243c5aedee1c4e2e5facf47b72d2"
+      "bytes": 1912,
+      "sha256": "bd2ab8d8286fe6910e15a5d81b4ec062ccb83321fbf42c5b8884f98b38918802"
     },
     {
       "path": "cpp/include/smartcar/ground.hpp",
@@ -395,8 +420,8 @@
     },
     {
       "path": "cpp/include/smartcar/hybrid.hpp",
-      "bytes": 967,
-      "sha256": "fd66c9c54890ee83a928446e2c00a0c408693fe6f4f32e38e07d19dbb37bd1ea"
+      "bytes": 1039,
+      "sha256": "9b697bc053abe7565748cdbd47c4f71cbf2d1fccd2508fca241426e6dda771c8"
     },
     {
       "path": "cpp/include/smartcar/parking.hpp",
@@ -405,8 +430,8 @@
     },
     {
       "path": "cpp/include/smartcar/perception.hpp",
-      "bytes": 2114,
-      "sha256": "e7c2ed51ff1e207300cd741f123a92a111b47629150ec3c0c34cef94ca6f946a"
+      "bytes": 1881,
+      "sha256": "329a80a80c3e104df154211f126130fbdf708a0acb1b58f0ab783e6220dd78d7"
     },
     {
       "path": "cpp/include/smartcar/runtime.hpp",
@@ -415,8 +440,8 @@
     },
     {
       "path": "cpp/include/smartcar/types.hpp",
-      "bytes": 3714,
-      "sha256": "c68cc1f5c5de5c47da6d07575a2fa93d2ddd8684ab1113fd13bb26f338d819de"
+      "bytes": 3786,
+      "sha256": "6f5c3b98b9fec2d8f67dfa118a66d6c913063bde01a28e3360de37ba94acae7e"
     },
     {
       "path": "cpp/include/smartcar/zebra.hpp",
@@ -445,8 +470,8 @@
     },
     {
       "path": "cpp/src/controller.cpp",
-      "bytes": 34763,
-      "sha256": "2374cd332d043910a10885048370f3f61def4c47ea9f1e50532122a5d8622a2d"
+      "bytes": 29813,
+      "sha256": "02c33ecd360433e3bc36c4e3bb16e4a163b3b15a1a7f88dba8d28b59384b0adc"
     },
     {
       "path": "cpp/src/ground.cpp",
@@ -455,28 +480,28 @@
     },
     {
       "path": "cpp/src/hybrid.cpp",
-      "bytes": 5381,
-      "sha256": "e2044a8f4cf2cb0860f80a18411874ded8ddced594685e09ddbafdf3547b0af9"
+      "bytes": 5499,
+      "sha256": "df7805019af32ac6c786fd654a389e5ca520728e793cff871401b14926e2d3b7"
     },
     {
       "path": "cpp/src/main.cpp",
-      "bytes": 32475,
-      "sha256": "c817d05592a743203d740a1686ff5335b1b97f503bca3b39bbdd95e65fca06b8"
+      "bytes": 33346,
+      "sha256": "20918fed6214e86802c1e876999f70fe4e6deb1371fcbeb7878b0ae74b777d14"
     },
     {
       "path": "cpp/src/parking.cpp",
-      "bytes": 31475,
-      "sha256": "58ef40eb656b2020075ab44b7b5ae1f906e69b0862042ad8e52eff6b9a6ad57a"
+      "bytes": 44047,
+      "sha256": "b0862d3cecff2f5d20017f83c13bf1bab2f91c8d623de38065ea2522d9fe8e0d"
     },
     {
       "path": "cpp/src/perception.cpp",
-      "bytes": 37059,
-      "sha256": "e7e14b711e13053f283f5312b18d891a494df2b015bdbc3617ef610e455614f2"
+      "bytes": 34594,
+      "sha256": "6b998f107bf6e31d2e3a146e4070db522443b01c5a35b66d86805e798a2797ec"
     },
     {
       "path": "cpp/src/runtime.cpp",
-      "bytes": 9598,
-      "sha256": "0961226635ca0030f4d63421ed1511321fb421d62c514b5bf2ed0272134151bc"
+      "bytes": 9952,
+      "sha256": "235ac4fe268b86b12de2084ad2b36999e566bcf910c00a5b9472b0590263fcad"
     },
     {
       "path": "cpp/src/zebra.cpp",
@@ -492,6 +517,31 @@
       "path": "cpp/tests/cone_sequence.py",
       "bytes": 3845,
       "sha256": "1ece4f276a43cb9ba92e6466e6474cae5bbf873e2c704f1a631acbe96f9133ac"
+    },
+    {
+      "path": "cpp/tests/fixtures/cone-race-20261115-blobs.json",
+      "bytes": 3997,
+      "sha256": "cdd0e57a8e5ecb12fd678e049e73fc69f1c731b1ba08c6c7730de896758d873d"
+    },
+    {
+      "path": "cpp/tests/fixtures/cone-removed-secondary-a.jpg",
+      "bytes": 11534,
+      "sha256": "ef97fc4be9ca6169dff6eefed279f2f9165f4a3ab000e2be250dd03d01308ccf"
+    },
+    {
+      "path": "cpp/tests/fixtures/cone-track-glare-secondary.jpg",
+      "bytes": 12461,
+      "sha256": "e1855562c653f892c232c8f9858d0876e4b7b09be13bb71694bf608b695b25c0"
+    },
+    {
+      "path": "cpp/tests/fixtures/parking_entry_distant.png",
+      "bytes": 182096,
+      "sha256": "efd155db10ad36975cc6efc5a40ef68e2ecd4f54bf8eec44b3ce4652b832351f"
+    },
+    {
+      "path": "cpp/tests/fixtures/parking_entry_glare.png",
+      "bytes": 209108,
+      "sha256": "edd681828d29a358e95334cd1248636104095710449301629e83bf5c21e75104"
     },
     {
       "path": "cpp/tests/fixtures/parking_left_clear_right_board.jpg",
@@ -549,6 +599,21 @@
       "sha256": "0a54d63f241d3ab885bbe1404cc8c1180a82d84c61f12369c7cf8a07965ba479"
     },
     {
+      "path": "cpp/tests/fixtures/traffic_outdoor_green.png",
+      "bytes": 402617,
+      "sha256": "0fe5379646930898fc7e7e77ffe43e0034d0ce684b5e1d96dc629744d54b7036"
+    },
+    {
+      "path": "cpp/tests/fixtures/traffic_outdoor_off.png",
+      "bytes": 404090,
+      "sha256": "6ed0bb501ea8cb453831bf5b6e4f535cf03679e214ed1d95f6f934ab67335962"
+    },
+    {
+      "path": "cpp/tests/fixtures/traffic_outdoor_red.png",
+      "bytes": 408185,
+      "sha256": "d763a9cfd46af9f38d70e22edf9cca36c44d9cecbe59e7f739036617501f8c87"
+    },
+    {
       "path": "cpp/tests/fixtures/zebra_outdoor_0401.jpg",
       "bytes": 50916,
       "sha256": "e243f227fa553708553ded6728bdd7bae2a5caa88797f92d957c4fa02730a5c3"
@@ -585,33 +650,33 @@
     },
     {
       "path": "cpp/tests/test_controller.cpp",
-      "bytes": 34390,
-      "sha256": "c02f631db026f9029567ab3b5b575668ecf9f4e0a8a8b96761b3e9b7db0d4142"
+      "bytes": 29063,
+      "sha256": "9135a2212c448383a0f7c6c8794ad885b2c706e3d39516bcfb37d441a116f5cd"
     },
     {
       "path": "cpp/tests/test_hybrid.py",
-      "bytes": 11146,
-      "sha256": "c7217a627f42fde59b8346ae1b817e91421f2d6a204cc73450841554147a6592"
+      "bytes": 15148,
+      "sha256": "4d6572de9dbe133d62140eb7182b0be2688a1a9a929674bbbe6273ebccdcdca7"
     },
     {
       "path": "cpp/tests/test_parking.cpp",
-      "bytes": 12622,
-      "sha256": "e7497a1684636df47d61708040d6a5296eeda8f0167ff6b12bc52779976d3a37"
+      "bytes": 15739,
+      "sha256": "c25fa65e1ee96f8769e831be6aa7ee431ee791107d904d1b97fb1d46661ea255"
     },
     {
       "path": "cpp/tests/test_perception.cpp",
-      "bytes": 16757,
-      "sha256": "c9337396a00631adecaddfd2635491a0028be5d72d4a4ce7ad0f97f78c06f5a0"
+      "bytes": 16926,
+      "sha256": "afd7a0e61725af60547616bd7cd8af455eb78d99c4141c0c4bb98de3b3debdb9"
     },
     {
       "path": "cpp/tests/test_road_integration.cpp",
-      "bytes": 10081,
-      "sha256": "e2e74d046ee1228fa569b2b16bb05f1781c88992e3db7cfb33c42ec2ee243694"
+      "bytes": 9274,
+      "sha256": "679d0a2e6dc46fe1bdd4903aa9f032ddc68cfd06b836759f70d61cc927ca470d"
     },
     {
       "path": "cpp/tests/test_runtime.cpp",
-      "bytes": 4671,
-      "sha256": "f374144fa562fd056c60cd54f39a475b7cbe7e4314eac1d26405213db61dde42"
+      "bytes": 6155,
+      "sha256": "f2155630f4d1c700d89e5a716f35a3dc3f897139fbedc7fa6c7ba4ad21f681e7"
     },
     {
       "path": "cpp/tests/test_traffic.cpp",
@@ -635,8 +700,8 @@
     },
     {
       "path": "cpp/tools/pack_release.py",
-      "bytes": 2286,
-      "sha256": "9e0bfdfa270d6c5605b2779ac33b14cbd212781da388a88e21b206d6cb90d26c"
+      "bytes": 2350,
+      "sha256": "80d09a4144d4c7ce0de58c7546c809f528d656d6d58059a2ceea82ccbba56589"
     },
     {
       "path": "deployment/smartcar-preview.service",
@@ -680,8 +745,8 @@
     },
     {
       "path": "vision/web/app.js",
-      "bytes": 16335,
-      "sha256": "49bb1012dc47b9c1a0ae752802b15462d6d4e10876c286d7f4a105d86adc6a43"
+      "bytes": 16996,
+      "sha256": "ce98fa2dd31e5b118cc60dc56e90fbf42e0c5954c5d698e3a4c47086a6df6def"
     },
     {
       "path": "vision/web/index.html",

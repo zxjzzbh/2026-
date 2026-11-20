@@ -1,6 +1,164 @@
-"""Pure range check shared by the cone controller."""
+"""Cone selection inside the shared, user-supplied S3 steering envelope.
+
+Validate actual S3 commands separately within the selected subset of the live
+team-supplied 1350..1870 range. Reuse PulseGuard for ESC, lease and finite F/B timing;
+its neutral steering placeholder is translated only after this S3 validation.
+All logged/input commands retain the actual pulse, not the placeholder.
+"""
+
 from .steering import LEFT_US, RIGHT_US
+from .brake_timing import brake_cleanup_window_s
+import multiprocessing as mp
+import sys
+import time
+
+from .brake_output import BrakeActuator,PulseGuard,write_parking_pulse,verify_neutral_readback
+from .cone_command import CONE_COMMAND_LEASE_S
+
+
 def validate_limits(right,left):
     if (type(right) is not int or type(left) is not int
             or not RIGHT_US<=right<=1570 or not 1650<=left<=LEFT_US):
         raise ValueError('锥桶转向仅允许右 1350–1570、左 1650–1870 μs')
+
+
+class ConePulseGuard(PulseGuard):
+    MAX_LEASE_S = CONE_COMMAND_LEASE_S
+    def __init__(self,settings,write,*,mode,right_us=RIGHT_US,left_us=LEFT_US):
+        validate_limits(right_us,left_us)
+        if not 1570<=settings.get('pwm',{}).get('creep_us',0)<=settings.get('pwm',{}).get('search_us',0)<=1625:
+            raise ValueError('锥桶前进档须在 1570–1625 μs')
+        self.base_lease_s=settings['actuator_lease_s']
+        self.right_us,self.left_us=right_us,left_us;self.actual_steering=1610;self.actual_write=write
+        pulses=settings.get('parking_forward_us',[])
+        if (not isinstance(pulses,list) or len(pulses)>32 or
+                any(type(p) is not int or not 1570<=p<=1625 for p in pulses)):
+            raise ValueError('parking forward whitelist must remain within 1570..1625 us')
+        self.parking_pulses=tuple(pulses)
+        traffic=settings.get('traffic_forward_us')
+        if traffic is not None and (type(traffic) is not int or not 1570<=traffic<=1575):
+            raise ValueError('traffic approach setpoint exceeds its low-speed envelope')
+        self.traffic_pulse=traffic
+        cone=settings.get('cone_forward_us',[])
+        if (not isinstance(cone,list) or len(cone)>2
+                or any(type(p) is not int or not 1570<=p<=min(1580,settings['pwm']['search_us']) for p in cone)):
+            raise ValueError('cone recovery setpoints must stay below the frozen forward envelope')
+        self.cone_pulses=tuple(cone)
+        super().__init__(settings,self._write,mode=mode,forward_limit_us=1625)
+
+    def _write(self,channel,pulse):
+        self.actual_write(channel,self.actual_steering if channel==3 else pulse)
+
+    def neutral(self):
+        self.actual_steering=1610
+        super().neutral()
+
+    def accept(self,command,now):
+        original_settings=self.s
+        try:
+            profile=command.get('control_profile') if isinstance(command,dict) else None
+            if profile not in (None,'cone'):raise ValueError('unknown command control profile')
+            self.s={**original_settings,'actuator_lease_s':CONE_COMMAND_LEASE_S if profile=='cone' else self.base_lease_s}
+            return self._accept(command,now)
+        except Exception as error:
+            self.abort(str(error),now);raise
+        finally:
+            self.s=original_settings
+
+    def _accept(self,command,now):
+        self.tick(now)
+        if self.fault:raise RuntimeError(self.fault)
+        try:
+            if not isinstance(command,dict):raise ValueError('command must be an object')
+            steer=command.get('steering_us')
+            if type(steer) is not int or not self.right_us<=steer<=self.left_us:
+                raise ValueError('steering exceeds selected cone envelope')
+            if command.get('action')=='neutral' and steer!=1610:raise ValueError('neutral must center S3')
+            self.actual_steering=steer
+            parking={('parking_'+str(p)):p for p in self.parking_pulses}
+            limited_cones={('cone_'+str(p)):p for p in self.cone_pulses}
+            traffic=command.get('action')=='traffic_approach'
+            if traffic and self.traffic_pulse is None:
+                raise ValueError('traffic approach has no frozen setpoint')
+            pulse=self.traffic_pulse if traffic else limited_cones.get(command.get('action'),parking.get(command.get('action')))
+            if pulse is None:
+                super().accept({**command,'steering_us':1610},now)
+            else:
+                if command.get('esc_us')!=pulse:
+                    raise ValueError('traffic pulse does not match its frozen setpoint' if traffic else
+                                     'parking pulse does not match frozen measurement whitelist')
+                # Reuse the installed PulseGuard unchanged. Only its forward
+                # setpoint is scoped to this synchronous accept; brake, lease,
+                # time/sequence checks and fault latch remain exactly the same.
+                original=self.s
+                try:
+                    self.s={**original,'pwm':{**original['pwm'],'search_us':pulse}}
+                    super().accept({**command,'action':'search','steering_us':1610},now)
+                finally:
+                    self.s=original
+        except Exception as exc:
+            self.abort(str(exc),now);raise
+
+
+def _worker(connection,settings,port,mode,right_us,left_us):
+    adapter=ownership=guard=None
+    try:
+        import fcntl
+        from .rasadapter5 import RasAdapter
+        ownership=open('/tmp/carvision-pi-pwm.lock','a+')
+        fcntl.flock(ownership.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
+        adapter=RasAdapter(port);adapter.open();adapter.receive(.02)
+        def write(channel,pulse):
+            write_parking_pulse(adapter,channel,pulse,forward_limit_us=1625)
+        guard=ConePulseGuard(settings,write,mode=mode,right_us=right_us,left_us=left_us)
+        guard.neutral();time.sleep(.03)
+        connection.send({'ready':True,'startup_readback':verify_neutral_readback(adapter)})
+        reported=False
+        while True:
+            guard.tick(time.monotonic())
+            if guard.fault and not reported:connection.send({'fault':guard.fault});reported=True
+            if connection.poll(.005):
+                try:message=connection.recv()
+                except EOFError:
+                    guard.abort('parent ended',time.monotonic());break
+                if message.get('close'):
+                    guard.abort('closed by parent',time.monotonic());break
+                try:guard.accept(message,time.monotonic())
+                except Exception:
+                    if not reported:connection.send({'fault':guard.fault});reported=True
+            if guard.fault and guard.emergency_until is None:break
+    except BaseException as exc:
+        try:connection.send({'fault':str(exc)})
+        except (OSError,EOFError):pass
+    finally:
+        if guard:
+            try:
+                guard.abort('worker ending',time.monotonic());end=time.monotonic()+brake_cleanup_window_s(guard.s['brake_pulse_s'])
+                while guard.emergency_until is not None and time.monotonic()<end:
+                    guard.tick(time.monotonic());time.sleep(.005)
+                guard.neutral()
+            except Exception:pass
+        if adapter:adapter.close()
+        if ownership:ownership.close()
+        connection.close()
+
+
+class ConeTrialActuator(BrakeActuator):
+    def __init__(self,settings,*,right_us=RIGHT_US,left_us=LEFT_US,run=False,esc_mode=None,port='/dev/ttyAMA0'):
+        validate_limits(right_us,left_us)
+        super().__init__(settings,run=False,forward_limit_us=1625)
+        self.run=run;self.steering_limits_us=[right_us,left_us]
+        if not run:return
+        if sys.platform!='linux' or esc_mode!='F/B':raise ValueError('live cone output requires Linux and F/B')
+        ctx=mp.get_context('spawn');parent,child=ctx.Pipe();self.connection=parent
+        self.process=ctx.Process(target=_worker,args=(child,settings,port,esc_mode,right_us,left_us),daemon=True)
+        self.process.start();child.close()
+        if not parent.poll(3):self.close();raise RuntimeError('cone actuator startup timed out')
+        ready=parent.recv()
+        if not ready.get('ready'):self.close();raise RuntimeError('cone UART/output unavailable: '+str(ready))
+        self.startup_readback=ready.get('startup_readback')
+
+    def send(self,intent):
+        if type(intent.get('steering_us')) is not int or not self.steering_limits_us[0]<=intent['steering_us']<=self.steering_limits_us[1]:
+            self.close();raise ValueError('steering exceeds selected cone envelope')
+        return {**super().send(intent),'steering_limits_us':self.steering_limits_us}

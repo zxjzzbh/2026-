@@ -24,6 +24,39 @@ int main() {
     for (int throttle : {1400, 1500, 1570, 1600})
         assert(actuatorPacket(1610, throttle).size() == 15);
     Config policyConfig;
+    {
+        Config zebraConfig;
+        zebraConfig.zebra_brake_us = kZebraReverseUs;
+        OutputPolicy output(zebraConfig);
+        Command reverse;
+        reverse.throttle_us = kZebraReverseUs;
+        reverse.state = "zebra_brake";
+        auto rejects = [&](OutputPolicy &writer, const Command &q) {
+            try {
+                writer.submit(q, 0);
+            } catch (const std::invalid_argument &) {
+                return true;
+            }
+            return false;
+        };
+        assert(rejects(output, reverse)); // no event ID
+        reverse.brake_event_id = 1;
+        OutputPolicy legacy(policyConfig);
+        assert(rejects(legacy, reverse));
+        reverse.state = "traffic_brake";
+        assert(rejects(output, reverse));
+        reverse.state = "zebra_brake";
+        auto packet = actuatorPacket(1610, output.resolve(reverse, 0, 0).throttle_us);
+        assert(packet[11] == 4 && packet[12] == 0x14 && packet[13] == 0x05);
+        assert(output.resolve(reverse, .11, .11).throttle_us == 1300);
+        assert(output.resolve(.12).throttle_us == 1500 && output.completedBrakeEvent() == 1);
+        assert(output.resolve(reverse, .5, .5).throttle_us == 1500);
+        reverse.brake_event_id = 2;
+        assert(output.resolve(reverse, .6, .6).throttle_us == 1300);
+        assert(output.stop(.61).throttle_us == 1500);
+        assert(output.resolve(reverse, .62, .62).throttle_us == 1500);
+        assert(output.completedBrakeEvent() == 1);
+    }
     OutputPolicy policy(policyConfig);
     Command pulse;
     pulse.throttle_us = 1400;

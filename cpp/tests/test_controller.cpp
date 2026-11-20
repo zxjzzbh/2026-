@@ -16,7 +16,7 @@ struct Run {
     Controller car;
     Observation o;
     std::uint64_t id = 0;
-    explicit Run(Task t) : car(Config{}, t) {
+    explicit Run(Task t, Config config = {}) : car(config, t) {
         o.lane.valid = o.lane.both = true;
         o.lane.metric = true;
         o.lane.lateral_uncertainty_m = .03;
@@ -28,7 +28,8 @@ struct Run {
         o.time = time;
         o.frame_id = ++id;
         auto q = car.update(o);
-        check(q.throttle_us == 1400 || q.throttle_us == 1500 || q.throttle_us >= 1570,
+        check((q.throttle_us == kZebraReverseUs && q.state == "zebra_brake" && q.brake_event_id) ||
+                  q.throttle_us == 1400 || q.throttle_us == 1500 || q.throttle_us >= 1570,
               "forward output below motor movement threshold");
         check(q.steering_us >= 1350 && q.steering_us <= 1870, "steering outside measured endpoints");
         return q;
@@ -63,9 +64,6 @@ int main() {
             Config c;
             c.steering_gain = -1;
             check(rejects(c), "negative steering gain cannot reverse left/right control");
-            c = Config{};
-            c.obstacle_gain = -1;
-            check(rejects(c), "negative obstacle gain must be rejected");
             c = Config{};
             c.max_steering_rate = 0;
             check(rejects(c), "zero steering slew rate cannot freeze turn output");
@@ -186,6 +184,40 @@ int main() {
             check(r.at(16.21).done, "full renewed stationary hold can complete");
         }
         {
+            Config c;
+            c.zebra_brake_us = kZebraReverseUs;
+            Run r(Task::Zebra, c);
+            r.o.zebra = true;
+            r.o.zebra_y = .70;
+            r.o.brake_feedback_valid = true;
+            auto first = r.at(0.);
+            check(first.brake_event_id && first.throttle_us == 1300, "initial zebra reverse pulse");
+            r.o.brake_completed_event_id = first.brake_event_id;
+            r.at(.4);
+            r.o.motion_valid = true;
+            r.o.stopped_confirmed = false;
+            r.o.forward_delta = .012;
+            for (double time : {.61, .66})
+                check(!r.at(time).brake_event_id, "a brief forward estimate must not re-brake");
+            r.o.motion_valid = false;
+            r.at(.71);
+            r.o.motion_valid = true;
+            for (double time : {.76, .86})
+                check(!r.at(time).brake_event_id, "missing motion must restart roll confirmation");
+            auto second = r.at(.97);
+            check(second.throttle_us == 1300 && second.brake_event_id > first.brake_event_id,
+                  "sustained forward roll after neutral needs a distinct brake transaction");
+            check(r.at(1.5).brake_event_id == second.brake_event_id, "old ACK cannot complete re-braking");
+            r.o.brake_completed_event_id = second.brake_event_id;
+            r.at(1.55);
+            for (int i = 0; i < 12; ++i)
+                check(r.at(1.8+i*.10).throttle_us == 1500, "one supplementary pulse per crossing");
+            r.o.forward_delta = 0;
+            r.o.stopped_confirmed = true;
+            r.at(3.1);
+            check(!r.at(13.05).done && r.at(13.11).done, "ten stopped seconds after re-braking");
+        }
+        {
             Run r(Task::Traffic);
             r.o.red = true;
             check(r.at(0).throttle_us == 1400, "red must initiate brake");
@@ -207,116 +239,17 @@ int main() {
         }
         {
             Run r(Task::Obstacle);
-            r.o.cones = {Cone{{0, 1.1}, .039, 1}};
-            auto first = r.at(0);
-            check(first.target_x > 0, "equal free space selects right");
-            check(first.steering_us < 1610, "right target must steer right");
-            r.o.cones.clear();
-            r.o.motion_valid = false;
-            check(r.at(.05).cones_passed == 0, "target disappearance is not obstacle passing");
-            r.o.motion_valid = true;
-            r.o.forward_delta = 1.7;
-            check(r.at(.1).cones_passed == 1, "measured full rear clearance records first passed cone");
-            r.o.forward_delta = 0;
-            r.at(.15);
-            r.at(.20);
-            r.at(.25);
-            r.o.cones = {Cone{{.35, 1.2}, .039, 2}};
-            check(r.at(.30).target_x < .35, "right-side second cone requires passing to its left");
-            r.o.cones.clear();
-            r.o.forward_delta = 1.8;
-            check(!r.at(.35).done, "second pass alone does not mean lane recenter complete");
-            r.o.forward_delta = 0;
-            r.o.lane.left_x = -.40;
-            r.o.lane.right_x = .77;
-            check(!r.at(.4).done, "off-centre lane must keep recentering");
-            r.o.lane.left_x = -.585;
-            r.o.lane.right_x = .585;
-            r.at(.45);
-            r.at(.50);
-            check(r.at(.55).done, "two passed cones plus sustained recentering completes task");
-        }
-        {
-            Run r(Task::Obstacle);
-            r.o.lane.left_x = -.87;
-            r.o.lane.right_x = .30;
-            r.o.cones = {Cone{{-.20, 1.1}, .039, 1}};
-            check(r.at(0).target_x < -.20, "right boundary below 50 cm prefers feasible left route");
-        }
-        {
-            Run r(Task::Obstacle);
-            r.o.cones = {Cone{{0, 1.5}, .039, 1}};
-            r.at(0);
-            r.o.lane.valid = false;
-            r.o.motion_valid = true;
-            for (int i = 1; i <= 80; ++i) {
-                r.o.forward_delta = .008;
-                r.o.lateral_delta = .001;
-                r.o.cones[0].base = {-.001 * i, 1.5 - .008 * i};
-                auto q = r.at(i * .05);
-                check(q.throttle_us >= 1570, "fresh cone and continuous measured motion can bridge "
-                                             "white-line loss up to four seconds");
-                if (i == 40 || i == 80)
-                    check(q.reason.find("motion-predicted") != std::string::npos,
-                          "two/four second bridge is explicitly predicted geometry");
-            }
-            r.o.motion_valid = false;
-            check(r.at(4.05).throttle_us == 1500,
-                  "failed motion stops extended white-line recovery despite a visible cone");
-            r.o.motion_valid = true;
-            r.o.forward_delta = r.o.lateral_delta = 0;
-            check(r.at(4.10).throttle_us == 1500,
-                  "restored motion cannot repair an unknown missing motion interval");
-            r.o.lane.valid = true;
-            r.o.lane.left_x = -.665;
-            r.o.lane.right_x = .505;
-            auto resumed = r.at(4.15);
-            check(resumed.throttle_us >= 1570,
-                  "fresh measured white lines rebuild lane prediction after lost motion");
-            check(std::abs(resumed.steering_us - 1610) <= 26,
-                  "recovered steering is rate limited from actual neutral output");
-        }
-        {
-            Run r(Task::Obstacle);
-            r.o.cones = {Cone{{0, 1.5}, .039, 1}};
-            r.at(0);
-            r.o.lane.valid = false;
-            r.o.motion_valid = true;
-            for (int i = 1; i <= 100; ++i) {
-                r.o.forward_delta = .002;
-                r.o.cones[0].base.y = 1.5 - .002 * i;
-                check(r.at(i * .05).throttle_us >= 1570,
-                      "five second limit permits bounded continuous cone-guided motion");
-            }
-            check(r.at(5.05).throttle_us == 1500,
-                  "fresh cone does not extend white-line prediction beyond five seconds");
-            Run none(Task::Obstacle);
-            none.at(0);
-            none.o.lane.valid = false;
-            none.o.motion_valid = true;
-            check(none.at(1.1).throttle_us == 1500,
-                  "no locked cone means ordinary one-second line recovery limit");
-        }
-        {
-            Run r(Task::Obstacle);
-            r.o.cones = {Cone{{0, 1.0}, .039, 1}};
-            r.at(0);
-            r.o.lane.valid = false;
-            r.o.motion_valid = true;
-            r.o.cones.clear();
-            r.o.forward_delta = 1.5;
-            r.o.lateral_delta = .10;
-            r.o.yaw_delta = .10;
-            auto q = r.at(.05);
-            check(q.cones_passed == 1, "tracked motion can confirm full passing when cone leaves camera");
-            const double expected_center = -.10 / std::cos(.10) - .85 * std::tan(.10);
-            check(std::abs(q.target_x - expected_center) < .002,
-                  "recenter target follows translated and rotated lane, not old cone offset");
-            r.o.forward_delta = r.o.lateral_delta = r.o.yaw_delta = 0;
-            for (int i = 2; i <= 40; ++i)
-                q = r.at(i * .05);
-            check(q.throttle_us >= 1570 && !q.done,
-                  "motion-predicted recentering continues but cannot declare line reacquisition");
+            auto missing = r.at(0);
+            check(missing.throttle_us == 1500 && missing.steering_us == 1610 && !missing.done,
+                  "missing race-cone intent must never select a different obstacle planner");
+            r.o.cone_drive = LegacyConeDrive{1570, 1510, 1, false, .1, "locked target"};
+            check(r.at(.1).steering_us == 1510, "fresh race-cone intent resumes the same task");
+            r.o.cone_drive.reset();
+            auto lost = r.at(.2);
+            check(lost.throttle_us == 1500 && lost.cones_passed == 1 && !lost.done,
+                  "missing feedback retains confirmed progress without renewing motion");
+            r.o.cone_drive = LegacyConeDrive{1500, 1610, 2, true, .3, "complete"};
+            check(r.at(.3).done, "single-task completion requires the pinned controller's handoff");
         }
         {
             Run r(Task::Parking);
@@ -363,16 +296,6 @@ int main() {
             outside.o.stopped_confirmed = true;
             outside.at(.4);
             check(!outside.at(2).done, "tilted rear corner across boundary cannot be declared parked");
-        }
-        {
-            // #1: a pixel-ratio lane estimate must not drive metre-level side selection.
-            Run r(Task::Obstacle);
-            r.o.lane.metric = false;
-            r.o.cones = {Cone{{0, 1.1}, .039, 1}};
-            auto q = r.at(0);
-            check(q.throttle_us == 1500,
-                  "pixel-estimate lane must not drive metre-level side selection");
-            check(q.cones_passed == 0, "no side selection means no pass may be counted");
         }
         {
             // #3: an unreadable frame must neither reset nor credit the 10 s stationary hold.
@@ -641,64 +564,6 @@ int main() {
             r.o.zebra = true;
             r.o.zebra_y = .85;
             check(r.at(.3).throttle_us == 1400, "current measured range rebuilds crosswalk tracking");
-        }
-        {
-            Run r(Task::Obstacle);
-            r.o.lane.metric = false;
-            r.o.lane.model_projected = true;
-            r.o.lane.lateral_uncertainty_m = .04;
-            r.o.cones = {Cone{{0, 1.1}, .039, 1, true, .03}};
-            auto q = r.at(0);
-            check(q.throttle_us >= 1570 && q.target_x > 0,
-                  "bounded paired lane/cone models can select the right corridor with uncertainty margin");
-            r.o.lane.model_projected = false;
-            check(r.at(.1).throttle_us == 1500,
-                  "locked model cone cannot keep driving with an unqualified image-ratio lane");
-            r.o.lane.valid = false;
-            r.o.motion_valid = true;
-            check(r.at(.2).throttle_us == 1500,
-                  "cached unqualified lane cannot be revived by motion after model evidence fails");
-        }
-        {
-            Run r(Task::Obstacle);
-            r.o.lane.metric = false;
-            r.o.lane.model_projected = true;
-            r.o.lane.lateral_uncertainty_m = .04;
-            r.o.cones = {Cone{{0, 1.1}, .039, 1, true, .03}};
-            r.at(0);
-            r.o.lane.metric = true;
-            r.o.lane.model_projected = false;
-            check(r.at(.1).throttle_us >= 1570,
-                  "two current measured boundaries can replace qualified model geometry without a stop");
-            r.o.cones[0].model_projected = false;
-            r.o.cones[0].uncertainty_m = 0;
-            check(r.at(.2).throttle_us >= 1570,
-                  "same cone can upgrade from bounded model to measured projection in the next frame");
-        }
-        for (int invalid = 0; invalid < 4; ++invalid) {
-            Run r(Task::Obstacle);
-            r.o.lane.metric = false;
-            r.o.lane.model_projected = true;
-            r.o.lane.lateral_uncertainty_m = .04;
-            r.o.cones = {Cone{{0, 1.1}, .039, 1, true, .03}};
-            if (invalid == 0)
-                r.o.lane.both = false;
-            if (invalid == 1)
-                r.o.lane.lateral_uncertainty_m = .11;
-            if (invalid == 2)
-                r.o.cones[0].uncertainty_m = .11;
-            if (invalid == 3)
-                r.o.cones[0].uncertainty_m = std::numeric_limits<double>::quiet_NaN();
-            check(r.at(0).throttle_us == 1500,
-                  "partial or unbounded model projection cannot make centimetre-level passing decisions");
-        }
-        {
-            Run r(Task::Obstacle);
-            r.o.cones = {Cone{{0, 1.1}, .039, 1}};
-            r.at(0);
-            r.o.lane.metric = false;
-            check(r.at(.1).throttle_us == 1500,
-                  "a previously metric cone does not qualify a new pixel-only lane");
         }
         {
             // 车位锁定后长期无观测（即使有微弱运动估计）不得无限前进：

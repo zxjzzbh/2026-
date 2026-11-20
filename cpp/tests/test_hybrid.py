@@ -1,4 +1,5 @@
 """Combined entry-point tests. All frames come from files or generated scenes."""
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -70,6 +71,18 @@ def replay(task, road, primary=None):
 
 
 class CombinedProgram(unittest.TestCase):
+    def test_outdoor_traffic_emission(self):
+        cfg = read_json(CONFIG)
+        signals = Hybrid(CONFIG, cfg["primary_camera"], cfg["secondary_camera"]).signals
+        for name in ("red", "green", "off"):
+            image = fixture("traffic_outdoor_" + name + ".png")
+            self.assertEqual(signals.detector.detect(image)["state"], name)
+            # An isolated specular spot on the unlit green lens is not a green signal.
+            if name == "off":
+                cx, cy = signals.detector.detect(image)["lamp_centers"][2]
+                cv2.circle(image, (round(cx), round(cy)), 2, (220, 255, 220), -1)
+                self.assertNotEqual(signals.detector.detect(image)["state"], "green")
+
     def test_camera_reopen_after_outage_keeps_same_run(self):
         # A one-frame file exercises the live capture worker's reopen path without a vehicle.
         with tempfile.TemporaryDirectory() as tmp:
@@ -137,9 +150,29 @@ class CombinedProgram(unittest.TestCase):
         engine.crosswalk.update(rows)
         self.assertIsNotNone(engine.crosswalk.distance_disagreement)
         self.assertEqual(engine.crosswalk.distance_disagreement["raw_frame_ids"], {"primary": 19, "secondary": 27})
-        self.assertEqual(engine.crosswalk.trigger, .4)
+        self.assertEqual(engine.crosswalk.trigger, .60)
         swapped = Hybrid(CONFIG, cfg["secondary_camera"], cfg["primary_camera"])
         self.assertFalse(any(swapped.calibrated.values()))
+
+    def test_earlier_crosswalk_brake_and_approach_speed(self):
+        def strips(y):
+            image = np.zeros((360, 480, 3), np.uint8)
+            for x in (95, 175, 255, 335):
+                cv2.rectangle(image, (x, y-73), (x+27, y), (245, 245, 245), -1)
+            return image
+        rows, _ = replay("zebra", [track()]*6 + [strips(289)]*4 + [strips(302)]*8)
+        self.assertTrue(any(r["requested_throttle_us"] == 1590 for r in rows[:6]))
+        self.assertFalse(any(r["brake_event_id"] for r in rows[:10]))
+        first = next(r for r in rows[10:] if r["brake_event_id"])
+        self.assertEqual(first["requested_throttle_us"], 1300)
+        pulse = [r for r in rows if r["requested_throttle_us"] == 1300]
+        self.assertEqual(len(pulse), 2)  # Samples at 0 and 0.1 s inside the 0.12 s pulse.
+        self.assertTrue(all(r["brake_event_id"] == first["brake_event_id"] for r in pulse))
+        tail = rows[rows.index(pulse[-1])+1:]
+        self.assertTrue(tail)
+        self.assertTrue(all((r["state"], r["requested_throttle_us"]) == ("zebra_hold", 1500)
+                            for r in tail))
+        self.assertTrue(.5 < first["zebra_rear_axle_y"] - .335 <= .6)
 
     def test_signal_conflict_then_same_camera_release(self):
         black = np.zeros((360, 480, 3), np.uint8)
@@ -185,6 +218,36 @@ class CombinedProgram(unittest.TestCase):
             resumed = sample(i, i/10, i/10)
         self.assertGreater(resumed["pwm"], 1500)
         self.assertEqual(resumed["passed"], 0)
+
+    def test_cone_source_and_race_settings(self):
+        pin = read_json(FIXTURES / "cone-race-20261115-blobs.json")
+        for path, expected in pin["git_blobs"].items():
+            with self.subTest(path=path):
+                data = (CPP / path).read_bytes().replace(b"\r\n", b"\n")
+                header = f"blob {len(data)}\0".encode()
+                self.assertEqual(hashlib.sha1(header + data).hexdigest(), expected)
+        cfg = read_json(CONFIG)
+        engine = Hybrid(CONFIG, cfg["primary_camera"], cfg["secondary_camera"])
+        image = track().tobytes()
+        result = json.loads(engine.step("two_cones", image, 1, 1., None, 0, -1, 1.35))["cone"]
+        self.assertEqual(result["captured_s"], 1.)
+        self.assertEqual(engine.cone_settings["geometry"]["lane_width_m"], cfg["lane_width_m"])
+        self.assertEqual(engine.cone_settings["driving"]["forward_us"], cfg["forward_us"])
+        self.assertEqual(engine.cone_settings["low_speed_test"]["steering_gain"], 1.5)
+        for view in engine.cones.navigator.views.values():
+            self.assertEqual(view.single_recovery_s, 1.)
+
+    def test_cone_display_counts_current_shape_after_removal(self):
+        present = fixture("cone-track-glare-secondary.jpg")
+        absent = fixture("cone-removed-secondary-a.jpg")
+        cfg = read_json(CONFIG)
+        engine = Hybrid(CONFIG, cfg["primary_camera"], cfg["secondary_camera"])
+        for i, im in enumerate([present]*6 + [absent]*7, start=1):
+            result = json.loads(engine.step("two_cones", im.tobytes(), i, i/10, None, 0, -1, i/10))["cone"]
+            self.assertEqual(result["primary_visible"], -1)
+            if i == 6:
+                self.assertGreater(result["secondary_visible"], 0)
+        self.assertEqual(result["secondary_visible"], 0)
 
     def test_two_distinct_passes_require_lane_return(self):
         cfg = read_json(CONFIG)

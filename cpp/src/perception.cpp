@@ -292,11 +292,6 @@ Lane imageLane(const cv::Mat &white, cv::Size size, const Config &config,
         }
     return out;
 }
-Point transformStatic(Point p, const Observation &motion) {
-    const double x = p.x - motion.lateral_delta, y = p.y - motion.forward_delta;
-    const double c = std::cos(motion.yaw_delta), s = std::sin(motion.yaw_delta);
-    return {c * x - s * y, s * x + c * y};
-}
 } // namespace
 
 RoadPerception::RoadPerception(const Config &c, const GroundMap &g) : config_(c), ground_(g) {
@@ -319,13 +314,11 @@ void RoadPerception::reset() {
     previous_time_ = 0;
     stopped_since_ = -1;
     stopped_frames_ = lane_streak_ = zebra_streak_ = board_streak_ = 0;
-    tracks_.clear();
     previous_lane_ = {};
     board_candidate_ = board_reference_ = {};
     previous_zebra_y_ = 0;
     zebra_image_streak_ = 0;
     previous_zebra_edge_ = -1;
-    next_track_id_ = 1;
 }
 
 void RoadPerception::motion(const cv::Mat &gray, const cv::Mat &mask, Observation &out) {
@@ -439,7 +432,6 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
         zebra_image_streak_ = 0;
         previous_zebra_edge_ = -1;
         previous_lane_ = {};
-        tracks_.clear();
         board_candidate_ = board_reference_ = {};
     }
     diagnostics_.fresh = true;
@@ -457,33 +449,48 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
     cv::dilate(blue, expanded_blue, cv::getStructuringElement(cv::MORPH_RECT, {9, 9}));
     feature_mask.setTo(0, expanded_blue); // vertical blue objects cannot supply ground odometry
     motion(gray, feature_mask, out);
-    if (out.motion_valid)
-        for (auto &t : tracks_)
-            t.p = transformStatic(t.p, out);
-
     std::vector<std::vector<cv::Point>> contours;
-    cv::findContours(white, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
-    diagnostics_.white_components = int(contours.size());
+    // Recover dim, low-saturation tape only if it is brighter than the nearby
+    // pavement across its width. A shadow edge alone has no narrow bright ridge.
+    cv::Mat dim, local, lane_white;
+    cv::inRange(hsv, cv::Scalar(0, 0, 60), cv::Scalar(179, 85, 149), dim);
+    const int width = 2 * std::max(3, cvRound(bgr.cols * .032)) + 1;
+    cv::morphologyEx(gray, local, cv::MORPH_TOPHAT, cv::getStructuringElement(cv::MORPH_RECT, {width, 1}));
+    dim &= (local >= 22);
+    lane_white = white | dim;
+    cv::morphologyEx(lane_white, lane_white, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, {3, 3}));
     std::vector<Tape> lanes, zebra_bars;
-    for (const auto &contour : contours) {
-        if (cv::contourArea(contour) < 12)
-            continue;
-        Tape t;
-        if (!describeTape(contour, ground_, bgr.size(), config_.lookahead, t)) {
-            ++diagnostics_.rejected_tapes;
-            continue;
+    auto measure = [&](const cv::Mat &mask, bool collect_bars, bool collect_lanes) {
+        cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+        if (collect_bars)
+            diagnostics_.white_components = int(contours.size());
+        for (const auto &contour : contours) {
+            if (cv::contourArea(contour) < 12)
+                continue;
+            Tape t;
+            if (!describeTape(contour, ground_, bgr.size(), config_.lookahead, t)) {
+                ++diagnostics_.rejected_tapes;
+                continue;
+            }
+            if (collect_bars && t.length >= 0.21 && t.length <= 0.40 && t.width >= 0.065 && t.width <= 0.15 &&
+                std::abs(t.heading) < 0.55)
+                zebra_bars.push_back(t);
+            if (!collect_lanes)
+                continue;
+            if (t.length < 0.45 || t.residual > 0.075 || t.min_y > config_.lookahead + 0.25 ||
+                t.max_y < config_.lookahead - 0.25) {
+                ++diagnostics_.rejected_tapes;
+                continue;
+            }
+            // Overexposed broad patches have no measured thin-tape footprint and failed above.
+            lanes.push_back(t);
         }
-        if (t.length >= 0.21 && t.length <= 0.40 && t.width >= 0.065 && t.width <= 0.15 &&
-            std::abs(t.heading) < 0.55)
-            zebra_bars.push_back(t);
-        if (t.length < 0.45 || t.residual > 0.075 || t.min_y > config_.lookahead + 0.25 ||
-            t.max_y < config_.lookahead - 0.25) {
-            ++diagnostics_.rejected_tapes;
-            continue;
-        }
-        // Overexposed broad patches have no measured thin-tape footprint and failed above.
-        lanes.push_back(t);
-    }
+    };
+    // Only the original white mask supplies crosswalk geometry.
+    bool has_dim_tape = cv::countNonZero(dim) > 0;
+    measure(white, true, !has_dim_tape);
+    if (has_dim_tape)
+        measure(lane_white, false, true);
     double best = 1e10;
     for (size_t i = 0; i < lanes.size(); ++i)
         for (size_t j = i + 1; j < lanes.size(); ++j) {
@@ -539,7 +546,7 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
         out.lane.metric = true;
         out.lane.lateral_uncertainty_m = .03;
     } else
-        out.lane = imageLane(white, bgr.size(), config_, ground_, diagnostics_);
+        out.lane = imageLane(lane_white, bgr.size(), config_, ground_, diagnostics_);
     if (out.lane.valid) {
         const bool consistent =
             lane_streak_ == 0 || (std::abs((out.lane.left_x + out.lane.right_x) -
@@ -661,52 +668,6 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
         }
     }
     diagnostics_.board_candidate = board;
-    cv::findContours(blue, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-    std::vector<Cone> cones;
-    for (const auto &contour : contours) {
-        const double area = cv::contourArea(contour);
-        if (area < 9)
-            continue;
-        const cv::Rect r = cv::boundingRect(contour);
-        if (r.width < 3 || r.height < 3)
-            continue;
-        const double fill = area / (r.width * r.height), aspect = double(r.height) / r.width;
-        auto base = ground_.project({r.x + r.width * 0.5, double(r.y + r.height - 1)}, bgr.size());
-        auto left = ground_.project({double(r.x), double(r.y + r.height - 1)}, bgr.size());
-        auto right =
-            ground_.project({double(r.x + r.width - 1), double(r.y + r.height - 1)}, bgr.size());
-        if (board && (r & observed_board).area() > r.area() * .5)
-            continue;
-        if (fill < .25 || aspect < .5 || aspect > 4.0)
-            continue;
-        ++diagnostics_.cone_image_candidates;
-        bool model = false;
-        if (!base || !left || !right) {
-            ++diagnostics_.unmapped_cones;
-            // Lateral extension is usable only with two current lane boundaries
-            // independently checked against the known physical lane width.
-            if (!out.lane.valid || !out.lane.both || !out.lane.model_projected ||
-                out.lane.lateral_uncertainty_m > .10)
-                continue;
-            base = ground_.projectModel({r.x + r.width * .5, double(r.br().y - 1)}, bgr.size());
-            left = ground_.projectModel({double(r.x), double(r.br().y - 1)}, bgr.size());
-            right = ground_.projectModel({double(r.br().x - 1), double(r.br().y - 1)}, bgr.size());
-            if (!base || !left || !right)
-                continue;
-            model = true;
-        }
-        const double width = distance(*left, *right);
-        if (fill < 0.25 || aspect < 0.5 || aspect > 4.0 || width < 0.025 || width > 0.19 || base->y < 0)
-            continue;
-        if (out.lane.valid && (out.lane.metric || out.lane.model_projected)) {
-            const double shift = std::tan(out.lane.heading) * (base->y - out.lane.reference_y);
-            if (base->x < out.lane.left_x + shift - .12 || base->x > out.lane.right_x + shift + .12)
-                continue;
-        }
-        if (model) ++diagnostics_.cone_model_candidates;
-        cones.push_back({*base, std::clamp(width / 2, .025, .095), 0, model,
-                         model ? std::max(.06, out.lane.lateral_uncertainty_m) : .03});
-    }
     // Track the actual visible board rectangle, not three fixed ground points
     // outside this camera's measured field. Initial absence never arms a launch.
     if (board) {
@@ -746,43 +707,6 @@ Observation RoadPerception::update(const cv::Mat &bgr, std::uint64_t id, double 
     }
     out.board_observation_valid = out.board_visible || cleared;
 
-    std::vector<bool> used(tracks_.size(), false);
-    for (auto cone : cones) {
-        const Point p = cone.base;
-        int best_track = -1;
-        double closest = 0.24;
-        for (size_t i = 0; i < tracks_.size(); ++i) {
-            if (used[i] || time - tracks_[i].last_seen > 0.7)
-                continue;
-            const double d = distance(p, tracks_[i].p);
-            if (d < closest) {
-                closest = d;
-                best_track = int(i);
-            }
-        }
-        if (best_track >= 0) {
-            auto &t = tracks_[size_t(best_track)];
-            used[size_t(best_track)] = true;
-            t.p = p;
-            t.last_seen = time;
-            ++t.hits;
-            if (t.hits >= config_.confirm_frames) {
-                cone.id = t.id;
-                out.cones.push_back(cone);
-            }
-        } else {
-            const int track_id = next_track_id_++;
-            tracks_.push_back({track_id, p, time});
-            used.push_back(true);
-            if (config_.confirm_frames <= 1) {
-                cone.id = track_id;
-                out.cones.push_back(cone);
-            }
-        }
-    }
-    tracks_.erase(std::remove_if(tracks_.begin(), tracks_.end(),
-                                 [&](const Track &t) { return time - t.last_seen > 0.7; }),
-                  tracks_.end());
     previous_gray_ = gray.clone();
     previous_feature_mask_ = feature_mask;
     previous_time_ = time;

@@ -146,20 +146,11 @@ int main() {
         require(std::abs(model_observation.lane.right_x - model_observation.lane.left_x - 1.17) < .04 &&
                     model_observation.lane.lateral_uncertainty_m >= .03,
                 "model lane must match known physical width and retain decision uncertainty");
-        require(model_observation.cones.size() == 1 && model_observation.cones.front().model_projected &&
-                    model_observation.cones.front().uncertainty_m >= .06 &&
-                    std::abs(model_observation.cones.front().base.x - .45) < .03,
-                "observed lateral cone needs tracked ID, model source, allowance and plausible position");
-        require(model_observation.cones.front().id > 0 && model_perception.diagnostics().cone_model_candidates == 1,
-                "model cone must survive normal temporal tracking and expose its source count");
         require(narrow.validPolygon() == original_domain && !narrow.project(outside_pixel, {640, 480}),
                 "model fallback must never enlarge the measured calibration domain");
         for (double depth : {2.05, .12}) {
             require(!narrow.projectModel(pixel(.45, depth), {640, 480}),
                     "model must not extrapolate past measured far or near depth");
-            RoadPerception beyond_depth(config, narrow);
-            require(stable(beyond_depth, laneAndCone(depth)).cones.empty(),
-                    "out-of-depth cone must not acquire a manufactured model distance");
         }
         require(threshold_brakes,
                 "measured 0.60m must trigger the 0.15m goal plus 0.45m braking reserve");

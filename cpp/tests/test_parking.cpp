@@ -197,6 +197,47 @@ int main(int argc, char **argv) {
                 "actual right blue board must select genuinely visible left floor");
         require(recorded_bay.entry_visible && !recorded_bay.end_visible,
                 "out-of-domain end remains inferred, never falsely measured");
+        for (const auto *name : {"parking_entry_distant.png", "parking_entry_glare.png"}) {
+            auto entry = cv::imread(std::string("tests/fixtures/") + name);
+            require(!entry.empty(), "parking entry fixture missing");
+            auto observe = [&](const cv::Mat &input) {
+                ParkingDetector probe(cfg, imported);
+                Bay result;
+                for (int i = 1; i <= cfg.confirm_frames; ++i) {
+                    result = probe.detect(input, Lane{});
+                    require(i == cfg.confirm_frames || !result.valid, "premature bay acquisition");
+                }
+                return result;
+            };
+            Bay distant = observe(entry);
+            require(distant.valid && distant.left_clear && distant.right_blocked && !distant.right_clear,
+                    "recognize the open left half at approach distance under both lighting conditions");
+            require(distant.entry_visible && !distant.end_visible && distant.current_geometry,
+                    "image support for the entrance cannot establish a measured terminal edge");
+            cv::Mat covered = entry.clone();
+            cv::rectangle(covered, {234, 130}, {385, 238}, cv::Scalar(75, 75, 75), cv::FILLED);
+            require(!observe(covered).left_clear, "no blue board or divider evidence to select a half");
+            cv::Mat mirrored;
+            cv::flip(entry, mirrored, 1);
+            auto reversed = observe(mirrored);
+            require(reversed.valid && reversed.right_clear && reversed.left_blocked && !reversed.left_clear,
+                    "moving the board to the left must select the visible right half");
+            cv::Mat both_blocked = entry.clone();
+            cv::rectangle(both_blocked, {148, 165}, {220, 230}, cv::Scalar(180, 75, 40), cv::FILLED);
+            auto blocked = observe(both_blocked);
+            require(!blocked.left_clear && !blocked.right_clear, "two blocked halves cannot select a bay");
+            cv::Mat back_blocked = entry.clone();
+            cv::rectangle(back_blocked, {181, 165}, {214, 205}, cv::Scalar(180, 75, 40), cv::FILLED);
+            auto at_back = observe(back_blocked);
+            require(!at_back.left_clear && !at_back.right_clear, "a board behind the entry strip blocks that half");
+            cv::Mat missing_entrance = entry.clone();
+            cv::rectangle(missing_entrance, {85, 216}, {255, 240}, cv::Scalar(65, 80, 65), cv::FILLED);
+            require(!observe(missing_entrance).valid, "a board and side stripes require an entrance stripe");
+            cv::Mat no_chroma;
+            cv::cvtColor(entry, no_chroma, cv::COLOR_BGR2GRAY);
+            cv::cvtColor(no_chroma, no_chroma, cv::COLOR_GRAY2BGR);
+            require(!observe(no_chroma).valid, "brightness or glare alone does not identify a parking bay");
+        }
         // Optional full historical clip, kept outside the portable source package.
         if (argc == 2) {
             cv::VideoCapture replay(argv[1]);

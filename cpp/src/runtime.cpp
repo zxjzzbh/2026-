@@ -22,7 +22,11 @@ namespace smartcar {
 void OutputPolicy::submit(Command q, double stamp) {
     if (!std::isfinite(stamp))
         throw std::invalid_argument("invalid command timestamp");
-    if (q.throttle_us == config_.brake_us) {
+    if (q.throttle_us < config_.neutral_us) {
+        if (q.throttle_us != config_.brake_us &&
+            !(q.throttle_us == kZebraReverseUs && config_.zebra_brake_us == kZebraReverseUs &&
+              q.state == "zebra_brake"))
+            throw std::invalid_argument("reverse pulse outside configured zebra brake");
         if (q.brake_event_id == 0)
             throw std::invalid_argument("brake request requires a nonzero event ID");
         if (q.brake_event_id > last_event_id_) {
@@ -39,9 +43,9 @@ Command OutputPolicy::resolve(double now) {
         throw std::invalid_argument("invalid output timestamp");
     Command q = requested_;
     // A completed/cancelled event can never be re-armed by a repeated request.
-    if (q.throttle_us == config_.brake_us)
+    if (q.throttle_us < config_.neutral_us)
         q.throttle_us = config_.neutral_us;
-    if (active_brake_ && now - brake_started_ >= config_.brake_s) {
+    if (active_brake_ && now - brake_started_ >= config_.brakePulseSeconds(active_brake_->throttle_us)) {
         completed_event_id_ = active_brake_->brake_event_id;
         active_brake_.reset();
         // A neutral write terminates this transaction before acknowledging it.
@@ -83,7 +87,8 @@ Command OutputPolicy::stop(double now) {
 }
 std::vector<unsigned char> actuatorPacket(int steering, int throttle) {
     if (steering < 1350 || steering > 1870 ||
-        (throttle != 1400 && throttle != 1500 && (throttle < 1570 || throttle > 1600)))
+        (throttle != kZebraReverseUs && throttle != 1400 && throttle != 1500 &&
+         (throttle < 1570 || throttle > 1600)))
         throw std::invalid_argument("actuator command outside configured electrical envelope");
     // RasAdapter5A function 4, set PWM, 20 ms, two servos: S3 steering / S4 ESC.
     std::vector<unsigned char> p{0xaa,

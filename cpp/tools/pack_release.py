@@ -6,7 +6,7 @@ import json
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
-PREFIX = "smartcar_oneclick_20261119"
+PREFIX = "smartcar_oneclick_zebra_reverse1590_20261120"
 SKIP = {"build", "runs", "run", "__pycache__", ".pytest_cache", ".git", ".venv"}
 TREES = {"cpp", "vision", "deployment"}
 

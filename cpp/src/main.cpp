@@ -89,11 +89,16 @@ Settings load(const fs::path &p) {
     number("clearance_m", s.control.clearance);
     number("braking_distance_m", s.control.braking_distance);
     number("brake_s", s.control.brake_s);
+    if (!file["zebra_brake_us"].empty() && !file["zebra_brake_us"].isInt())
+        throw std::runtime_error("zebra_brake_us must be an integer");
+    number("zebra_brake_us", s.control.zebra_brake_us);
     number("zebra_hold_s", s.control.zebra_hold_s);
     number("parking_stop_gap_m", s.control.parking_stop_gap);
     number("forward_us", s.control.forward_us);
+    int approach_forward_us = s.control.forward_us;
+    number("approach_forward_us", approach_forward_us);
+    s.control.approach_forward_us = approach_forward_us;
     number("steering_gain", s.control.steering_gain);
-    number("obstacle_gain", s.control.obstacle_gain);
     number("traffic_max_approach_s", s.control.traffic_max_approach_s);
     string("secondary_camera", s.secondary);
     string("primary_camera", s.primary);
@@ -530,7 +535,7 @@ int main(int argc, char **argv) {
                 }
                 lampId = replayPrimaryId;
                 lampStamp = double(lampId)/primaryFps;
-                if (lampId && timestamp-lampStamp <= .25) lamp = replayPrimary;
+                if (lampId && timestamp-lampStamp <= ((watch || stage == Stage::Obstacles) ? .5 : .25)) lamp = replayPrimary;
             } else if (livePrimary && useHybrid) {
                 livePrimary->latest(lamp,lampId,lampStamp);
             }
@@ -596,12 +601,10 @@ int main(int argc, char **argv) {
                 << ",\"zebra_image_reason\":\"" << escape(o.zebra_distance_reason) << "\""
                 << ",\"zebra_range_status\":\"" << escape(o.zebra_range_status) << "\""
                 << ",\"zebra_distance_reason\":\"" << escape(o.zebra_distance_reason) << "\""
+                << ",\"primary_cones\":" << legacy.primary_cones << ",\"secondary_cones\":" << legacy.secondary_cones
                 << ",\"cones_visible\":" << legacy.cones_visible << ",\"cones_passed\":" << q.cones_passed
                 << ",\"legacy_cone_phase\":\"" << escape(legacy.cone_phase) << "\",\"legacy_cone_camera\":\"" << escape(legacy.cone_camera)
                 << "\",\"legacy_zebra_camera\":\"" << escape(legacy.zebra_camera) << "\",\"legacy_signal_color\":\"" << escape(legacy.signal_color) << "\""
-                << ",\"native_cone_image_candidates\":" << visionDiagnostics.cone_image_candidates
-                << ",\"unmapped_cones\":" << visionDiagnostics.unmapped_cones
-                << ",\"cone_model_candidates\":" << visionDiagnostics.cone_model_candidates
                 << ",\"brake_event_id\":" << q.brake_event_id
                 << ",\"brake_completed_event_id\":" << o.brake_completed_event_id
                 << ",\"bay_valid\":" << o.bay.valid << ",\"entry_y\":" << o.bay.entry_y

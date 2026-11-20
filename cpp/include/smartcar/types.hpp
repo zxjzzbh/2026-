@@ -8,6 +8,7 @@ namespace smartcar {
 struct Point {
     double x = 0, y = 0;
 }; // metres, rear axle origin, right/forward positive
+inline constexpr int kZebraReverseUs = 1300;
 struct Config {
     double lane_width = 1.17, body_width = 0.30, wheelbase = 0.245;
     double front_extent = 0.335, rear_extent = 0.085, clearance = 0.04;
@@ -15,10 +16,15 @@ struct Config {
     double zebra_hold_s = 10.0, zebra_stop_gap = 0.15, parking_stop_gap = 0.50;
     double parking_length = 1.50, tape_width = 0.10, lookahead = 0.85;
     double parking_gap_tolerance = 0.10;
-    double recovery_s = 1.0, cone_loss_s = 5.0, steering_gain = 1.0, obstacle_gain = 1.35,
+    double recovery_s = 1.0, cone_loss_s = 5.0, steering_gain = 1.0,
          traffic_max_approach_s = 25.0;
-    double cone_pass_distance = 0.22, direction_tie_m = 0.20, max_steering_rate = 500.0;
+    double max_steering_rate = 500.0;
     int neutral_us = 1500, brake_us = 1400, forward_min_us = 1570, forward_us = 1570;
+    int zebra_brake_us = 1400; // Older race profiles use the ordinary brake.
+    double brakePulseSeconds(int throttle_us) const {
+        return throttle_us == kZebraReverseUs ? 0.12 : brake_s;
+    }
+    std::optional<int> approach_forward_us;
     int steering_center_us = 1610, steering_left_us = 1870, steering_right_us = 1350;
     int confirm_frames = 3;
 };
@@ -29,13 +35,6 @@ struct Lane {
     bool metric = false; // true: measured ground projection; false: width-ratio image estimate
     bool model_projected = false; // qualified homography extrapolation, not measured calibration
     double lateral_uncertainty_m = 0.0; // conservative decision allowance, not a verified error bound
-};
-struct Cone {
-    Point base;
-    double radius = 0.039;
-    int id = 0;
-    bool model_projected = false; // bounded extrapolation, never a measured calibration point
-    double uncertainty_m = 0;
 };
 struct Bay {
     bool valid = false, entry_visible = false, end_visible = false;
@@ -59,7 +58,6 @@ struct Observation {
     double time = 0;
     bool frame_ok = true, board_visible = false, board_observation_valid = false;
     Lane lane;
-    std::vector<Cone> cones;
     Bay bay;
     bool zebra = false;
     double zebra_y = 0;

@@ -1,0 +1,115 @@
+{
+  "image_size": [
+    480,
+    360
+  ],
+  "pose_us": [
+    1600,
+    1150
+  ],
+  "points": [
+    {
+      "pixel": [
+        156.83043015302692,
+        339.8921501998256
+      ],
+      "ground_m": [
+        -0.2,
+        0.835
+      ]
+    },
+    {
+      "pixel": [
+        333.37466201283524,
+        336.3141605394761
+      ],
+      "ground_m": [
+        0.2,
+        0.835
+      ]
+    },
+    {
+      "pixel": [
+        326.8497023809524,
+        246.8407738095238
+      ],
+      "ground_m": [
+        0.5,
+        1.835
+      ]
+    },
+    {
+      "pixel": [
+        146.44681818181817,
+        252.5222727272727
+      ],
+      "ground_m": [
+        -0.5,
+        1.835
+      ]
+    }
+  ],
+  "check_points": [
+    {
+      "pixel": [
+        242.78308317302827,
+        297.3570108163748
+      ],
+      "ground_m": [
+        0,
+        1.085
+      ]
+    },
+    {
+      "pixel": [
+        239.1779891304348,
+        259.4071557971015
+      ],
+      "ground_m": [
+        0,
+        1.585
+      ]
+    },
+    {
+      "pixel": [
+        262.6210166177908,
+        274.5902737047898
+      ],
+      "ground_m": [
+        0.1,
+        1.335
+      ]
+    }
+  ],
+  "valid_polygon_px": [
+    [
+      156.83043015302692,
+      339.8921501998256
+    ],
+    [
+      333.37466201283524,
+      336.3141605394761
+    ],
+    [
+      326.8497023809524,
+      246.8407738095238
+    ],
+    [
+      146.44681818181817,
+      252.5222727272727
+    ]
+  ],
+  "camera": "secondary",
+  "measured_fixed_camera": false,
+  "accepted_error_m": 0.03,
+  "candidate_only": true,
+  "source_commit": "6f93ea8858bfe83676bc4bdbfd790de7979de7ec",
+  "source_path": "run/pi5-calibration-20261007-01/152800-603601-native-ground-reference/secondary-ground-acceptance.json",
+  "source_pose_us": [
+    1600,
+    1150
+  ],
+  "source_repeat_error_m": 0.02157725555847742,
+  "rear_axle_origin_adjustment_m": -0.0050000000000000044,
+  "notes": "Historical data only: assumes unchanged fixed camera and pure uncropped resize. Current pose and lane-edge coverage must be checked. This polygon does not cover both edges of the 1.23m lane. Not enabled for driving."
+}

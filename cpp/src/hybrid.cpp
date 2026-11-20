@@ -110,6 +110,8 @@ HybridEvidence HybridVision::update(const std::string &stage, const cv::Mat &roa
                             int(cone["done"]) != 0, double(cone["captured_s"]), std::string(cone["reason"])};
         o.cone_drive->repeat_forward = int(cone["repeat_forward"]) != 0;
         e.cones_visible = int(cone["visible"]);
+        e.primary_cones = int(cone["primary_visible"]);
+        e.secondary_cones = int(cone["secondary_visible"]);
         e.cone_phase = std::string(cone["phase"]);
         e.cone_camera = std::string(cone["source"]);
     }

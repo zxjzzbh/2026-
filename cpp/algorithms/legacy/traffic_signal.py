@@ -133,6 +133,47 @@ def stop_reference_geometry(box,reference):
             and .75<=geometry['area_ratio']<=4 and drift<=.75*diagonal)
 
 
+def _outdoor_led_state(image, group):
+    # Sunlight lights up all three coloured covers. Switched-on LEDs add
+    # separated pale peaks inside their own lens, also in a dim exposure.
+    if not all(f['shape_support'] and f['color_fraction'] >= .45 for f in group['features']):
+        return None
+    radius = group['radius'] * .76
+    if radius < 4:
+        return None
+    measurements = []
+    for cx, cy in group['centers']:
+        x0, y0 = max(0, int(cx-radius)), max(0, int(cy-radius))
+        patch = image[y0:int(cy+radius)+1, x0:int(cx+radius)+1]
+        yy, xx = np.ogrid[:patch.shape[0], :patch.shape[1]]
+        dx, dy = xx + x0 - cx, yy + y0 - cy
+        inside = dx*dx + dy*dy <= radius*radius
+        if inside.sum() < .85*np.pi*radius*radius:
+            return None
+        pale = patch.min(axis=2).astype(float)
+        value = patch.max(axis=2)
+        median = np.median(pale[inside])
+        peak = np.percentile(pale[inside], 98)
+        high = np.percentile(value[inside], 98)
+        dots = inside & (pale > median + max(18., .65*(peak-median))) & (value >= high-20)
+        # Require highlights separated across the lens, so one glint cannot release the car.
+        count, _, _, centers = cv2.connectedComponentsWithStats(dots.astype(np.uint8), connectivity=8)
+        centers = centers[1:count]
+        spread = (dots.sum() >= 3 and any(np.hypot(*(a-b)) >= radius*.82
+                                          for a,b in combinations(centers, 2)))
+        measurements.append((peak-median, high, high-np.median(value[inside]), spread))
+    for i, (lift, high, contrast, spread) in enumerate(measurements):
+        other = max(row[0] for j,row in enumerate(measurements) if i != j)
+        if i != 1 and spread and high >= 170 and contrast >= 24 and lift >= max(35., other*1.3+5):
+            return ('red', 'yellow', 'green')[i]
+    # All three tinted, textured covers are visible under the same illumination.
+    # Borderline/emissive surfaces stay unknown if no single lamp stands out.
+    if (max(f['median_v'] for f in group['features']) < 230 and
+            max(row[0] for row in measurements) <= min(row[0] for row in measurements)*1.35+10):
+        return 'off'
+    return None
+
+
 class TrafficSignalDetector:
     def __init__(self,profile=None):self.profile=load_profile() if profile is None else profile
 
@@ -234,6 +275,9 @@ class TrafficSignalDetector:
                     result.update(state='unknown',signal_for_race='unknown',fixture_detected=False,
                                   bbox_xyxy=None,reason='tracked_fixture_missing',
                                   stop_only_color='red',stop_only_box=g['bbox'])
+            elif not active and not g.get('red_recovery') and (led := _outdoor_led_state(image, g)):
+                result.update(state=led, signal_for_race=led if led != 'off' else 'unknown',
+                              reason='distributed_lens_highlights' if led != 'off' else 'sunlit_unlit_lenses')
             elif max(vs)<self.profile['off_max_value'] and all(f['color_fraction']>.12 for f in fs):
                 result.update(state='off',reason='fixture_present_without_emission')
             else:result['reason']='ambiguous_emission'

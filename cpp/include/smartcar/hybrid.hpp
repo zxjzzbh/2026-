@@ -7,7 +7,7 @@
 namespace smartcar {
 struct HybridEvidence {
     int stripes = 0;
-    int cones_visible = 0;
+    int cones_visible = 0, primary_cones = -1, secondary_cones = -1;
     double near_px = -1;
     double green_until = -1;
     std::string zebra_camera, cone_phase, cone_camera, signal_color;

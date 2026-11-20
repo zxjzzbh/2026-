@@ -288,6 +288,217 @@ Bay visibleHalfBay(const cv::Mat &image, const cv::Mat &hsv, const cv::Mat &yell
         }
     return result;
 }
+// Fit the entrance over its middle span. Endpoints alone give a noisy heading
+// when a one-pixel change at a distant corner maps to several centimetres.
+std::optional<Line> measuredEntrance(const cv::Mat &tape, cv::Point left, cv::Point right,
+                                     const GroundMap &ground, double lookahead) {
+    double width = right.x - left.x;
+    int radius = std::max(2, cvRound(tape.rows / 90.));
+    std::vector<cv::Point2f> edge;
+    int begin = cvRound(left.x + .12 * width), end = cvRound(right.x - .12 * width);
+    for (int x = begin; x <= end; ++x) {
+        double expected = left.y + (right.y - left.y) * (x - left.x) / width;
+        int lo = std::max(1, cvRound(expected) - radius);
+        int hi = std::min(tape.rows - 1, cvRound(expected) + radius);
+        for (int y = lo; y <= hi; ++y) {
+            if (tape.at<uchar>(y, x) && !tape.at<uchar>(y - 1, x)) {
+                edge.emplace_back(float(x), float(y - 1));
+                break;
+            }
+        }
+    }
+    if (edge.size() < .55 * (end - begin + 1))
+        return {};
+    cv::Vec4f fit;
+    cv::fitLine(edge, fit, cv::DIST_HUBER, 0, .01, .01);
+    if (std::abs(fit[0]) < .9)
+        return {};
+    auto row = [&](int x) { return fit[3] + (x - fit[2]) * fit[1] / fit[0]; };
+    int supported = 0;
+    for (auto p : edge)
+        if (std::abs(p.y - row(cvRound(p.x))) <= .5 * radius)
+            ++supported;
+    if (supported < .75 * edge.size() || std::abs(left.y - row(left.x)) > radius ||
+        std::abs(right.y - row(right.x)) > radius)
+        return {};
+    return metricLine(ground, {left.x, cvRound(row(left.x)), right.x, cvRound(row(right.x))},
+                      tape.size(), false, lookahead);
+}
+
+// A board can hide one half while glare erases the far stripe. Look for the
+// floor bounded by both side stripes and the near stripe in the visible half.
+Bay entranceFromFloor(const cv::Mat &image, const cv::Mat &hsv, const cv::Mat &blue,
+                      const cv::Mat &tape, const std::vector<cv::Point> &floor, cv::Rect board,
+                      const std::vector<cv::Rect> &boards, int top,
+                      const GroundMap &ground, const Config &config) {
+    std::vector<cv::Point> hull;
+    cv::convexHull(floor, hull);
+    double hull_area = cv::contourArea(hull);
+    if (hull_area <= 0 || cv::contourArea(floor) < .85 * hull_area)
+        return {};
+    cv::Point far_left(image.cols, top), far_right(-1, top), left = hull.front(), right = left;
+    for (auto p : hull) {
+        if (p.y == top) {
+            far_left.x = std::min(far_left.x, p.x);
+            far_right.x = std::max(far_right.x, p.x);
+        }
+        if (p.y - .17 * p.x > left.y - .17 * left.x)
+            left = p;
+        if (p.y + .17 * p.x > right.y + .17 * right.x)
+            right = p;
+    }
+    double width = right.x - left.x, far_width = far_right.x - far_left.x;
+    double foot_y = board.br().y - 1;
+    if (width < image.cols * .12 || width > image.cols * .72 ||
+        far_width < .43 * width || far_width > 1.07 * width ||
+        std::min(left.y, right.y) < top + .055 * board.height ||
+        std::abs(left.y - right.y) > .14 * width ||
+        std::abs((left.y + right.y) * .5 - foot_y) > .20 * board.height ||
+        cv::contourArea(std::vector<cv::Point>{far_left, far_right, right, left}) < .86 * hull_area)
+        return {};
+    bool empty_left = board.x + board.width * .5 > right.x;
+    auto inner = empty_left ? right : left;
+    double gap = empty_left ? board.x - inner.x : inner.x - board.br().x;
+    if (gap < -.20 * board.width || gap > .45 * board.width)
+        return {};
+
+    // Check the bounded interior against the apron at the same image column.
+    // This allows a sun/shade gradient but requires visible, unclipped floor.
+    int floor_samples = 0, warm_floor_samples = 0;
+    for (int i = 1; i <= 7; ++i) {
+        double across = i / 8.;
+        cv::Point2d lower = cv::Point2d(left) * (1 - across) + cv::Point2d(right) * across;
+        cv::Point2d upper = cv::Point2d(far_left) * (1 - across) + cv::Point2d(far_right) * across;
+        int apron_y = cvRound(lower.y + .27 * board.height);
+        if (apron_y >= image.rows)
+            return {};
+        for (double depth : {.25, .5, .75}) {
+            cv::Point p = upper * (1 - depth) + lower * depth;
+            if (blue.at<uchar>(p))
+                return {};
+            auto value = hsv.at<cv::Vec3b>(p);
+            auto color = image.at<cv::Vec3b>(p), apron = image.at<cv::Vec3b>(apron_y, p.x);
+            int difference = std::max({std::abs(color[0] - apron[0]), std::abs(color[1] - apron[1]),
+                                       std::abs(color[2] - apron[2])});
+            if (value[0] <= 43 && value[1] >= 16 && value[2] > 28 && value[2] < 244)
+                ++warm_floor_samples;
+            if (value[2] > 28 && value[2] < 244 && value[1] > 12 && difference < 65)
+                ++floor_samples;
+        }
+    }
+    if (floor_samples < 14)
+        return {};
+
+    auto joint = ground.project(inner, image.size());
+    if (!joint)
+        return {};
+    auto outer = ground.project(empty_left ? left : right, image.size());
+    // If the floor itself takes on the hue of yellow tape, corner positions
+    // drift along the reflection. Use a robust fit across the stripe when its
+    // whole span is calibrated. Otherwise use the measured part of the edge.
+    auto entry = outer && warm_floor_samples >= 4
+                     ? measuredEntrance(tape, left, right, ground, config.lookahead) : std::nullopt;
+    if (!entry)
+        entry = metricLine(ground, {left.x, left.y, right.x, right.y}, image.size(), false, config.lookahead);
+    if (!entry || entry->intercept <= 0 || std::abs(std::atan(entry->slope)) > .60)
+        return {};
+    if (outer && std::abs(std::hypot(outer->x - joint->x, outer->y - joint->y) -
+                          (config.lane_width * .5 - config.tape_width)) > .20)
+        return {};
+    double heading = -std::atan(entry->slope), direction = empty_left ? 1. : -1.;
+    double divider = joint->x + direction * config.tape_width * .5 / std::cos(heading) +
+                     std::tan(heading) * (config.lookahead - joint->y);
+    bool adjacent_board = false;
+    for (auto foot : boardFeet(ground, board, image.size())) {
+        double across = direction * (foot.x - divider - std::tan(heading) * (foot.y - config.lookahead));
+        if (across > .5 * config.tape_width && across < .5 * config.lane_width + .05)
+            adjacent_board = true;
+    }
+    if (!adjacent_board)
+        return {};
+    Bay result;
+    result.valid = result.entry_visible = true;
+    result.left_clear = result.right_blocked = empty_left;
+    result.right_clear = result.left_blocked = !empty_left;
+    // A second board can sit farther back than the strip used to find the
+    // entrance. Check its base between the two observed side stripes as well.
+    for (auto other : boards) {
+        if (other == board)
+            continue;
+        double y = other.br().y - 1, x = other.x + .5 * other.width;
+        if (y < foot_y - .65 * board.height || y > foot_y + .20 * board.height)
+            continue;
+        double x_left = left.x + (far_left.x - left.x) * (left.y - y) / (left.y - top);
+        double x_right = right.x + (far_right.x - right.x) * (right.y - y) / (right.y - top);
+        if (x > x_left && x < x_right) {
+            result.left_clear = result.right_clear = false;
+            result.left_blocked = result.right_blocked = true;
+        }
+    }
+    result.heading = heading;
+    result.divider_x = divider;
+    result.left_x = divider - config.lane_width * .5;
+    result.right_x = divider + config.lane_width * .5;
+    result.entry_y = entry->intercept;
+    result.end_y = result.entry_y + config.parking_length / std::cos(heading);
+    result.confidence = .60;
+    return result;
+}
+
+Bay contrastEntrance(const cv::Mat &image, const cv::Mat &hsv, const GroundMap &ground,
+                     const Config &config) {
+    double scale = double(image.cols) / ground.imageSize().width;
+    auto kernel = [&](int nominal, int shape) {
+        int radius = std::max(1, cvRound((nominal / 2) * scale));
+        return cv::getStructuringElement(shape, {2 * radius + 1, 2 * radius + 1});
+    };
+    cv::Mat blue;
+    cv::inRange(hsv, cv::Scalar(102, 85, 45), cv::Scalar(135, 255, 255), blue);
+    cv::morphologyEx(blue, blue, cv::MORPH_OPEN, kernel(5, cv::MORPH_RECT));
+    std::vector<std::vector<cv::Point>> shapes;
+    cv::findContours(blue, shapes, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    std::vector<cv::Rect> boards;
+    for (const auto &shape : shapes) {
+        auto r = cv::boundingRect(shape);
+        double area = cv::contourArea(shape);
+        if (area > .004 * image.total() && area > .65 * r.area() &&
+            r.width > .65 * r.height && r.width < 2.8 * r.height && r.y > 0 &&
+            r.br().y > .45 * image.rows && r.br().y < .98 * image.rows)
+            boards.push_back(r);
+    }
+    if (boards.empty())
+        return {};
+    cv::Mat green, blue_channel, local, warm, tape;
+    cv::extractChannel(image, green, 1);
+    cv::extractChannel(image, blue_channel, 0);
+    cv::morphologyEx(green, local, cv::MORPH_TOPHAT, kernel(17, cv::MORPH_ELLIPSE));
+    cv::inRange(hsv, cv::Scalar(8, 8, 55), cv::Scalar(65, 255, 255), warm);
+    tape = warm & (green - blue_channel > 5) & (local >= 9);
+    cv::morphologyEx(tape, tape, cv::MORPH_CLOSE, kernel(3, cv::MORPH_RECT));
+    for (auto board : boards) {
+        // Try several depths: a reflected vertical streak may join a side
+        // farther from the entrance while the floor near the board is visible.
+        for (double depth : {.29, .22, .16, .39}) {
+            int top = int(board.br().y - board.height * depth);
+            int bottom = std::min(image.rows, int(board.br().y + .2 * board.height));
+            cv::Mat floor_mask = ~tape.rowRange(top, bottom);
+            std::vector<std::vector<cv::Point>> floors;
+            cv::findContours(floor_mask, floors, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE, {0, top});
+            for (const auto &floor : floors) {
+                auto r = cv::boundingRect(floor);
+                if (r.y != top || r.x < 2 || r.br().x >= image.cols - 1 || r.br().y + 1 >= bottom ||
+                    r.width < .1 * image.cols || r.width > .76 * image.cols || r.height < .06 * board.height)
+                    continue;
+                Bay bay = entranceFromFloor(image, hsv, blue, tape, floor, board, boards, top, ground, config);
+                if (bay.valid)
+                    return bay;
+            }
+        }
+    }
+    return {};
+}
+
+
 double surfaceFraction(const cv::Mat &hsv, const GroundMap &g, const Bay &bay, bool left, double tape,
                        double lookahead) {
     int measured = 0, clear = 0;
@@ -430,6 +641,7 @@ Bay ParkingDetector::detect(const cv::Mat &image, const Lane &lane) {
     longitudinal = merge(longitudinal, config_.tape_width + .02);
     transverse = merge(transverse, config_.tape_width + .02);
     image_transverse = merge(image_transverse, std::max(3., image.rows * .012));
+    bool entrance_floor = false;
     Bay observed;
     if (!tracked_.valid) {
         // White track boundaries (or yellow perimeter tape) plus the actual yellow
@@ -514,9 +726,15 @@ Bay ParkingDetector::detect(const cv::Mat &image, const Lane &lane) {
         }
         if (!observed.valid)
             observed = visibleHalfBay(image, hsv, yellow, ground_, config_);
+        if (!observed.valid) {
+            observed = contrastEntrance(image, hsv, ground_, config_);
+            entrance_floor = observed.valid;
+        }
         if (observed.valid) {
             observed.current_geometry = true;
-            bool match = candidate_.valid && std::abs(candidate_.entry_y - observed.entry_y) < .15 &&
+            bool match = candidate_.valid && !(candidate_.left_clear && observed.right_clear) &&
+                         !(candidate_.right_clear && observed.left_clear) &&
+                         std::abs(candidate_.entry_y - observed.entry_y) < .15 &&
                          std::abs(candidate_.divider_x - observed.divider_x) < .12 &&
                          std::abs(candidate_.end_y - observed.end_y) < .2;
             candidate_frames_ = match ? candidate_frames_ + 1 : 1;
@@ -578,6 +796,11 @@ Bay ParkingDetector::detect(const cv::Mat &image, const Lane &lane) {
             }
         }
         Bay visible_half = visibleHalfBay(image, hsv, yellow, ground_, config_);
+        bool floor_candidate = false;
+        if (!visible_half.valid && !observed.end_visible) {
+            visible_half = contrastEntrance(image, hsv, ground_, config_);
+            floor_candidate = visible_half.valid;
+        }
         bool current_half = false;
         if (visible_half.valid && std::abs(visible_half.entry_y - tracked_.entry_y) < .22 &&
             std::abs(visible_half.end_y - tracked_.end_y) < .25 &&
@@ -592,6 +815,13 @@ Bay ParkingDetector::detect(const cv::Mat &image, const Lane &lane) {
             observed.divider_x = visible_half.divider_x;
             observed.right_x = visible_half.right_x;
             observed.heading = visible_half.heading;
+            if (floor_candidate) {
+                observed.left_clear = visible_half.left_clear;
+                observed.right_clear = visible_half.right_clear;
+                observed.left_blocked = visible_half.left_blocked;
+                observed.right_blocked = visible_half.right_blocked;
+                entrance_floor = true;
+            }
             current_half = true;
         }
         bool measured = observed.entry_visible || observed.end_visible;
@@ -611,8 +841,11 @@ Bay ParkingDetector::detect(const cv::Mat &image, const Lane &lane) {
     }
     if (!tracked_.valid) {
         observed.valid = false;
+        observed.left_clear = observed.right_clear = false;
         return observed;
     }
+    if (entrance_floor)
+        return tracked_;
     // Board assignment is based on its ground-contact position inside this bay.
     cv::Mat blue;
     cv::inRange(hsv, cv::Scalar(95, 65, 35), cv::Scalar(135, 255, 255), blue);

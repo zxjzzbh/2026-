@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "camera": "secondary",
+  "aux_camera": "primary",
+  "image_size": [
+    480,
+    360
+  ],
+  "target_count": 2,
+  "blue_hsv_lower": [
+    100,
+    110,
+    50
+  ],
+  "blue_hsv_upper": [
+    135,
+    255,
+    255
+  ],
+  "confirm_frames": 3,
+  "confirm_s": 0.15,
+  "track_timeout_s": 0.6,
+  "max_frame_age_s": 0.25,
+  "scene": {
+    "surface": "red_running_track",
+    "boundary_policy": "whole_vehicle_inside_white_inner_edges",
+    "red_ground_min_fraction": 0.15,
+    "blue_only_obstacles_reported": true,
+    "white_v_min": 200
+  },
+  "geometry": {
+    "measured": false,
+    "lane_width_m": 1.23,
+    "vehicle_width_m": 0.3,
+    "vehicle_length_m": 0.42,
+    "rear_axle_to_front_m": 0.335,
+    "rear_overhang_m": 0.085,
+    "cone_height_m": 0.08,
+    "cone_base_width_m": 0.078,
+    "clearance_m": null,
+    "measured_geometry": {
+      "source_record": "vision/configs/vehicle-geometry-measurements-20261025.json",
+      "source": "human_user_measurements_2026-10-25",
+      "front_axle_to_front_m": 0.09,
+      "rear_axle_to_rear_m": 0.07,
+      "overall_length_m": 0.42,
+      "overall_width_m": 0.3,
+      "wheelbase_m": 0.245,
+      "wheel_track_m": 0.24,
+      "tyre_contact_width_m": 0.05,
+      "tyre_contact_length_m": 0.035,
+      "axle_and_overhang_length_m": 0.405,
+      "length_discrepancy_m": 0.015,
+      "effective_front_extent_m": 0.335,
+      "effective_rear_extent_m": 0.085,
+      "effective_rear_extent_is_measured": false,
+      "notes": "The reported rear overhang is 0.07 m. Runtime rear_overhang_m stays at the conservative envelope max(0.07, 0.42 - 0.335) = 0.085 m to cover the full reported 0.42 m length. The 0.015 m discrepancy is unresolved. Dimensions do not verify clearance, ground projection, motion or pose."
+    }
+  },
+  "ground": {
+    "verified": false,
+    "image_size": [
+      480,
+      360
+    ],
+    "coordinate_frame": "rear_axle_x_right_y_forward",
+    "homography": null,
+    "valid_polygon_px": null,
+    "max_error_m": null
+  },
+  "motion": {
+    "verified": false,
+    "minimum_turn_radius_m": null,
+    "maximum_tracking_error_m": null,
+    "braking_distance_m": null,
+    "pose_feedback_verified": false
+  },
+  "notes": "2026-10-11 user supplied: straight red running track, width between white boundaries 1.23m; overall tyre width .295m, car length .41m; blue cone diameter .075m, height .08m. Entire vehicle must stay inside white inner edges. Axle offsets, clearance and ground/motion calibration remain unknown. Color supports identification, not distance calibration.",
+  "driving": {
+    "steering_radius_1350_cm": null,
+    "steering_radius_1870_cm": null
+  }
+}

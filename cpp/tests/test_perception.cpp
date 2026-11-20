@@ -92,6 +92,14 @@ int main() {
         check(o.lane.valid && !o.lane.both && o.lane.metric, "single real boundary fallback missing");
         check(std::abs((o.lane.right_x - o.lane.left_x) - 1.17) < .01,
               "single-side completion must use metric width");
+        RoadPerception shaded(c, map());
+        cv::Mat shadowed;
+        road().convertTo(shadowed, -1, .45);
+        check(confirm(shaded, shadowed).lane.both, "both tapes remain visible in cast shadow");
+        shaded.reset();
+        cv::Mat no_tape(shadowed.size(), shadowed.type(), cv::Scalar(70, 70, 70));
+        no_tape.colRange(220, 410).setTo(cv::Scalar(110, 110, 110));
+        check(!confirm(shaded, no_tape).lane.valid, "a broad shadow boundary is not a lane");
         RoadPerception narrow(c, map(true));
         o = confirm(narrow, im);
         check(o.lane.valid && o.lane.both && !o.lane.metric,
@@ -116,7 +124,7 @@ int main() {
             auto board_scene = measured_scene.clone();
             cv::rectangle(board_scene, {175, 180}, {305, 285}, {230, 75, 20}, cv::FILLED);
             measured = confirm(actual_perception, board_scene, 4, .3);
-            check(measured.board_visible && measured.board_observation_valid && measured.cones.empty(),
+            check(measured.board_visible && measured.board_observation_valid,
                   "actual map must allow visible rectangular launch board despite unavailable fixed corridor "
                   "points");
             measured = confirm(actual_perception, measured_scene, 7, .6);
@@ -238,24 +246,13 @@ int main() {
         auto first = road();
         cone(first, 0, 1.3);
         o = confirm(p, first);
-        check(o.cones.size() == 1 && !o.board_visible, "cone must not be launch board");
-        const int id = o.cones[0].id;
-        auto closer = road();
-        cone(closer, 0, 1.2, 75, .12);
-        o = p.update(closer, 4, .3);
-        check(o.cones.size() == 1 && o.cones[0].id == id, "near cone must retain ID and survive area growth");
-        auto outside = road();
-        cone(outside, .8, 1.2);
-        RoadPerception limited(c, map(true));
-        o = confirm(limited, outside);
-        check(o.cones.empty() && limited.diagnostics().unmapped_cones > 0,
-              "unmapped cone must not acquire fake metric position");
+        check(!o.board_visible, "cone must not be classified as a launch board");
         p.reset();
         auto board = road();
         const auto base = pixel(0, 1.6);
         cv::rectangle(board, {base.x - 65, base.y - 105}, {base.x + 65, base.y}, {230, 75, 20}, cv::FILLED);
         o = confirm(p, board);
-        check(o.board_observation_valid && o.board_visible && o.cones.empty(),
+        check(o.board_observation_valid && o.board_visible,
               "rectangular board classification missing");
         p.reset();
         auto blank = cv::Mat(480, 640, CV_8UC3, cv::Scalar(40, 40, 40));

@@ -1,17 +1,17 @@
 {
-  "version": "smartcar_oneclick_20261119",
+  "version": "smartcar_oneclick_zebra_reverse1590_20261120",
   "source_manifest": "SOURCE-MANIFEST.json",
-  "source_files": 138,
+  "source_files": 151,
   "runtime": "C++ with embedded Python competition algorithms and 5G gateway",
   "local_ctest": "10/10",
   "fiveg_tests": 32,
   "pi_ctest": null,
   "physical_race_verified": false,
   "archive": {
-    "tag": "smartcar-oneclick-20261119",
-    "file": "smartcar-oneclick-20261119.zip",
-    "sha256": "abe8e9c295a723f16ad51317390ff226d6530c1f50f0dac59f5ef8403bb2ec53",
-    "bytes": 1621328,
-    "url": "https://github.com/zxjzzbh/2026-/releases/download/smartcar-oneclick-20261119/smartcar-oneclick-20261119.zip"
+    "tag": "smartcar-oneclick-zebra-reverse1590-20261120",
+    "file": "smartcar-oneclick-zebra-reverse1590-20261120.zip",
+    "sha256": "1f3a88964e5c0e69c9291fb4cb65804f0fd9f1f1bc1d95f1d601db54baec7dcd",
+    "bytes": 3235955,
+    "url": "https://github.com/zxjzzbh/2026-/releases/download/smartcar-oneclick-zebra-reverse1590-20261120/smartcar-oneclick-zebra-reverse1590-20261120.zip"
   }
 }

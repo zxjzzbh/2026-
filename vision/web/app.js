@@ -99,7 +99,12 @@
     const throttle = s?.throttle_us;
     $('run-output').textContent = !s?.output_fresh || throttle == null ? '暂无新鲜输出记录' : `油门 ${throttle} μs · 转向 ${s.steering_us ?? '—'} μs`;
     $('run-dir').textContent = s?.run_dir || '—';
-    $('telemetry').textContent = t.reason || (s?.process_running ? '任务进程运行中' : '未运行自主任务');
+    let detail = t.reason || (s?.process_running ? '任务进程运行中' : '未运行自主任务');
+    if (stage === 'two_cones' || (currentTask() === 'observe' && s?.process_running)) {
+      const count = n => Number.isInteger(n) && n >= 0 ? n + ' 个' : '暂无观测';
+      detail += ` · 已确认锥桶：主摄 ${count(t.primary_cones)}，地面相机 ${count(t.secondary_cones)} · 已通过 ${t.cones_passed ?? 0} 个`;
+    }
+    $('telemetry').textContent = detail;
   }
 
   function clearHeld() {
